@@ -1,0 +1,53 @@
+global: nondet_int w r x y
+
+pre: (and (= w 0) (= r 0) (= x 0) (= y 0))
+
+thread thread2a { thread2a::l }:
+b1 [25] : assume(= w 0) # assume from assume
+b2 [26] : (= r. (+ r 1))
+b3 [28] : (= |thread2a::l.| x)
+b4 [29] : (= y. |thread2a::l|)
+b5 [30] : assert(= y x)
+b6 [31] : (= |thread2a::l.| (- r 1))
+b7 [32] : (= r. |thread2a::l|)
+
+
+thread thread1b :
+c1 [15] : assume(and (= w 0) (= r 0)) # assume from assume
+c2 [16] : (= w. 1)
+c3 [18] : (= x. 3)
+c4 [19] : (= w. 0)
+
+
+thread thread1a :
+a1 [6] : assume(and (= w 0) (= r 0)) # assume from assume
+a2 [7] : (= w. 1)
+a3 [9] : (= x. 3)
+a4 [10] : (= w. 0)
+
+
+thread thread2b { thread2b::l }:
+d1 [38] : assume(= w 0) # assume from assume
+d2 [39] : (= r. (+ r 1))
+d3 [41] : (= |thread2b::l.| x)
+d4 [42] : (= y. |thread2b::l|)
+d5 [43] : assert(= y x) # assume from assert
+d6 [44] : (= |thread2b::l.| (- r 1))
+d7 [45] : (= r. |thread2b::l|)
+
+
+atomic: [d1[38] d2[39]] [b1[25] b2[26]] [a1[6] a2[7]] [c1[15] c2[16]]
+
+# Bugs: OAV
+
+#####################
+# Final result
+# Good CNF
+# ( hb(d5[43],c3[18]) ∨ hb(c3[18],d3[41]) ∨ hb(a3[9],d3[41]) ) ∧
+# ( hb(d5[43],a3[9]) ∨ hb(c3[18],d3[41]) ∨ hb(a3[9],d3[41]) ) ∧
+# ( hb(b5[30],c3[18]) ∨ hb(c3[18],b3[28]) ∨ hb(a3[9],b3[28]) ) ∧
+# ( hb(b5[30],a3[9]) ∨ hb(c3[18],b3[28]) ∨ hb(a3[9],b3[28]) ) 
+# 
+# Locks: l1(d3[41]-d5[43], c3[18]-c3[18]) l2(d3[41]-d5[43], a3[9]-a3[9]) l3(c3[18]-c3[18], b3[28]-b5[30]) l4(a3[9]-a3[9], b3[28]-b5[30]) 
+# Barriers: 
+# Wait-notifies: 

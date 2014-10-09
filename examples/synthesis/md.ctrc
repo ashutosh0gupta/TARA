@@ -1,0 +1,36 @@
+global: nondet_int lock1 sysfs_entry work removed wait_for_workqueue
+
+pre: (and (= lock1 0) (= sysfs_entry 1) (= work 0) (= removed 0) (= wait_for_workqueue 0))
+
+thread remove_thread :
+b2 [23] : (= work. 1)
+b3 [62] : (= removed. 1)
+
+
+thread md_misc_wq_thread :
+c1 [77] : assume(= work 1) # assume from assume
+c2 [79] : (= sysfs_entry. 0)
+c3 [93] : (= work. 0)
+
+
+thread add_thread :
+a1 [67] : assume(= removed 1) # assume from assume
+a3 [32] : assume(= lock1 0) # assume from assume
+a4 [33] : (= lock1. 1)
+a5 [39] : assert(= sysfs_entry 0)
+a6 [41] : (= sysfs_entry. 1)
+a7 [44] : (= lock1. 0)
+
+
+atomic: [a3[32] a4[33]]
+
+# Bugs: DU
+
+#####################
+# Final result
+# Good CNF
+# hb(c2[79],a5[39]) 
+# 
+# Locks: 
+# Barriers: 
+# Wait-notifies: hb(c2[79],a5[39]) 

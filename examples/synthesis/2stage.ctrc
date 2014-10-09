@@ -1,0 +1,26 @@
+global: page_table:(Array Int Int) memory:(Array Int Int)
+
+pre: (and (= (select page_table 1) 5) (= (select memory 5) 10) (= (select memory 20) 17))
+
+thread thread1 { page data loc } :
+a1 [12] : (= page. 1)
+a2 [5] : (= loc. (select page_table page))
+a3 [6] : (= data. (select memory loc))
+a4 [13] : assert(= data 10)
+
+thread thread2 { page new_location loc }:
+b1 [23] : (and (= page. 1) (= new_location. 20))
+b2 [17] : (= loc. (select page_table page))
+b3 [18] : (= page_table. (store page_table page new_location))
+b4 [19] : (= memory. (store memory new_location (select memory loc)))
+
+# Bugs: 2S
+
+#####################
+# Final result
+# Good CNF
+# ( hb(b4[19],a3[6]) ∨ hb(a2[5],b3[18]) ) 
+# 
+# Locks: 
+# Barriers: 
+# Wait-notifies: hb(b4[19],a3[6]) 

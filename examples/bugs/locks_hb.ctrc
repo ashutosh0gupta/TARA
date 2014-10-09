@@ -1,0 +1,45 @@
+global: nondet_int IntrMask init_finished workqueue_items interrupts
+
+pre: (and (= IntrMask 0) (= init_finished 0) (= workqueue_items 0) (= interrupts 0))
+
+thread startup_thread :
+c1 [44] : (= IntrMask. 1)
+c2 [45] : (= init_finished. 1)
+
+
+thread irq_thread2 { irq_thread2::temp }:
+b1 [32] : assume(= IntrMask 1) # assume from assume
+b2 [35] : assert(= init_finished 1)
+b3 [36] : (= |irq_thread2::temp.| workqueue_items)
+b4 [37] : (= workqueue_items. (+ |irq_thread2::temp| 1))
+b5 [38] : (= interrupts. (+ interrupts 1))
+
+
+thread workqueue_thread :
+d1 [16] : assert(>= workqueue_items interrupts) # assume from assert
+
+
+thread irq_thread1 { irq_thread1::temp }:
+a1 [21] : assume(= IntrMask 1) # assume from assume
+a2 [24] : assert(= init_finished 1) # assume from assert
+a3 [25] : (= |irq_thread1::temp.| workqueue_items)
+a4 [26] : (= workqueue_items. (+ |irq_thread1::temp| 1))
+a5 [27] : (= interrupts. (+ interrupts 1))
+
+# Bugs: DR, DU
+
+#####################
+# Final result
+# Bad DNF
+# hb(a2[24],c2[45]) ∨
+# hb(b2[35],c2[45]) ∨
+# ( hb(a4[26],b4[37]) ∧ hb(a5[27],d1[16]) ∧ hb(b5[38],a5[27]) ∧ hb(b3[36],a4[26]) ) ∨
+# ( hb(b4[37],a4[26]) ∧ hb(a5[27],d1[16]) ∧ hb(b5[38],a5[27]) ∧ hb(a3[25],b4[37]) ) ∨
+# ( hb(b4[37],a4[26]) ∧ hb(b5[38],d1[16]) ∧ hb(a5[27],b5[38]) ∧ hb(a3[25],b4[37]) ) ∨
+# ( hb(a4[26],b4[37]) ∧ hb(b5[38],d1[16]) ∧ hb(a5[27],b5[38]) ∧ hb(b3[36],a4[26]) ) 
+# 
+# Potential define-use bug: a2[24] -> c2[45]
+# Potential define-use bug: b2[35] -> c2[45]
+# Potential data race bug: b3[36] -> a4[26] -> b4[37]
+# Potential data race bug: a3[25] -> b4[37] -> a4[26]
+# 

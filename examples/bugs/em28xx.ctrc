@@ -1,0 +1,26 @@
+global: nondet_int devlist_nonempty vdev vbi_dev registered
+
+pre: (and (= devlist_nonempty 0.0) (= vdev (- 1.0)) (= vbi_dev (- 1.0)) (= registered 0.0))
+
+thread client_thread :
+b1 [46] : assume(not (= registered 0.0)) # assume from assume
+b2 [49] : assume(not (= devlist_nonempty 0.0)) # assume from assert
+b3 [52] : assume(not (= vdev (- 1.0))) # assume from assert
+b4 [55] : assert(not (= vbi_dev (- 1.0)))
+
+
+thread init_thread :
+a1 [27] : (= devlist_nonempty. 1.0)
+a2 [30] : (= vdev. 1.0)
+a3 [33] : (= registered. 1.0)
+a4 [36] : (= vbi_dev. 1.0)
+
+# Bugs: DU
+
+#####################
+# Final result
+# Bad DNF
+# hb(b4[55],a4[36]) 
+# 
+# Potential define-use bug: b4[55] -> a4[36]
+# 

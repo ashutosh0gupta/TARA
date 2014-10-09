@@ -1,0 +1,212 @@
+global: nondet_int fw_tty_registered fw_tty_initialized fw_tty_lock fw_driver_list_consistent fw_idr_consistent fw_table_lock fw_serial_bus_lock drv_usb_registered drv_usb_initialized drv_registered_with_usb_fw drv_registered_with_serial_fw drv_id_table drv_module_ref_cnt drv_device_id_registered dev_usb_serial_initialized dev_autopm dev_disconnected dev_disc_lock port_dev_registered port_initialized port_idr_registered port_tty_installed port_work port_work_initialized port_work_stop port_tty_registered port_consistent port_lock port_write_in_progress write_urb_state
+
+pre: (and (= fw_tty_registered 0) (= fw_tty_initialized 0) (= fw_tty_lock 0) (= fw_driver_list_consistent 1) (= fw_idr_consistent 1) (= fw_table_lock 0) (= fw_serial_bus_lock 0) (= drv_usb_registered 0) (= drv_usb_initialized 0) (= drv_registered_with_usb_fw 0) (= drv_registered_with_serial_fw 0) (= drv_id_table 0) (= drv_module_ref_cnt 0) (= drv_device_id_registered 0) (= dev_usb_serial_initialized (- 1)) (= dev_autopm 0) (= dev_disconnected 0) (= dev_disc_lock 0) (= port_dev_registered 0) (= port_initialized 0) (= port_tty_registered 0) (= port_tty_installed 0) (= port_idr_registered 0) (= port_work 0) (= port_work_initialized 0) (= port_work_stop 0) (= port_consistent 1) (= port_lock 0) (= port_write_in_progress 0) (= write_urb_state 0))
+
+thread usb_bus_thread { usb_serial_put::old }:
+b1 [495] : assume(or (not (= drv_usb_registered 0)) (not (= drv_device_id_registered 0))) # assume from assume
+b4 [70] : assume(= fw_table_lock 0) # assume from assume
+b5 [71] : (= fw_table_lock. 1)
+b6 [115] : assume(not (= fw_driver_list_consistent 0)) # assume from assert
+b7 [116] : assume(not (= drv_registered_with_usb_fw 0)) # assume from if
+b9 [290] : assume(>= drv_module_ref_cnt 0) # assume from if
+b10 [291] : (= drv_module_ref_cnt. (+ drv_module_ref_cnt 1))
+b11 [122] : assume(not (<= drv_module_ref_cnt 0)) # assume from if
+b12 [126] : assume(not (= drv_usb_initialized 0)) # assume from assert
+b13 [127] : assume(not (= drv_usb_registered 0)) # assume from assert
+b15 [76] : (= fw_table_lock. 0)
+b16 [131] : (= dev_usb_serial_initialized. 1)
+b19 [141] : (= dev_disconnected. 1)
+b21 [70] : assume(= fw_table_lock 0) # assume from assume
+b22 [71] : (= fw_table_lock. 1)
+b23 [146] : assume(not (= fw_idr_consistent 0)) # assume from assert
+b24 [147] : (= fw_idr_consistent. 0)
+b25 [148] : (= port_idr_registered. 1)
+b26 [149] : (= fw_idr_consistent. 1)
+b28 [76] : (= fw_table_lock. 0)
+b29 [153] : (= port_work_initialized. 1)
+b30 [154] : (= port_initialized. 1)
+b31 [155] : (= port_dev_registered. 1)
+b32 [156] : (= dev_disconnected. 0)
+b33 [500] : assume(not (= port_dev_registered 0)) # assume from if
+b36 [378] : assume(= dev_disc_lock 0) # assume from assume
+b37 [379] : (= dev_disc_lock. 1)
+b38 [167] : assume(>= dev_usb_serial_initialized 0) # assume from assert
+b39 [168] : (= dev_disconnected. 1)
+b41 [384] : (= dev_disc_lock. 0)
+b42 [171] : assume(not (= port_initialized 0)) # assume from assert
+b43 [173] : assume(not (= port_tty_installed 0)) # assume from if
+b44 [178] : assume(= fw_tty_lock 0) # assume from assume
+b45 [179] : (= fw_tty_lock. 2)
+b46 [182] : assume(> drv_module_ref_cnt 0) # assume from assert
+b47 [183] : assume(not (= dev_usb_serial_initialized 0)) # assume from assert
+b48 [184] : assume(not (= port_initialized 0)) # assume from assert
+b50 [98] : (= fw_tty_lock. 0)
+b52 [216] : (= port_work_stop. 1)
+b53 [219] : assume(= port_work 0) # assume from assume
+b54 [187] : (= port_work_initialized. 0)
+b55 [189] : assume(= port_write_in_progress 0) # assume from assume
+b56 [190] : (= port_tty_installed. 0)
+b57 [193] : (= drv_module_ref_cnt. (- drv_module_ref_cnt 1))
+b59 [252] : assume(> dev_usb_serial_initialized 0) # assume from assert
+b60 [255] : (= |usb_serial_put::old.| dev_usb_serial_initialized)
+b61 [256] : (= dev_usb_serial_initialized. (- dev_usb_serial_initialized 1))
+b62 [259] : assume(not (= |usb_serial_put::old| 1)) # assume from if
+b66 [252] : assume(> dev_usb_serial_initialized 0) # assume from assert
+b67 [255] : (= |usb_serial_put::old.| dev_usb_serial_initialized)
+b68 [256] : (= dev_usb_serial_initialized. (- dev_usb_serial_initialized 1))
+b69 [259] : assume(= |usb_serial_put::old| 1) # assume from if
+b70 [261] : assume(not (= port_idr_registered 0)) # assume from if
+b72 [70] : assume(= fw_table_lock 0) # assume from assume
+b73 [71] : (= fw_table_lock. 1)
+b74 [264] : assume(not (= fw_idr_consistent 0)) # assume from assert
+b75 [265] : (= fw_idr_consistent. 0)
+b76 [266] : (= port_idr_registered. 0)
+b77 [267] : (= fw_idr_consistent. 1)
+b79 [76] : (= fw_table_lock. 0)
+b82 [81] : assume(= fw_serial_bus_lock 0) # assume from assume
+b83 [82] : (= fw_serial_bus_lock. 1)
+b84 [275] : (= port_dev_registered. 0)
+b86 [87] : (= fw_serial_bus_lock. (- fw_serial_bus_lock 1))
+b87 [277] : assume(= port_tty_registered 0) # assume from assume
+b88 [278] : (= dev_usb_serial_initialized. (- 1))
+b89 [279] : (= port_initialized. 0)
+b90 [280] : (= drv_module_ref_cnt. (- drv_module_ref_cnt 1))
+
+
+thread attribute_thread :
+e2 [290] : assume(>= drv_module_ref_cnt 0) # assume from if
+e3 [291] : (= drv_module_ref_cnt. (+ drv_module_ref_cnt 1))
+e4 [571] : assume(> drv_module_ref_cnt 0) # assume from if
+e5 [572] : assume(not (= drv_registered_with_serial_fw 0)) # assume from assume
+e6 [573] : (= drv_device_id_registered. 1)
+e7 [574] : (= drv_module_ref_cnt. (- drv_module_ref_cnt 1))
+
+
+thread usb_cb_thread :
+f1 [506] : assume(or (= write_urb_state 1) (= drv_usb_registered 0)) # assume from assume
+f2 [507] : assume(= write_urb_state 1) # assume from if
+f3 [508] : assume(not (= drv_usb_initialized 0)) # assume from assert
+f4 [509] : (= write_urb_state. 0)
+f6 [464] : assume(not (= port_initialized 0)) # assume from assert
+f8 [103] : assume(= port_lock 0) # assume from assume
+f9 [104] : (= port_lock. 1)
+f10 [466] : assume(not (= port_consistent 0)) # assume from assert
+f11 [467] : (= port_consistent. 0)
+f12 [468] : (= port_consistent. 1)
+f14 [109] : (= port_lock. 0)
+f15 [470] : assert(not (= port_work_initialized 0))
+f16 [471] : (= port_work. 1)
+
+
+thread port_work_thread :
+g1 [517] : assume(or (= port_work 1) (= port_work_stop 1)) # assume from assume
+g2 [518] : assume(or (not (= fw_tty_lock 2)) (= port_work_stop 0)) # assume from assert
+g4 [92] : assume(= fw_tty_lock 0) # assume from assume
+g5 [93] : (= fw_tty_lock. 1)
+g6 [520] : assume(not (= port_work 0)) # assume from if
+g7 [521] : assume(not (= port_initialized 0)) # assume from assert
+g8 [522] : assume(not (= port_tty_installed 0)) # assume from assert
+g9 [523] : (= port_write_in_progress. 0)
+g10 [524] : (= port_work. 0)
+g12 [98] : (= fw_tty_lock. 0)
+
+
+thread serial_bus_thread :
+c2 [81] : assume(= fw_serial_bus_lock 0) # assume from assume
+c3 [82] : (= fw_serial_bus_lock. 1)
+c4 [532] : assume(not (= port_dev_registered 0)) # assume from assume
+c6 [224] : assume(not (= port_initialized 0)) # assume from assert
+c7 [225] : assume(>= dev_usb_serial_initialized 0) # assume from assert
+c8 [226] : (= dev_autopm. (+ dev_autopm 1))
+c10 [230] : (= port_tty_registered. 1)
+c11 [232] : (= dev_autopm. (- dev_autopm 1))
+c13 [87] : (= fw_serial_bus_lock. (- fw_serial_bus_lock 1))
+c14 [536] : assume(= port_dev_registered 0) # assume from assume
+c16 [81] : assume(= fw_serial_bus_lock 0) # assume from assume
+c17 [82] : (= fw_serial_bus_lock. 1)
+c19 [236] : assume(not (= port_initialized 0)) # assume from assert
+c20 [237] : assume(>= dev_usb_serial_initialized 0) # assume from assert
+c21 [240] : (= dev_autopm. (+ dev_autopm 1))
+c22 [242] : (= port_tty_registered. 0)
+c24 [246] : (= dev_autopm. (- dev_autopm 1))
+c26 [87] : (= fw_serial_bus_lock. (- fw_serial_bus_lock 1))
+
+
+thread fw_module_thread :
+a2 [54] : (= fw_tty_initialized. 1)
+a3 [55] : (= fw_tty_registered. 1)
+a5 [310] : (= drv_usb_initialized. 1)
+a6 [311] : (= drv_usb_registered. 1)
+a8 [70] : assume(= fw_table_lock 0) # assume from assume
+a9 [71] : (= fw_table_lock. 1)
+a10 [316] : assume(not (= fw_driver_list_consistent 0)) # assume from assert
+a11 [317] : (= fw_driver_list_consistent. 0)
+a12 [318] : (= drv_registered_with_usb_fw. 1)
+a13 [319] : (= fw_driver_list_consistent. 1)
+a14 [321] : (= drv_registered_with_serial_fw. 1)
+a16 [76] : (= fw_table_lock. 0)
+a17 [325] : (= drv_id_table. 1)
+a18 [483] : assume(= drv_module_ref_cnt 0) # assume from assume
+a19 [484] : (= drv_module_ref_cnt. (- drv_module_ref_cnt 1))
+a21 [329] : assume(not (= drv_usb_initialized 0)) # assume from assert
+a22 [330] : (= drv_registered_with_usb_fw. 0)
+a24 [70] : assume(= fw_table_lock 0) # assume from assume
+a25 [71] : (= fw_table_lock. 1)
+a26 [336] : assume(not (= fw_driver_list_consistent 0)) # assume from assert
+a27 [337] : (= fw_driver_list_consistent. 0)
+a28 [338] : (= drv_registered_with_usb_fw. 0)
+a29 [339] : (= fw_driver_list_consistent. 1)
+a30 [341] : (= drv_registered_with_serial_fw. 0)
+a32 [76] : (= fw_table_lock. 0)
+a33 [345] : (= drv_usb_registered. 0)
+a34 [346] : (= drv_usb_initialized. 0)
+a36 [61] : (= fw_tty_registered. 0)
+a37 [64] : assume(= port_tty_installed 0) # assume from assume
+a38 [65] : (= fw_tty_initialized. 0)
+
+
+thread tty_thread :
+d1 [543] : assume(not (= drv_registered_with_serial_fw 0)) # assume from assume
+d3 [92] : assume(= fw_tty_lock 0) # assume from assume
+d4 [93] : (= fw_tty_lock. 1)
+d7 [70] : assume(= fw_table_lock 0) # assume from assume
+d8 [71] : (= fw_table_lock. 1)
+d9 [400] : assume(not (= port_idr_registered 0)) # assume from if
+d11 [378] : assume(= dev_disc_lock 0) # assume from assume
+d12 [379] : (= dev_disc_lock. 1)
+d13 [407] : assume(= dev_disconnected 0) # assume from if
+d14 [411] : assume(not (= port_initialized 0)) # assume from assert
+d15 [412] : assume(> dev_usb_serial_initialized 0) # assume from assert
+d16 [413] : (= dev_usb_serial_initialized. (+ dev_usb_serial_initialized 1))
+d18 [76] : (= fw_table_lock. 0)
+d20 [290] : assume(>= drv_module_ref_cnt 0) # assume from if
+d21 [291] : (= drv_module_ref_cnt. (+ drv_module_ref_cnt 1))
+d22 [419] : assume(not (<= drv_module_ref_cnt 0)) # assume from if
+d23 [424] : (= dev_autopm. (+ dev_autopm 1))
+d24 [425] : (= port_tty_installed. 1)
+d26 [384] : (= dev_disc_lock. 0)
+d27 [547] : assume(not (= port_tty_installed 0)) # assume from if
+d28 [548] : (= port_write_in_progress. 1)
+d29 [550] : assume(not (= port_initialized 0)) # assume from assert
+d30 [551] : assume(not (= dev_usb_serial_initialized 0)) # assume from assert
+d31 [552] : assume(not (= port_tty_installed 0)) # assume from assert
+d33 [103] : assume(= port_lock 0) # assume from assume
+d34 [104] : (= port_lock. 1)
+d35 [554] : assume(not (= port_consistent 0)) # assume from assert
+d36 [555] : (= port_consistent. 0)
+d37 [556] : (= port_consistent. 1)
+d39 [109] : (= port_lock. 0)
+d40 [559] : assume(= write_urb_state 0) # assume from if
+d41 [560] : (= write_urb_state. 1)
+d43 [98] : (= fw_tty_lock. 0)
+
+
+atomic: [a8[70] a9[71]] [b4[70] b5[71]] [d3[92] d4[93]] [b21[70] b22[71]] [d7[70] d8[71]] [c2[81] c3[82]] [d11[378] d12[379]] [b36[378] b37[379]] [d33[103] d34[104]] [b44[178] b45[179]] [f8[103] f9[104]] [g4[92] g5[93]] [b60[255] b61[256]] [b67[255] b68[256]] [b72[70] b73[71]] [b82[81] b83[82]] [c16[81] c17[82]] [a18[483] a19[484]] [a24[70] a25[71]]
+
+# Bugs: OV
+
+#####################
+# Final result
+# Bad DNF
+# hb(b54[187],f15[470]) 
+# 

@@ -1,0 +1,21 @@
+global: nondet_int a b
+
+pre: (and (= a 0) (= b 0))
+
+thread check_thread :
+b1 [12] : assert(or (and (= a 0) (= b 0)) (and (= a 1) (= b (- 1))))
+
+
+thread set_thread :
+a1 [5] : (= a. 1)
+a2 [6] : (= b. (- 1))
+
+# Bugs: DU
+
+#####################
+# Final result
+# Bad DNF
+# ( hb(a1[5],b1[12]) ∧ hb(b1[12],a2[6]) ) 
+# 
+# Potential define-use bug: a1[5] -> b1[12]
+# 

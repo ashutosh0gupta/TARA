@@ -1,0 +1,45 @@
+global: nondet_int data1 data2 ma mb f1 f2
+
+pre: (and (= ma 0) (= mb 0) (= f1 0) (= f2 0) (= data1 10) (= data2 10))
+
+thread thread2 :
+b1 [22] : assume(= ma 0) # assume from assume
+b2 [22] : (= ma. 1)
+b3 [23] : (= data1. (+ data1 5))
+b4 [24] : (= ma. 0)
+b5 [26] : assume(= ma 0) # assume from assume
+b6 [26] : (= ma. 1)
+b7 [27] : (= data2. (- data2 6))
+b8 [28] : (= ma. 0)
+b9 [29] : (= f2. 1)
+
+
+thread thread1 :
+a1 [9] : assume(= ma 0) # assume from assume
+a2 [9] : (= ma. 1)
+a3 [10] : (= data1. (+ data1 1))
+a4 [11] : (= ma. 0)
+a5 [13] : assume(= ma 0) # assume from assume
+a6 [13] : (= ma. 1)
+a7 [14] : (= data2. (+ data2 1))
+a8 [15] : (= ma. 0)
+a9 [16] : (= f1. 1)
+
+
+thread thread3 :
+c3 [36] : assert(or (= data1 16) (= data2 5))
+
+
+atomic: [b1[22] b2[22]] [b5[26] b6[26]] [a1[9] a2[9]] [a5[13] a6[13]]
+
+# Bugs: OV
+
+#####################
+# Final result
+# Good CNF
+# hb(b3[23],c3[36]) ∧
+# hb(a3[10],c3[36]) 
+# 
+# Locks: 
+# Barriers: 
+# Wait-notifies: hb(b3[23],c3[36]) hb(a3[10],c3[36]) 

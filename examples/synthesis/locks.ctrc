@@ -1,0 +1,31 @@
+global: nondet_int m x y z balance deposit_done withdraw_done
+
+pre: (and (= balance x) (= deposit_done 0) (= withdraw_done 0))
+
+thread withdraw_thread { withdraw_thread::l2 }:
+c1 [15] : (= |withdraw_thread::l2.| balance)
+c2 [16] : (= balance. (- |withdraw_thread::l2| z))
+c3 [17] : (= withdraw_done. 1)
+
+
+thread deposit_thread { deposit_thread::l }:
+b1 [7] : (= |deposit_thread::l.| balance)
+b2 [8] : (= balance. (+ |deposit_thread::l| y))
+b3 [9] : (= deposit_done. 1)
+
+
+thread check_result_thread :
+a1 [22] : assume(and (= deposit_done 1) (= withdraw_done 1)) # assume from assume
+a2 [23] : assert(= balance (- (+ x y) z))
+
+# Bugs: DR
+
+#####################
+# Final result
+# Good CNF
+# ( hb(a1[22],c3[17]) ∨ hb(b2[8],c2[16]) ∨ hb(a1[22],b3[9]) ∨ hb(c2[16],b1[7]) ) ∧
+# ( hb(a1[22],c3[17]) ∨ hb(c2[16],b2[8]) ∨ hb(a1[22],b3[9]) ∨ hb(b2[8],c1[15]) ) 
+# 
+# Locks: l1(b1[7]-b2[8], c1[15]-c2[16]) 
+# Barriers: 
+# Wait-notifies: 

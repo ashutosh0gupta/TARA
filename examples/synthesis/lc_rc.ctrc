@@ -1,0 +1,39 @@
+global: nondet_int neh_running stop_neh rc_running stop_rc rsv_running stop_rsv
+
+pre: (and (= neh_running 1.0) (= stop_neh 0.0) (= rc_running 1.0) (= stop_rc 0.0) (= rsv_running 1.0) (= stop_rsv 0.0))
+
+thread rsv_thread :
+d1 [60] : assume(not (= stop_rsv 0.0)) # assume from assume
+d2 [62] : (= rsv_running. 0.0)
+
+
+thread neh_thread :
+c1 [51] : assert(not (= rsv_running 0.0))
+c2 [53] : assume(not (= stop_neh 0.0)) # assume from assume
+c3 [55] : (= neh_running. 0.0)
+
+
+thread shutdown_thread :
+a1 [27] : (= stop_rsv. 1.0)
+a2 [29] : assume(= rsv_running 0.0) # assume from assume
+a3 [31] : (= stop_rc. 1.0)
+a4 [33] : assume(= rc_running 0.0) # assume from assume
+a5 [35] : (= stop_neh. 1.0)
+a6 [37] : assume(= neh_running 0.0) # assume from assume
+
+
+thread rc_thread :
+b1 [42] : assume(not (= neh_running 0.0)) # assume from assert
+b2 [44] : assume(not (= stop_rc 0.0)) # assume from assume
+b3 [46] : (= rc_running. 0.0)
+
+# Bugs: OV
+
+#####################
+# Final result
+# Good CNF
+# hb(c1[51],d2[62]) 
+# 
+# Locks: 
+# Barriers: 
+# Wait-notifies: hb(c1[51],d2[62]) 

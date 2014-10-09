@@ -1,0 +1,107 @@
+global: nondet_int want_sysfs want_dev registered netif_running irq_enabled napi_enabled napi_scheduled reset_task_ready sysfs_registered dev_lock sysfs_lock rtnl_lock irq_sem napi_sem IntrStatus IntrMask intr_mask dev_on hw_start
+
+
+thread pci_thread { register_netdev::ret2 pci_thread::probe1 drv_probe::rc1 drv_probe::ret4 }:
+a3 [625] : assume(= sysfs_lock 0) # assume from assume
+a4 [625] : (= sysfs_lock. 1)
+a6 [452] : (= sysfs_registered. 1)
+a7 [627] : (= sysfs_lock. 0)
+a9 [388] : (= registered. 1)
+a10 [389] : (= |register_netdev::ret2.| 0)
+a11 [472] : (= |drv_probe::rc1.| |register_netdev::ret2|)
+a12 [473] : (= hw_start. 1)
+a13 [475] : assume(not (< |drv_probe::rc1| 0)) # assume from if
+a14 [478] : (= |drv_probe::ret4.| 0)
+a15 [237] : (= |pci_thread::probe1.| |drv_probe::ret4|)
+a16 [238] : assume(= |pci_thread::probe1| 0) # assume from if
+a17 [241] : (= want_dev. 5)
+a18 [243] : assume(= dev_lock 0) # assume from assume
+a19 [244] : (= dev_lock. 5)
+a20 [245] : (= want_dev. 0)
+a23 [398] : (= registered. 0)
+a24 [399] : assume(not (not (= netif_running 0))) # assume from assume
+a26 [634] : (= want_sysfs. 5)
+a27 [636] : assume(= sysfs_lock 0) # assume from assume
+a28 [637] : (= sysfs_lock. 5)
+a29 [638] : (= want_sysfs. 0)
+a31 [457] : (= sysfs_registered. 0)
+a32 [643] : (= sysfs_lock. 0)
+a33 [250] : (= dev_lock. 0)
+
+
+thread dev_thread :
+g1 [317] : (= IntrStatus. 1)
+g2 [317] : (= IntrStatus. 1)
+
+
+thread sysfs_thread { sysfs_thread::nondet1 }:
+f1 [354] : (= want_sysfs. 6)
+f2 [356] : assume(= sysfs_lock 0) # assume from assume
+f3 [357] : (= sysfs_lock. 6)
+f4 [358] : (= want_sysfs. 0)
+f5 [364] : (= want_dev. 6)
+f6 [366] : assume(= dev_lock 0) # assume from assume
+f7 [367] : (= dev_lock. 6)
+f8 [368] : (= want_dev. 0)
+f9 [372] : assume(not (not (= sysfs_registered 0))) # assume from if
+f10 [376] : (= dev_lock. 0)
+f11 [377] : (= sysfs_lock. 0)
+
+
+thread workqueue_thread :
+e1 [340] : assume(= reset_task_ready 0) # assume from if
+e2 [340] : assume(= reset_task_ready 0) # assume from if
+
+
+thread deadlock_thread :
+h1 [648] : assume(not (and (= dev_lock want_sysfs)
+          (= sysfs_lock want_dev)
+          (not (= dev_lock 0))
+          (not (= sysfs_lock 0)))) # assume from assert
+
+
+thread network_thread { network_thread::open1 open::ret1 drv_open::ret5 request_irq::ret3 drv_open::rc2 }:
+b2 [275] : (= |open::ret1.| 0)
+b3 [277] : assume(= rtnl_lock 0) # assume from assume
+b4 [277] : (= rtnl_lock. 1)
+b5 [278] : assume(not (not (= registered 0))) # assume from if
+b6 [284] : (= rtnl_lock. 0)
+b7 [260] : (= |network_thread::open1.| |open::ret1|)
+b8 [261] : assume(= |network_thread::open1| 0) # assume from if
+b11 [290] : assume(= rtnl_lock 0) # assume from assume
+b12 [290] : (= rtnl_lock. 1)
+b13 [291] : assume(not (not (= netif_running 0))) # assume from if
+b14 [295] : (= rtnl_lock. 0)
+b16 [275] : (= |open::ret1.| 0)
+b17 [277] : assume(= rtnl_lock 0) # assume from assume
+b18 [277] : (= rtnl_lock. 1)
+b19 [278] : assume(not (= registered 0)) # assume from if
+b21 [488] : assert(not (= hw_start 0))
+b22 [490] : (= IntrMask. 0)
+b24 [409] : (= |request_irq::ret3.| (- 1))
+b25 [492] : (= |drv_open::rc2.| |request_irq::ret3|)
+b26 [494] : assume(< |drv_open::rc2| 0) # assume from if
+b27 [495] : (= |drv_open::ret5.| |drv_open::rc2|)
+b28 [279] : (= |open::ret1.| |drv_open::ret5|)
+b29 [280] : assume(not (= |open::ret1| 0)) # assume from if
+b30 [284] : (= rtnl_lock. 0)
+b31 [260] : (= |network_thread::open1.| |open::ret1|)
+b32 [261] : assume(not (= |network_thread::open1| 0)) # assume from if
+
+
+thread napi_thread :
+d1 [328] : assume(= napi_sem 0) # assume from assume
+d2 [328] : (= napi_sem. 1)
+d3 [329] : assume(= napi_scheduled 0) # assume from if
+d4 [332] : (= napi_sem. 0)
+
+
+atomic: [f2[356] f3[357]] [f3[357] f4[358]] [f6[366] f7[367]] [f7[367] f8[368]] [d1[328] d2[328]] [a3[625] a4[625]] [b3[277] b4[277]] [b11[290] b12[290]] [b17[277] b18[277]] [a18[243] a19[244]] [a19[244] a20[245]] [a27[636] a28[637]] [a28[637] a29[638]]
+
+# Bugs: DU
+
+#####################
+# Final result
+# Bad DNF
+# ( hb(a9[388],b19[278]) ∧ hb(b21[488],a12[473]) ) 
+# 

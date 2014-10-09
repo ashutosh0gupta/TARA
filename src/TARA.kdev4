@@ -1,0 +1,4 @@
+[Project]
+Name=TARA
+Manager=KDevCMakeManager
+VersionControl=kdevgit

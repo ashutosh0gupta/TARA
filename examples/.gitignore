@@ -1,0 +1,8 @@
+*/output/
+ioCache*/
+*.badOnly/
+*.corrected.c
+*.statistic.txt
+*.original.c
+
+/trce.?.ctrc

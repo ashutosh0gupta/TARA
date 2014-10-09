@@ -1,0 +1,62 @@
+global: nondet_int i j f1 f2
+
+pre: (and (= i 1) (= j 1) (= f1 1) (= f2 1))
+
+thread thread2 { thread2::c }:
+b1 [18] : (= |thread2::c.| 0)
+b2 [20] : assume(< |thread2::c| 5) # assume from assume
+b3 [21] : (= j. (+ j i))
+b4 [22] : (= |thread2::c.| (+ |thread2::c| 1))
+b5 [20] : assume(< |thread2::c| 5) # assume from assume
+b6 [21] : (= j. (+ j i))
+b7 [22] : (= |thread2::c.| (+ |thread2::c| 1))
+b8 [20] : assume(< |thread2::c| 5) # assume from assume
+b9 [21] : (= j. (+ j i))
+b10 [22] : (= |thread2::c.| (+ |thread2::c| 1))
+b11 [20] : assume(< |thread2::c| 5) # assume from assume
+b12 [21] : (= j. (+ j i))
+b13 [22] : (= |thread2::c.| (+ |thread2::c| 1))
+b14 [20] : assume(< |thread2::c| 5) # assume from assume
+b15 [21] : (= j. (+ j i))
+b16 [22] : (= |thread2::c.| (+ |thread2::c| 1))
+b17 [24] : assume(>= |thread2::c| 5) # assume from assume
+b18 [25] : (= f1. 1)
+
+
+thread thread1 { thread1::c }:
+a1 [7] : (= |thread1::c.| 0)
+a2 [9] : assume(< |thread1::c| 5) # assume from assume
+a3 [10] : (= i. (+ i j))
+a4 [11] : (= |thread1::c.| (+ |thread1::c| 1))
+a5 [9] : assume(< |thread1::c| 5) # assume from assume
+a6 [10] : (= i. (+ i j))
+a7 [11] : (= |thread1::c.| (+ |thread1::c| 1))
+a8 [9] : assume(< |thread1::c| 5) # assume from assume
+a9 [10] : (= i. (+ i j))
+a10 [11] : (= |thread1::c.| (+ |thread1::c| 1))
+a11 [9] : assume(< |thread1::c| 5) # assume from assume
+a12 [10] : (= i. (+ i j))
+a13 [11] : (= |thread1::c.| (+ |thread1::c| 1))
+a14 [9] : assume(< |thread1::c| 5) # assume from assume
+a15 [10] : (= i. (+ i j))
+a16 [11] : (= |thread1::c.| (+ |thread1::c| 1))
+a17 [13] : assume(>= |thread1::c| 5) # assume from assume
+a18 [14] : (= f2. 1)
+
+
+thread thread3 :
+c1 [29] : assume(= f1 1) # assume from assume
+c2 [30] : assume(= f2 1) # assume from assume
+c3 [31] : assert(and (< i 144) (< j 144))
+
+# Bugs: OAV
+
+#####################
+# Final result
+# Good CNF
+# ( hb(c3[31],a15[10]) ∨ hb(a15[10],b15[21]) ∨ hb(b15[21],a12[10]) ∨ hb(a12[10],b12[21]) ∨ hb(b12[21],a9[10]) ∨ hb(a9[10],b9[21]) ∨ hb(b9[21],a6[10]) ∨ hb(a6[10],b6[21]) ∨ hb(b6[21],a3[10]) ∨ hb(a3[10],b3[21]) ) ∧
+# ( hb(c3[31],b15[21]) ∨ hb(a15[10],b12[21]) ∨ hb(b15[21],a15[10]) ∨ hb(a12[10],b9[21]) ∨ hb(b12[21],a12[10]) ∨ hb(a9[10],b6[21]) ∨ hb(b9[21],a9[10]) ∨ hb(a6[10],b3[21]) ∨ hb(b6[21],a6[10]) ∨ hb(b3[21],a3[10]) ) 
+# 
+# Locks: l1(a12[10]-a15[10], b12[21]-b15[21]) 
+# Barriers: 
+# Wait-notifies: 

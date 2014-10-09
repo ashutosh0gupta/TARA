@@ -1,0 +1,60 @@
+global: nondet_int open power_on
+
+pre: (and (= open 0.0) (= power_on 0.0))
+
+thread thread_open { thread_open::i }:
+a1 [67] : (= |thread_open::i.| 0.0)
+a2 [69] : (= |thread_open::i.| (+ |thread_open::i| 1.0))
+a4 [36] : assume(= open 0.0) # assume from if
+a5 [37] : (= power_on. 1.0)
+a6 [39] : (= open. (+ open 1.0))
+a7 [41] : assert(not (= power_on 0.0))
+a8 [69] : (= |thread_open::i.| (+ |thread_open::i| 1.0))
+a10 [36] : assume(= open 0.0) # assume from if
+a11 [37] : (= power_on. 1.0)
+a12 [39] : (= open. (+ open 1.0))
+a13 [41] : assert(not (= power_on 0.0))
+a14 [69] : (= |thread_open::i.| (+ |thread_open::i| 1.0))
+a16 [36] : assume(not (= open 0.0)) # assume from if
+a17 [39] : (= open. (+ open 1.0))
+a18 [41] : assert(not (= power_on 0.0))
+a19 [69] : (= |thread_open::i.| (+ |thread_open::i| 1.0))
+a21 [36] : assume(not (= open 0.0)) # assume from if
+a22 [39] : (= open. (+ open 1.0))
+a23 [41] : assert(not (= power_on 0.0))
+a24 [72] : assume(> |thread_open::i| 3.0) # assume from assume
+
+
+thread thread_close { thread_close::i }:
+b1 [76] : (= |thread_close::i.| 0.0)
+b2 [78] : (= |thread_close::i.| (+ |thread_close::i| 1.0))
+b3 [79] : assume(> open 0.0) # assume from assume
+b5 [54] : (= open. (- open 1.0))
+b6 [56] : assume(= open 0.0) # assume from if
+b7 [57] : (= power_on. 0.0)
+b8 [58] : assume(= power_on 0.0) # assume from assert
+b9 [78] : (= |thread_close::i.| (+ |thread_close::i| 1.0))
+b10 [79] : assume(> open 0.0) # assume from assume
+b12 [54] : (= open. (- open 1.0))
+b13 [56] : assume(not (= open 0.0)) # assume from if
+b14 [78] : (= |thread_close::i.| (+ |thread_close::i| 1.0))
+b15 [79] : assume(> open 0.0) # assume from assume
+b17 [54] : (= open. (- open 1.0))
+b18 [56] : assume(not (= open 0.0)) # assume from if
+b19 [78] : (= |thread_close::i.| (+ |thread_close::i| 1.0))
+b20 [79] : assume(> open 0.0) # assume from assume
+b22 [54] : (= open. (- open 1.0))
+b23 [56] : assume(= open 0.0) # assume from if
+b24 [57] : (= power_on. 0.0)
+b25 [58] : assert(= power_on 0.0) # assume from assert
+b26 [82] : assume(> |thread_close::i| 3.0) # assume from assume
+
+# Bugs: OAV, OV
+
+#####################
+# Final result
+# Bad DNF
+# ( hb(a11[37],b7[57]) ∧ hb(b7[57],a23[41]) ) ∨
+# hb(b24[57],a23[41]) ∨
+# hb(b7[57],a7[41]) 
+# 

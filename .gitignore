@@ -1,0 +1,17 @@
+*.kilepr
+
+/build/
+build?/
+
+.kdev4/
+
+workspace.xml
+
+*.so
+tara
+tara.exe
+
+core.*
+.z3-trace
+*.kate-swp
+z3smtlog.0.smt2

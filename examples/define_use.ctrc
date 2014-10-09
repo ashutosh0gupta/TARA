@@ -1,0 +1,20 @@
+global: nondet_int hw_start registered
+
+pre: (and (= hw_start 0) (= registered 0))
+
+thread pci_thread :
+a2 [25] : (= registered. 1)
+a3 [30] : (= hw_start. 123456789)
+
+
+thread network_thread :
+b1 [40] : assume(not (= registered 0)) # assume from if
+b2 [34] : assert(> hw_start 0)
+
+# Bugs: DU
+
+#####################
+# Final result
+# Bad DNF
+# hb(b2[34],a3[30]) 
+# 

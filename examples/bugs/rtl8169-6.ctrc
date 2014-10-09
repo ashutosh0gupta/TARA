@@ -1,0 +1,188 @@
+global: nondet_int want_sysfs want_dev registered netif_running irq_enabled napi_enabled napi_scheduled reset_task_ready sysfs_registered dev_lock sysfs_lock rtnl_lock irq_sem napi_sem IntrStatus IntrMask intr_mask dev_on hw_start
+
+pre: (and (= registered 0) (= netif_running 0) (= irq_enabled 0) (= napi_enabled 0) (= napi_scheduled 0) (= reset_task_ready 0) (= sysfs_registered 0) (= dev_lock 0) (= sysfs_lock 0) (= rtnl_lock 0) (= want_sysfs 0) (= want_dev 0) (= irq_sem 0) (= napi_sem 0) (= dev_on 0) (= IntrStatus 0) (= IntrMask 0) (= intr_mask 0) (= hw_start 0))
+
+thread irq_thread { write_IntrStatus::val write_IntrMask::val drv_irq::handled2 drv_irq::status1 }:
+c1 [305] : assume(= irq_sem 0) # assume from assume
+c2 [305] : (= irq_sem. 1)
+c3 [306] : assume(and (not (= irq_enabled 0))
+     (not (= IntrStatus 0))
+     (not (= IntrMask 0))) # assume from if
+c4 [307] : assert(not (= intr_mask 0))
+c6 [520] : (= |drv_irq::handled2.| 0)
+c7 [522] : (= |drv_irq::status1.| IntrStatus)
+c8 [524] : assume(not (= intr_mask 0)) # assume from if
+c10 [525] : (= |write_IntrMask::val.| 0)
+c11 [587] : assume(not (= dev_on 0)) # assume from assert
+c12 [588] : (= IntrMask. |write_IntrMask::val|)
+c13 [526] : (= intr_mask. 0)
+c15 [433] : assume(not (= napi_enabled 0)) # assume from if
+c16 [434] : (= napi_scheduled. 1)
+c17 [528] : (= |drv_irq::handled2.| 1)
+c19 [530] : (= |write_IntrStatus::val.| |drv_irq::status1|)
+c20 [593] : assume(not (= dev_on 0)) # assume from assert
+c21 [594] : (= IntrStatus. |write_IntrStatus::val|)
+c22 [531] : (= |drv_irq::status1.| IntrStatus)
+c23 [533] : assume(= |drv_irq::status1| 0) # assume from assume
+c24 [310] : (= irq_sem. 0)
+c25 [305] : assume(= irq_sem 0) # assume from assume
+c26 [305] : (= irq_sem. 1)
+c27 [306] : assume(and (not (= irq_enabled 0))
+     (not (= IntrStatus 0))
+     (not (= IntrMask 0))) # assume from if
+c28 [307] : assert(not (= intr_mask 0))
+c30 [520] : (= |drv_irq::handled2.| 0)
+c31 [522] : (= |drv_irq::status1.| IntrStatus)
+c32 [524] : assume(not (= intr_mask 0)) # assume from if
+c34 [525] : (= |write_IntrMask::val.| 0)
+c35 [587] : assume(not (= dev_on 0)) # assume from assert
+c36 [588] : (= IntrMask. |write_IntrMask::val|)
+c37 [526] : (= intr_mask. 0)
+c39 [433] : assume(not (= napi_enabled 0)) # assume from if
+c40 [434] : (= napi_scheduled. 1)
+c41 [528] : (= |drv_irq::handled2.| 1)
+c43 [530] : (= |write_IntrStatus::val.| |drv_irq::status1|)
+c44 [593] : assume(not (= dev_on 0)) # assume from assert
+c45 [594] : (= IntrStatus. |write_IntrStatus::val|)
+c46 [531] : (= |drv_irq::status1.| IntrStatus)
+c47 [524] : assume(not (not (= intr_mask 0))) # assume from if
+c49 [530] : (= |write_IntrStatus::val.| |drv_irq::status1|)
+c50 [593] : assume(not (= dev_on 0)) # assume from assert
+c51 [594] : (= IntrStatus. |write_IntrStatus::val|)
+c52 [531] : (= |drv_irq::status1.| IntrStatus)
+c53 [533] : assume(= |drv_irq::status1| 0) # assume from assume
+c54 [310] : (= irq_sem. 0)
+
+
+thread pci_thread { register_netdev::ret2 pci_thread::probe1 drv_probe::rc1 drv_probe::ret4 }:
+a3 [625] : assume(= sysfs_lock 0) # assume from assume
+a4 [625] : (= sysfs_lock. 1)
+a6 [452] : (= sysfs_registered. 1)
+a7 [627] : (= sysfs_lock. 0)
+a8 [473] : (= hw_start. 1)
+a10 [388] : (= registered. 1)
+a11 [389] : (= |register_netdev::ret2.| 0)
+a12 [472] : (= |drv_probe::rc1.| |register_netdev::ret2|)
+a13 [475] : assume(not (< |drv_probe::rc1| 0)) # assume from if
+a14 [478] : (= |drv_probe::ret4.| 0)
+a15 [237] : (= |pci_thread::probe1.| |drv_probe::ret4|)
+a16 [238] : assume(= |pci_thread::probe1| 0) # assume from if
+a17 [241] : (= want_dev. 5)
+a18 [243] : assume(= dev_lock 0) # assume from assume
+a19 [244] : (= dev_lock. 5)
+a20 [245] : (= want_dev. 0)
+a23 [398] : (= registered. 0)
+a24 [399] : assume(not (not (= netif_running 0))) # assume from assume
+a26 [634] : (= want_sysfs. 5)
+a27 [636] : assume(= sysfs_lock 0) # assume from assume
+a28 [637] : (= sysfs_lock. 5)
+a29 [638] : (= want_sysfs. 0)
+a31 [457] : (= sysfs_registered. 0)
+a32 [643] : (= sysfs_lock. 0)
+a33 [250] : (= dev_lock. 0)
+
+
+thread dev_thread :
+g1 [317] : (= IntrStatus. 1)
+g2 [317] : (= IntrStatus. 1)
+
+
+thread workqueue_thread :
+e1 [340] : assume(= reset_task_ready 0) # assume from if
+e2 [340] : assume(= reset_task_ready 0) # assume from if
+
+
+thread deadlock_thread :
+h1 [648] : assume(not (and (= dev_lock want_sysfs)
+          (= sysfs_lock want_dev)
+          (not (= dev_lock 0))
+          (not (= sysfs_lock 0)))) # assume from assert
+
+
+thread network_thread { network_thread::open1 open::ret1 drv_open::ret5 write_IntrMask::val request_irq::ret3 drv_open::rc2 }:
+b2 [275] : (= |open::ret1.| 0)
+b3 [277] : assume(= rtnl_lock 0) # assume from assume
+b4 [277] : (= rtnl_lock. 1)
+b5 [278] : assume(not (not (= registered 0))) # assume from if
+b6 [284] : (= rtnl_lock. 0)
+b7 [260] : (= |network_thread::open1.| |open::ret1|)
+b8 [261] : assume(= |network_thread::open1| 0) # assume from if
+b11 [290] : assume(= rtnl_lock 0) # assume from assume
+b12 [290] : (= rtnl_lock. 1)
+b13 [291] : assume(not (not (= netif_running 0))) # assume from if
+b14 [295] : (= rtnl_lock. 0)
+b16 [275] : (= |open::ret1.| 0)
+b17 [277] : assume(= rtnl_lock 0) # assume from assume
+b18 [277] : (= rtnl_lock. 1)
+b19 [278] : assume(not (= registered 0)) # assume from if
+b21 [488] : assume(not (= hw_start 0)) # assume from assert
+b22 [490] : (= IntrMask. 0)
+b24 [406] : (= irq_enabled. 1)
+b25 [407] : (= |request_irq::ret3.| 0)
+b26 [492] : (= |drv_open::rc2.| |request_irq::ret3|)
+b27 [494] : assume(not (< |drv_open::rc2| 0)) # assume from if
+b29 [421] : (= napi_enabled. 1)
+b31 [599] : (= dev_on. 1)
+b32 [601] : (= intr_mask. 1)
+b34 [600] : (= |write_IntrMask::val.| 1)
+b35 [587] : assume(not (= dev_on 0)) # assume from assert
+b36 [588] : (= IntrMask. |write_IntrMask::val|)
+b37 [499] : (= |drv_open::ret5.| 0)
+b38 [279] : (= |open::ret1.| |drv_open::ret5|)
+b39 [280] : assume(= |open::ret1| 0) # assume from if
+b40 [281] : (= netif_running. 1)
+b41 [284] : (= rtnl_lock. 0)
+b42 [260] : (= |network_thread::open1.| |open::ret1|)
+b43 [261] : assume(= |network_thread::open1| 0) # assume from if
+b46 [290] : assume(= rtnl_lock 0) # assume from assume
+b47 [290] : (= rtnl_lock. 1)
+b48 [291] : assume(not (= netif_running 0)) # assume from if
+b49 [292] : (= netif_running. 0)
+b52 [426] : (= napi_enabled. 0)
+b53 [427] : assume(= napi_sem 0) # assume from assume
+b54 [427] : (= napi_sem. 1)
+b57 [607] : (= |write_IntrMask::val.| 0)
+b58 [587] : assume(not (= dev_on 0)) # assume from assert
+b59 [588] : (= IntrMask. |write_IntrMask::val|)
+b61 [446] : assume(= irq_sem 0) # assume from assume
+b62 [446] : (= irq_sem. 1)
+b63 [447] : (= irq_sem. 0)
+b64 [611] : (= dev_on. 0)
+b66 [416] : (= irq_enabled. 0)
+b67 [295] : (= rtnl_lock. 0)
+
+
+thread napi_thread { drv_napi_poll::work_done handle_interrupt::nondet3 }:
+d1 [328] : assume(= napi_sem 0) # assume from assume
+d2 [328] : (= napi_sem. 1)
+d3 [329] : assume(not (= napi_scheduled 0)) # assume from if
+d6 [618] : (= |handle_interrupt::nondet3.| nondet_int.)
+d7 [619] : (= IntrStatus. 0)
+d8 [541] : (= |drv_napi_poll::work_done.| |handle_interrupt::nondet3|)
+d9 [543] : assume(< |drv_napi_poll::work_done| 100) # assume from if
+d10 [546] : (= IntrMask. 255)
+d11 [545] : (= intr_mask. 255)
+d13 [440] : (= napi_scheduled. 0)
+d14 [332] : (= napi_sem. 0)
+d15 [328] : assume(= napi_sem 0) # assume from assume
+d16 [328] : (= napi_sem. 1)
+d17 [329] : assume(not (= napi_scheduled 0)) # assume from if
+d20 [618] : (= |handle_interrupt::nondet3.| nondet_int.)
+d21 [619] : (= IntrStatus. 0)
+d22 [541] : (= |drv_napi_poll::work_done.| |handle_interrupt::nondet3|)
+d23 [543] : assume(not (< |drv_napi_poll::work_done| 100)) # assume from if
+d24 [332] : (= napi_sem. 0)
+
+
+atomic: [b3[277] b4[277]] [d1[328] d2[328]] [b11[290] b12[290]] [c1[305] c2[305]] [b17[277] b18[277]] [a3[625] a4[625]] [a18[243] a19[244]] [a19[244] a20[245]] [a27[636] a28[637]] [a28[637] a29[638]] [c25[305] c26[305]] [d15[328] d16[328]] [b46[290] b47[290]] [b53[427] b54[427]] [b61[446] b62[446]]
+
+# Bugs: OV
+
+#####################
+# Final result
+# Bad DNF
+# hb(c28[307],d11[545]) 
+# 
+# Unclassified bugs
+# hb(c28[307],d11[545]) 
+# 

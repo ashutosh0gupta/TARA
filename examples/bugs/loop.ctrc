@@ -1,0 +1,56 @@
+global: nondet_int sum f2
+
+pre: (and (= sum 0) (= f2 0))
+
+thread thread2 :
+b1 [19] : (= sum. (+ sum 1))
+b2 [20] : (= f2. 1)
+
+
+thread thread1 { thread1::i thread1::temp }:
+a1 [5] : (= |thread1::i.| 0)
+a2 [7] : assume(< |thread1::i| 10) # assume from assume
+a3 [8] : (= sum. (+ sum 1))
+a4 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a5 [7] : assume(< |thread1::i| 10) # assume from assume
+a6 [8] : (= sum. (+ sum 1))
+a7 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a8 [7] : assume(< |thread1::i| 10) # assume from assume
+a9 [8] : (= sum. (+ sum 1))
+a10 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a11 [7] : assume(< |thread1::i| 10) # assume from assume
+a12 [8] : (= sum. (+ sum 1))
+a13 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a14 [7] : assume(< |thread1::i| 10) # assume from assume
+a15 [8] : (= sum. (+ sum 1))
+a16 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a17 [7] : assume(< |thread1::i| 10) # assume from assume
+a18 [8] : (= sum. (+ sum 1))
+a19 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a20 [7] : assume(< |thread1::i| 10) # assume from assume
+a21 [8] : (= sum. (+ sum 1))
+a22 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a23 [7] : assume(< |thread1::i| 10) # assume from assume
+a24 [8] : (= sum. (+ sum 1))
+a25 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a26 [7] : assume(< |thread1::i| 10) # assume from assume
+a27 [8] : (= sum. (+ sum 1))
+a28 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a29 [7] : assume(< |thread1::i| 10) # assume from assume
+a30 [8] : (= sum. (+ sum 1))
+a31 [9] : (= |thread1::i.| (+ |thread1::i| 1))
+a32 [11] : assume(>= |thread1::i| 10) # assume from assume
+a33 [12] : (= |thread1::temp.| sum)
+a34 [13] : (= sum. (+ |thread1::temp| 1))
+a35 [14] : assume(> f2 0) # assume from assume
+a36 [15] : assert(> sum 11)
+
+# Bugs: DR
+
+#####################
+# Final result
+# Bad DNF
+# ( hb(b1[19],a34[13]) ∧ hb(a33[12],b1[19]) ) 
+# 
+# Potential data race bug: a33[12] -> b1[19] -> a34[13]
+# 

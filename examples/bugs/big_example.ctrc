@@ -1,0 +1,149 @@
+global: x y z
+
+pre: (and (= x 0) (= y 0) (= z 0))
+
+thread check :
+a1 : assert(= x 5)
+
+thread assume1 :
+b1 : assume(= y 5)
+bb : assume(= z 5)
+
+thread test1 : 
+(= x. (+ x 1))
+(= z. (+ x 1))
+(= x. (+ x 1))
+(= z. (+ x 1))
+(= x. (+ x 1))
+(= z. (+ x 1))
+(= x. (+ x 1))
+(= z. (+ x 1))
+(= x. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+(= z. (+ x 1))
+
+thread test2 : 
+(= x. (+ x 1))
+(= y. (+ x 1))
+(= x. (+ x 1))
+(= y. (+ x 1))
+(= x. (+ x 1))
+(= y. (+ x 1))
+(= x. (+ x 1))
+(= y. (+ x 1))
+(= x. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+(= y. (+ x 1))
+
+# Bugs: unknown
+
+#####################
+# Final result
+# Bad DNF
+# hb(a1,test21) ∨
+# ( hb(a1,test17) ∧ hb(a1,test23) ) ∨
+# ( hb(test17,a1) ∧ hb(test23,test17) ) ∨
+# ( hb(test15,a1) ∧ hb(test25,test15) ) ∨
+# ( hb(a1,test15) ∧ hb(a1,test25) ) ∨
+# ( hb(test27,a1) ∧ hb(test13,test27) ) ∨
+# ( hb(a1,test13) ∧ hb(a1,test27) ) ∨
+# ( hb(test25,a1) ∧ hb(test15,test25) ) ∨
+# hb(test19,a1) ∨
+# ( hb(test23,a1) ∧ hb(test17,test23) ) ∨
+# hb(test29,a1) ∨
+# ( hb(test13,a1) ∧ hb(test27,test13) ) ∨
+# hb(a1,test11) 
+# 
+# Unclassified bugs
+# hb(a1,test21) ∨
+# ( hb(a1,test17) ∧ hb(a1,test23) ) ∨
+# ( hb(test17,a1) ∧ hb(test23,test17) ) ∨
+# ( hb(test15,a1) ∧ hb(test25,test15) ) ∨
+# ( hb(a1,test15) ∧ hb(a1,test25) ) ∨
+# ( hb(test27,a1) ∧ hb(test13,test27) ) ∨
+# ( hb(a1,test13) ∧ hb(a1,test27) ) ∨
+# ( hb(test25,a1) ∧ hb(test15,test25) ) ∨
+# hb(test19,a1) ∨
+# ( hb(test23,a1) ∧ hb(test17,test23) ) ∨
+# hb(test29,a1) ∨
+# ( hb(test13,a1) ∧ hb(test27,test13) ) ∨
+# hb(a1,test11) 
+# 

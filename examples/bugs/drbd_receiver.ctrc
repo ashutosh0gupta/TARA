@@ -1,0 +1,29 @@
+global: nondet_int lock1 STATE_SENT old_role role old_uuid uuid sent_uuid
+
+pre: (and (= role 1) (= uuid nondet_int) (= old_role role) (= old_uuid uuid) (= lock1 0) (= STATE_SENT 0))
+
+thread drbd_connect_thread :
+b1 [40] : (= STATE_SENT. 1)
+b2 [45] : assert(not (= uuid old_uuid))
+b3 [48] : (= STATE_SENT. 0)
+
+
+thread drbd_set_role_thread :
+a1 [22] : assume(= lock1 0) # assume from assume
+a2 [23] : (= lock1. 1)
+a3 [27] : assume(= STATE_SENT 0) # assume from if
+a4 [29] : (= role. 2)
+a5 [31] : (= uuid. (+ uuid 1))
+a6 [35] : (= lock1. 0)
+
+# Bugs: OV
+
+atomic: [a1[22] a2[23]]
+#####################
+# Final result
+# Bad DNF
+# hb(b2[45],a5[31]) 
+# 
+# Unclassified bugs
+# hb(b2[45],a5[31]) 
+# 

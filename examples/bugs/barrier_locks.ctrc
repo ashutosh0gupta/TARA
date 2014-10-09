@@ -1,0 +1,46 @@
+global: nondet_int arr:(Array Int Real) sum:real f1 f2
+
+pre: (and (= f1 0) (= f2 0) (= sum 0) (= (select arr 0) 1) (= (select arr 1) 2) (= (select arr 2) 4) (= (select arr 3) 8) )
+
+thread compute_thread2 { compute_thread2::lsum:real compute_thread2::temp:real }:
+b1 [24] : (= |compute_thread2::lsum.| 0)
+b2 [25] : (= |compute_thread2::lsum.| (+ |compute_thread2::lsum| (select arr 2)))
+b3 [26] : (= |compute_thread2::lsum.| (+ |compute_thread2::lsum| (select arr 3)))
+b4 [27] : (= |compute_thread2::temp.| sum)
+b5 [28] : (= sum. (+ |compute_thread2::temp| |compute_thread2::lsum|))
+b6 [30] : (= arr. (store arr 2 (/ (select arr 2) sum)))
+b7 [31] : (= arr. (store arr 3 (/ (select arr 3) sum)))
+b8 [33] : (= f2. 1)
+
+
+thread compute_thread1 { compute_thread1::lsum:real compute_thread1::temp:real }:
+a1 [9] : (= |compute_thread1::lsum.| 0)
+a2 [10] : (= |compute_thread1::lsum.| (+ |compute_thread1::lsum| (select arr 0)))
+a3 [11] : (= |compute_thread1::lsum.| (+ |compute_thread1::lsum| (select arr 1)))
+a4 [12] : (= |compute_thread1::temp.| sum)
+a5 [13] : (= sum. (+ |compute_thread1::temp| |compute_thread1::lsum|))
+a6 [15] : (= arr. (store arr 0 (/ (select arr 0) sum)))
+a7 [16] : (= arr. (store arr 1 (/ (select arr 1) sum)))
+a8 [18] : (= f1. 1)
+
+
+thread check_thread :
+c1 [38] : assume(and (> f1 0) (> f2 0)) # assume from assume
+c2 [39] : assert(= (+ (select arr 0) (select arr 1) (select arr 2) (select arr 3)) 1)
+
+# Bugs: DR, OV
+
+#####################
+# Final result
+# Bad DNF
+# hb(b6[30],a5[13]) ∨
+# ( hb(a5[13],b5[28]) ∧ hb(b4[27],a5[13]) ) ∨
+# hb(a6[15],b5[28]) ∨
+# ( hb(b5[28],a5[13]) ∧ hb(a4[12],b5[28]) ) 
+# 
+# Potential data race bug: b4[27] -> a5[13] -> b5[28]
+# Potential data race bug: a4[12] -> b5[28] -> a5[13]
+# Unclassified bugs
+# hb(b6[30],a5[13]) ∨
+# hb(a6[15],b5[28]) 
+# 

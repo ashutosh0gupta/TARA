@@ -1,0 +1,36 @@
+global: nondet_int data mutex
+
+pre: (and (= data 0) (= mutex 0))
+
+thread thread2 :
+b1 [15] : assume(= mutex 0) # assume from assume
+b2 [15] : (= mutex. 1)
+b3 [16] : (= data. (+ data 2))
+b4 [17] : (= mutex. 0)
+
+
+thread thread1 :
+a1 [7] : assume(= mutex 0) # assume from assume
+a2 [7] : (= mutex. 1)
+a3 [8] : (= data. (+ data 1))
+a4 [9] : (= mutex. 0)
+
+
+thread thread3 :
+c1 [23] : assume(= mutex 0) # assume from assume
+c2 [23] : (= mutex. 1)
+c3 [24] : assert(< data 3)
+c4 [25] : (= mutex. 0)
+
+# Bugs: OV
+
+atomic: [a1[7] a2[7]] [b1[15] b2[15]] [c1[23] c2[23]]
+#####################
+# Final result
+# Good CNF
+# ( hb(c1[23],a4[9]) ∨ hb(a3[8],b3[16]) ) ∧
+# ( hb(c1[23],b4[17]) ∨ hb(b3[16],a3[8]) ) 
+# 
+# Locks: 
+# Barriers: 
+# Wait-notifies: hb(c1[23],a4[9]) hb(c1[23],b4[17]) 
