@@ -16,9 +16,6 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     sol.add(implies(trigger,translation));
   }
   
-  z3::check_result r2 = sol.check(triggers.size(), &triggers[0]);
-  assert(r2 == z3::unsat);
-  
   // for many items, first do unsat core
   if (items.size() > 10) {
     z3::check_result r = sol.check(triggers.size(), &triggers[0]);

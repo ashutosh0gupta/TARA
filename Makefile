@@ -5,7 +5,7 @@ SRCDIR = $(PWD)/src
 
 all : release
 
-.PHONY : release debug run clean patch
+.PHONY : release debug run clean patch test
 
 release : build/buildr/Makefile
 	make -C $(BUILDDIR)/buildr
@@ -15,11 +15,11 @@ debug : build/buildd/Makefile
 	make -C $(BUILDDIR)/buildd
 	cp -f $(BUILDDIR)/buildd/tara tara
 
-build/buildr: build/z3/buildr/libz3.so
+build/buildr/Makefile: build/z3/buildr/libz3.so
 	mkdir -p $(BUILDDIR)/buildr
 	cd $(BUILDDIR)/buildr; cmake -DCMAKE_BUILD_TYPE=Release $(SRCDIR)
 
-build/buildd: build/z3/buildr/libz3.so
+build/buildd/Makefile: build/z3/buildr/libz3.so
 	mkdir -p $(BUILDDIR)/buildd
 	cd $(BUILDDIR)/buildd; cmake -DCMAKE_BUILD_TYPE=Debug $(SRCDIR)
 
@@ -32,12 +32,13 @@ patch :
 	mkdir -p z3-patch
 	cd z3; $(git) diff > ../z3-patch/z3.patch
 
-build/z3/patched : src/z3-patch/z3.patch src/z3-patch/smt_model_reporter.cpp | build/z3
+build/z3/patched : src/z3-patch/z3.patch src/z3-patch/smt_model_reporter.cpp build/z3/README
 	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
 	cd $(BUILDDIR)/z3/src/smt; ln -sf $(SRCDIR)/z3-patch/smt_model_reporter.cpp smt_model_reporter.cpp
 	touch $(BUILDDIR)/z3/patched
 
-build/z3 : 
+build/z3/README : 
+	mkdir -p $(BUILDDIR)
 	wget -O $(BUILDDIR)/z3.zip 'http://download-codeplex.sec.s-msft.com/Download/SourceControlFileDownload.ashx?ProjectName=z3&changeSetId=4732e03259487da4a45391a6acc45b6adb8a4a3e'
 	cd $(BUILDDIR);$(git) init z3
 	cd $(BUILDDIR);unzip z3.zip -d z3
@@ -56,4 +57,7 @@ build/z3/buildd/libz3.so : build/z3/patched
 	make -C $(BUILDDIR)/z3/buildd
 
 
-
+test: release
+	for f in examples/*.ctrc; do \
+		echo -n "$$f: "; ./tara --ofile "$$f" > /dev/null; echo "Done"; \
+	done; true
