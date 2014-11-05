@@ -46,7 +46,7 @@ public: // information that are controlled by main
   bool parse_cmdline(int argc, char **argv);
 private:
   void get_description_cmd(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
-  virtual bool interpret_options(boost::program_options::variables_map& vm);
+  virtual void interpret_options(boost::program_options::variables_map& vm) override;
 };
 
 

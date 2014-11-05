@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright 2014, IST Austria
  *
  * This file is part of TARA.

@@ -22,6 +22,7 @@
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/tokenizer.hpp>
+#include "arg_exception.h"
 
 using namespace tara;
 using namespace tara::api;
@@ -45,7 +46,7 @@ void options::get_description(po::options_description& desc, po::positional_opti
   pd.add("input", -1);
 }
 
-bool options::parse_config(boost::filesystem::path filename) {
+void options::parse_config(boost::filesystem::path filename) {
   boost::filesystem::ifstream cfg_file(filename);
   po::variables_map vm;
   po::options_description desc;
@@ -56,17 +57,15 @@ bool options::parse_config(boost::filesystem::path filename) {
     po::store(po::parse_config_file(cfg_file, desc, false), vm);
     po::notify(vm);
     
-    return interpret_options(vm);
+    interpret_options(vm);
     
   } catch ( const boost::program_options::error& e ) {
-    std::cerr << e.what() << std::endl;
-    return false;
+    throw arg_exception(e.what());
   }
 }
 
 
-
-bool options::interpret_options(po::variables_map& vm) {
+void options::interpret_options(po::variables_map& vm) {
   
   
   // verbosity options
@@ -85,8 +84,7 @@ bool options::interpret_options(po::variables_map& vm) {
         else if (p=="output")
           print_output++;
         else {
-          cerr << "Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\"." << endl;
-          return false;
+          throw arg_exception("Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\".");
         }
       }
     }
@@ -95,7 +93,6 @@ bool options::interpret_options(po::variables_map& vm) {
   if (vm.count("prune")) {
     prune_chain = vm["prune"].as<string>();
   }
-  return true;
 }
 
 

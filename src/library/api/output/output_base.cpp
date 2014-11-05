@@ -19,7 +19,7 @@
  */
 
 #include "output_base.h"
-#include "api/usage_exception.h"
+#include <stdexcept>
 
 using namespace tara::api::output;
 using namespace tara::api;
@@ -43,7 +43,7 @@ void output_base::init(const tara::hb_enc::encoding& hb_encoding, const z3::solv
 void output_base::output(const z3::expr& output)
 {
   if (!_hb_encoding) 
-    throw usage_exception("Object not yet initialised!");
+    throw logic_error("Object not yet initialised!");
   _output = unique_ptr<z3::expr>(new z3::expr(output));
 }
 
@@ -56,7 +56,7 @@ bool output_base::output_ready()
 void output_base::ready_or_throw() const
 {
   if (!_output) 
-    throw usage_exception("No output specified yet!");
+    throw logic_error("No output specified yet!");
 }
 
 void output_base::gather_statistics(metric& metric) const

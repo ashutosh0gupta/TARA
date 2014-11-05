@@ -7,11 +7,11 @@ all : release
 
 .PHONY : release debug run clean patch
 
-release : | build/buildr
+release : build/buildr/Makefile
 	make -C $(BUILDDIR)/buildr
 	cp -f $(BUILDDIR)/buildr/tara tara
 
-debug : | build/buildd
+debug : build/buildd/Makefile
 	make -C $(BUILDDIR)/buildd
 	cp -f $(BUILDDIR)/buildd/tara tara
 

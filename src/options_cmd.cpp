@@ -22,12 +22,14 @@
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/tokenizer.hpp>
+#include "api/arg_exception.h"
 
 using namespace std;
+using namespace tara::api;
 
 namespace po = boost::program_options;
 
-options_cmd::options_cmd() : tara::api::options(), mode(modes::seperate), output_to_file(false)
+options_cmd::options_cmd() : options(), mode(modes::seperate), output_to_file(false)
 {
     
 }
@@ -61,26 +63,25 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
       return false;
     }
     if (!vm.count("input")) {
-      cerr << "No input specified" << endl;
-      return false;
+      throw arg_exception("No input specified");
     }
     if (vm.count("config")) {
       boost::filesystem::path path(vm["config"].as<string>());
-      if (!parse_config(path)) return false;
+      parse_config(path);
     }
     
-    return interpret_options(vm);
+    interpret_options(vm);
 
   } catch ( const boost::program_options::error& e ) {
-    std::cerr << e.what() << std::endl;
+    throw arg_exception(e.what());
     return false;
   }
-
+    
+    return true;
 }
 
-bool options_cmd::interpret_options(po::variables_map& vm) {
-  if (!tara::api::options::interpret_options(vm))
-    return false;
+void options_cmd::interpret_options(po::variables_map& vm) {
+  options::interpret_options(vm);
   
   if (vm.count("mode")) {
     string _mode = seperate_option(vm["mode"].as<string>(), mode_options);
@@ -93,12 +94,9 @@ bool options_cmd::interpret_options(po::variables_map& vm) {
     else if (_mode == "bugs")
       mode = modes::bugs;
     else {
-      cerr << "Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\"" << endl;
-      return false;
+      throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\"");
     }
   }
-  
-  return true;
 }
 
 

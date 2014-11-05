@@ -37,6 +37,7 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
 
+#include "api/arg_exception.h"
 
 using namespace std;
 using namespace tara::api;
@@ -74,21 +75,7 @@ void handler(
   exit(1);
 }
 
-int main(int argc, char **argv) {
-  boost::asio::io_service io_service;
-  boost::asio::signal_set signals(io_service, SIGINT, SIGHUP);
-  signals.async_wait(handler);
-  std::thread(boost::bind(&boost::asio::io_service::run, &io_service)).detach();
-  //struct sigaction sigIntHandler;
-  
-/*  sigIntHandler.sa_handler = my_handler;
-  sigemptyset(&sigIntHandler.sa_mask);
-  sigIntHandler.sa_flags = 0;
-  
-  sigaction(SIGINT, &sigIntHandler, NULL);
-  sigaction(SIGHUP, &sigIntHandler, NULL);*/
-  
-  
+void real_main(int argc, char **argv) {
   z3::context c;  
   options_cmd o = options_cmd();
 
@@ -99,10 +86,10 @@ int main(int argc, char **argv) {
 
   boost::filesystem::path def_config("default.conf");
   if ( boost::filesystem::exists( def_config ) ) {
-      if (!o.parse_config(def_config)) return 1;
+    o.parse_config(def_config);
   }
 
-  if (!o.parse_cmdline(argc, argv)) return 1;
+  if (!o.parse_cmdline(argc, argv)) return; // help was called
 
   if (o.machine)
     o._out = &nullOstream;
@@ -116,8 +103,7 @@ int main(int argc, char **argv) {
 
   if ( !boost::filesystem::exists( input_path ) )
   {
-      cerr << "Input file " << input_path << " not found" << endl;
-      return 1;
+      throw arg_exception("Input file " + o.input_file + " not found");
   }
 
   //boost::filesystem::remove_all(o.output_dir);
@@ -250,7 +236,28 @@ int main(int argc, char **argv) {
   }
 
   finish_and_print();
+}
+
+int main(int argc, char **argv) {
+  boost::asio::io_service io_service;
+  boost::asio::signal_set signals(io_service, SIGINT);
+#ifdef __unix__
+  signals.add(SIGHUP);
+#endif
+  signals.async_wait(handler);
+  std::thread(boost::bind(&boost::asio::io_service::run, &io_service)).detach();
+  
+  int retval = 0;
+  
+  try {
+    real_main(argc, argv);
+  }
+  catch (runtime_error e) {
+    cerr << "Error: " << e.what() << endl;
+    retval = 1;
+  }
+  
   io_service.stop();
-  return 0;
+  return retval;
 }
 

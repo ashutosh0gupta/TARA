@@ -20,17 +20,14 @@
 #ifndef TARA_CSSA_EXCEPTION_H
 #define TARA_CSSA_EXCEPTION_H
 
-#include <exception>
+#include <stdexcept>
 
 namespace tara {
 namespace cssa {
-class cssa_exception : public std::exception
+class cssa_exception : public std::runtime_error
 {
 public:
-  cssa_exception(const char* what);
-  virtual const char* what() const throw();
-private:
-  const char* _what;
+  cssa_exception(const char* what) : runtime_error(what) {}
 };
 }}
 

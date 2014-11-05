@@ -21,19 +21,15 @@
 #ifndef TARA_INPUT_EXCEPTION_H
 #define TARA_INPUT_EXCEPTION_H
 
-#include <exception>
-#include <string>
+#include <stdexcept>
 
 namespace tara {
 namespace input{
-class input_exception : public std::exception
+class input_exception : public std::runtime_error
 {
 public:
-  input_exception(const char* what);
-  input_exception(const std::string& what);
-  virtual const char* what() const throw();
-private:
-  const char* _what;
+  input_exception(const char* what) : runtime_error(what) {};
+  input_exception(const std::string& what) : runtime_error(what) {};
 };
 }}
 

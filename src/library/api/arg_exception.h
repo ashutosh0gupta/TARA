@@ -15,24 +15,26 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
+ *
  */
 
+#ifndef TARA_API_OUTPUT_ARG_EXCEPTION_H
+#define TARA_API_OUTPUT_ARG_EXCEPTION_H
 
-#include "input_exception.h"
+#include <stdexcept>
+#include <string>
 
-using namespace std;
-using namespace tara::input;
+namespace tara {
+namespace api {
 
-input_exception::input_exception(const char* what) : _what(what)
-{}
-
-input_exception::input_exception(const string& what) : input_exception(what.c_str())
-{}
-
-
-const char* input_exception::what() const throw()
+class arg_exception : public std::runtime_error
 {
-  return _what;
+public:
+  arg_exception(const char* what) : runtime_error(what){}
+  arg_exception(const std::string& what) : runtime_error(what){}
+};
+}
 }
 
 
+#endif // TARA_API_OUTPUT_ARG_EXCEPTION_H

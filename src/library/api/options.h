@@ -54,10 +54,10 @@ public:
   inline std::ostream& out() const { return *_out; };
 public: // information that are controlled by main
   unsigned round = 0;
-  bool parse_config(boost::filesystem::path filename);
+  void parse_config(boost::filesystem::path filename);
 protected:
   void get_description(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
-  virtual bool interpret_options(boost::program_options::variables_map& vm);
+  virtual void interpret_options(boost::program_options::variables_map& vm);
   
   std::string seperate_option(const std::string& to_parse, std::vector< std::string >& options); // parses the format xyz:bla,blub. xyz is returned and bla and blub added to the vector
 };

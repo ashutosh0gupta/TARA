@@ -32,7 +32,7 @@
 #include "prune/unsat_core.h"
 #include "prune/data_flow.h"
 #include "prune/remove_implied.h"
-#include "usage_exception.h"
+#include <stdexcept>
 #include <vector>
 #include <chrono>
 
@@ -74,7 +74,7 @@ void trace_analysis::input(input::program& input_program)
 void trace_analysis::gather_statistics(metric& metric)
 {
   if (program==nullptr)
-    throw usage_exception("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialised first.");
   metric.threads = program->size();
   // count the instructions for the metric
   for(unsigned i = 0; i < program->size(); i++) {
@@ -92,7 +92,7 @@ void trace_analysis::gather_statistics(metric& metric)
 z3::solver trace_analysis::make_bad()
 {
   if (program==nullptr)
-    throw usage_exception("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
   
   result.add(program->phi_po);
@@ -107,7 +107,7 @@ z3::solver trace_analysis::make_bad()
 z3::solver trace_analysis::make_good(bool include_infeasable)
 {
   if (program==nullptr)
-    throw usage_exception("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
   
   result.add(program->phi_po);
@@ -124,7 +124,7 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
 trace_result trace_analysis::seperate(output::output_base& output, tara::api::metric& metric)
 {
   if (program==nullptr)
-    throw usage_exception("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialised first.");
   
   
   options& o = _options;
@@ -135,7 +135,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   prune::prune_chain prune_chain;
   if (o.prune_chain.find(string("data_flow"))!=string::npos) metric.data_flow = true;
   if (o.prune_chain.find(string("unsat_core"))!=string::npos) metric.unsat_core = true;
-  if (!prune::build_prune_chain(o.prune_chain, prune_chain, z3, *program, make_good(true))) // must be true (=include_infeasable) to be sound while pruning (because we use inputs)
+  if (!prune::build_prune_chain(o.prune_chain, prune_chain, z3, *program, make_good(true))) // must be true (=include_infeasable) to be sound while pruning (because we use inputs) #(see below)
       throw "Invalid prune chain";
   
   // some check to ensure there are any good feasable traces at all
@@ -313,7 +313,7 @@ bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as
 bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
 {
   if (program==nullptr)
-    throw usage_exception("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialised first.");
   
   // rename the variables to make the different
   cssa::variable_set po_vars = z3.get_variables(program->phi_po);
@@ -356,3 +356,20 @@ bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
   return false;
 }
 
+/**
+ * # (footnote, this program will go wrong if infeasable is not included in ctp-bar.
+ * global: x y z
+ * 
+ * pre: (= x 0)     
+ * 
+ * thread t1:
+ * a1: (= x. 1)
+ * a2: (= y. 1)
+ * 
+ * thread t2:
+ * b1: assume(= x 1)
+ * b2: assert(= y 1)
+ * b3: assume(= z 1)
+ * 
+ * (Reason: with the inputs we may fix z to 10 and therefore and then remove all HBs)
+ */

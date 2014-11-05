@@ -21,7 +21,6 @@
 #include "nf.h"
 #include "prune/remove_implied.h"
 #include <boost/iterator/iterator_concepts.hpp>
-#include "api/usage_exception.h"
 #include "helpers/z3interf_templates.h"
 
 using namespace tara;

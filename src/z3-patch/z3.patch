@@ -1,3 +1,50 @@
+diff --git a/scripts/mk_util.py b/scripts/mk_util.py
+index d425f65..4051525 100644
+--- a/scripts/mk_util.py
++++ b/scripts/mk_util.py
+@@ -1443,36 +1443,36 @@ def mk_config():
+             extra_opt = '%s /D Z3GITHASH=%s' % (extra_opt, GIT_HASH)
+         if DEBUG_MODE:
+             config.write(
+-                'LINK_FLAGS=/nologo /MDd\n'
++                'LINK_FLAGS=/nologo /MTd\n'
+                 'SLINK_FLAGS=/nologo /LDd\n')
+             if not VS_X64:
+                 config.write(
+-                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D Z3DEBUG %s /D _CONSOLE /D _TRACE /D _WINDOWS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze- /arch:SSE2\n' % extra_opt)
++                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /Od /Oy- /D WIN32 /D _DEBUG /D Z3DEBUG %s /D _CONSOLE /D _TRACE /D _WINDOWS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze- /arch:SSE2\n' % extra_opt)
+                 config.write(
+                     'LINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X86 /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT\n'
+                     'SLINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X86 /SUBSYSTEM:WINDOWS /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE:NO\n')
+             else:
+                 config.write(
+-                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /Od /Oy- /D WIN32 /D _AMD64_ /D _DEBUG /D Z3DEBUG %s /D _CONSOLE /D _TRACE /D _WINDOWS /Gm- /EHsc /RTC1 /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze-\n' % extra_opt)
++                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /Od /Oy- /D WIN32 /D _AMD64_ /D _DEBUG /D Z3DEBUG %s /D _CONSOLE /D _TRACE /D _WINDOWS /Gm- /EHsc /RTC1 /MTd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze-\n' % extra_opt)
+                 config.write(
+                     'LINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X64 /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT\n'
+                     'SLINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X64 /SUBSYSTEM:WINDOWS /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE:NO\n')
+         else:
+             # Windows Release mode
+             config.write(
+-                'LINK_FLAGS=/nologo /MD\n'
++                'LINK_FLAGS=/nologo /MT\n'
+                 'SLINK_FLAGS=/nologo /LD\n')
+             if TRACE:
+                 extra_opt = '%s /D _TRACE' % extra_opt
+             if not VS_X64:
+                 config.write(
+-                    'CXXFLAGS=/nologo /c /Zi /openmp /W3 /WX- /O2 /Oy- /D _EXTERNAL_RELEASE /D WIN32 /D NDEBUG %s /D _CONSOLE /D _WINDOWS /D ASYNC_COMMANDS /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze- /arch:SSE2\n' % extra_opt)
++                    'CXXFLAGS=/nologo /c /Zi /openmp /W3 /WX- /O2 /Oy- /D _EXTERNAL_RELEASE /D WIN32 /D NDEBUG %s /D _CONSOLE /D _WINDOWS /D ASYNC_COMMANDS /Gm- /EHsc /MT /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /analyze- /arch:SSE2\n' % extra_opt)
+                 config.write(
+                     'LINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X86 /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT\n'
+                     'SLINK_EXTRA_FLAGS=/link /DEBUG /MACHINE:X86 /SUBSYSTEM:WINDOWS /INCREMENTAL:NO /STACK:8388608 /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE:NO\n')
+             else:
+                 config.write(
+-                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /O2 /D _EXTERNAL_RELEASE /D WIN32 /D NDEBUG %s /D _LIB /D _WINDOWS /D _AMD64_ /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /TP\n' % extra_opt)
++                    'CXXFLAGS=/c /Zi /nologo /openmp /W3 /WX- /O2 /D _EXTERNAL_RELEASE /D WIN32 /D NDEBUG %s /D _LIB /D _WINDOWS /D _AMD64_ /D _UNICODE /D UNICODE /Gm- /EHsc /MT /GS /fp:precise /Zc:wchar_t /Zc:forScope /Gd /TP\n' % extra_opt)
+                 config.write(
+                     'LINK_EXTRA_FLAGS=/link /MACHINE:X64 /SUBSYSTEM:CONSOLE /INCREMENTAL:NO /STACK:8388608\n'
+                     'SLINK_EXTRA_FLAGS=/link /MACHINE:X64 /SUBSYSTEM:WINDOWS /INCREMENTAL:NO /STACK:8388608\n')
 diff --git a/src/api/api_solver.cpp b/src/api/api_solver.cpp
 index ac30a0c..5265b84 100644
 --- a/src/api/api_solver.cpp
@@ -49,61 +96,55 @@ index ac30a0c..5265b84 100644
 +
  };
 diff --git a/src/api/c++/z3++.h b/src/api/c++/z3++.h
-index c75acc5..45e8c59 100644
+index c75acc5..00be853 100644
 --- a/src/api/c++/z3++.h
 +++ b/src/api/c++/z3++.h
 @@ -1,23 +1,23 @@
  /*++
 -Copyright (c) 2012 Microsoft Corporation
--
++ C opyri*ght (c) 2012 Microsoft Corporation
+ 
 -    Thin C++ layer on top of the Z3 C API.
 -    Main features:
 -      - Smart pointers for all Z3 objects.
 -      - Object-Oriented interface.
 -      - Operator overloading.
 -      - Exceptions for signining Z3 errors
--
--    The C API can be used simultaneously with the C++ layer.
--    However, if you use the C API directly, you will have to check the error conditions manually.
--    Of course, you can invoke the method check_error() of the context object.
--Author:
--
--    Leonardo (leonardo) 2012-03-28
--
--Notes:
--
----*/
-+ C opyri*ght (c) 2012 Microsoft Corporation
-+ 
 + Thin C++ layer on top of the Z3 C API.
 + Main features:
 + - Smart pointers for all Z3 objects.
 + - Object-Oriented interface.
 + - Operator overloading.
 + - Exceptions for signining Z3 errors
-+ 
+ 
+-    The C API can be used simultaneously with the C++ layer.
+-    However, if you use the C API directly, you will have to check the error conditions manually.
+-    Of course, you can invoke the method check_error() of the context object.
+-Author:
 + The C API can be used simultaneously with the C++ layer.
 + However, if you use the C API directly, you will have to check the error conditions manually.
 + Of course, you can invoke the method check_error() of the context object.
 + Author:
-+ 
+ 
+-    Leonardo (leonardo) 2012-03-28
 + Leonardo (leonardo) 2012-03-28
-+ 
+ 
+-Notes:
 + Notes:
-+ 
+ 
+---*/
 + --*/
  #ifndef __Z3PP_H_
  #define __Z3PP_H_
  
-@@ -29,21 +29,21 @@ Notes:
+@@ -29,19 +29,19 @@ Notes:
  #include<limits.h>
  
  /**
 -   \defgroup cppapi C++ API
--
--*/
 + \ de*fgroup cppapi C++ API
-+ 
+ 
+-*/
 + */
  /*@{*/
  
@@ -120,23 +161,17 @@ index c75acc5..45e8c59 100644
 + \ br*ief Z3 C++ namespace
 + */
  namespace z3 {
--
-+    
+ 
      class exception;
-     class config;
-     class context;
-@@ -68,15 +68,11 @@ namespace z3 {
-     typedef ast_vector_tpl<expr>      expr_vector;
+@@ -69,14 +69,10 @@ namespace z3 {
      typedef ast_vector_tpl<sort>      sort_vector;
      typedef ast_vector_tpl<func_decl> func_decl_vector;
--
+ 
 -    inline void set_param(char const * param, char const * value) { Z3_global_param_set(param, value); }
 -    inline void set_param(char const * param, bool value) { Z3_global_param_set(param, value ? "true" : "false"); }
 -    inline void set_param(char const * param, int value) { std::ostringstream oss; oss << value; Z3_global_param_set(param, oss.str().c_str()); }
 -    inline void reset_params() { Z3_global_param_reset_all(); }
--
-+    
-+    
+ 
      /**
 -       \brief Exception used to sign API usage errors.
 -    */
@@ -145,12 +180,9 @@ index c75acc5..45e8c59 100644
      class exception {
          std::string m_msg;
      public:
-@@ -84,10 +80,10 @@ namespace z3 {
-         char const * msg() const { return m_msg.c_str(); }
-         friend std::ostream & operator<<(std::ostream & out, exception const & e) { out << e.msg(); return out; }
+@@ -86,8 +82,8 @@ namespace z3 {
      };
--
-+    
+ 
      /**
 -       \brief Z3 global configuration object.
 -    */
@@ -159,7 +191,7 @@ index c75acc5..45e8c59 100644
      class config {
          Z3_config    m_cfg;
          config(config const & s);
-@@ -97,26 +93,26 @@ namespace z3 {
+@@ -97,16 +93,16 @@ namespace z3 {
          ~config() { Z3_del_config(m_cfg); }
          operator Z3_config() const { return m_cfg; }
          /**
@@ -182,11 +214,9 @@ index c75acc5..45e8c59 100644
          void set(char const * param, int value) { 
              std::ostringstream oss;
              oss << value;
-             Z3_set_param_value(m_cfg, param, oss.str().c_str());
-         }
+@@ -115,8 +111,8 @@ namespace z3 {
      };
--
-+    
+ 
      /**
 -       \brief A Context manages all other Z3 objects, global configuration options, etc.
 -    */
@@ -195,7 +225,7 @@ index c75acc5..45e8c59 100644
      class context {
          Z3_context m_ctx;
          static void error_handler(Z3_context c, Z3_error_code e) { /* do nothing */ }
-@@ -130,77 +126,80 @@ namespace z3 {
+@@ -130,29 +126,32 @@ namespace z3 {
      public:
          context() { config c; init(c); }
          context(config & c) { init(c); }
@@ -203,8 +233,7 @@ index c75acc5..45e8c59 100644
 +        //context(config c) { init(c); }
 +        ~context() { Z3_delete_last_asserted_linear_constr(); Z3_del_context(m_ctx); }
          operator Z3_context() const { return m_ctx; }
--
-+        
+ 
          /**
 -           \brief Auxiliary method used to check for API usage errors.
 -        */
@@ -219,8 +248,7 @@ index c75acc5..45e8c59 100644
 +                throw exception(error);
 +            }
          }
--
-+        
+ 
          /**
 -           \brief Update global parameter \c param with string \c value.
 -        */
@@ -241,10 +269,9 @@ index c75acc5..45e8c59 100644
          void set(char const * param, int value) { 
              std::ostringstream oss;
              oss << value;
-             Z3_update_param_value(m_ctx, param, oss.str().c_str());
+@@ -160,47 +159,47 @@ namespace z3 {
          }
--
-+        
+ 
          /**
 -           \brief Interrupt the current procedure being executed by any object managed by this context.
 -           This is a soft interruption: there is no guarantee the object will actualy stop.
@@ -253,8 +280,7 @@ index c75acc5..45e8c59 100644
 +         *     This is a soft interruption: there is no guarantee the object will actualy stop.
 +         */
          void interrupt() { Z3_interrupt(m_ctx); }
--
-+        
+ 
          /**
 -           \brief Create a Z3 symbol based on the given string.
 -        */
@@ -297,7 +323,7 @@ index c75acc5..45e8c59 100644
 -           Example: Given a context \c c, <tt>c.array_sort(c.int_sort(), c.bool_sort())</tt> is an array sort from integer to Boolean.
 -        */
 +         *     \brief Return an array sort for arrays from \c d to \c r.
-+         * 
++         *
 +         *     Example: Given a context \c c, <tt>c.array_sort(c.int_sort(), c.bool_sort())</tt> is an array sort from integer to Boolean.
 +         */
          sort array_sort(sort d, sort r);
@@ -315,82 +341,27 @@ index c75acc5..45e8c59 100644
          
          func_decl function(symbol const & name, unsigned arity, sort const * domain, sort const & range);
          func_decl function(char const * name, unsigned arity, sort const * domain, sort const & range);
-@@ -211,9 +210,11 @@ namespace z3 {
-         func_decl function(char const * name, sort const & d1, sort const & d2, sort const & d3, sort const & range);
-         func_decl function(char const * name, sort const & d1, sort const & d2, sort const & d3, sort const & d4, sort const & range);
-         func_decl function(char const * name, sort const & d1, sort const & d2, sort const & d3, sort const & d4, sort const & d5, sort const & range);
--
-+        
+@@ -214,6 +213,8 @@ namespace z3 {
+ 
          expr constant(symbol const & name, sort const & s);
          expr constant(char const * name, sort const & s);
 +        expr fresh_constant(char const * name, sort const & s);
-+        
++
          expr bool_const(char const * name);
          expr int_const(char const * name);
          expr real_const(char const * name);
-@@ -226,23 +227,25 @@ namespace z3 {
-         expr int_val(__int64 n);
-         expr int_val(__uint64 n);
-         expr int_val(char const * n);
--
-+        
-         expr real_val(int n, int d);
-         expr real_val(int n);
-         expr real_val(unsigned n);
-         expr real_val(__int64 n);
-         expr real_val(__uint64 n);
-         expr real_val(char const * n);
--
-+        
-         expr bv_val(int n, unsigned sz);
-         expr bv_val(unsigned n, unsigned sz);
-         expr bv_val(__int64 n, unsigned sz);
-         expr bv_val(__uint64 n, unsigned sz);
+@@ -241,6 +242,8 @@ namespace z3 {
          expr bv_val(char const * n, unsigned sz);
--
-+        
+ 
          expr num_val(int n, sort const & s);
-+        
++
 +        expr_vector collect_last_asserted_linear_constr(void);
      };
--
-+    
+ 
      template<typename T>
-     class array {
-         T *      m_array;
-@@ -260,7 +263,7 @@ namespace z3 {
-         T const * ptr() const { return m_array; }
-         T * ptr() { return m_array; }
-     };
--
-+    
-     class object {
-     protected:
-         context * m_ctx;
-@@ -271,7 +274,7 @@ namespace z3 {
-         void check_error() const { m_ctx->check_error(); }
-         friend void check_context(object const & a, object const & b) { assert(a.m_ctx == b.m_ctx); }
-     };
--
-+    
-     class symbol : public object {
-         Z3_symbol m_sym;
-     public:
-@@ -290,7 +293,7 @@ namespace z3 {
-             return out;
-         }
-     };
--
-+    
-     class params : public object {
-         Z3_params m_params;
-     public:
-@@ -326,93 +329,94 @@ namespace z3 {
-         Z3_ast_kind kind() const { Z3_ast_kind r = Z3_get_ast_kind(ctx(), m_ast); check_error(); return r; }
-         unsigned hash() const { unsigned r = Z3_get_ast_hash(ctx(), m_ast); check_error(); return r; }
+@@ -328,91 +331,92 @@ namespace z3 {
          friend std::ostream & operator<<(std::ostream & out, ast const & n) { out << Z3_ast_to_string(n.ctx(), n.m_ast); return out; }
--
-+        
+ 
          /**
 -           \brief Return true if the ASTs are structurally identical.
 -        */
@@ -398,8 +369,7 @@ index c75acc5..45e8c59 100644
 +         */
          friend bool eq(ast const & a, ast const & b) { return Z3_is_eq_ast(a.ctx(), a, b) != 0; }
      };
--
-+    
+ 
      /**
 -       \brief A Z3 sort (aka type). Every expression (i.e., formula or term) in Z3 has a sort.
 -    */
@@ -424,8 +394,7 @@ index c75acc5..45e8c59 100644
 +         *     \brief Return the internal sort kind.
 +         */
          Z3_sort_kind sort_kind() const { return Z3_get_sort_kind(*m_ctx, *this); }
--
-+        
+ 
          /** 
 -            \brief Return true if this sort is the Boolean sort.
 -        */
@@ -480,27 +449,25 @@ index c75acc5..45e8c59 100644
 +         *      \brief Return true if this sort is a Finite domain sort.
 +         */
          bool is_finite_domain() const { return sort_kind() == Z3_FINITE_DOMAIN_SORT; }
--
-+        
+ 
          /** 
 -            \brief Return the size of this Bit-vector sort.
 -
 -            \pre is_bv()
 -        */
 +         *      \brief Return the size of this Bit-vector sort.
-+         * 
++         *
 +         *      \pre is_bv()
 +         */
          unsigned bv_size() const { assert(is_bv()); unsigned r = Z3_get_bv_sort_size(ctx(), *this); check_error(); return r; }
--
-+        
+ 
          /** 
 -            \brief Return the domain of this Array sort.
 -
 -            \pre is_array()
 -        */
 +         *      \brief Return the domain of this Array sort.
-+         * 
++         *
 +         *      \pre is_array()
 +         */
          sort array_domain() const { assert(is_array()); Z3_sort s = Z3_get_array_sort_domain(ctx(), *this); check_error(); return sort(ctx(), s); }
@@ -510,13 +477,12 @@ index c75acc5..45e8c59 100644
 -            \pre is_array()
 -        */
 +         *      \brief Return the range of this Array sort.
-+         * 
++         *
 +         *      \pre is_array()
 +         */
          sort array_range() const { assert(is_array()); Z3_sort s = Z3_get_array_sort_range(ctx(), *this); check_error(); return sort(ctx(), s); }
      };
--
-+    
+ 
      /**
 -       \brief Function declaration (aka function definition). It is the signature of interpreted and uninterpreted functions in Z3.
 -       The basic building block in Z3 is the function application.
@@ -527,24 +493,9 @@ index c75acc5..45e8c59 100644
      class func_decl : public ast {
      public:
          func_decl(context & c):ast(c) {}
-@@ -426,9 +430,9 @@ namespace z3 {
-         sort range() const { Z3_sort r = Z3_get_range(ctx(), *this); check_error(); return sort(ctx(), r); }
-         symbol name() const { Z3_symbol s = Z3_get_decl_name(ctx(), *this); check_error(); return symbol(ctx(), s); }
-         Z3_decl_kind decl_kind() const { return Z3_get_decl_kind(ctx(), *this); }
--
-+        
-         bool is_const() const { return arity() == 0; }
--
-+        
-         expr operator()() const;
-         expr operator()(unsigned n, expr const * args) const;
-         expr operator()(expr_vector const& v) const;
-@@ -441,192 +445,209 @@ namespace z3 {
-         expr operator()(expr const & a1, expr const & a2, expr const & a3, expr const & a4) const;
-         expr operator()(expr const & a1, expr const & a2, expr const & a3, expr const & a4, expr const & a5) const;
+@@ -443,9 +447,9 @@ namespace z3 {
      };
--
-+    
+ 
      /**
 -       \brief A Z3 expression is used to represent formulas and terms. For Z3, a formula is any expression of sort Boolean.
 -       Every expression has a sort.
@@ -555,12 +506,11 @@ index c75acc5..45e8c59 100644
      class expr : public ast {
      public:
          expr(context & c):ast(c) {}
-         expr(context & c, Z3_ast n):ast(c, reinterpret_cast<Z3_ast>(n)) {}
+@@ -453,116 +457,121 @@ namespace z3 {
          expr(expr const & n):ast(n) {}
          expr & operator=(expr const & n) { return static_cast<expr&>(ast::operator=(n)); }
--
-+        
-+        bool get_bool() const { 
+ 
++        bool get_bool() const {
 +          Z3_lbool b = Z3_get_bool_value(*m_ctx, m_ast);
 +          assert(b!=Z3_L_UNDEF);
 +          return b==Z3_L_TRUE;
@@ -629,15 +579,14 @@ index c75acc5..45e8c59 100644
 -           
 -        */
 +         *     \brief Return true if this is a Finite-domain expression.
-+         *     
++         *
 +         *     \remark Finite-domain is special kind of interpreted sort:
 +         *     is_bool(), is_bv() and is_finite_domain() are mutually
 +         *     exclusive.
-+         *     
++         *
 +         */
          bool is_finite_domain() const { return get_sort().is_finite_domain(); }
--
-+        
+ 
          /**
 -           \brief Return true if this expression is a numeral.
 -        */
@@ -668,19 +617,16 @@ index c75acc5..45e8c59 100644
 +         *     \brief Return true if this expression is a variable.
 +         */
          bool is_var() const { return kind() == Z3_VAR_AST; }
--
-+        
+ 
          /**
 -           \brief Return true if this expression is well sorted (aka type correct).
 -        */
 +         *     \brief Return true if this expression is well sorted (aka type correct).
 +         */
          bool is_well_sorted() const { bool r = Z3_is_well_sorted(ctx(), m_ast) != 0; check_error(); return r; }
--
-+        
+ 
          operator Z3_app() const { assert(is_app()); return reinterpret_cast<Z3_app>(m_ast); }
--
-+        
+ 
          /**
 -           \brief Return the declaration associated with this application.
 -           This method assumes the expression is an application.
@@ -689,7 +635,7 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return the declaration associated with this application.
 +         *     This method assumes the expression is an application.
-+         * 
++         *
 +         *     \pre is_app()
 +         */
          func_decl decl() const { Z3_func_decl f = Z3_get_app_decl(ctx(), *this); check_error(); return func_decl(ctx(), f); }
@@ -701,7 +647,7 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return the number of arguments in this application.
 +         *     This method assumes the expression is an application.
-+         * 
++         *
 +         *     \pre is_app()
 +         */
          unsigned num_args() const { unsigned r = Z3_get_app_num_args(ctx(), *this); check_error(); return r; }
@@ -714,42 +660,38 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return the i-th argument of this application.
 +         *     This method assumes the expression is an application.
-+         * 
++         *
 +         *     \pre is_app()
 +         *     \pre i < num_args()
 +         */
          expr arg(unsigned i) const { Z3_ast r = Z3_get_app_arg(ctx(), *this, i); check_error(); return expr(ctx(), r); }
--
-+        
+ 
          /**
 -           \brief Return the 'body' of this quantifier.
 -
 -           \pre is_quantifier()
 -        */
 +         *     \brief Return the 'body' of this quantifier.
-+         * 
++         *
 +         *     \pre is_quantifier()
 +         */
          expr body() const { assert(is_quantifier()); Z3_ast r = Z3_get_quantifier_body(ctx(), *this); check_error(); return expr(ctx(), r); }
--
-+        
+ 
          /**
 -           \brief Return an expression representing <tt>not(a)</tt>.
 -
 -           \pre a.is_bool()
 -        */
 +         *     \brief Return an expression representing <tt>not(a)</tt>.
-+         * 
++         *
 +         *     \pre a.is_bool()
 +         */
          friend expr operator!(expr const & a) {
              assert(a.is_bool());
              Z3_ast r = Z3_mk_not(a.ctx(), a);
-             a.check_error();
-             return expr(a.ctx(), r);
+@@ -571,14 +580,20 @@ namespace z3 {
          }
--
-+        
+ 
          /**
 -           \brief Return an expression representing <tt>a and b</tt>.
 -
@@ -757,7 +699,7 @@ index c75acc5..45e8c59 100644
 -           \pre b.is_bool()
 -        */
 +         *     \brief Return an expression representing <tt>a and b</tt>.
-+         * 
++         *
 +         *     \pre a.is_bool()
 +         *     \pre b.is_bool()
 +         */
@@ -773,10 +715,9 @@ index c75acc5..45e8c59 100644
              Z3_ast args[2] = { a, b };
              Z3_ast r = Z3_mk_and(a.ctx(), 2, args);
              a.check_error();
-             return expr(a.ctx(), r);
+@@ -586,47 +601,53 @@ namespace z3 {
          }
--
-+        
+ 
          /**
 -           \brief Return an expression representing <tt>a and b</tt>.
 -           The C++ Boolean value \c b is automatically converted into a Z3 Boolean constant.
@@ -785,7 +726,7 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return an expression representing <tt>a and b</tt>.
 +         *     The C++ Boolean value \c b is automatically converted into a Z3 Boolean constant.
-+         * 
++         *
 +         *     \pre a.is_bool()
 +         */
          friend expr operator&&(expr const & a, bool b) { return a && a.ctx().bool_val(b); }
@@ -797,12 +738,11 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return an expression representing <tt>a and b</tt>.
 +         *     The C++ Boolean value \c a is automatically converted into a Z3 Boolean constant.
-+         * 
++         *
 +         *     \pre b.is_bool()
 +         */
          friend expr operator&&(bool a, expr const & b) { return b.ctx().bool_val(a) && b; }
--
-+        
+ 
          /**
 -           \brief Return an expression representing <tt>a or b</tt>.
 -
@@ -810,7 +750,7 @@ index c75acc5..45e8c59 100644
 -           \pre b.is_bool()
 -        */
 +         *     \brief Return an expression representing <tt>a or b</tt>.
-+         * 
++         *
 +         *     \pre a.is_bool()
 +         *     \pre b.is_bool()
 +         */
@@ -836,7 +776,7 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return an expression representing <tt>a or b</tt>.
 +         *     The C++ Boolean value \c b is automatically converted into a Z3 Boolean constant.
-+         * 
++         *
 +         *     \pre a.is_bool()
 +         */
          friend expr operator||(expr const & a, bool b) { return a || a.ctx().bool_val(b); }
@@ -848,59 +788,30 @@ index c75acc5..45e8c59 100644
 -        */
 +         *     \brief Return an expression representing <tt>a or b</tt>.
 +         *     The C++ Boolean value \c a is automatically converted into a Z3 Boolean constant.
-+         * 
++         *
 +         *     \pre b.is_bool()
 +         */
          friend expr operator||(bool a, expr const & b) { return b.ctx().bool_val(a) || b; }
          
          friend expr implies(expr const & a, expr const & b) {
-@@ -638,12 +659,13 @@ namespace z3 {
-         }
+@@ -639,11 +660,12 @@ namespace z3 {
          friend expr implies(expr const & a, bool b) { return implies(a, a.ctx().bool_val(b)); }
          friend expr implies(bool a, expr const & b) { return implies(b.ctx().bool_val(a), b); }
--
-+        
-+        
+ 
++
          /**
 -           \brief Create the if-then-else expression <tt>ite(c, t, e)</tt>
 -           
 -           \pre c.is_bool()
 -        */
 +         *     \brief Create the if-then-else expression <tt>ite(c, t, e)</tt>
-+         *     
++         *
 +         *     \pre c.is_bool()
 +         */
          friend expr ite(expr const & c, expr const & t, expr const & e) {
              check_context(c, t); check_context(c, e);
              assert(c.is_bool());
-@@ -651,7 +673,7 @@ namespace z3 {
-             c.check_error();
-             return expr(c.ctx(), r);
-         }
--
-+        
-         friend expr operator==(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r = Z3_mk_eq(a.ctx(), a, b);
-@@ -660,7 +682,7 @@ namespace z3 {
-         }
-         friend expr operator==(expr const & a, int b) { assert(a.is_arith() || a.is_bv()); return a == a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator==(int a, expr const & b) { assert(b.is_arith() || b.is_bv()); return b.ctx().num_val(a, b.get_sort()) == b; }
--
-+        
-         friend expr operator!=(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast args[2] = { a, b };
-@@ -670,7 +692,7 @@ namespace z3 {
-         }
-         friend expr operator!=(expr const & a, int b) { assert(a.is_arith() || a.is_bv()); return a != a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator!=(int a, expr const & b) { assert(b.is_arith() || b.is_bv()); return b.ctx().num_val(a, b.get_sort()) != b; }
--
-+        
-         friend expr operator+(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -683,14 +705,14 @@ namespace z3 {
+@@ -683,7 +705,7 @@ namespace z3 {
              }
              else {
                  // operator is not supported by given arguments.
@@ -909,20 +820,9 @@ index c75acc5..45e8c59 100644
              }
              a.check_error();
              return expr(a.ctx(), r);
-         }
-         friend expr operator+(expr const & a, int b) { return a + a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator+(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) + b; }
--
-+        
-         friend expr operator*(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -710,10 +732,10 @@ namespace z3 {
-         }
-         friend expr operator*(expr const & a, int b) { return a * a.ctx().num_val(b, a.get_sort()); }
+@@ -712,8 +734,8 @@ namespace z3 {
          friend expr operator*(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) * b; }
--
-+        
+ 
          /**
 -           \brief Power operator
 -        */
@@ -931,60 +831,6 @@ index c75acc5..45e8c59 100644
          friend expr pw(expr const & a, expr const & b) {
              assert(a.is_arith() && b.is_arith());
              check_context(a, b);
-@@ -723,7 +745,7 @@ namespace z3 {
-         }
-         friend expr pw(expr const & a, int b) { return pw(a, a.ctx().num_val(b, a.get_sort())); }
-         friend expr pw(int a, expr const & b) { return pw(b.ctx().num_val(a, b.get_sort()), b); }
--
-+        
-         friend expr operator/(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -742,7 +764,7 @@ namespace z3 {
-         }
-         friend expr operator/(expr const & a, int b) { return a / a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator/(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) / b; }
--
-+        
-         friend expr operator-(expr const & a) {
-             Z3_ast r;
-             if (a.is_arith()) {
-@@ -758,7 +780,7 @@ namespace z3 {
-             a.check_error();
-             return expr(a.ctx(), r);
-         }
--
-+        
-         friend expr operator-(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -778,7 +800,7 @@ namespace z3 {
-         }
-         friend expr operator-(expr const & a, int b) { return a - a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator-(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) - b; }
--
-+        
-         friend expr operator<=(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -797,7 +819,7 @@ namespace z3 {
-         }
-         friend expr operator<=(expr const & a, int b) { return a <= a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator<=(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) <= b; }
--
-+        
-         friend expr operator>=(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
-@@ -816,7 +838,7 @@ namespace z3 {
-         }
-         friend expr operator>=(expr const & a, int b) { return a >= a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator>=(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) >= b; }
--
-+        
-         friend expr operator<(expr const & a, expr const & b) {
-             check_context(a, b);
-             Z3_ast r;
 @@ -828,7 +850,7 @@ namespace z3 {
              }
              else {
@@ -994,7 +840,7 @@ index c75acc5..45e8c59 100644
              }
              a.check_error();
              return expr(a.ctx(), r);
-@@ -847,121 +869,123 @@ namespace z3 {
+@@ -847,7 +869,7 @@ namespace z3 {
              }
              else {
                  // operator is not supported by given arguments.
@@ -1003,29 +849,9 @@ index c75acc5..45e8c59 100644
              }
              a.check_error();
              return expr(a.ctx(), r);
-         }
-         friend expr operator>(expr const & a, int b) { return a > a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator>(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) > b; }
--
-+        
-         friend expr operator&(expr const & a, expr const & b) { check_context(a, b); Z3_ast r = Z3_mk_bvand(a.ctx(), a, b); return expr(a.ctx(), r); }
-         friend expr operator&(expr const & a, int b) { return a & a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator&(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) & b; }
--
-+        
-         friend expr operator^(expr const & a, expr const & b) { check_context(a, b); Z3_ast r = Z3_mk_bvxor(a.ctx(), a, b); return expr(a.ctx(), r); }
-         friend expr operator^(expr const & a, int b) { return a ^ a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator^(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) ^ b; }
--
-+        
-         friend expr operator|(expr const & a, expr const & b) { check_context(a, b); Z3_ast r = Z3_mk_bvor(a.ctx(), a, b); return expr(a.ctx(), r); }
-         friend expr operator|(expr const & a, int b) { return a | a.ctx().num_val(b, a.get_sort()); }
-         friend expr operator|(int a, expr const & b) { return b.ctx().num_val(a, b.get_sort()) | b; }
--
-+        
+@@ -870,36 +892,38 @@ namespace z3 {
          friend expr operator~(expr const & a) { Z3_ast r = Z3_mk_bvnot(a.ctx(), a); return expr(a.ctx(), r); }
--
-+        
+ 
          /**
 -           \brief Return a simplified version of this expression.
 -        */
@@ -1038,27 +864,25 @@ index c75acc5..45e8c59 100644
 +         *     \brief Return a simplified version of this expression. The parameter \c p is a set of parameters for the Z3 simplifier.
 +         */
          expr simplify(params const & p) const { Z3_ast r = Z3_simplify_ex(ctx(), m_ast, p); check_error(); return expr(ctx(), r); }
--
-+        
+ 
          /**
 -           \brief Apply substitution. Replace src expressions by dst.
 -        */
 +         *     \brief Apply substitution. Replace src expressions by dst.
 +         */
          expr substitute(expr_vector const& src, expr_vector const& dst); 
--
-+        
+ 
          /**
 -           \brief Apply substitution. Replace bound variables by expressions.
 -        */
 +         *     \brief Apply substitution. Replace bound variables by expressions.
 +         */
          expr substitute(expr_vector const& dst);
-+        
-+    };
-+    
  
 -   };
++    };
++
++
      
      /**                                        
 -       \brief Wraps a Z3_ast as an expr object. It also checks for errors.
@@ -1073,25 +897,15 @@ index c75acc5..45e8c59 100644
 -               Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST || 
 -               Z3_get_ast_kind(c, a) == Z3_VAR_AST || 
 -               Z3_get_ast_kind(c, a) == Z3_QUANTIFIER_AST);
-+        Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST || 
-+        Z3_get_ast_kind(c, a) == Z3_VAR_AST || 
++        Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST ||
++        Z3_get_ast_kind(c, a) == Z3_VAR_AST ||
 +        Z3_get_ast_kind(c, a) == Z3_QUANTIFIER_AST);
          return expr(c, a);
      }
--
-+    
-     inline sort to_sort(context & c, Z3_sort s) {
-         c.check_error();
-         return sort(c, s);
+ 
+@@ -914,32 +938,32 @@ namespace z3 {
      }
--
-+    
-     inline func_decl to_func_decl(context & c, Z3_func_decl f) {
-         c.check_error();
-         return func_decl(c, f);
-     }
--
-+    
+ 
      /**
 -       \brief unsigned less than or equal to operator for bitvectors.
 -    */
@@ -1132,53 +946,19 @@ index c75acc5..45e8c59 100644
      inline expr udiv(expr const & a, expr const & b) { return to_expr(a.ctx(), Z3_mk_bvudiv(a.ctx(), a, b)); }
      inline expr udiv(expr const & a, int b) { return udiv(a, a.ctx().num_val(b, a.get_sort())); }
      inline expr udiv(int a, expr const & b) { return udiv(b.ctx().num_val(a, b.get_sort()), b); }
--
-+    
-     template<typename T> class cast_ast;
--
-+    
-     template<> class cast_ast<ast> {
-     public:
-         ast operator()(context & c, Z3_ast a) { return ast(c, a); }
-     };
--
-+    
-     template<> class cast_ast<expr> {
+@@ -955,9 +979,9 @@ namespace z3 {
      public:
          expr operator()(context & c, Z3_ast a) { 
              assert(Z3_get_ast_kind(c, a) == Z3_NUMERAL_AST ||
 -                   Z3_get_ast_kind(c, a) == Z3_APP_AST || 
 -                   Z3_get_ast_kind(c, a) == Z3_QUANTIFIER_AST || 
 -                   Z3_get_ast_kind(c, a) == Z3_VAR_AST);
-+            Z3_get_ast_kind(c, a) == Z3_APP_AST || 
-+            Z3_get_ast_kind(c, a) == Z3_QUANTIFIER_AST || 
++            Z3_get_ast_kind(c, a) == Z3_APP_AST ||
++            Z3_get_ast_kind(c, a) == Z3_QUANTIFIER_AST ||
 +            Z3_get_ast_kind(c, a) == Z3_VAR_AST);
              return expr(c, a);
          }
      };
--
-+    
-     template<> class cast_ast<sort> {
-     public:
-         sort operator()(context & c, Z3_ast a) { 
-@@ -969,7 +993,7 @@ namespace z3 {
-             return sort(c, reinterpret_cast<Z3_sort>(a));
-         }
-     };
--
-+    
-     template<> class cast_ast<func_decl> {
-     public:
-         func_decl operator()(context & c, Z3_ast a) { 
-@@ -977,7 +1001,7 @@ namespace z3 {
-             return func_decl(c, reinterpret_cast<Z3_func_decl>(a));
-         }
-     };
--
-+    
-     template<typename T>
-     class ast_vector_tpl : public object {
-         Z3_ast_vector m_vector;
 @@ -985,6 +1009,7 @@ namespace z3 {
      public:
          ast_vector_tpl(context & c):object(c) { init(Z3_mk_ast_vector(c)); }
@@ -1187,176 +967,48 @@ index c75acc5..45e8c59 100644
          ast_vector_tpl(ast_vector_tpl const & s):object(s), m_vector(s.m_vector) { Z3_ast_vector_inc_ref(ctx(), m_vector); }
          ~ast_vector_tpl() { Z3_ast_vector_dec_ref(ctx(), m_vector); }
          operator Z3_ast_vector() const { return m_vector; }
-@@ -1004,7 +1029,7 @@ namespace z3 {
-         }
-         friend std::ostream & operator<<(std::ostream & out, ast_vector_tpl const & v) { out << Z3_ast_vector_to_string(v.ctx(), v); return out; }
-     };
--
-+    
-     template<typename T>
-     template<typename T2>
-     array<T>::array(ast_vector_tpl<T2> const & v) {
-@@ -1014,7 +1039,7 @@ namespace z3 {
-             m_array[i] = v[i];
-         }
-     }
--
-+    
-     // Basic functions for creating quantified formulas.
-     // The C API should be used for creating quantifiers with patterns, weights, many variables, etc.
-     inline expr forall(expr const & x, expr const & b) {
-@@ -1088,7 +1113,7 @@ namespace z3 {
-         unsigned num_args() const { unsigned r = Z3_func_entry_get_num_args(ctx(), m_entry); check_error(); return r; }
-         expr arg(unsigned i) const { Z3_ast r = Z3_func_entry_get_arg(ctx(), m_entry, i); check_error(); return expr(ctx(), r); }
-     };
--
-+    
-     class func_interp : public object {
-         Z3_func_interp m_interp;
-         void init(Z3_func_interp e) {
-@@ -1111,7 +1136,7 @@ namespace z3 {
-         unsigned num_entries() const { unsigned r = Z3_func_interp_get_num_entries(ctx(), m_interp); check_error(); return r; }
-         func_entry entry(unsigned i) const { Z3_func_entry e = Z3_func_interp_get_entry(ctx(), m_interp, i); check_error(); return func_entry(ctx(), e); }
-     };
--
-+    
-     class model : public object {
-         Z3_model m_model;
-         void init(Z3_model m) {
-@@ -1147,10 +1172,10 @@ namespace z3 {
+@@ -1147,9 +1172,9 @@ namespace z3 {
          func_decl get_func_decl(unsigned i) const { Z3_func_decl r = Z3_model_get_func_decl(ctx(), m_model, i); check_error(); return func_decl(ctx(), r); }
          unsigned size() const { return num_consts() + num_funcs(); }
          func_decl operator[](int i) const { 
 -	    assert(0 <= i); 
 -	    return static_cast<unsigned>(i) < num_consts() ? get_const_decl(i) : get_func_decl(i - num_consts()); 
 -	}
--
-+            assert(0 <= i); 
-+            return static_cast<unsigned>(i) < num_consts() ? get_const_decl(i) : get_func_decl(i - num_consts()); 
++            assert(0 <= i);
++            return static_cast<unsigned>(i) < num_consts() ? get_const_decl(i) : get_func_decl(i - num_consts());
 +        }
-+        
+ 
          expr get_const_interp(func_decl c) const {
              check_context(*this, c);
-             Z3_ast r = Z3_model_get_const_interp(ctx(), m_model, c);
-@@ -1163,10 +1188,10 @@ namespace z3 {
-             check_error();
-             return func_interp(ctx(), r);
-         }
--
-+        
-         friend std::ostream & operator<<(std::ostream & out, model const & m) { out << Z3_model_to_string(m.ctx(), m); return out; }
-     };
--
-+    
-     class stats : public object {
-         Z3_stats m_stats;
-         void init(Z3_stats e) {
-@@ -1194,24 +1219,24 @@ namespace z3 {
-         double double_value(unsigned i) const { double r = Z3_stats_get_double_value(ctx(), m_stats, i); check_error(); return r; }
-         friend std::ostream & operator<<(std::ostream & out, stats const & s) { out << Z3_stats_to_string(s.ctx(), s); return out; }
-     };
--
-+    
-     enum check_result {
-         unsat, sat, unknown
-     };
--
-+    
-     inline std::ostream & operator<<(std::ostream & out, check_result r) { 
-         if (r == unsat) out << "unsat";
-         else if (r == sat) out << "sat";
-         else out << "unknown";
-         return out;
-     }
--
-+    
-     inline check_result to_check_result(Z3_lbool l) {
-         if (l == Z3_L_TRUE) return sat;
-         else if (l == Z3_L_FALSE) return unsat;
-         return unknown;
-     }
--
-+    
-     class solver : public object {
-         Z3_solver m_solver;
-         void init(Z3_solver s) {
-@@ -1275,7 +1300,7 @@ namespace z3 {
-         expr proof() const { Z3_ast r = Z3_solver_get_proof(ctx(), m_solver); check_error(); return expr(ctx(), r); }
-         friend std::ostream & operator<<(std::ostream & out, solver const & s) { out << Z3_solver_to_string(s.ctx(), s); return out; }
-     };
--
-+    
-     class goal : public object {
-         Z3_goal m_goal;
-         void init(Z3_goal s) {
-@@ -1320,7 +1345,7 @@ namespace z3 {
-         }
-         friend std::ostream & operator<<(std::ostream & out, goal const & g) { out << Z3_goal_to_string(g.ctx(), g); return out; }
-     };
--
-+    
-     class apply_result : public object {
-         Z3_apply_result m_apply_result;
-         void init(Z3_apply_result s) {
-@@ -1349,7 +1374,7 @@ namespace z3 {
-         }
-         friend std::ostream & operator<<(std::ostream & out, apply_result const & r) { out << Z3_apply_result_to_string(r.ctx(), r); return out; }
-     };
--
-+    
-     class tactic : public object {
-         Z3_tactic m_tactic;
-         void init(Z3_tactic s) {
 @@ -1358,6 +1383,15 @@ namespace z3 {
          }
      public:
          tactic(context & c, char const * name):object(c) { Z3_tactic r = Z3_mk_tactic(c, name); check_error(); init(r); }
-+        tactic(tactic const & tactic, params const & params):object(tactic) { 
++        tactic(tactic const & tactic, params const & params):object(tactic) {
 +          Z3_param_descrs pd = Z3_tactic_get_param_descrs(ctx(), tactic);
 +          Z3_param_descrs_inc_ref(ctx(), pd);
 +          Z3_params_validate(ctx(), params, pd);
 +          check_error();
 +          Z3_param_descrs_dec_ref(ctx(), pd);
-+          Z3_tactic r = Z3_tactic_using_params(tactic.ctx(), tactic, params); check_error(); init(r); 
-+          
++          Z3_tactic r = Z3_tactic_using_params(tactic.ctx(), tactic, params); check_error(); init(r);
++
 +        }
          tactic(context & c, Z3_tactic s):object(c) { init(s); }
          tactic(tactic const & s):object(s) { init(s.m_tactic); }
          ~tactic() { Z3_tactic_dec_ref(ctx(), m_tactic); }
-@@ -1408,7 +1442,7 @@ namespace z3 {
-             return tactic(t.ctx(), r);
-         }
-     };
--
-+    
-     class probe : public object {
-         Z3_probe m_probe;
-         void init(Z3_probe s) {
-@@ -1466,7 +1500,7 @@ namespace z3 {
-             Z3_probe r = Z3_probe_not(p.ctx(), p); p.check_error(); return probe(p.ctx(), r); 
-         }
-     };
--
-+    
-     inline tactic fail_if(probe const & p) {
-         Z3_tactic r = Z3_tactic_fail_if(p.ctx(), p);
-         p.check_error();
-@@ -1484,18 +1518,21 @@ namespace z3 {
-         t1.check_error();
+@@ -1485,7 +1519,10 @@ namespace z3 {
          return tactic(t1.ctx(), r);
      }
--
+ 
 -    inline symbol context::str_symbol(char const * s) { Z3_symbol r = Z3_mk_string_symbol(m_ctx, s); check_error(); return symbol(*this, r); }
-+    
-+    inline symbol context::str_symbol(char const * s) { 
++    inline symbol context::str_symbol(char const * s) {
 +      if (s==NULL) throw new exception("Null string not allowed");
 +      Z3_symbol r = Z3_mk_string_symbol(m_ctx, s); check_error(); return symbol(*this, r);
 +    }
      inline symbol context::int_symbol(int n) { Z3_symbol r = Z3_mk_int_symbol(m_ctx, n); check_error(); return symbol(*this, r); }
--
-+    
+ 
      inline sort context::bool_sort() { Z3_sort s = Z3_mk_bool_sort(m_ctx); check_error(); return sort(*this, s); }
-     inline sort context::int_sort() { Z3_sort s = Z3_mk_int_sort(m_ctx); check_error(); return sort(*this, s); }
+@@ -1493,9 +1530,9 @@ namespace z3 {
      inline sort context::real_sort() { Z3_sort s = Z3_mk_real_sort(m_ctx); check_error(); return sort(*this, s); }
      inline sort context::bv_sort(unsigned sz) { Z3_sort s = Z3_mk_bv_sort(m_ctx, sz); check_error(); return sort(*this, s); }
      inline sort context::array_sort(sort d, sort r) { Z3_sort s = Z3_mk_array_sort(m_ctx, d, r); check_error(); return sort(*this, s); }
@@ -1368,171 +1020,39 @@ index c75acc5..45e8c59 100644
          array<Z3_func_decl> _cs(n);
          array<Z3_func_decl> _ts(n);
          Z3_symbol _name = Z3_mk_string_symbol(*this, name);
-@@ -1504,7 +1541,7 @@ namespace z3 {
-         for (unsigned i = 0; i < n; i++) { cs.push_back(func_decl(*this, _cs[i])); ts.push_back(func_decl(*this, _ts[i])); }
-         return s;
-     }
--
-+    
-     inline func_decl context::function(symbol const & name, unsigned arity, sort const * domain, sort const & range) {
-         array<Z3_sort> args(arity);
-         for (unsigned i = 0; i < arity; i++) {
-@@ -1515,11 +1552,11 @@ namespace z3 {
-         check_error();
-         return func_decl(*this, f);
-     }
--
-+    
-     inline func_decl context::function(char const * name, unsigned arity, sort const * domain, sort const & range) {
-         return function(range.ctx().str_symbol(name), arity, domain, range);
-     }
--
-+    
-     inline func_decl context::function(symbol const& name, sort_vector const& domain, sort const& range) {
-         array<Z3_sort> args(domain.size());
-         for (unsigned i = 0; i < domain.size(); i++) {
-@@ -1534,7 +1571,7 @@ namespace z3 {
-     inline func_decl context::function(char const * name, sort_vector const& domain, sort const& range) {
-         return function(range.ctx().str_symbol(name), domain, range);        
-     }
--
-+    
-     
-     inline func_decl context::function(char const * name, sort const & domain, sort const & range) {
-         check_context(domain, range);
-@@ -1543,7 +1580,7 @@ namespace z3 {
-         check_error();
-         return func_decl(*this, f);
-     }
--
-+    
-     inline func_decl context::function(char const * name, sort const & d1, sort const & d2, sort const & range) {
-         check_context(d1, range); check_context(d2, range);
-         Z3_sort args[2] = { d1, d2 };
-@@ -1551,7 +1588,7 @@ namespace z3 {
-         check_error();
-         return func_decl(*this, f);
-     }
--
-+    
-     inline func_decl context::function(char const * name, sort const & d1, sort const & d2, sort const & d3, sort const & range) {
-         check_context(d1, range); check_context(d2, range); check_context(d3, range);
-         Z3_sort args[3] = { d1, d2, d3 };
-@@ -1559,7 +1596,7 @@ namespace z3 {
-         check_error();
-         return func_decl(*this, f);
-     }
--
-+    
-     inline func_decl context::function(char const * name, sort const & d1, sort const & d2, sort const & d3, sort const & d4, sort const & range) {
-         check_context(d1, range); check_context(d2, range); check_context(d3, range); check_context(d4, range);
-         Z3_sort args[4] = { d1, d2, d3, d4 };
-@@ -1575,41 +1612,46 @@ namespace z3 {
-         check_error();
-         return func_decl(*this, f);
-     }
--
-+    
-     inline expr context::constant(symbol const & name, sort const & s) {
-         Z3_ast r = Z3_mk_const(m_ctx, name, s); 
+@@ -1581,6 +1618,11 @@ namespace z3 {
          check_error(); 
          return expr(*this, r); 
      }
 +    inline expr context::fresh_constant(char const * name, sort const & s) {
-+      Z3_ast r = Z3_mk_fresh_const(m_ctx, name, s); 
-+      check_error(); 
-+      return expr(*this, r); 
++      Z3_ast r = Z3_mk_fresh_const(m_ctx, name, s);
++      check_error();
++      return expr(*this, r);
 +    }
      inline expr context::constant(char const * name, sort const & s) { return constant(str_symbol(name), s); }
      inline expr context::bool_const(char const * name) { return constant(name, bool_sort()); }
      inline expr context::int_const(char const * name) { return constant(name, int_sort()); }
-     inline expr context::real_const(char const * name) { return constant(name, real_sort()); }
-     inline expr context::bv_const(char const * name, unsigned sz) { return constant(name, bv_sort(sz)); }
--
-+    
-     inline expr context::bool_val(bool b) { return b ? expr(*this, Z3_mk_true(m_ctx)) : expr(*this, Z3_mk_false(m_ctx)); }
--
-+    
-     inline expr context::int_val(int n) { Z3_ast r = Z3_mk_int(m_ctx, n, int_sort()); check_error(); return expr(*this, r); }
-     inline expr context::int_val(unsigned n) { Z3_ast r = Z3_mk_unsigned_int(m_ctx, n, int_sort()); check_error(); return expr(*this, r); }
-     inline expr context::int_val(__int64 n) { Z3_ast r = Z3_mk_int64(m_ctx, n, int_sort()); check_error(); return expr(*this, r); }
-     inline expr context::int_val(__uint64 n) { Z3_ast r = Z3_mk_unsigned_int64(m_ctx, n, int_sort()); check_error(); return expr(*this, r); }
-     inline expr context::int_val(char const * n) { Z3_ast r = Z3_mk_numeral(m_ctx, n, int_sort()); check_error(); return expr(*this, r); }
--
-+    
-     inline expr context::real_val(int n, int d) { Z3_ast r = Z3_mk_real(m_ctx, n, d); check_error(); return expr(*this, r); }
-     inline expr context::real_val(int n) { Z3_ast r = Z3_mk_int(m_ctx, n, real_sort()); check_error(); return expr(*this, r); }
-     inline expr context::real_val(unsigned n) { Z3_ast r = Z3_mk_unsigned_int(m_ctx, n, real_sort()); check_error(); return expr(*this, r); }
-     inline expr context::real_val(__int64 n) { Z3_ast r = Z3_mk_int64(m_ctx, n, real_sort()); check_error(); return expr(*this, r); }
-     inline expr context::real_val(__uint64 n) { Z3_ast r = Z3_mk_unsigned_int64(m_ctx, n, real_sort()); check_error(); return expr(*this, r); }
-     inline expr context::real_val(char const * n) { Z3_ast r = Z3_mk_numeral(m_ctx, n, real_sort()); check_error(); return expr(*this, r); }
--
-+    
-     inline expr context::bv_val(int n, unsigned sz) { Z3_ast r = Z3_mk_int(m_ctx, n, bv_sort(sz)); check_error(); return expr(*this, r); }
-     inline expr context::bv_val(unsigned n, unsigned sz) { Z3_ast r = Z3_mk_unsigned_int(m_ctx, n, bv_sort(sz)); check_error(); return expr(*this, r); }
-     inline expr context::bv_val(__int64 n, unsigned sz) { Z3_ast r = Z3_mk_int64(m_ctx, n, bv_sort(sz)); check_error(); return expr(*this, r); }
-     inline expr context::bv_val(__uint64 n, unsigned sz) { Z3_ast r = Z3_mk_unsigned_int64(m_ctx, n, bv_sort(sz)); check_error(); return expr(*this, r); }
-     inline expr context::bv_val(char const * n, unsigned sz) { Z3_ast r = Z3_mk_numeral(m_ctx, n, bv_sort(sz)); check_error(); return expr(*this, r); }
--
-+    
-     inline expr context::num_val(int n, sort const & s) { Z3_ast r = Z3_mk_int(m_ctx, n, s); check_error(); return expr(*this, r); }
--
-+    
-     inline expr func_decl::operator()(unsigned n, expr const * args) const {
-         array<Z3_ast> _args(n);
-         for (unsigned i = 0; i < n; i++) {
 @@ -1619,7 +1661,7 @@ namespace z3 {
          Z3_ast r = Z3_mk_app(ctx(), *this, n, _args.ptr());
          check_error();
          return expr(ctx(), r);
 -    
-+        
++
      }
      inline expr func_decl::operator()(expr_vector const& args) const {
          array<Z3_ast> _args(args.size());
-@@ -1691,9 +1733,9 @@ namespace z3 {
-         ctx().check_error();
-         return expr(ctx(), r);
-     }
--
-+    
-     inline expr to_real(expr const & a) { Z3_ast r = Z3_mk_int2real(a.ctx(), a); a.check_error(); return expr(a.ctx(), r); }
--
-+    
-     inline func_decl function(symbol const & name, unsigned arity, sort const * domain, sort const & range) {
-         return range.ctx().function(name, arity, domain, range);
-     }
-@@ -1740,7 +1782,7 @@ namespace z3 {
-         d.check_error();
-         return expr(d.ctx(), r);
-     }
--
-+    
-     inline expr expr::substitute(expr_vector const& src, expr_vector const& dst) {
-         assert(src.size() == dst.size());
-         array<Z3_ast> _src(src.size());
-@@ -1753,7 +1795,7 @@ namespace z3 {
-         check_error();
-         return expr(ctx(), r);
-     }
--
-+    
-     inline expr expr::substitute(expr_vector const& dst) {
-         array<Z3_ast> _dst(dst.size());
-         for (unsigned i = 0; i < dst.size(); ++i) {
 @@ -1763,13 +1805,26 @@ namespace z3 {
          check_error();
          return expr(ctx(), r);
      }
 -
      
--
 +    inline expr_vector context::collect_last_asserted_linear_constr(void) {
 +      Z3_ast_vector asserted1 = Z3_collect_last_asserted_linear_constr();
 +      z3::expr_vector asserted = expr_vector(*this, asserted1);
 +      return asserted;
 +    }
-+    
+ 
 +    inline expr distinct(expr_vector const& args) {
 +      array<Z3_ast> _args(args.size());
 +      for (unsigned i = 0; i < args.size(); i++) {
@@ -1552,6 +1072,42 @@ index c75acc5..45e8c59 100644
 -
 +#endif
 \ No newline at end of file
+diff --git a/src/api/ml/build-lib.cmd b/src/api/ml/build-lib.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/build-test.cmd b/src/api/ml/build-test.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/build.cmd b/src/api/ml/build.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/clean.cmd b/src/api/ml/clean.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/cleantmp.cmd b/src/api/ml/cleantmp.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/compile_mlapi.cmd b/src/api/ml/compile_mlapi.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/exec.cmd b/src/api/ml/exec.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/generate_mlapi.cmd b/src/api/ml/generate_mlapi.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/generate_mlapi.sh b/src/api/ml/generate_mlapi.sh
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/import.cmd b/src/api/ml/import.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/test_mlapi.cmd b/src/api/ml/test_mlapi.cmd
+old mode 100755
+new mode 100644
+diff --git a/src/api/ml/update-ml-doc.cmd b/src/api/ml/update-ml-doc.cmd
+old mode 100755
+new mode 100644
 diff --git a/src/api/z3_api.h b/src/api/z3_api.h
 index b29a9c8..40e8add 100644
 --- a/src/api/z3_api.h
@@ -1567,10 +1123,33 @@ index b29a9c8..40e8add 100644
  
  
  #endif
+diff --git a/src/ast/rewriter/float_rewriter.cpp b/src/ast/rewriter/float_rewriter.cpp
+index ecd06ff..593fb43 100644
+--- a/src/ast/rewriter/float_rewriter.cpp
++++ b/src/ast/rewriter/float_rewriter.cpp
+@@ -547,4 +547,4 @@ br_status float_rewriter::mk_to_sbv(expr * arg1, expr * arg2, expr_ref & result)
+ 
+ br_status float_rewriter::mk_to_real(expr * arg1, expr_ref & result) {
+     return BR_FAILED;
+-}
+\ No newline at end of file
++}
+diff --git a/src/duality/duality.h b/src/duality/duality.h
+old mode 100755
+new mode 100644
+diff --git a/src/duality/duality_profiling.cpp b/src/duality/duality_profiling.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/duality/duality_profiling.h b/src/duality/duality_profiling.h
+old mode 100755
+new mode 100644
+diff --git a/src/duality/duality_rpfp.cpp b/src/duality/duality_rpfp.cpp
+old mode 100755
+new mode 100644
 diff --git a/src/duality/duality_solver.cpp b/src/duality/duality_solver.cpp
 old mode 100755
 new mode 100644
-index 1c2f2c9..d419603
+index 1c2f2c9..759744a
 --- a/src/duality/duality_solver.cpp
 +++ b/src/duality/duality_solver.cpp
 @@ -1,2799 +1,2799 @@
@@ -4473,7 +4052,7 @@ index 1c2f2c9..d419603
 +  };
 +
 +   Reporter *CreateStdoutReporter(RPFP *rpfp);
-+  
++
 +  /** Object we throw in case of catastrophe. */
 +
 +  struct InternalError {
@@ -4511,18 +4090,18 @@ index 1c2f2c9..d419603
 +#ifdef USE_RPFP_CLONE
 +      clone_rpfp = new RPFP_caching(rpfp->ls);
 +      clone_rpfp->Clone(rpfp);
-+#endif      
++#endif
 +#ifdef USE_NEW_GEN_CANDS
 +      gen_cands_rpfp = new RPFP_caching(rpfp->ls);
 +      gen_cands_rpfp->Clone(rpfp);
-+#endif      
++#endif
 +      }
 +    }
 +
 +    ~Duality(){
 +#ifdef USE_RPFP_CLONE
 +      delete clone_rpfp;
-+#endif      
++#endif
 +#ifdef USE_NEW_GEN_CANDS
 +      delete gen_cands_rpfp;
 +#endif
@@ -4530,10 +4109,10 @@ index 1c2f2c9..d419603
 +
 +#ifdef USE_RPFP_CLONE
 +    RPFP_caching *clone_rpfp;
-+#endif      
++#endif
 +#ifdef USE_NEW_GEN_CANDS
 +    RPFP_caching *gen_cands_rpfp;
-+#endif      
++#endif
 +
 +
 +    typedef RPFP::Node Node;
@@ -4542,15 +4121,15 @@ index 1c2f2c9..d419603
 +    /** This struct represents a candidate for extending the
 +	unwinding. It consists of an edge to instantiate
 +	and a vector of children for the new instance. */
-+    
++
 +    struct Candidate {
 +      Edge *edge; std::vector<Node *>
 +      Children;
 +    };
-+    
++
 +    /** Comparison operator, allowing us to sort Nodes
 +	by their number field. */
-+    
++
 +    struct lnode
 +    {
 +      bool operator()(const Node* s1, const Node* s2) const
@@ -4574,7 +4153,7 @@ index 1c2f2c9..d419603
 +	score() : updates(0) {}
 +      };
 +      hash_map<RPFP::Node *,score> scores;
-+      
++
 +    public:
 +      Heuristic(RPFP *_rpfp){
 +	rpfp = _rpfp;
@@ -4619,17 +4198,17 @@ index 1c2f2c9..d419603
 +	    best.insert(*it);
 +      }
 +#endif
-+      
++
 +      /** Called when done expanding a tree */
 +      virtual void Done() {}
 +    };
-+    
++
 +
 +    class Covering; // see below
 +
 +    // These members represent the state of the algorithm.
 +
-+    RPFP *rpfp;                          // the input RPFP 
++    RPFP *rpfp;                          // the input RPFP
 +    Reporter *reporter;                  // object for logging
 +    Heuristic *heuristic;                // expansion heuristic
 +    context &ctx;                        // Z3 context
@@ -4645,7 +4224,7 @@ index 1c2f2c9..d419603
 +    hash_map<Node *, std::vector<Node *> > insts_of_node;
 +    // maps each node in input RPFP to all its instances
 +    hash_map<Node *, std::vector<Node *> > all_of_node;
-+    RPFP *unwinding;                     // the unwinding 
++    RPFP *unwinding;                     // the unwinding
 +    Covering *indset;                    // proposed inductive subset
 +    Counterexample cex;                  // counterexample
 +    std::list<Node *> to_expand;
@@ -4662,7 +4241,7 @@ index 1c2f2c9..d419603
 +    typedef std::map<Node *,Counter> NodeToCounter;
 +    hash_map<Node *,NodeToCounter> back_edges; // counts of back edges
 +#endif
-+    
++
 +    /** Solve the problem. */
 +    virtual bool Solve(){
 +      reporter = Report ? CreateStdoutReporter(rpfp) : new Reporter(rpfp);
@@ -4740,7 +4319,7 @@ index 1c2f2c9..d419603
 +    bool Report;         // spew on stdout
 +    bool StratifiedInlining; // Do stratified inlining as preprocessing step
 +    int RecursionBound;  // Recursion bound for bounded verification
-+    
++
 +    bool SetBoolOption(bool &opt, const std::string &value){
 +      if(value == "0") {
 +          opt = false;
@@ -4783,7 +4362,7 @@ index 1c2f2c9..d419603
 +      }
 +      return false;
 +    }
-+    
++
 +    /** Create an instance of a node in the unwinding. Set its
 +	annotation to true, and mark it unexpanded. */
 +    Node* CreateNodeInstance(Node *node, int number = 0){
@@ -4873,7 +4452,7 @@ index 1c2f2c9..d419603
 +	  cand.edge = edge;
 +	  candidates.push_back(cand);
 +	}
-+      } 
++      }
 +    }
 +
 +    void InstantiateAllEdges(){
@@ -5009,7 +4588,7 @@ index 1c2f2c9..d419603
 +      timer_stop("GenCandIndFailUsing");
 +    }
 +#endif
-+    
++
 +    void ExpandNodeFromOther(Node *node, Node *other){
 +      std::vector<Edge *> &in = other->Incoming;
 +      for(unsigned i = 0; i < in.size(); i++){
@@ -5048,8 +4627,8 @@ index 1c2f2c9..d419603
 +#endif
 +      return true;
 +    }
-+      
-+    
++
++
 +    /** Make a boolean variable to act as a "marker" for a node. */
 +    expr NodeMarker(Node *node){
 +      std::string name = std::string("@m_") + string_of_int(node->number);
@@ -5077,7 +4656,7 @@ index 1c2f2c9..d419603
 +	if(indset->Contains(insts[j]))
 +	  UnionAnnotations(annot,insts[j],with_markers);
 +      annot.Simplify();
-+    }    
++    }
 +
 +    /** Generate a proposed solution of the input RPFP from
 +	the unwinding, by unioning the instances of each node. */
@@ -5119,7 +4698,7 @@ index 1c2f2c9..d419603
 +	  timer_stop("CandidateFeasible");
 +	  return false;
 +	}
-+#endif      
++#endif
 +#ifdef NEW_CAND_SEL
 +      GenNodeSolutionFromIndSet(cand.edge->Parent,root->Bound);
 +#else
@@ -5146,7 +4725,7 @@ index 1c2f2c9..d419603
 +
 +    hash_map<Node *, int> TopoSort;
 +    int TopoSortCounter;
-+    
++
 +    void DoTopoSortRec(Node *node){
 +      if(TopoSort.find(node) != TopoSort.end())
 +	return;
@@ -5172,7 +4751,7 @@ index 1c2f2c9..d419603
 +	limiting the expansion. If we get a counterexample, we are done,
 +	else we continue as usual expanding the unwinding upward.
 +    */
-+    
++
 +    int StratifiedLeafCount;
 +
 +    bool DoStratifiedInlining(){
@@ -5190,16 +4769,16 @@ index 1c2f2c9..d419603
 +#ifndef EFFORT_BOUNDED_STRAT
 +      for(unsigned i = 0; i < leaves.size(); i++)
 +	if(!leaves[i]->Outgoing)
-+	  MakeLeaf(leaves[i],true);    
++	  MakeLeaf(leaves[i],true);
 +#endif
 +      timer_stop("StratifiedInlining");
 +      return true;
 +    }
-+    
++
 +    /** Here, we do the downward expansion for stratified inlining */
 +
 +    hash_map<Node *, Node *> LeafMap, StratifiedLeafMap;
-+    
++
 +    Edge *GetNodeOutgoing(Node *node, int last_decs = 0){
 +      if(overapproxes.find(node) == overapproxes.end()) return node->Outgoing; /* already expanded */
 +      overapproxes.erase(node);
@@ -5301,7 +4880,7 @@ index 1c2f2c9..d419603
 +	conj = rpfp->conjoin(conjs);
 +      }
 +    }
-+	
++
 +
 +    Node *CreateUnderapproxNode(Node *node){
 +      // cex.tree->ComputeUnderapprox(cex.root,0);
@@ -5315,7 +4894,7 @@ index 1c2f2c9..d419603
 +      reporter->Extend(under_node);
 +      return under_node;
 +    }
-+    
++
 +    /** Try to prove a conjecture about a node. If successful
 +	update the unwinding annotation appropriately. */
 +    bool ProveConjecture(Node *node, const RPFP::Transformer &t,Node *other = 0, Counterexample *_cex = 0){
@@ -5330,7 +4909,7 @@ index 1c2f2c9..d419603
 +      SetHeuristicOldNode(other);
 +      bool ok = SatisfyUpperBound(node);
 +      SetHeuristicOldNode(0);
-+#endif      
++#endif
 +
 +      if(ok){
 +	timer_stop("ProveConjecture");
@@ -5360,13 +4939,13 @@ index 1c2f2c9..d419603
 +	/* TODO: temporary fix. this prevents an infinite loop in case
 +	   the node is covered by multiple others. This should be
 +	   removed when covering by a set is implemented.
-+	*/ 
++	*/
 +	if(indset->Contains(node)){
 +	  unexpanded.erase(node);
 +	  insts_of_node[node->map].push_back(node);
 +	}
 +#endif
-+	return; 
++	return;
 +      }
 +#ifdef UNDERAPPROX_NODES
 +      if(!indset->Contains(node))
@@ -5399,8 +4978,8 @@ index 1c2f2c9..d419603
 +	  t.Formula = t.Formula && !NodeMarker(insts[i]);
 +#endif
 +    }
-+  
-+    
++
++
 +    void GenNodeSolutionWithMarkersAux(Node *node, RPFP::Transformer &annot, expr &marker_disjunction){
 +#ifdef BOUNDED
 +      if(RecursionBound >= 0 && NodePastRecursionBound(node))
@@ -5427,7 +5006,7 @@ index 1c2f2c9..d419603
 +      annot.Formula = annot.Formula && marker_disjunction;
 +      annot.Simplify();
 +      return res;
-+    }    
++    }
 +
 +    /** Make a checker to determine if an edge in the input RPFP
 +	is satisfied. */
@@ -5474,7 +5053,7 @@ index 1c2f2c9..d419603
 +      checker->AssertEdge(checker->CreateEdge(root,edge->F,cs));
 +      return root;
 +    }
-+  
++
 +#else
 +    /** Make a checker to determine if an edge in the input RPFP
 +	is satisfied. */
@@ -5517,7 +5096,7 @@ index 1c2f2c9..d419603
 +	{
 +	  Node *inst = insts[k];
 +	  if(indset->Contains(inst)){
-+	    if(checker->Empty(node) || 
++	    if(checker->Empty(node) ||
 +	       eq(lb ? checker->Eval(lb,NodeMarker(inst)) : checker->dualModel.eval(NodeMarker(inst)),ctx.bool_val(true))){
 +	      candidate.Children.push_back(inst);
 +	      goto next_child;
@@ -5566,7 +5145,7 @@ index 1c2f2c9..d419603
 +	    Node *inst = insts[k];
 +	    expr marker = NodeMarker(inst);
 +	    if(indset->Contains(inst)){
-+	      if(checker->Empty(lb->Parent) || 
++	      if(checker->Empty(lb->Parent) ||
 +		 eq(checker->Eval(lb,marker),ctx.bool_val(true))){
 +		candidate.Children.push_back(inst);
 +		assumps.push_back(checker->Localize(lb,marker));
@@ -5695,7 +5274,7 @@ index 1c2f2c9..d419603
 +	TryExpandNode(node);
 +      }
 +    }
-+  
++
 +    std::list<Candidate> postponed_candidates;
 +
 +    /** Try to produce some extension candidates, first from unexpanded
@@ -5793,7 +5372,7 @@ index 1c2f2c9..d419603
 +       use of underapproximations, complete it. */
 +
 +    void BuildFullCex(Node *node){
-+      DerivationTree dt(this,unwinding,reporter,heuristic,FullExpand); 
++      DerivationTree dt(this,unwinding,reporter,heuristic,FullExpand);
 +      bool res = dt.Derive(unwinding,node,UseUnderapprox,true); // build full tree
 +      if(!res) throw "Duality internal error in BuildFullCex";
 +      if(cex.tree)
@@ -5801,7 +5380,7 @@ index 1c2f2c9..d419603
 +      cex.tree = dt.tree;
 +      cex.root = dt.top;
 +    }
-+    
++
 +    void UpdateBackEdges(Node *node){
 +#ifdef BOUNDED
 +      std::vector<Node *> &chs = node->Outgoing->Children;
@@ -5898,7 +5477,7 @@ index 1c2f2c9..d419603
 +	    nc->Annotation = oc->Annotation; // is this needed?
 +	    cs.push_back(nc);
 +	  }
-+	  Edge *checker_edge = checker->CreateEdge(root,edge->F,cs); 
++	  Edge *checker_edge = checker->CreateEdge(root,edge->F,cs);
 +	  checker->AssertEdge(checker_edge, 0, true, false);
 +	  std::vector<expr> propagated;
 +	  for(std::set<expr> ::iterator it = node_facts.begin(), en = node_facts.end(); it != en;){
@@ -5938,13 +5517,13 @@ index 1c2f2c9..d419603
 +    class DerivationTree {
 +    public:
 +
-+      DerivationTree(Duality *_duality, RPFP *rpfp, Reporter *_reporter, Heuristic *_heuristic, bool _full_expand) 
++      DerivationTree(Duality *_duality, RPFP *rpfp, Reporter *_reporter, Heuristic *_heuristic, bool _full_expand)
 +	: slvr(rpfp->slvr()),
 +	  ctx(rpfp->ctx)
 +      {
 +	duality = _duality;
 +	reporter = _reporter;
-+	heuristic = _heuristic; 
++	heuristic = _heuristic;
 +        full_expand = _full_expand;
 +      }
 +
@@ -5953,13 +5532,13 @@ index 1c2f2c9..d419603
 +      Heuristic *heuristic;
 +      solver &slvr;
 +      context &ctx;
-+      RPFP *tree; 
++      RPFP *tree;
 +      RPFP::Node *top;
 +      std::list<RPFP::Node *> leaves;
 +      bool full_expand;
-+      bool underapprox; 
++      bool underapprox;
 +      bool constrained;
-+      bool false_approx; 
++      bool false_approx;
 +      std::vector<Node *> underapprox_core;
 +      int start_decs, last_decs;
 +
@@ -5976,7 +5555,7 @@ index 1c2f2c9..d419603
 +	 underapproximations as upper bounds. This mode is used to
 +	 complete the partial derivation constructed in underapprox
 +	 mode.
-+      */	 
++      */
 +
 +      bool Derive(RPFP *rpfp, RPFP::Node *root, bool _underapprox, bool _constrained = false, RPFP *_tree = 0){
 +	underapprox = _underapprox;
@@ -6161,7 +5740,7 @@ index 1c2f2c9..d419603
 +	heuristic->ChooseExpand(choices, best, high_priority, best_only);
 +      }
 +
-+      void ExpansionChoicesRec(std::vector <Node *> &unused_set, std::vector <Node *> &used_set, 
++      void ExpansionChoicesRec(std::vector <Node *> &unused_set, std::vector <Node *> &used_set,
 +			       std::set<Node *> &choices, int from, int to){
 +	if(from == to) return;
 +	int orig_unused = unused_set.size();
@@ -6170,7 +5749,7 @@ index 1c2f2c9..d419603
 +	if(!top->Outgoing || tree->Check(top,unused_set) == unsat){
 +	  unused_set.resize(orig_unused);
 +	  if(to - from == 1){
-+#if 1	    
++#if 1
 +	    std::cout << "Not using underapprox of " << used_set[from] ->number << std::endl;
 +#endif
 +	    choices.insert(used_set[from]);
@@ -6193,7 +5772,7 @@ index 1c2f2c9..d419603
 +#endif
 +	}
 +      }
-+      
++
 +      std::set<Node *> old_choices;
 +
 +      void ExpansionChoices(std::set<Node *> &best, bool high_priority, bool best_only = false){
@@ -6222,7 +5801,7 @@ index 1c2f2c9..d419603
 +      }
 +#endif
 +#endif
-+      
++
 +      bool ExpandSomeNodes(bool high_priority = false, int max = INT_MAX){
 +#ifdef EFFORT_BOUNDED_STRAT
 +	last_decs = tree->CumulativeDecisions() - start_decs;
@@ -6248,7 +5827,7 @@ index 1c2f2c9..d419603
 +
 +      void RemoveExpansion(RPFP::Node *p){
 +	Edge *edge = p->Outgoing;
-+	Node *parent = edge->Parent; 
++	Node *parent = edge->Parent;
 +#ifndef KEEP_EXPANSIONS
 +	std::vector<RPFP::Node *> cs = edge->Children;
 +	tree->DeleteEdge(edge);
@@ -6257,7 +5836,7 @@ index 1c2f2c9..d419603
 +#endif
 +	leaves.push_back(parent);
 +      }
-+      
++
 +      // remove all the descendants of tree root (but not root itself)
 +      void RemoveTree(RPFP *tree, RPFP::Node *root){
 +	Edge *edge = root->Outgoing;
@@ -6272,7 +5851,7 @@ index 1c2f2c9..d419603
 +
 +    class DerivationTreeSlow : public DerivationTree {
 +    public:
-+      
++
 +      struct stack_entry {
 +	unsigned level; // SMT solver stack level
 +	std::vector<Node *> expansions;
@@ -6282,7 +5861,7 @@ index 1c2f2c9..d419603
 +
 +      hash_map<Node *, expr> updates;
 +
-+      DerivationTreeSlow(Duality *_duality, RPFP *rpfp, Reporter *_reporter, Heuristic *_heuristic, bool _full_expand) 
++      DerivationTreeSlow(Duality *_duality, RPFP *rpfp, Reporter *_reporter, Heuristic *_heuristic, bool _full_expand)
 +	: DerivationTree(_duality, rpfp, _reporter, _heuristic, _full_expand) {
 +	stack.push_back(stack_entry());
 +      }
@@ -6307,7 +5886,7 @@ index 1c2f2c9..d419603
 +	  if (res == l_false) {
 +	    if (stack.empty()) // should never happen
 +	      return false;
-+	    
++
 +	    {
 +	      std::vector<Node *> &expansions = stack.back().expansions;
 +	      int update_count = 0;
@@ -6339,7 +5918,7 @@ index 1c2f2c9..d419603
 +	    while(1) {
 +	      std::vector<Node *> &expansions = stack.back().expansions;
 +	      bool prev_level_used = LevelUsedInProof(stack.size()-2); // need to compute this before pop
-+	      tree->Pop(1);	
++	      tree->Pop(1);
 +	      hash_set<Node *> leaves_to_remove;
 +	      for(unsigned i = 0; i < expansions.size(); i++){
 +		Node *node = expansions[i];
@@ -6375,7 +5954,7 @@ index 1c2f2c9..d419603
 +	      std::vector<Node *> &unused_ex = stack.back().expansions;
 +	      for(unsigned i = 0; i < unused_ex.size(); i++)
 +		heuristic->Update(unused_ex[i]->map); // make it less likely to expand this node in future
-+	    } 
++	    }
 +	    HandleUpdatedNodes();
 +	    if(stack.size() == 1){
 +	      if(top->Outgoing)
@@ -6403,14 +5982,14 @@ index 1c2f2c9..d419603
 +	      continue;
 +	    }
 +	    while(stack.size() > 1){
-+	      tree->Pop(1);	
++	      tree->Pop(1);
 +	      stack.pop_back();
 +	    }
 +	    return true;
 +	  }
 +	}
 +      }
-+      
++
 +      bool NodeTooComplicated(Node *node){
 +	int ops = tree->CountOperators(node->Annotation.Formula);
 +	if(ops > 10) return true;
@@ -6485,7 +6064,7 @@ index 1c2f2c9..d419603
 +	}
 +	return res;
 +      }
-+      
++
 +      void HandleUpdatedNodes(){
 +	for(std::list<Node *>::iterator it = updated_nodes.begin(), en = updated_nodes.end(); it != en;){
 +	  Node *node = *it;
@@ -6501,7 +6080,7 @@ index 1c2f2c9..d419603
 +	    ++it;
 +	}
 +      }
-+      
++
 +      bool AtCurrentStackLevel(Node *node){
 +	std::vector<Node *> vec = stack.back().expansions;
 +	for(unsigned i = 0; i < vec.size(); i++)
@@ -6600,7 +6179,7 @@ index 1c2f2c9..d419603
 +      std::set<Node *> &dominates(Node *x){
 +	return cm[x].dominates;
 +      }
-+      
++
 +      bool dominates(Node *x, Node *y){
 +	std::set<Node *> &d = cm[x].dominates;
 +	return d.find(y) != d.end();
@@ -6631,10 +6210,10 @@ index 1c2f2c9..d419603
 +	    }
 +	  }
 +	}
-+#endif	
++#endif
 +
 +      }
-+      
++
 +      bool IsCoveredRec(hash_set<Node *> &memo, Node *node){
 +	if(memo.find(node) != memo.end())
 +	  return false;
@@ -6645,7 +6224,7 @@ index 1c2f2c9..d419603
 +	    return true;
 +	return false;
 +      }
-+      
++
 +      bool IsCovered(Node *node){
 +	hash_set<Node *> memo;
 +	return IsCoveredRec(memo,node);
@@ -6693,17 +6272,17 @@ index 1c2f2c9..d419603
 +	  return false;
 +	if(parent->underapprox_map.find(covering) != parent->underapprox_map.end())
 +	  return covering->number < covered->number || parent->underapprox_map[covering] == covered;
-+#endif	
++#endif
 +	return covering->number < covered->number;
 +      }
 +
 +      bool CheckCover(Node *covered, Node *covering){
 +	return
-+	  CoverOrder(covering,covered) 
++	  CoverOrder(covering,covered)
 +	  && covered->Annotation.SubsetEq(covering->Annotation)
 +	  && !IsCovered(covering);
 +      }
-+      
++
 +      bool CoverByNode(Node *covered, Node *covering){
 +	if(CheckCover(covered,covering)){
 +	  covered_by(covered) = covering;
@@ -6739,7 +6318,7 @@ index 1c2f2c9..d419603
 +	else
 +	  return false;
 +      }
-+#endif	
++#endif
 +
 +      bool Close(Node *node){
 +	if(covered_by(node))
@@ -6767,7 +6346,7 @@ index 1c2f2c9..d419603
 +	memo.insert(node);
 +	return false;
 +      }
-+      
++
 +      bool CloseDescendants(Node *node){
 +	timer_start("CloseDescendants");
 +	hash_set<Node *> memo;
@@ -6803,8 +6382,8 @@ index 1c2f2c9..d419603
 +#ifdef UNDERAPPROX_NODES
 +	// if(parent->underapprox_map.find(covering) != parent->underapprox_map.end())
 +	// return parent->underapprox_map[covering] == covered;
-+#endif	
-+	if(CoverOrder(covering,covered) 
++#endif
++	if(CoverOrder(covering,covered)
 +	   && !IsCovered(covering)){
 +	  RPFP::Transformer f(covering->Annotation); f.SetEmpty();
 +#if defined(TOP_DOWN) || defined(EFFORT_BOUNDED_STRAT)
@@ -6814,7 +6393,7 @@ index 1c2f2c9..d419603
 +	  return !covering->Annotation.SubsetEq(f);
 +	}
 +	return false;
-+      }      
++      }
 +
 +      bool ContainsCex(Node *node, Counterexample &cex){
 +	expr val = cex.tree->Eval(cex.root->Outgoing,node->Annotation.Formula);
@@ -6831,7 +6410,7 @@ index 1c2f2c9..d419603
 +#ifndef UNDERAPPROX_NODES
 +      bool Conjecture(Node *node){
 +	std::vector<Node *> &insts = insts_of_node(node->map);
-+	Counterexample cex; 
++	Counterexample cex;
 +	for(int i = insts.size() - 1; i >= 0; i--){
 +	  Node *other = insts[i];
 +	  if(CouldCover(node,other)){
@@ -6850,7 +6429,7 @@ index 1c2f2c9..d419603
 +#else
 +      bool Conjecture(Node *node){
 +	std::vector<Node *> &insts = insts_of_node(node->map);
-+	Counterexample cex; 
++	Counterexample cex;
 +	RPFP::Transformer Bound = node->Annotation;
 +	Bound.SetEmpty();
 +	bool some_other = false;
@@ -6883,7 +6462,7 @@ index 1c2f2c9..d419603
 +	for(int i = insts.size()-1; i >= 0;  i--){
 +	  Node *other = insts[i];
 +	  if(dominates(node,other))
-+	    if(CoverOrder(other,node) 
++	    if(CoverOrder(other,node)
 +	       && !IsCovered(other))
 +	      return other;
 +	}
@@ -6896,7 +6475,7 @@ index 1c2f2c9..d419603
 +	std::vector<Node *> &insts = insts_of_node(node->map);
 +	for(int i = insts.size() - 1; i >= 0; i--){
 +	  Node *other = insts[i];
-+	  if(CoverOrder(other,node) 
++	  if(CoverOrder(other,node)
 +	     && !IsCovered(other))
 +	    return other;
 +	}
@@ -6916,8 +6495,8 @@ index 1c2f2c9..d419603
 +	      return false;
 +	  }
 +	  return true;
-+	}  
-+	return false; 
++	}
++	return false;
 +      }
 +
 +      void Add(Node *node){
@@ -6954,7 +6533,7 @@ index 1c2f2c9..d419603
 +
 +      // Maps nodes of derivation tree into old cex
 +      hash_map<Node *, Node*> cex_map;
-+      
++
 +      void Done() {
 +	cex_map.clear();
 +	if(old_cex.tree)
@@ -7046,7 +6625,7 @@ index 1c2f2c9..d419603
 +
 +      // Maps nodes of derivation tree into old subtree
 +      hash_map<Node *, Node*> cex_map;
-+      
++
 +      virtual void ChooseExpand(const std::set<RPFP::Node *> &choices, std::set<RPFP::Node *> &best){
 +	if(old_node == 0){
 +	  Heuristic::ChooseExpand(choices,best);
@@ -7160,7 +6739,7 @@ index 1c2f2c9..d419603
 +    virtual void Message(const std::string &msg){
 +      ev(); s << "msg " << msg << std::endl;
 +    }
-+    
++
 +  };
 +
 +  Solver *Solver::Create(const std::string &solver_class, RPFP *rpfp){
@@ -7172,6 +6751,83 @@ index 1c2f2c9..d419603
 +    return new StreamReporter(rpfp, std::cout);
 +  }
 +}
+diff --git a/src/duality/duality_wrapper.cpp b/src/duality/duality_wrapper.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/duality/duality_wrapper.h b/src/duality/duality_wrapper.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/foci2.h b/src/interp/foci2.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/foci2stub/foci2.h b/src/interp/foci2stub/foci2.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3base.cpp b/src/interp/iz3base.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3base.h b/src/interp/iz3base.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3checker.cpp b/src/interp/iz3checker.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3foci.cpp b/src/interp/iz3foci.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3foci.h b/src/interp/iz3foci.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3interp.cpp b/src/interp/iz3interp.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3mgr.cpp b/src/interp/iz3mgr.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3mgr.h b/src/interp/iz3mgr.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3profiling.cpp b/src/interp/iz3profiling.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3profiling.h b/src/interp/iz3profiling.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3proof.cpp b/src/interp/iz3proof.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3proof.h b/src/interp/iz3proof.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3proof_itp.cpp b/src/interp/iz3proof_itp.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3scopes.cpp b/src/interp/iz3scopes.cpp
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3scopes.h b/src/interp/iz3scopes.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3secondary.h b/src/interp/iz3secondary.h
+old mode 100755
+new mode 100644
+diff --git a/src/interp/iz3translate.h b/src/interp/iz3translate.h
+old mode 100755
+new mode 100644
+diff --git a/src/muz/README b/src/muz/README
+index c7d5a96..3cebe98 100644
+--- a/src/muz/README
++++ b/src/muz/README
+@@ -9,4 +9,4 @@ solving Datalog programs.
+ - clp - Dart/Symbolic execution-based solver
+ - tab - Tabulation based solver
+ - bmc - Bounded model checking based solver
+-- fp  - main exported routines
+\ No newline at end of file
++- fp  - main exported routines
+diff --git a/src/muz/duality/duality_dl_interface.cpp b/src/muz/duality/duality_dl_interface.cpp
+old mode 100755
+new mode 100644
 diff --git a/src/smt/smt_context.cpp b/src/smt/smt_context.cpp
 index 02ee069..320b796 100644
 --- a/src/smt/smt_context.cpp
@@ -7420,3 +7076,47 @@ index e7037f3..138998b 100644
      protected:
          void display_row(std::ostream & out, unsigned r_id, bool compact = true) const;
          void display_row(std::ostream & out, row const & r, bool compact = true) const;
+diff --git a/src/tactic/fpa/qffpa_tactic.cpp b/src/tactic/fpa/qffpa_tactic.cpp
+index f9b7f88..43c5f31 100644
+--- a/src/tactic/fpa/qffpa_tactic.cpp
++++ b/src/tactic/fpa/qffpa_tactic.cpp
+@@ -113,4 +113,4 @@ probe * mk_is_qffpa_probe() {
+ probe * mk_is_qffpabv_probe() {
+     return alloc(is_qffpabv_probe);
+ }
+-    
+\ No newline at end of file
++    
+diff --git a/src/tactic/sls/sls_evaluator.h b/src/tactic/sls/sls_evaluator.h
+index 77ff504..c703272 100644
+--- a/src/tactic/sls/sls_evaluator.h
++++ b/src/tactic/sls/sls_evaluator.h
+@@ -617,4 +617,4 @@ public:
+     } 
+ };
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/tactic/sls/sls_powers.h b/src/tactic/sls/sls_powers.h
+index d0cc081..bf28b80 100644
+--- a/src/tactic/sls/sls_powers.h
++++ b/src/tactic/sls/sls_powers.h
+@@ -46,4 +46,4 @@ public:
+     }
+ };  
+ 
+-#endif
+\ No newline at end of file
++#endif
+diff --git a/src/tactic/sls/sls_tracker.h b/src/tactic/sls/sls_tracker.h
+index 7fbafec..a7dbaec 100644
+--- a/src/tactic/sls/sls_tracker.h
++++ b/src/tactic/sls/sls_tracker.h
+@@ -672,4 +672,4 @@ public:
+     }
+ };
+ 
+-#endif
+\ No newline at end of file
++#endif

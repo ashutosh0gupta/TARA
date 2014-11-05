@@ -124,7 +124,7 @@ void z3interf::_printFormula(const expr& ast, ostream& out)
 void z3interf::printFormula(const expr& expr, ostream& out)
 {
   z3::expr simp = expr.simplify();
-  printFormula(simp, out);
+  _printFormula(simp, out);
 }
 
 ///////////////////////////////////////

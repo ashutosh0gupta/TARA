@@ -2,9 +2,20 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(TARA)
 
-set(Boost_USE_STATIC_LIBS   OFF)
-set(Boost_USE_STATIC_RUNTIME OFF)
-add_definitions(-DBOOST_ALL_NO_LIB -DBOOST_ALL_DYN_LINK)
+IF(WIN32)
+    SET(Boost_USE_STATIC_LIBS    ON)
+    SET(Boost_USE_STATIC_RUNTIME ON)
+    foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+    if(${flag_var} MATCHES "/MD")
+       string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+    endif(${flag_var} MATCHES "/MD")
+    endforeach(flag_var)
+ELSE(WIN32)
+    SET(Boost_USE_STATIC_LIBS    OFF)
+    SET(Boost_USE_STATIC_RUNTIME OFF)
+ENDIF(WIN32)
 
 set(Boost_USE_MULTITHREADED ON)
 find_package(Boost 1.52.0 COMPONENTS regex program_options system filesystem REQUIRED) 
@@ -20,13 +31,12 @@ ELSE(Z3_DEBUG)
   LINK_DIRECTORIES("${PROJECT_BINARY_DIR}/../z3/buildr")
 ENDIF(Z3_DEBUG)
 
-ADD_DEFINITIONS(
-    -std=c++11 -Wall # Or -std=c++0x
-    # Other flags
-)
+IF(NOT WIN32)
+    ADD_DEFINITIONS(-std=c++11 -Wall)
+ENDIF(NOT WIN32)
 
 if (HB_UNICODE)
-  add_definitions(-DHB_UNICODE)
+  ADD_DEFINITIONS(-DHB_UNICODE)
 ENDIF(HB_UNICODE)
 
 include_directories (${CMAKE_CURRENT_BINARY_DIR} "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/library" "${PROJECT_BINARY_DIR}/../z3/src/api" "${PROJECT_BINARY_DIR}/../z3/src/api/c++")
@@ -37,10 +47,6 @@ add_subdirectory("library")
 
 add_executable(tara main.cpp options_cmd.cpp)
 
-IF(WIN32)
-  set(LIBZ3 libz3)
-ELSE(WIN32)
-  set(LIBZ3 z3)
-ENDIF(WIN32)
+SET(LIBZ3 z3)
 
 target_link_libraries (tara tarastatic ${LIBZ3} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})

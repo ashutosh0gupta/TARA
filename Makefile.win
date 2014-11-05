@@ -1,33 +1,46 @@
+OBJ_EXT=.obj
+LIB_EXT=.lib
+AR=lib
+AR_FLAGS=/nologo
+AR_OUTFLAG=/OUT:
+
 git = git -c user.name="Auto" -c user.email="auto@auto.com" 
+
+BUILDDIR = $(MAKEDIR)\build.win
+SRCDIR = $(MAKEDIR)\src
+
 
 all : release
 
 .PHONY : release debug run clean patch
 
-release : z3\buildr\libz3.dll
-    IF NOT EXIST Traces\buildr (mkdir Traces\buildr)
-	cd Traces\buildr && cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" .. 
-	cd Traces\buildr && nmake
-	copy /Y Traces\buildr\traces.exe traces.exe
+release : build.win\buildr\Makefile
+	cd $(BUILDDIR)\buildr && nmake
+	copy /Y $(BUILDDIR)\buildr\tara.exe tara.exe
 
+build.win\buildr\Makefile : build.win\z3\buildr\z3.lib
+    IF NOT EXIST $(BUILDDIR)\buildr (mkdir $(BUILDDIR)\buildr)
+	cd $(BUILDDIR)\buildr && cmake -DCMAKE_BUILD_TYPE=Release -G "NMake Makefiles" $(SRCDIR) 
+    
 clean :
-	IF EXIST Traces\buildr (rmdir /S /Q Traces\buildr)
-	IF EXIST traces.exe (del /Q traces.exe)
+	IF EXIST $(BUILDDIR)\buildr (rmdir /S /Q $(BUILDDIR)\buildr)
+	IF EXIST tara.exe (del /Q tara.exe)
 
-z3\patched : z3-patch\z3.patch z3-patch\smt_model_reporter.cpp z3\README
-	cd z3 && $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix ..\z3-patch\z3.patch
-	cd z3\src\smt && copy ..\..\..\z3-patch\smt_model_reporter.cpp smt_model_reporter.cpp
-	echo "p" > z3\patched
+build.win\z3\patched : src\z3-patch\z3.patch src\z3-patch\smt_model_reporter.cpp build.win\z3\README
+	cd $(BUILDDIR)\z3 && $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix $(SRCDIR)\z3-patch\z3.patch
+	cd $(BUILDDIR)\z3\src\smt && copy $(SRCDIR)\z3-patch\smt_model_reporter.cpp smt_model_reporter.cpp
+	echo "p" > $(BUILDDIR)\z3\patched
 
-z3\README : 
-    $(git) clone https://git01.codeplex.com/z3
-	cd z3 && git checkout 4732e03259487da4a45391a6acc45b6adb8a4a3e
+build.win\z3\README : 
+    IF NOT EXIST $(BUILDDIR)\buildr (mkdir $(BUILDDIR))
+    cd $(BUILDDIR) && $(git) clone https://git01.codeplex.com/z3
+	cd $(BUILDDIR)\z3 && git checkout 4732e03259487da4a45391a6acc45b6adb8a4a3e
 
-z3\buildr\libz3.dll : z3\patched
-	IF EXIST z3\buildr (rmdir /S /Q z3\buildr)
-	cd z3 && python scripts\mk_make.py -b buildr
-	cd z3/buildr && nmake
-
+build.win\z3\buildr\z3.lib : build.win\z3\patched
+	IF EXIST $(BUILDDIR)\z3\buildr (rmdir /S /Q $(BUILDDIR)\z3\buildr)
+	cd $(BUILDDIR)\z3 && python scripts\mk_make.py -b buildr --staticlib
+	cd $(BUILDDIR)\z3\buildr && nmake libz3.lib
+    cd $(BUILDDIR)\z3\buildr && ren libz3.lib z3.lib
 
 
 
