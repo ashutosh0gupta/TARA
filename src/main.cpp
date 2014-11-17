@@ -245,7 +245,8 @@ int main(int argc, char **argv) {
   signals.add(SIGHUP);
 #endif
   signals.async_wait(handler);
-  std::thread(boost::bind(&boost::asio::io_service::run, &io_service)).detach();
+  std::thread runner = std::thread(boost::bind(&boost::asio::io_service::run, &io_service));
+  //runner.detach();
   
   int retval = 0;
   
@@ -258,6 +259,7 @@ int main(int argc, char **argv) {
   }
   
   io_service.stop();
+  runner.join();
   return retval;
 }
 

@@ -1,6 +1,7 @@
 *.kilepr
 
 /build/
+/build.win/
 build?/
 
 .kdev4/
