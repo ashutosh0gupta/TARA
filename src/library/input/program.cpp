@@ -54,6 +54,7 @@ program::program()
 
 
 void program::convert_instructions(z3interf& z3) {
+  printf("\nprogram:convert_instructions\n");
   for (unsigned i=0; i<threads.size(); i++)
     for (unsigned j=0; j<threads[i].size(); j++) {
       //instruction* in = instrs[i][j];
@@ -77,6 +78,7 @@ void program::convert_instructions(z3interf& z3) {
 
 void program::convert_names(z3interf& z3)
 {
+  printf("\nprogram:convert_names\n");
   if (names_converted) return;
   names_converted = true;
   
@@ -124,6 +126,7 @@ bool program::is_global(const string& name) const
 
 variable program::find_variable(int thread, const string& name) const
 {
+  printf("\nprogram: find_variable\n");
   auto var = globals.find(variable(name, data_type::boolean));
   if (var!=globals.end()) {
     return *var;
@@ -140,6 +143,7 @@ variable program::find_variable(int thread, const string& name) const
 
 void program::check_correctness()
 {
+  printf("\nprogram: check_correctness\n");
   unordered_set<string> thread_names; // check if the thread names are unique
   unordered_set<string> loc_names; // check if the location names are unique
   for (unsigned t=0; t<threads.size(); t++) {
