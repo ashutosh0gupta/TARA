@@ -45,8 +45,8 @@ void integer::make_locations(vector< std::shared_ptr< location > > locations)
 }
 
 hb integer::make_hb(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
-{
-  return hb(loc1, loc2, loc1->expr < loc2->expr);
+{  
+    return hb(loc1, loc2, loc1->expr < loc2->expr); 
 }
 
 as integer::make_as(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const

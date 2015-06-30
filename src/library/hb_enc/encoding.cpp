@@ -90,8 +90,12 @@ hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
   loc1(location1), loc2(location2), expr(expr)
 {
   _signature = loc1->serial();
+  //std::cout<<"\n_signature 1\t"<<_signature<<"\n";
   _signature <<= 16;
+  //std::cout<<"\n_signature 2\t"<<_signature<<"\n";
   _signature |= loc2->serial();
+  //std::cout<<"\n_signature 3\t"<<loc2->serial()<<"\n";
+  //std::cout<<"\n_expr\t"<<expr<<"\n";
 }
 
 uint32_t hb::signature()

@@ -37,7 +37,6 @@ struct instruction {
   z3::expr path_constraint;
   thread* in_thread;
   std::string name;
-  variable_set variables_read_copy;
   variable_set variables_read; // the variable names with the hash
   variable_set variables_write; // the variable names with the hash
   variable_set variables_read_orig; // the original variable names

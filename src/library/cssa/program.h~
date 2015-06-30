@@ -107,14 +107,14 @@ public:
   std::unordered_map<std::string, std::vector<pi_function_part>> pi_functions; // maps a pi variable to a set of function parts
   std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written; // where a local variable is written
   //std::unordered_map<std::shared_ptr<cssa::instruction>,std::shared_ptr<cssa::variable>> instr_to_var; // where a variable is read/written
-  
+  variable_set variables_read_copy;
 //tara::input::variable search_for_variable_in_read(tara::input::variable,std::shared_ptr<cssa::thread>, int); 
 
   /**
    * @brief Set of initial variables (used to get input values)
    * 
    */
-  variable_set initial_variables;
+  
   
   const thread& operator[](unsigned i) const;
   unsigned size() const;

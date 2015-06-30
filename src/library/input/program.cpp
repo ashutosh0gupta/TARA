@@ -62,6 +62,7 @@ void program::convert_instructions(z3interf& z3) {
         variable_set havok_vars;
         for (string v : ins->havok_vars) {
           havok_vars.insert(find_variable(i, v));
+          std::cout<<"\nhavok_vars\t"<<v<<"\n";
         }
         // convert the string to a z3 expression
         shared_ptr<instruction_z3> newi = make_shared<instruction_z3>(ins->name, z3, ins->instr, set_union(threads[i].locals, globals), ins->type, havok_vars);
@@ -71,6 +72,7 @@ void program::convert_instructions(z3interf& z3) {
     
     if (shared_ptr<instruction_str> ins = dynamic_pointer_cast<instruction_str>(precondition)) {
       precondition = make_shared<instruction_z3>(ins->name, z3, ins->instr, globals, ins->type, variable_set());
+
     }
     
     convert_names(z3);
@@ -176,6 +178,7 @@ void program::check_correctness()
         }
         
         for (cssa::variable v : ins->havok_vars) {
+          std::cout<<"\nhavok_vars\t"<<v<<"\n";
           // check only unprimed variables in havok
           if (is_primed(v)) {
             throw input_exception("Unprimed variables are not allowed in havok.");

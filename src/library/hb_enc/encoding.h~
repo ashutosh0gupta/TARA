@@ -33,11 +33,10 @@ namespace hb_enc {
 struct location {
 private:
   //z3::expr expr; // ensure this one is not visible from the outside
-  //uint16_t _serial;
+  uint16_t _serial;
   
   friend class hb_enc::integer;
 public:
-	uint16_t _serial;
 	z3::expr expr; // ensure this one is not visible from the outside
   location(location& ) = delete;
   location& operator=(location&) = delete;

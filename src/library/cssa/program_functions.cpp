@@ -85,6 +85,7 @@ list<z3::expr> program::get_hbs(z3::model& m) const
       //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
       //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
       //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
+      //cout<<hb->loc1;
       assert(_hb_encoding.eval_hb(m, hb->loc1, hb->loc2));
       result.push_back(asserted[i]);
     }
