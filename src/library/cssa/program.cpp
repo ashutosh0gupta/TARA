@@ -53,7 +53,7 @@ z3:: expr program::build_rf_val(std::shared_ptr<cssa::instruction> l1, std::shar
          {
            for(variable v1: l1->variables_write)
             {
-              z3::expr conjecture= implies (s,v2==v1);
+              z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
               return conjecture;
             }
          }
@@ -65,7 +65,7 @@ z3:: expr program::build_rf_val(std::shared_ptr<cssa::instruction> l1, std::shar
 
                 if(check_correct_global_variable(v1,str))
                 {
-                    z3::expr conjecture= implies (s,v2==v1);
+                    z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
                     return conjecture;     
                 }       
             }
@@ -164,7 +164,16 @@ z3::expr program::build_fr(std::shared_ptr<cssa::instruction> l1, std::shared_pt
   shared_ptr<hb_enc::location> start_location = input.start_name();
   z3::expr c1=C.bool_const("c1");
   z3::expr c2=C.bool_const("c2");
-  z3::expr s=build_rf_val(l1,l2,C,str,pre);
+  z3::expr s=C.bool_const("s");;
+  if(pre_where==true)
+  {
+       s=build_rf_val(l1,l2,C,str,!pre);  
+  }
+  else
+  {
+     s=build_rf_val(l1,l2,C,str,pre);
+  }
+  
   if(pre==0)                                  //pre tells whether there is an initialisation instruction
   {
       c1=_hb_encoding.make_hb(l1->loc,l3->loc);
@@ -344,13 +353,16 @@ void program::build_threads(const input::program& input)
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
         if (instr->type == instruction_type::regular) 
         {
+          std::cout<<"newi\t"<<newi<<"\n";
           phi_vd = phi_vd && newi;
           std::cout<<"\nphi_vd\t"<<phi_vd<<"\n";
         } 
         else if (instr->type == instruction_type::assert) 
         {
           // add this assertion, but protect it with the path-constraint
+          
           phi_prp = phi_prp && implies(path_constraint,newi);
+          std::cout<<"\nphi_prp\t"<<phi_prp<<"\n";
           // add used variables
           assertion_instructions.insert(thread.instructions[i]);
         }
@@ -371,13 +383,21 @@ void program::build_threads(const input::program& input)
         //   std::cout<<"\nnname.name["<<i<<"]: "<<v.name<<"\n";
         // }
         
-      
+        for(auto itr=pis.begin();itr!=pis.end();itr++)
+        {
+          std::cout<<" pis itr orig_name"<<(itr)->orig_name<<"\n";
+          if(itr->last_local!=NULL)
+          {
+              std::cout<<" pis itr"<<(itr)->last_local->instr<<"\n";
+          }
+        }
       }
       else {
         throw cssa_exception("Instruction must be Z3");
       }
     }
     phi_fea = phi_fea && path_constraint;
+    std::cout<<"\nphi_fea\t"<<phi_fea<<"\n";
   }
 
   //variables_read_copy(variables_read);
@@ -459,9 +479,10 @@ void program::build_ses(const input::program& input,z3::context& c)
                 
                 for(unsigned int k2=0;k2<threads.size();k2++)
                 {
-                  
+                  thread& thread = *threads[k2];
                   for(unsigned int n2=0;n2<input.threads[k2].size();n2++)
                   {
+                    //std::cout<<"thread[i].instr\t"<<thread[n2].instr<<"\n";
                     
                     for(variable v3:(threads[k2]->instructions[n2])->variables_write)
                     {
@@ -473,38 +494,37 @@ void program::build_ses(const input::program& input,z3::context& c)
                               RF_SOME.insert(threads[k2]->instructions[n2]);
                               RF_WS.insert(threads[k2]->instructions[n2]);
                               count_global_occur++;
-                              std::cout<<"\nread:\t"<<v2<<"\n";
-                              std::cout<<"\nwrite\t"<<v3<<"\n";
+                              // std::cout<<"\nread:\t"<<v2<<"\n";
+                              // std::cout<<"\nwrite\t"<<v3<<"\n";
                               conjec1=build_rf_val(threads[k2]->instructions[n2],threads[k]->instructions[n],c,v1,false);
-                              if(v1=="balance")
-                              {
-                                std::cout<<"\nread  instr: "<<(threads[k]->instructions[n])->name<<"\n";
-                                std::cout<<"\nwrite instr: "<<(threads[k2]->instructions[n2])->name<<"\n";
-                              }
                               rf_val=rf_val && conjec1;
+                              //std::cout<<"\nconjec1 in 1\t"<<conjec1<<"\n";
+                              //std::cout<<"\nrf_val\t"<<rf_val<<"\n";
 
                               conjec2=build_rf_grf(threads[k2]->instructions[n2],threads[k]->instructions[n],c,v1,false,input);  
                               rf_grf=rf_grf && conjec2;
-                              
-                              // std::cout<<"\nconjec in 1\t"<<conjec1<<"\n";
-                              // std::cout<<"\nconjec in 1 1 \t"<<conjec2<<"\n";             
+                              //std::cout<<"\nconjec2 in 1\t"<<conjec2<<"\n";
+                              //std::cout<<"\nrf_grf\t"<<rf_grf<<"\n";
+
                           }
                           else if(n2<n)
                           {
                               RF_SOME.insert(threads[k2]->instructions[n2]);
                               RF_WS.insert(threads[k2]->instructions[n2]);
                               count_global_occur++;
-                              std::cout<<"\nread: "<<v2<<"\n";
-                              std::cout<<"\nwrite\t"<<v3<<"\n";
+                              // std::cout<<"\nread: "<<v2<<"\n";
+                              // std::cout<<"\nwrite\t"<<v3<<"\n";
+                              
                               conjec1=build_rf_val(threads[k2]->instructions[n2],threads[k]->instructions[n],c,v1,false); 
-                              
                               rf_val=rf_val && conjec1;
-                              
+                              // std::cout<<"\nconjec1 in 2\t"<<conjec1<<"\n";
+                              // std::cout<<"\nrf_val\t"<<rf_val<<"\n";
+
                               conjec2=build_rf_grf(threads[k2]->instructions[n2],threads[k]->instructions[n],c,v1,false,input);
                               rf_grf=rf_grf && conjec2;
-
-                              // std::cout<<"\nconjec in 2\t"<<conjec1<<"\n";
-                              // std::cout<<"\nconjec in 2 2 \t"<<conjec2<<"\n";
+                              // std::cout<<"\nconjec2 in 2\t"<<conjec2<<"\n";
+                              // std::cout<<"\nrf_grf\t"<<rf_grf<<"\n";
+                              
                           }
                         }         
                     }
@@ -517,23 +537,21 @@ void program::build_ses(const input::program& input,z3::context& c)
                             RF_SOME.insert(threads[k]->instructions[n]);
                             RF_WS.insert(threads[k]->instructions[n]);
                             if_pre[threads[k]->instructions[n]]=1;
-                            if(v1=="balance")
-                            {
-                                std::cout<<"\ninstr name "<<(threads[k]->instructions[n])->name<<"\n";  
-                                std::cout<<"\nif_pre\t"<<if_pre[threads[k]->instructions[n]]<<"\n";  
-                            }
                             
                             count_global_occur++;
-                            std::cout<<"\nread: "<<v2<<"\n";
-                            std::cout<<"\nwrite initial\t"<<vi<<"\n";
+                            // std::cout<<"\nread: "<<v2<<"\n";
+                            // std::cout<<"\nwrite initial\t"<<vi<<"\n";
+                            
                             conjec1=build_rf_val(threads[k]->instructions[n],threads[k]->instructions[n],c,v1,true);
                             rf_val=rf_val && conjec1;
-                            
+                            // std::cout<<"\nconjec1 in 3\t"<<conjec1<<"\n";
+                            // std::cout<<"\nrf_val\t"<<rf_val<<"\n";
+
                             conjec2=build_rf_grf(threads[k]->instructions[n],threads[k]->instructions[n],c,v1,true,input);
                             rf_grf=rf_grf && conjec2;
-
-                            // std::cout<<"\nconjec in 3\t"<<conjec1<<"\n";
-                            // std::cout<<"\nconjec in 3 3\t"<<conjec2<<"\n";
+                             // std::cout<<"\nconjec2 in 3\t"<<conjec2<<"\n";
+                             // std::cout<<"\nrf_grf\t"<<rf_grf<<"\n";
+                            
                             flag=1;
                             break;
                           }
@@ -569,24 +587,27 @@ void program::build_ses(const input::program& input,z3::context& c)
                             if((if_pre[write1]!=1)&&(if_pre[write2]!=1))
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write1,write2,c,v1,false);   
-                                std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
-                                std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
+                                //std::cout<<"\nconjec3 in 1\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
+                                // std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
                                  
                             }
                             else if(if_pre[write2]==1)
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write2,write1,c,v1,true);   
-                                std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
-                                std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
+                                //std::cout<<"\nconjec3 in 2\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
+                                // std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
                             }
                             else if(if_pre[write1]==1)
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write1,write2,c,v1,true);     
-                                std::cout<<"\nread in some (else) pre=true\n"<<threads[k]->instructions[n]->name;   
-                                std::cout<<"\nwrite1 in some (else) pre=true\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (else) pre=true\n"<<write2->name;
+                                //std::cout<<"\nconjec3 in 3\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (else) pre=true\n"<<threads[k]->instructions[n]->name;   
+                                // std::cout<<"\nwrite1 in some (else) pre=true\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (else) pre=true\n"<<write2->name;
                             }
                             
                          }
@@ -599,24 +620,27 @@ void program::build_ses(const input::program& input,z3::context& c)
                         if((if_pre[write1]!=1)&&(if_pre[write2]!=1))
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write1,write2,c,v1,false);   
-                                std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
-                                std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
+                                //std::cout<<"\nconjec3 in 1\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
+                                // std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
                                  
                             }
                             else if(if_pre[write2]==1)
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write2,write1,c,v1,true);   
-                                std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
-                                std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
+                                //std::cout<<"\nconjec3 in 2\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (if) pre=false\n"<<threads[k]->instructions[n]->name;       
+                                // std::cout<<"\nwrite1 in some (if) pre=false\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (if) pre=false\n"<<write2->name; 
                             }
                             else if(if_pre[write1]==1)
                             {
                                 conjec3=build_rf_some(threads[k]->instructions[n],write1,write2,c,v1,true);     
-                                std::cout<<"\nread in some (else) pre=true\n"<<threads[k]->instructions[n]->name;   
-                                std::cout<<"\nwrite1 in some (else) pre=true\n"<<write1->name;
-                                std::cout<<"\nwrite2 in some (else) pre=true\n"<<write2->name;
+                                //std::cout<<"\nconjec3 in 3\t"<<conjec3<<"\n";
+                                // std::cout<<"\nread in some (else) pre=true\n"<<threads[k]->instructions[n]->name;   
+                                // std::cout<<"\nwrite1 in some (else) pre=true\n"<<write1->name;
+                                // std::cout<<"\nwrite2 in some (else) pre=true\n"<<write2->name;
                             }
                         
                       }
@@ -625,6 +649,7 @@ void program::build_ses(const input::program& input,z3::context& c)
                   
               }
               rf_some= rf_some && conjec3;
+              //std::cout<<"\nrf_some\t"<<rf_some<<"\n";
               for(auto iterator1=RF_SOME.begin();iterator1!=RF_SOME.end();)
               {
                 write5=*iterator1;
@@ -634,30 +659,35 @@ void program::build_ses(const input::program& input,z3::context& c)
                   write6=*iterator2;
                   if((if_pre[write5]!=1)&&(if_pre[write6]!=1))
                   {
-                    std::cout<<"........\nwrite1 + first if\t"<<write5->name<<"\n";
-                    std::cout<<"\nread1 + first if\t"<<threads[k]->instructions[n]->name<<"\n";
-                    std::cout<<"\nwrite2 + first if\t"<<write6->name<<"\n..........";
+                    // std::cout<<"........\nwrite1 + first if\t"<<write5->name<<"\n";
+                    // std::cout<<"\nread1 + first if\t"<<threads[k]->instructions[n]->name<<"\n";
+                    // std::cout<<"\nwrite2 + first if\t"<<write6->name<<"\n..........";
                     conjec6=build_fr(write5,threads[k]->instructions[n],write6,c,v1,false,false,input);
                     conjec7=build_fr(write6,threads[k]->instructions[n],write5,c,v1,false,false,input);
                     fr = fr && conjec6 && conjec7;
+                    //std::cout<<"\nfr in 1\t"<<fr<<"\n";
                   }
                   else if(if_pre[write6]==1)
                   {
-                      std::cout<<"........\nwrite1 + second if\t"<<write5->name<<"\n";
-                      std::cout<<"\nread1 + second if\t"<<threads[k]->instructions[n]->name<<"\n";
-                      std::cout<<"\nwrite2 + second if\t"<<write6->name<<"\n........";                      
-                      conjec6=build_fr(write5,threads[k]->instructions[n],write6,c,v1,true,true,input);
-                      conjec7=build_fr(write6,threads[k]->instructions[n],write5,c,v1,true,false,input);
+                      // std::cout<<"........\nwrite1 + second if\t"<<write5->name<<"\n";
+                      // std::cout<<"\nread1 + second if\t"<<threads[k]->instructions[n]->name<<"\n";
+                      // std::cout<<"\nwrite2 + second if\t"<<write6->name<<"\n........";  
+                      //if(if_pre[write5]!=1)                    
+                        conjec6=build_fr(write5,threads[k]->instructions[n],write6,c,v1,true,true,input);
+                      //if(if_pre[write6]!=1)
+                        conjec7=build_fr(write6,threads[k]->instructions[n],write5,c,v1,true,false,input);
                       fr = fr && conjec6 && conjec7;
+                      //std::cout<<"\nfr in 2\t"<<fr<<"\n";
                   }
                   else if(if_pre[write5]==1)
                   {
-                      std::cout<<".......\nwrite1 + third if\t"<<write5->name<<"\n";
-                      std::cout<<"\nread1 + third if\t"<<threads[k]->instructions[n]->name<<"\n";
-                      std::cout<<"\nwrite2 + third if\t"<<write6->name<<"\n......";
+                      // std::cout<<".......\nwrite1 + third if\t"<<write5->name<<"\n";
+                      // std::cout<<"\nread1 + third if\t"<<threads[k]->instructions[n]->name<<"\n";
+                      // std::cout<<"\nwrite2 + third if\t"<<write6->name<<"\n......";
                       conjec6=build_fr(write5,threads[k]->instructions[n],write6,c,v1,true,false,input);
                       conjec7=build_fr(write6,threads[k]->instructions[n],write5,c,v1,true,true,input); 
                       fr = fr && conjec6 && conjec7;
+                      //std::cout<<"\nfr in 3\t"<<fr<<"\n";
                   }
                   else
                   {
@@ -680,24 +710,27 @@ void program::build_ses(const input::program& input,z3::context& c)
             //std::cout<<"\ncheck itr\t"<<write4->name<<"\n"; 
             if((if_pre[write4]!=1)&&(if_pre[write3]!=1))
             {
-                std::cout<<"\nwrite3 name "<<write3->name<<"\n";
-                std::cout<<"\nwrite4 name "<<write4->name<<"\n";
+                // std::cout<<"\nwrite3 name "<<write3->name<<"\n";
+                // std::cout<<"\nwrite4 name "<<write4->name<<"\n";
                 conjec4=build_ws(write4,write3,c,false,input);
                 rf_ws= rf_ws && conjec4;
+                //std::cout<<"\nrf_ws in 1\t"<<rf_ws<<"\n";
             }
             else if((if_pre[write4]==1))
             {
-                std::cout<<"\nwrite3 name "<<write3->name<<"\n";
-                std::cout<<"write4 name: initialisation instruction\n";
+                // std::cout<<"\nwrite3 name "<<write3->name<<"\n";
+                // std::cout<<"write4 name: initialisation instruction\n";
                 conjec4=build_ws(write4,write3,c,true,input); 
                 rf_ws= rf_ws && conjec4;
+                //std::cout<<"\nrf_ws in 2\t"<<rf_ws<<"\n";
             }
             else if((if_pre[write3]==1))
             {
-                std::cout<<"\nwrite4 name "<<write4->name<<"\n";
-                std::cout<<"write3 name: initialisation instruction\n";
+                // std::cout<<"\nwrite4 name "<<write4->name<<"\n";
+                // std::cout<<"write3 name: initialisation instruction\n";
                 conjec4=build_ws(write3,write4,c,true,input); 
-                rf_ws= rf_ws && conjec4; 
+                rf_ws= rf_ws && conjec4;
+                //std::cout<<"\nrf_ws in 3\t"<<rf_ws<<"\n"; 
             }
             else
             {
@@ -717,28 +750,21 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
   z3::context& c = _z3.c;
   for (pi_needed pi : pis) {
     variable nname = pi.name;
-    //std::cout<<"pi.name: "<<pi.name<<"\n";
-    //std::cout<<""<<thread_vars[pi.name];
+    
+    
     vector<pi_function_part> pi_parts;
     // get a list of all locations in question
     vector<shared_ptr<const instruction>> locs;
+    std::cout<<"\nhere yeah\n";
     if (pi.last_local != nullptr) {
+      std::cout<<"\nnname\t"<<pi.name<<"\n";
       locs.push_back(pi.last_local);
     }
-    // for (const shared_ptr<const instruction>& li : locs) {
-    //   printf("Hello\n");
-    //   if(li!=nullptr)
-    //     std::cout<<li->loc->name;
-    //   else
-    //     std::cout<<"hello 2\n";
-    // }
+    std::cout<<"\nnname\t"<<pi.name<<"\n";
     for (unsigned t = 0; t<threads.size(); t++) {
       if (t!=pi.thread) {
         locs.insert(locs.end(), threads[t]->global_var_assign[pi.orig_name].begin(),threads[t]->global_var_assign[pi.orig_name].end());
-        //std::cout<<"\npi.orig_name\t"<<pi.orig_name<<"\n";
-        //for(auto itr=(threads[t]->global_var_assign[pi.orig_name]).begin();itr!=(threads[t]->global_var_assign[pi.orig_name]).end();itr++)
-            //std::cout<<"\npi.orig_name instruction\t"<<*((threads[t]->global_var_assign[pi.orig_name]).begin())<<"\n";
-      }
+        }
     }
  
     z3::expr p = c.bool_val(false);
@@ -749,6 +775,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
       
       //p = p || (z3::expr)nname == (pi.orig_name + "#pre");
       p = p || (z3::expr)nname == (pi.orig_name + "0");
+      //std::cout<<"\np "<<p<<"\n";
       for(const shared_ptr<const instruction>& lj: locs) {
         assert (pi.loc->thread!=lj->loc->thread);
         p_hb = p_hb && (_hb_encoding.make_hb(pi.loc,lj->loc));
@@ -770,9 +797,18 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     // for all other locations
     //std::cout<<"hello\n";
     //std::cout<<begin(locs)<<"\n";
+    auto itr=locs.begin();
+    // if(itr==locs.end())
+    // {
+    //  std::cout<<"hell no\n"; 
+    // }
+    for(;itr!=locs.end();itr++)
+    {
+      std::cout<<"hell no 2\n";
+    }
     for (const shared_ptr<const instruction>& li : locs) {
       p_hb = c.bool_val(true);
-      //std::cout<<"hello 2\n";
+      std::cout<<"hello 2\n";
       fflush(stdout);
       variable oname = pi.orig_name + "#" + li->loc->name;
       //variable oname = pi.name;
@@ -811,10 +847,13 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
         }
       }
       p = p || (p1 && p_hb);
+      std::cout<<"p_hb"<<p_hb<<"\n";
+      std::cout<<"p"<<p<<"\n";
       pi_parts.push_back(pi_function_part(vars,p_hb));
     }
     phi_pi = phi_pi && p;
     pi_functions[nname] = pi_parts;
+    std::cout<<"\nnname pi_functions\t"<<nname<<"\n";
   } 
 printf("\nprogram:build_pis 2\n");
 }

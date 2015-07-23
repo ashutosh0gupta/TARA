@@ -99,16 +99,18 @@ z3::solver trace_analysis::make_bad()
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
-  
-  result.add(!program->phi_po);
-  result.add(!program->phi_vd);
-  result.add(!program->fr);
-  result.add(!program->rf_ws);
-  result.add(!program->rf_some);
-  result.add(!program->rf_grf);
-  result.add(!program->rf_val);
-  result.add(!program->phi_pre);
-  result.add(!program->phi_prp);
+  z3::expr x=z3.c.int_const("x");
+
+  result.add(x>0);
+   result.add(program->phi_po);
+   result.add(program->phi_vd);
+  // result.add(program->fr);
+  // result.add(program->rf_ws);
+  // result.add(program->rf_some);
+  // result.add(program->rf_grf);
+  // result.add(program->rf_val);
+  // result.add(program->phi_pre);
+  // result.add(program->phi_prp);
   
   return move(result);
 }
@@ -119,18 +121,29 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
   
-  result.add(!program->phi_po);
-  result.add(!program->phi_vd);
-  result.add(!program->fr);
-  result.add(!program->rf_ws);
-  result.add(!program->rf_some);
-  result.add(!program->rf_grf);
-  result.add(!program->rf_val);
-  result.add(!program->phi_pre);
-  result.add(!program->phi_prp); // had negation from begining
-  if (!include_infeasable)
-    result.add(program->phi_fea);
+   //z3::expr x=z3.c.int_const("x");
+  // z3::expr y=z3.c.int_const("y");
+  // result.add(y>0);
+   //result.add(x>0);
+  //result.add(y>x);
+  //result.add(x+y=3);
+    z3::params p (z3.c);
+   p.set(":unsat_core",true);
+   result.set(p);
   
+  result.add(program->phi_po);
+  result.add(program->phi_vd);
+  result.add(program->fr,"p3");
+  result.add(program->rf_ws,"p4");
+  result.add(program->rf_some,"p5");
+  result.add(program->rf_grf,"p6");
+  result.add(program->rf_val,"p7");
+  result.add(program->phi_pre,"p8");
+  result.add(!program->phi_prp,"p9"); // had negation from begining
+  if (!include_infeasable)
+    result.add(program->phi_fea,"p10");
+
+
   return move(result);
 }
 
@@ -157,17 +170,32 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   // some check to ensure there are any good feasable traces at all
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
-  if (make_good(false).check() == z3::check_result::sat) {        //made changes here
-    //std::cout<<"\ntrace_analysis:seperate ohh god no\n";
+  
+
+  
+
+    std::cout<<"\nmake_good(false).check()\t"<<make_good(false).check();
+  if (make_good(false).check() == z3::check_result::unsat) {        //made changes here 2
+    
+    z3::expr_vector core2=make_good(false).unsat_core();
+    std::cout<<"\ntrace_analysis:seperate inside unsat\n";
+     std::cout<<"core2\t"<<core2.size();
+     for (unsigned i = 0; i < core2.size(); i++) {
+         std::cout << core2[i] << "\n";
+         std::cout<<"core2\n";
+     }
     return trace_result::always;
   }
   
-  std::cout<<"\ntrace_analysis:seperate\n";
+
+
+
+  std::cout<<"\ntrace_analysis:seperate 4\n";
 
   z3::expr result = z3.c.bool_val(false);
   z3::check_result r;
-  
-  while ((r=sol_bad.check()) == z3::check_result::unsat) {      //made changes here too
+  std::cout<<"\nsol_bad.check()\t"<<sol_bad.check();
+  while ((r=sol_bad.check()) == z3::check_result::sat) {      //made changes here too 2
   
     auto start_time = chrono::steady_clock::now();
   
@@ -175,7 +203,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   
     o.round++;
     
-    std::cout<<"\ntrace_analysis:seperate\n";
+    std::cout<<"\ntrace_analysis:seperate 5\n";
 
     if (o.print_rounds >= 1) {
         o.out() << "Round " << o.round << endl;
@@ -230,7 +258,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   output.init(hb_encoding, make_bad(), make_good(false), program);
   
-  std::cout<<"\ntrace_analysis 3\n";
+  std::cout<<"\ntrace_analysis 8\n";
   
   if (o.print_output >= 1) {
     o.out() << "Result as formula:" << endl;
@@ -241,17 +269,18 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   
   std::cout<<"\nz3_lbool b\t"<<b<<"\n";
   std::cout<<"\ntrace_analysis 4\n";
-
+  //b=Z3_L_FALSE;
   trace_result return_result;
   switch (b) {
     case Z3_L_TRUE:
       return_result = trace_result::always;
       break;
     case Z3_L_FALSE:
+      std::cout<<"here -1\n";
       return_result = trace_result::never;
       break;
     default: {
-      
+      std::cout<<"here 2\n";
       // check if all traces are bad
       /*sol_good.add(!result);
       if (sol_good.check() == z3::unsat)

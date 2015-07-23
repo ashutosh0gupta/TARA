@@ -68,40 +68,40 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
       }
     }
     //std::cout<<"\napply_prune_chain: 3\n";
-        fflush(stdout);
+       // fflush(stdout);
     if (!found) break;
     // if this is a local variable
     auto local = program.variable_written.find(v);
     //std::cout<<"\nv:\t"<<v<<"\n";
     //std::cout<<"\nlocal: \t"<<program.variable_written[v].instr<<"\n";
     //std::cout<<"\napply_prune_chain: 3.1\n";
-        fflush(stdout);
+        //fflush(stdout);
     if (local != program.variable_written.end()) {
       std::shared_ptr<cssa::instruction> instr = local->second;
-      //std::cout<<"\ninstr: \t"<<instr<<"\n";
+      std::cout<<"\ninstr: \t"<<instr<<"\n";
       //std::cout<<"\napply_prune_chain: 3.2\n";
 
-        fflush(stdout);
+        //fflush(stdout);
       for (string v : instr->variables_read)
         follow.push(v);
       //std::cout<<"\napply_prune_chain: 4\n";
-        fflush(stdout);
+        //fflush(stdout);
     } else {
       //std::cout<<"\ninstr\n"<<local->second;
       //std::cout<<"\napply_prune_chain: 3.3\n";
-        fflush(stdout);
+        //fflush(stdout);
       auto global = program.pi_functions.find(v);
-      std::cout<<"\nglobal v:\t"<<v<<"\n";
+      //std::cout<<"\nglobal v:\t"<<v<<"\n";
       assert(global!=program.pi_functions.end());
       
       //std::cout<<"\napply_prune_chain: 3.4\n";
-        fflush(stdout);
+        //fflush(stdout);
 
 
 
 
       vector<cssa::pi_function_part> pi_parts = global->second;
-
+      //std::cout<<"\nglobal->second:\t"<<(global->second)<<"\n";
 
 
 
@@ -110,9 +110,9 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
       bool part_matched = false;
 #endif
       //std::cout<<"\napply_prune_chain: 5\n";
-        fflush(stdout);
+        //fflush(stdout);
       for (cssa::pi_function_part pi_part : pi_parts) {
-        std::cout <<"\nhb_expression:\t"<< pi_part.hb_exression << endl;
+        std::cout <<"\nhb_expression:\t"<< pi_part.hb_exression << endl;  
         if (m.eval(pi_part.hb_exression).get_bool()) {
 #ifndef NDEBUG
           assert(part_matched == false);
