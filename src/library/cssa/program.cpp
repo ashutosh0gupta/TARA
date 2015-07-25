@@ -325,6 +325,7 @@ void program::build_threads(const input::program& input)
           //std::cout<<"havok_vars: "<<v1.name<<"\n";
           thread[i].variables_write.insert(nname); // this variable is written by this instruction
           thread[i].variables_write_orig.insert(v1);
+          std::cout<<"variables_write"<<nname<<"\n";
           // map the instruction to the variable
           variable_written[nname] = thread.instructions[i];
           src.push_back(v);
@@ -353,7 +354,7 @@ void program::build_threads(const input::program& input)
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
         if (instr->type == instruction_type::regular) 
         {
-          std::cout<<"newi\t"<<newi<<"\n";
+          //std::cout<<"newi\t"<<newi<<"\n";
           phi_vd = phi_vd && newi;
           std::cout<<"\nphi_vd\t"<<phi_vd<<"\n";
         } 
@@ -385,10 +386,10 @@ void program::build_threads(const input::program& input)
         
         for(auto itr=pis.begin();itr!=pis.end();itr++)
         {
-          std::cout<<" pis itr orig_name"<<(itr)->orig_name<<"\n";
+          //std::cout<<" pis itr orig_name"<<(itr)->orig_name<<"\n";
           if(itr->last_local!=NULL)
           {
-              std::cout<<" pis itr"<<(itr)->last_local->instr<<"\n";
+              //std::cout<<" pis itr"<<(itr)->last_local->instr<<"\n";
           }
         }
       }
@@ -401,7 +402,8 @@ void program::build_threads(const input::program& input)
   }
 
   //variables_read_copy(variables_read);
-  
+  std::cout<<"\nhere 0\n";
+  fflush(stdout);
   for(unsigned int k=0;k<threads.size();k++)
       {
         for(unsigned int n=0;n<input.threads[k].size();n++)
@@ -410,14 +412,20 @@ void program::build_threads(const input::program& input)
           {
             for(variable vo:(threads[k]->instructions[n])->variables_read)
             {
-              //std::cout<<".......\nvariables_read\t"<<vn<<"\n";
-              //std::cout<<"\ninstr name\t"<<(threads[k]->instructions[n])->loc<<"\n";    
+              std::cout<<".......\nvariables_read\t"<<vo<<" "<<vn<<"\n";
+              //std::cout<<"\ninstr name\t"<<(threads[k]->instructions[n])->loc<<"\n"; 
+              //std::cout<<"\nhere 1\n";
+              //fflush(stdout);   
               if(check_correct_global_variable(vo,vn.name))
               {
+                  //std::cout<<"\nhere 2\n";
+                  //fflush(stdout);
                   (threads[k]->instructions[n])->variables_read_copy.insert(vo);
-                  // std::cout<<"\nvariables_read inserted\t"<<vo<<"\n";
+                   std::cout<<"\nvariables_read inserted\t"<<vo<<"\n";
                   // std::cout<<"\ninstr name\t"<<(threads[k]->instructions[n])->loc<<"\n........";    
               }
+              //std::cout<<"\nhere 3\n";
+              //fflush(stdout);
             }
             
             //if((threads[k]->instructions[n])->name)
@@ -473,7 +481,7 @@ void program::build_ses(const input::program& input,z3::context& c)
             RF_SOME.clear();
             flag=0;
             
-            //std::cout<<"\nread outside:\t"<<v2<<" "<<v1<<"\n";
+            std::cout<<"\nread outside:\t"<<v2<<"\n";
             if(check_correct_global_variable(v2,v1))
             {
                 
@@ -486,9 +494,10 @@ void program::build_ses(const input::program& input,z3::context& c)
                     
                     for(variable v3:(threads[k2]->instructions[n2])->variables_write)
                     {
-                         //std::cout<<"\nwrite outside\t"<<v3<<"\n";
+                         std::cout<<"\nwrite outside\t"<<v3<<"\n";
                         if(check_correct_global_variable(v3,v1))
                         {
+                          std::cout<<"\ninside\n";
                           if(k2!=k)
                           {
                               RF_SOME.insert(threads[k2]->instructions[n2]);
@@ -739,6 +748,11 @@ void program::build_ses(const input::program& input,z3::context& c)
         }
       }
   }
+  std::cout<<"\nrf_val\t"<<rf_val<<"\n"; 
+  std::cout<<"\nrf_grf\t"<<rf_grf<<"\n"; 
+  std::cout<<"\nrf_ws\t"<<rf_ws<<"\n"; 
+  std::cout<<"\nrf_some\t"<<rf_some<<"\n"; 
+  std::cout<<"\nfr\t"<<fr<<"\n"; 
 }
 
 
@@ -902,7 +916,7 @@ void program::build_hb(const input::program& input)
       phi_po = phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc);
       //std::cout<<"_hb_encoding.make_hb(thread[j].loc, thread[j+1].loc)\t"<<phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc)<<"\n";
       //std::cout<<"phi_po\t"<<thread[j].loc<<"\t"<<thread[j+1].loc<<"\n";
-      std::cout<<"phi_po 2\t"<<phi_po<<"\n";
+      std::cout<<"phi_po\t"<<phi_po<<"\n";
     }
   }
   
