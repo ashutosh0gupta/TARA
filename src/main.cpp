@@ -130,10 +130,8 @@ void real_main(int argc, char **argv) {
   start_time = chrono::steady_clock::now();
   trace_analysis ts(o,c);
   ts.input(o.input_file);
-
   ts.gather_statistics(run_metric);
-  std::cout<<"\nMain\n";
-  fflush(stdout);
+  
   // TODO: Make this a seperate mode
   /*unordered_set< string >  ambigious;
   if (ts.check_ambigious_traces(ambigious)) {
@@ -165,8 +163,6 @@ void real_main(int argc, char **argv) {
           if (p=="verify") verify = true;
           else if (p=="nfs") print_nfs = true;
         }
-        std::cout<<"\nMain 2\n";
-        fflush(stdout);
         output = synthesise ? unique_ptr<output::output_base>(new output::synthesis(verify, print_nfs)) : unique_ptr<output::output_base>(new output::bugs(verify, print_nfs)) ;
       } else {
         bool bad_dnf = false;
@@ -183,17 +179,14 @@ void real_main(int argc, char **argv) {
           else if (p=="verify") verify = true;
           else if (p=="noopt") no_opt = true;
           else if (p=="silent") silent = true;
-          
         }
         if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
-        
         output = unique_ptr<output::output_base>(new output::nf(bad_dnf, bad_cnf, good_dnf, good_cnf, verify, no_opt));
       }
             
       trace_result res = ts.seperate(*output, run_metric);
       o.out() << endl;
-      std::cout<<"\nMain 3\n";
-      fflush(stdout);
+
       switch (res) {
         case trace_result::undecided: 
           resultbuf << "Solver undecided." << endl;
