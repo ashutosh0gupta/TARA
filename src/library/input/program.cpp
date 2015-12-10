@@ -54,7 +54,6 @@ program::program()
 
 
 void program::convert_instructions(z3interf& z3) {
-  printf("\nprogram:convert_instructions\n");
   for (unsigned i=0; i<threads.size(); i++)
     for (unsigned j=0; j<threads[i].size(); j++) {
       //instruction* in = instrs[i][j];
@@ -62,7 +61,6 @@ void program::convert_instructions(z3interf& z3) {
         variable_set havok_vars;
         for (string v : ins->havok_vars) {
           havok_vars.insert(find_variable(i, v));
-          std::cout<<"\nhavok_vars\t"<<v<<"\n";
         }
         // convert the string to a z3 expression
         shared_ptr<instruction_z3> newi = make_shared<instruction_z3>(ins->name, z3, ins->instr, set_union(threads[i].locals, globals), ins->type, havok_vars);
@@ -72,7 +70,6 @@ void program::convert_instructions(z3interf& z3) {
     
     if (shared_ptr<instruction_str> ins = dynamic_pointer_cast<instruction_str>(precondition)) {
       precondition = make_shared<instruction_z3>(ins->name, z3, ins->instr, globals, ins->type, variable_set());
-
     }
     
     convert_names(z3);
@@ -80,7 +77,6 @@ void program::convert_instructions(z3interf& z3) {
 
 void program::convert_names(z3interf& z3)
 {
-  printf("\nprogram:convert_names\n");
   if (names_converted) return;
   names_converted = true;
   
@@ -128,7 +124,6 @@ bool program::is_global(const string& name) const
 
 variable program::find_variable(int thread, const string& name) const
 {
-  printf("\nprogram: find_variable\n");
   auto var = globals.find(variable(name, data_type::boolean));
   if (var!=globals.end()) {
     return *var;
@@ -145,7 +140,6 @@ variable program::find_variable(int thread, const string& name) const
 
 void program::check_correctness()
 {
-  printf("\nprogram: check_correctness\n");
   unordered_set<string> thread_names; // check if the thread names are unique
   unordered_set<string> loc_names; // check if the location names are unique
   for (unsigned t=0; t<threads.size(); t++) {
@@ -178,7 +172,6 @@ void program::check_correctness()
         }
         
         for (cssa::variable v : ins->havok_vars) {
-          std::cout<<"\nhavok_vars\t"<<v<<"\n";
           // check only unprimed variables in havok
           if (is_primed(v)) {
             throw input_exception("Unprimed variables are not allowed in havok.");
