@@ -38,8 +38,6 @@ pi_function_part::pi_function_part(z3::expr hb_exression) : hb_exression(hb_exre
 
 void program::build_threads(const input::program& input)
 {
-  //char count_occur='1';
-  printf("\nprogram: build threads\n");
   z3::context& c = _z3.c;
   vector<pi_needed> pis;
 
@@ -47,7 +45,6 @@ void program::build_threads(const input::program& input)
 
   for (string v: input.globals) {
       count_occur[v]=0;
-      //std::cout<<"\ncount_occur["<<v<<"]\t"<<count_occur[v]<<"\n";
     }
 
 
@@ -60,9 +57,7 @@ void program::build_threads(const input::program& input)
     // set all local vars to "pre"
     for (string v: input.threads[t].locals) {
       thread_vars[v] = "pre";
-      //std::cout<<"thread_vars: "<<v<<"\n"<<"t\t"<<t<<"\n";
       count_occur[v]=0;
-      //std::cout<<"\ncount_occur["<<v<<"]\t"<<count_occur[v]<<"\n";
     }
 
     z3::expr path_constraint = c.bool_val(true);
@@ -79,7 +74,6 @@ void program::build_threads(const input::program& input)
         {
           variable nname(c);
 
-          //std::cout<<"\nv.name:\t"<< v.sort.ctx().constant(v.name.c_str(), v.sort)<<"\n";
           if (!is_primed(v))
           {
 
@@ -104,12 +98,9 @@ void program::build_threads(const input::program& input)
 
             thread[i].variables_read.insert(nname); // this variable is read by this instruction
             thread[i].variables_read_orig.insert(v);
-            //std::cout<<"\nnname.name\t"<<nname.name<<"\n";
-            //std::cout<<"\nthread["<<i<<"].loc->name\t"<<thread[i].loc->name<<"\n";
           }
           else
           {
-            //std::cout<<"\nprimed: "<<v.name<<"\n";
 
             variable v1 = get_unprimed(v); //converting the primed to unprimed by removing the dot
             count_occur[v1]++;
@@ -117,7 +108,6 @@ void program::build_threads(const input::program& input)
             {    // every lvalued variable gets incremented by 1 and then the local variables are decremented by 1
               count_occur[v1]--;
             }
-            //std::cout<<"\nnot primed: "<<v1.name<<"\n";
             if (is_global(v1))
            {
               //nname = v1 + "#" + thread[i].loc->name;
@@ -131,7 +121,6 @@ void program::build_threads(const input::program& input)
               nname = v1 + int_to_string(count_occur[v1]);
               std::shared_ptr<tara::cssa::variable> var_ptr=make_shared<tara::cssa::variable>(nname);
               //instr_to_var[threads[t]->instructions[i]]=var_ptr;
-              //std::cout<<"\nin_thread\t"<<(threads[t]->instructions[i])->in_thread->name;
             }
             thread[i].variables_write.insert(nname); // this variable is written by this instruction
             thread[i].variables_write_orig.insert(v1);
@@ -141,7 +130,6 @@ void program::build_threads(const input::program& input)
           src.push_back(v);
           dst.push_back(nname);
         }
-        //std::cout<<"\nhavok_vars 1: \n";
 
         // tread havoked variables the same
         for(const variable& v: instr->havok_vars)
@@ -158,7 +146,6 @@ void program::build_threads(const input::program& input)
             nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
           }
           std::cout<<"\nhavok_vars 2: \n";
-          //std::cout<<"havok_vars: "<<v1.name<<"\n";
           thread[i].variables_write.insert(nname); // this variable is written by this instruction
           thread[i].variables_write_orig.insert(v1);
           std::cout<<"variables_write"<<nname<<"\n";
@@ -169,8 +156,6 @@ void program::build_threads(const input::program& input)
           // add havok to initial variables
           initial_variables.insert(nname);
         }
-        //std::cout<<"\nhavok_vars 3: \n";
-        //std::cout<<"\nthread["<<i<<"].instr\t"<<thread[i].instr<<"\n";
         // replace variables in expr
         z3::expr newi = instr->instr.substitute(src,dst);
         //
@@ -178,7 +163,6 @@ void program::build_threads(const input::program& input)
         // deal with the path-constraint
         thread[i].instr = newi;
         //
-        //std::cout<<"\nnewi "<<newi<<"\n";
 
         if (thread[i].type == instruction_type::assume)
         {
@@ -186,11 +170,9 @@ void program::build_threads(const input::program& input)
           path_constraint_variables.insert(thread[i].variables_read.begin(), thread[i].variables_read.end());
         }
         thread[i].path_constraint = path_constraint;
-        //std::cout<<"\npath_constraint "<<path_constraint<<"\n";
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
         if (instr->type == instruction_type::regular)
         {
-          //std::cout<<"newi\t"<<newi<<"\n";
           phi_vd = phi_vd && newi;
           std::cout<<"\nphi_vd\t"<<phi_vd<<"\n";
         }
@@ -208,7 +190,6 @@ void program::build_threads(const input::program& input)
         for(variable v: thread[i].variables_write)
         {
           thread_vars[v] = thread[i].loc->name;
-          //std::cout<<"\nthread_vars["<<v<<"]=\t"<<thread[i].loc->name<<"\n";
           if (is_global(v))
           {
             global_in_thread[v] = thread.instructions[i];
@@ -222,7 +203,6 @@ void program::build_threads(const input::program& input)
 
         for(auto itr=pis.begin();itr!=pis.end();itr++)
         {
-          //std::cout<<" pis itr orig_name"<<(itr)->orig_name<<"\n";
           if(itr->last_local!=NULL)
           {
               //std::cout<<" pis itr"<<(itr)->last_local->instr<<"\n";
@@ -249,19 +229,11 @@ void program::build_threads(const input::program& input)
             for(variable vo:(threads[k]->instructions[n])->variables_read)
             {
               std::cout<<".......\nvariables_read\t"<<vo<<" "<<vn<<"\n";
-              //std::cout<<"\ninstr name\t"<<(threads[k]->instructions[n])->loc<<"\n";
-              //std::cout<<"\nhere 1\n";
-              //fflush(stdout);
               if(check_correct_global_variable(vo,vn.name))
               {
-                  //std::cout<<"\nhere 2\n";
-                  //fflush(stdout);
                   (threads[k]->instructions[n])->variables_read_copy.insert(vo);
                    std::cout<<"\nvariables_read inserted\t"<<vo<<"\n";
-                  // std::cout<<"\ninstr name\t"<<(threads[k]->instructions[n])->loc<<"\n........";
               }
-              //std::cout<<"\nhere 3\n";
-              //fflush(stdout);
             }
 
             //if((threads[k]->instructions[n])->name)
@@ -315,28 +287,20 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
 
       //p = p || (z3::expr)nname == (pi.orig_name + "#pre");
       p = p || (z3::expr)nname == (pi.orig_name + "0");
-      //std::cout<<"\np "<<p<<"\n";
       for(const shared_ptr<const instruction>& lj: locs) {
         assert (pi.loc->thread!=lj->loc->thread);
         p_hb = p_hb && (_hb_encoding.make_hb(pi.loc,lj->loc));
       }
-      //std::cout<<"\np_hb\t"<<p_hb;
       pi_parts.push_back(pi_function_part(p_hb));
       p = p && p_hb;
-      //std::cout<<"\np\t"<<p;
       // add to initial variables list
 
       //initial_variables.insert(pi.orig_name + "#pre");
 
       initial_variables.insert(pi.orig_name + "0");
-      //std::cout<<"\norig_name: "<<pi.orig_name<<"\n";
-      //std::cout<<"\nonly_name: "<<pi.name<<"\n";
-      //std::cout<<"data_type: "<<pi.name.name<<"\n";
     }
 
     // for all other locations
-    //std::cout<<"hello\n";
-    //std::cout<<begin(locs)<<"\n";
     auto itr=locs.begin();
     // if(itr==locs.end())
     // {
@@ -370,19 +334,15 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
             // we can immediatelly determine if this is true
             assert(li->loc != lj->loc);
             before_write = _z3.c.bool_val(lj->loc->instr_no < li->loc->instr_no);
-            //std::cout<<"\nbefore_write\t"<<before_write;
           } else {
             assert (li->loc->thread!=lj->loc->thread);
             before_write = _hb_encoding.make_hb(lj->loc,li->loc);
-            //std::cout<<"\nbefore_write\t"<<before_write;
           }
           if (!pi.last_local || lj->loc != pi.last_local->loc) { // ignore if this is the last location this was written
             assert (pi.loc->thread!=lj->loc->thread);
             after_read = _hb_encoding.make_hb(pi.loc,lj->loc);
-            //std::cout<<"\nafter_read\t"<<after_read;
           } else
             after_read = _z3.c.bool_val(pi.loc->instr_no < lj->loc->instr_no);
-            //std::cout<<"\nafter_read\t"<<after_read;
           p_hb = p_hb && (before_write || after_read);
         }
       }
@@ -407,7 +367,6 @@ void program::build_hb(const input::program& input)
   // start location is needed to ensure all locations are mentioned in phi_po
   shared_ptr<hb_enc::location> start_location = input.start_name();
   locations.push_back(*start_location);
-  //std::cout<<"\nstart_location\t"<<start_location->_serial<<"\n";
 
 
   for (unsigned t=0; t<input.threads.size(); t++) {
@@ -417,7 +376,6 @@ void program::build_hb(const input::program& input)
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
         shared_ptr<hb_enc::location> loc = instr->location();
         locations.push_back(*loc);
-        //std::cout<<"location\t"<<*loc<<"\n";
 
         std::shared_ptr<instruction> ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
         thread.add_instruction(ninstr);
@@ -434,14 +392,9 @@ void program::build_hb(const input::program& input)
   for(unsigned t=0; t<threads.size(); t++) {
     thread& thread = *threads[t];
     unsigned j=0;
-    //std::cout<<"\nnormal: \t"<<thread[0].loc;
-    //std::cout<<"\nwhat we want: \t"<<(threads[t]->instructions[0])->loc;
     phi_po = phi_po && _hb_encoding.make_hb(start_location, thread[0].loc);
     for(j=0; j<thread.size()-1; j++) {
-      //std::cout<<"phi_po 1\t"<<phi_po<<"\n";
       phi_po = phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc);
-      //std::cout<<"_hb_encoding.make_hb(thread[j].loc, thread[j+1].loc)\t"<<phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc)<<"\n";
-      //std::cout<<"phi_po\t"<<thread[j].loc<<"\t"<<thread[j+1].loc<<"\n";
       std::cout<<"phi_po\t"<<phi_po<<"\n";
     }
   }
@@ -457,7 +410,6 @@ void program::build_hb(const input::program& input)
     hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
     hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
     phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
-    //std::cout<<"phi_po\t"<<phi_po<<"\n";
   }
   phi_po = phi_po && phi_distinct;
 }
@@ -472,7 +424,6 @@ void program::build_pre(const input::program& input)
     for(const variable& v: instr->variables()) {
       variable nname(_z3.c);
 
-      //std::cout<<"\nprecondition locations\t"<<instr->location()<<"\n";
 
       if (!is_primed(v)) {
         //nname = v + "#pre";
@@ -484,8 +435,6 @@ void program::build_pre(const input::program& input)
         throw cssa_exception("Primed variable in precondition");
 
       }
-      //std::cout<<"\nnname name: "<<nname.name<<"\n";
-      //std::cout<<"\nv name: "<<v.name<<"\n";
       src.push_back(v);
       dst.push_back(nname);
 
@@ -538,7 +487,6 @@ const instruction& program::lookup_location(const hb_enc::location_ptr& location
 std::vector< std::shared_ptr<const instruction> > program::get_assignments_to_variable(const variable& variable) const
 {
   string name = (get_unprimed(variable)).name;
-  std::cout<<"\nget_ass_to_var: name\t"<<name;
   vector<std::shared_ptr<const instruction>> result;
   for (unsigned i = 0; i<this->size(); i++) {
     const cssa::thread& t = (*this)[i];
@@ -549,6 +497,5 @@ std::vector< std::shared_ptr<const instruction> > program::get_assignments_to_va
       result.insert(result.end(), instrs.begin(), instrs.end());
     }
   }
-  //std::cout<<"\nresult\t"<<result;
   return result;
 }
