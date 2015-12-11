@@ -233,7 +233,8 @@ void program::build_threads(const input::program& input)
 }
 
 
-void program::build_pis(vector< program::pi_needed >& pis, const input::program& input) {
+void program::build_pis(vector< program::pi_needed >& pis, const input::program& input)
+{
   z3::context& c = _z3.c;
   for (pi_needed pi : pis) {
     variable nname = pi.name;
@@ -263,9 +264,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
       pi_parts.push_back(pi_function_part(p_hb));
       p = p && p_hb;
       // add to initial variables list
-
       //initial_variables.insert(pi.orig_name + "#pre");
-
       initial_variables.insert(pi.orig_name + "0");
     }
 
@@ -273,7 +272,6 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     for (const shared_ptr<const instruction>& li : locs) {
       p_hb = c.bool_val(true);
       variable oname = pi.orig_name + "#" + li->loc->name;
-      //variable oname = pi.name;
       variable_set vars = li->variables_read; // variables used by this part of the pi function, init with variables of the path constraint
       vars.insert(oname);
       z3::expr p1 = (z3::expr)nname == oname;
@@ -328,7 +326,6 @@ void program::build_hb(const input::program& input)
 
         std::shared_ptr<instruction> ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
         thread.add_instruction(ninstr);
-
       } else {
         throw cssa_exception("Instruction must be Z3");
       }
@@ -364,7 +361,6 @@ void program::build_hb(const input::program& input)
 
 void program::build_pre(const input::program& input)
 {
-
   if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
     z3::expr_vector src(_z3.c);
     z3::expr_vector dst(_z3.c);
