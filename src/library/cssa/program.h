@@ -65,7 +65,7 @@ private:
   void build_threads(const input::program& input);
   void build_hb(const input::program& input);
   void build_pre(const input::program& input);
-  void build_pis(std::vector<pi_needed>& pis, const input::program& input, std::unordered_map<std::string, std:: string>& thread_vars);
+  void build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void build_ses(const input::program& input,z3::context &);
 
   z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);

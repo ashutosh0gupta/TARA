@@ -21,7 +21,7 @@
 #include "program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-#include <int_to_string.cpp>
+#include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
 using namespace tara;
@@ -154,19 +154,16 @@ void program::build_threads(const input::program& input)
         z3::expr newi = instr->instr.substitute(src,dst);
         // deal with the path-constraint
         thread[i].instr = newi;
-        if (thread[i].type == instruction_type::assume)
-        {
+        if (thread[i].type == instruction_type::assume) {
           path_constraint = path_constraint && newi;
           path_constraint_variables.insert(thread[i].variables_read.begin(), thread[i].variables_read.end());
         }
         thread[i].path_constraint = path_constraint;
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
-        if (instr->type == instruction_type::regular)
-        {
+        if (instr->type == instruction_type::regular) {
           phi_vd = phi_vd && newi;
         }
-        else if (instr->type == instruction_type::assert)
-        {
+        else if (instr->type == instruction_type::assert) {
           // add this assertion, but protect it with the path-constraint
 
           phi_prp = phi_prp && implies(path_constraint,newi);
@@ -178,8 +175,7 @@ void program::build_threads(const input::program& input)
         for(variable v: thread[i].variables_write)
         {
           thread_vars[v] = thread[i].loc->name;
-          if (is_global(v))
-          {
+          if (is_global(v)) {
             global_in_thread[v] = thread.instructions[i];
             thread.global_var_assign[v].push_back(thread.instructions[i]);
           }
@@ -233,19 +229,14 @@ void program::build_threads(const input::program& input)
    shared_ptr<input::instruction_z3> pre_instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition);
 
   build_ses(input,c);
-  build_pis(pis, input, thread_vars);
+  build_pis(pis, input);
 }
 
 
-void program::build_pis(vector< program::pi_needed >& pis, const input::program& input, unordered_map< string, string >& thread_vars)
-{
-
-
+void program::build_pis(vector< program::pi_needed >& pis, const input::program& input) {
   z3::context& c = _z3.c;
   for (pi_needed pi : pis) {
     variable nname = pi.name;
-
-
     vector<pi_function_part> pi_parts;
     // get a list of all locations in question
     vector<shared_ptr<const instruction>> locs;
@@ -263,7 +254,6 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     // reading from pre part
     // only if the variable was never assigned in this thread we can read from pre
     if (pi.last_local == nullptr) {
-
       //p = p || (z3::expr)nname == (pi.orig_name + "#pre");
       p = p || (z3::expr)nname == (pi.orig_name + "0");
       for(const shared_ptr<const instruction>& lj: locs) {
@@ -280,18 +270,8 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     }
 
     // for all other locations
-    auto itr=locs.begin();
-    // if(itr==locs.end())
-    // {
-    //  std::cout<<"hell no\n";
-    // }
-    for(;itr!=locs.end();itr++)
-    {
-      // std::cout<<"hell no 2\n";
-    }
     for (const shared_ptr<const instruction>& li : locs) {
       p_hb = c.bool_val(true);
-      fflush(stdout);
       variable oname = pi.orig_name + "#" + li->loc->name;
       //variable oname = pi.name;
       variable_set vars = li->variables_read; // variables used by this part of the pi function, init with variables of the path constraint
@@ -333,12 +313,10 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
 
 void program::build_hb(const input::program& input)
 {
-
   z3::expr_vector locations(_z3.c);
   // start location is needed to ensure all locations are mentioned in phi_po
   shared_ptr<hb_enc::location> start_location = input.start_name();
   locations.push_back(*start_location);
-
 
   for (unsigned t=0; t<input.threads.size(); t++) {
     thread& thread = *threads[t];

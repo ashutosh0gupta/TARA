@@ -20,7 +20,7 @@
 #include "program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-#include "int_to_string.h"
+#include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
 using namespace tara;
