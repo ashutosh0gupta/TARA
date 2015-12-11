@@ -32,13 +32,11 @@ namespace hb_enc {
   
 struct location {
 private:
-  //z3::expr expr; // ensure this one is not visible from the outside
-  //uint16_t _serial;
+  z3::expr expr; // ensure this one is not visible from the outside
+  uint16_t _serial;
   
   friend class hb_enc::integer;
 public:
-	uint16_t _serial;
-	z3::expr expr; // ensure this one is not visible from the outside
   location(location& ) = delete;
   location& operator=(location&) = delete;
   location(z3::context& ctx, std::string name, bool special = false);
@@ -95,9 +93,8 @@ public:
   friend std::ostream& operator<< (std::ostream& stream, const hb& hb);
   
   hb negate() const;
-  z3::expr expr;
 private:
-//  z3::expr expr;
+  z3::expr expr;
   uint32_t _signature = 0;
 };
 

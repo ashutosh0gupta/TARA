@@ -72,11 +72,9 @@ public:
    * 
    */
   cssa::variable_set havok_vars;
+private:
   cssa::variable_set _variables;
   std::shared_ptr<hb_enc::location> _location;
-private:
-  
-  //std::shared_ptr<hb_enc::location> _location;
   friend class program;
 };
 
