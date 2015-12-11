@@ -172,10 +172,12 @@ inline bool check_correct_global_variable(const cssa::variable& variable, std:: 
 		return 1;
 	}
 	*/
-	int i; bool flag=1,checked=0;
-
-	for(i=(variable.name.size()-1);i>=0;i--)
+  bool flag=1,checked=0;
+  unsigned i = variable.name.size();
+        while(i != 0)
+	// for(i=;i>=0;i--)
 	{
+          i--;
 		if(isdigit(variable.name[i]))
 			continue;
 		else
