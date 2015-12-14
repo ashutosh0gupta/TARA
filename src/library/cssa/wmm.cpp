@@ -687,7 +687,8 @@ void program::wmm_build_pis(vector< program::pi_needed >& pis,
 
 }
 
-
+// why there is such a change (pre -> 0)?? -- needs rewrite
+// use the original code
 void program::wmm_build_pre(const input::program& input) {
   if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
     z3::expr_vector src(_z3.c);
@@ -718,7 +719,7 @@ void program::wmm_build_hb(const input::program& input) {
   locations.push_back(*start_location);
   
   for (unsigned t=0; t<input.threads.size(); t++) {
-    thread thread = *threads[t];
+    thread& thread = *threads[t];
     shared_ptr<hb_enc::location> prev;
     for (unsigned j=0; j<input.threads[t].size(); j++) {
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
@@ -761,7 +762,7 @@ void program::wmm_build_hb(const input::program& input) {
 }
 
 void program::wmm(const input::program& input) {
-  build_hb(input);
+  wmm_build_hb(input);
   wmm_build_pre(input);
   wmm_build_threads(input);
 }
