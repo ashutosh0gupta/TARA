@@ -26,6 +26,7 @@
 #include <vector>
 #include <memory>
 #include <boost/concept_check.hpp>
+#include "api/options.h"
 #include "input/instruction.h"
 #include "helpers/z3interf.h"
 
@@ -60,6 +61,11 @@ public:
   std::vector<location_pair> atomic_sections;
   std::vector<location_pair> happens_befores;
   
+  //wmm
+  api::mm_types mm = api::mm_types::sc;
+  bool is_wmm() const;
+  void set_mm( api::mm_types );
+
   bool is_global(const variable& name) const;
   bool is_global(const std::string& name) const;
   variable find_variable(int thread, const std::string& name) const;

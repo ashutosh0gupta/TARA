@@ -211,7 +211,10 @@ inline bool check_correct_global_variable(const cssa::variable& variable, std:: 
 	}
 	if(flag==1)
 	  return 1;
-
+        else{
+          exit(1);// should have never happend
+          return 0;
+        }
 }
 
 inline bool is_primed(const std::string& variable) {

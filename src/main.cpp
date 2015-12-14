@@ -129,7 +129,7 @@ void real_main(int argc, char **argv) {
 
   start_time = chrono::steady_clock::now();
   trace_analysis ts(o,c);
-  ts.input(o.input_file);
+  ts.input(o.input_file,o.mm);
   ts.gather_statistics(run_metric);
   
   // TODO: Make this a seperate mode

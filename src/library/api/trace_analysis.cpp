@@ -48,7 +48,15 @@ trace_analysis::trace_analysis(options options, z3::context& ctx) : _options(opt
 
 void trace_analysis::input(string input_file)
 {
+  input(input_file,mm_types::none);
+}
+
+void trace_analysis::input(string input_file, mm_types mm)
+{
   input::program pa = input::parse::parseFile(input_file.c_str());
+  if( mm != mm_types::none ) {
+    pa.set_mm( mm );
+  }
   input(pa);
 }
 

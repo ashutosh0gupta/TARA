@@ -33,6 +33,10 @@ enum class hb_types {
   integer
 };
 
+enum class mm_types {
+  none,sc, tso, pso
+};
+
 class options
 {
 public:
@@ -50,6 +54,9 @@ public:
   
   std::string prune_chain;
   
+  mm_types mm = mm_types::none;
+  std::vector<std::string> mm_options;
+
   std::ostream* _out;
   inline std::ostream& out() const { return *_out; };
 public: // information that are controlled by main

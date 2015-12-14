@@ -52,6 +52,15 @@ thread::thread(string name) : name(name)
 program::program()
 {}
 
+bool program::is_wmm() const
+{
+  return mm != api::mm_types::sc;
+}
+
+void program::set_mm(api::mm_types _mm)
+{
+  mm = _mm;
+}
 
 void program::convert_instructions(z3interf& z3) {
   for (unsigned i=0; i<threads.size(); i++)

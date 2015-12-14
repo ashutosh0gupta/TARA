@@ -42,6 +42,7 @@ void options::get_description(po::options_description& desc, po::positional_opti
   ("print,p", po::value<vector<string>>(), "print details about processing about a component (see readme)")
   ("prune,r", po::value<string>(), "select a chain of prune engines (see readme)")
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
+  ("mm,M", po::value<string>()->default_value("none"), "selects the memory model (\"sc\",\"tso\",\"pso\")")
   ;
   pd.add("input", -1);
 }
@@ -92,6 +93,21 @@ void options::interpret_options(po::variables_map& vm) {
   
   if (vm.count("prune")) {
     prune_chain = vm["prune"].as<string>();
+  }
+
+  if (vm.count("mm")) {
+    string _mode = seperate_option(vm["mm"].as<string>(), mm_options);
+    if (_mode == "sc")
+      mm = mm_types::sc;
+    else if (_mode == "tso")
+      mm = mm_types::tso;
+    else if (_mode == "pso")
+      mm = mm_types::pso;
+    else if (_mode == "none")
+      mm = mm_types::none;
+    else {
+      throw arg_exception("Mode must be one of: \"sc\", \"tso\", \"pso\"");
+    }
   }
 }
 

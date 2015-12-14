@@ -97,6 +97,7 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\"");
     }
   }
+
 }
 
 

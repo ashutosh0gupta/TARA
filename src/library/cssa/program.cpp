@@ -21,9 +21,7 @@
 #include "program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-#include "helpers/int_to_string.h"
-#include <string.h>
-#include "helpers/z3interf.h"
+
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
@@ -40,87 +38,42 @@ void program::build_threads(const input::program& input)
 {
   z3::context& c = _z3.c;
   vector<pi_needed> pis;
-
-  unordered_map<string, int> count_occur; // for counting occurences of each variable
-
-  for (string v: input.globals) {
-      count_occur[v]=0;
-    }
-
-
-    unordered_map<string, string> thread_vars; // maps variable to the last place they were assigned
-
   for (unsigned t=0; t<input.threads.size(); t++) {
     unordered_map<string, shared_ptr<instruction>> global_in_thread; // last reference to global variable in this thread (if any)
-
-
+    unordered_map<string, string> thread_vars; // maps variable to the last place they were assigned
     // set all local vars to "pre"
     for (string v: input.threads[t].locals) {
       thread_vars[v] = "pre";
-      count_occur[v]=0;
     }
-
+    
     z3::expr path_constraint = c.bool_val(true);
     variable_set path_constraint_variables;
     thread& thread = *threads[t];
-
-    for (unsigned i=0; i<input.threads[t].size(); i++)
-    {
-      if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]))
-      {
+    for (unsigned i=0; i<input.threads[t].size(); i++) {
+      if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i])) {
         z3::expr_vector src(c);
         z3::expr_vector dst(c);
-        for(const variable& v: instr->variables())
-        {
+        for(const variable& v: instr->variables()) {
           variable nname(c);
-
-          if (!is_primed(v))
-          {
-
-            if (is_global(v))
-            {
-              count_occur[v]++;
-              nname =v + int_to_string(count_occur[v]);
-              std::shared_ptr<tara::cssa::variable> var_ptr=make_shared<tara::cssa::variable>(nname);
+          if (!is_primed(v)) {
+            if (is_global(v)) {
+              nname = "pi_" + v + "#" + thread[i].loc->name;
               pis.push_back(pi_needed(nname, v, global_in_thread[v], t, thread[i].loc));
-            }
-            else
-            {
-              nname = v + int_to_string(count_occur[v]) ;
-              std::shared_ptr<tara::cssa::variable> var_ptr=make_shared<tara::cssa::variable>(nname);
+            } else {
+              nname = thread.name + "." + v + "#" + thread_vars[v];
               // check if we are reading an initial value
-              if (thread_vars[v] == "pre")
-              {
+              if (thread_vars[v] == "pre") {
                 initial_variables.insert(nname);
-
               }
             }
-
             thread[i].variables_read.insert(nname); // this variable is read by this instruction
             thread[i].variables_read_orig.insert(v);
-          }
-          else
-          {
-
-            variable v1 = get_unprimed(v); //converting the primed to unprimed by removing the dot
-            count_occur[v1]++;
-            if(thread_vars[v1]=="pre")
-            {    // every lvalued variable gets incremented by 1 and then the local variables are decremented by 1
-              count_occur[v1]--;
-            }
-            if (is_global(v1))
-           {
-              //nname = v1 + "#" + thread[i].loc->name;
-              nname = v1 + int_to_string(count_occur[v1]);
-              std::shared_ptr<tara::cssa::variable> var_ptr=make_shared<tara::cssa::variable>(nname);
-
-            }
-            else
-            {
-              //nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
-              nname = v1 + int_to_string(count_occur[v1]);
-              std::shared_ptr<tara::cssa::variable> var_ptr=make_shared<tara::cssa::variable>(nname);
-              //instr_to_var[threads[t]->instructions[i]]=var_ptr;
+          } else {
+            variable v1 = get_unprimed(v);
+            if (is_global(v1)) {
+              nname = v1 + "#" + thread[i].loc->name;
+            } else {
+              nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
             }
             thread[i].variables_write.insert(nname); // this variable is written by this instruction
             thread[i].variables_write_orig.insert(v1);
@@ -130,7 +83,6 @@ void program::build_threads(const input::program& input)
           src.push_back(v);
           dst.push_back(nname);
         }
-
         // tread havoked variables the same
         for(const variable& v: instr->havok_vars) {
           variable nname(c);
@@ -162,34 +114,18 @@ void program::build_threads(const input::program& input)
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
         if (instr->type == instruction_type::regular) {
           phi_vd = phi_vd && newi;
-        }
-        else if (instr->type == instruction_type::assert) {
+        } else if (instr->type == instruction_type::assert) {
           // add this assertion, but protect it with the path-constraint
-
           phi_prp = phi_prp && implies(path_constraint,newi);
           // add used variables
           assertion_instructions.insert(thread.instructions[i]);
         }
         // increase referenced variables
-        //for(variable v: thread[i].variables_write_orig) {
-        for(variable v: thread[i].variables_write)
-        {
+        for(variable v: thread[i].variables_write_orig) {
           thread_vars[v] = thread[i].loc->name;
           if (is_global(v)) {
             global_in_thread[v] = thread.instructions[i];
             thread.global_var_assign[v].push_back(thread.instructions[i]);
-          }
-        }
-        // for(variable v:thread[i].variables_read)
-        // {
-        //   std::cout<<"\nnname.name["<<i<<"]: "<<v.name<<"\n";
-        // }
-
-        for(auto itr=pis.begin();itr!=pis.end();itr++)
-        {
-          if(itr->last_local!=NULL)
-          {
-              //std::cout<<" pis itr"<<(itr)->last_local->instr<<"\n";
           }
         }
       }
@@ -199,39 +135,8 @@ void program::build_threads(const input::program& input)
     }
     phi_fea = phi_fea && path_constraint;
   }
-
-  //variables_read_copy(variables_read);
-  for(unsigned int k=0;k<threads.size();k++)
-      {
-        for(unsigned int n=0;n<input.threads[k].size();n++)
-        {
-          for(variable vn:(threads[k]->instructions[n])->variables_read_orig)
-          {
-            for(variable vo:(threads[k]->instructions[n])->variables_read)
-            {
-              if(check_correct_global_variable(vo,vn.name))
-              {
-                  (threads[k]->instructions[n])->variables_read_copy.insert(vo);
-              }
-            }
-
-            //if((threads[k]->instructions[n])->name)
-            //
-
-          }
-
-        }
-      }
-
-
-
-
-   shared_ptr<input::instruction_z3> pre_instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition);
-
-  build_ses(input,c);
   build_pis(pis, input);
 }
-
 
 void program::build_pis(vector< program::pi_needed >& pis, const input::program& input)
 {
@@ -247,7 +152,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     for (unsigned t = 0; t<threads.size(); t++) {
       if (t!=pi.thread) {
         locs.insert(locs.end(), threads[t]->global_var_assign[pi.orig_name].begin(),threads[t]->global_var_assign[pi.orig_name].end());
-        }
+      }
     }
 
     z3::expr p = c.bool_val(false);
@@ -255,8 +160,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     // reading from pre part
     // only if the variable was never assigned in this thread we can read from pre
     if (pi.last_local == nullptr) {
-      //p = p || (z3::expr)nname == (pi.orig_name + "#pre");
-      p = p || (z3::expr)nname == (pi.orig_name + "0");
+      p = p || (z3::expr)nname == (pi.orig_name + "#pre");
       for(const shared_ptr<const instruction>& lj: locs) {
         assert (pi.loc->thread!=lj->loc->thread);
         p_hb = p_hb && (_hb_encoding.make_hb(pi.loc,lj->loc));
@@ -264,10 +168,9 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
       pi_parts.push_back(pi_function_part(p_hb));
       p = p && p_hb;
       // add to initial variables list
-      //initial_variables.insert(pi.orig_name + "#pre");
-      initial_variables.insert(pi.orig_name + "0");
+      initial_variables.insert(pi.orig_name + "#pre");
     }
-
+    
     // for all other locations
     for (const shared_ptr<const instruction>& li : locs) {
       p_hb = c.bool_val(true);
@@ -306,6 +209,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
     phi_pi = phi_pi && p;
     pi_functions[nname] = pi_parts;
   }
+
 }
 
 
@@ -315,7 +219,7 @@ void program::build_hb(const input::program& input)
   // start location is needed to ensure all locations are mentioned in phi_po
   shared_ptr<hb_enc::location> start_location = input.start_name();
   locations.push_back(*start_location);
-
+  
   for (unsigned t=0; t<input.threads.size(); t++) {
     thread& thread = *threads[t];
     shared_ptr<hb_enc::location> prev;
@@ -323,7 +227,7 @@ void program::build_hb(const input::program& input)
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
         shared_ptr<hb_enc::location> loc = instr->location();
         locations.push_back(*loc);
-
+        
         std::shared_ptr<instruction> ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
         thread.add_instruction(ninstr);
       } else {
@@ -331,10 +235,10 @@ void program::build_hb(const input::program& input)
       }
     }
   }
-
+  
   // make a distinct attribute
   phi_distinct = distinct(locations);
-
+  
   for(unsigned t=0; t<threads.size(); t++) {
     thread& thread = *threads[t];
     unsigned j=0;
@@ -343,7 +247,7 @@ void program::build_hb(const input::program& input)
       phi_po = phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc);
     }
   }
-
+  
   // add atomic sections
   for (input::location_pair as : input.atomic_sections) {
     hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
@@ -367,9 +271,7 @@ void program::build_pre(const input::program& input)
     for(const variable& v: instr->variables()) {
       variable nname(_z3.c);
       if (!is_primed(v)) {
-        //nname = v + "#pre";
-        nname = v + "0";
-        new_globals.insert(nname);
+        nname = v + "#pre";
       } else {
         throw cssa_exception("Primed variable in precondition");
       }
@@ -384,7 +286,7 @@ void program::build_pre(const input::program& input)
 }
 
 
-program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input):
+program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): 
   _z3(z3), _hb_encoding(hb_encoding), globals(z3.translate_variables(input.globals))
 {
   // add threads
@@ -392,10 +294,14 @@ program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::progr
     shared_ptr<thread> tp = make_shared<thread>(input.threads[t].name, z3.translate_variables(input.threads[t].locals));
     threads.push_back(move(tp));
   }
-
-  build_hb(input);
-  build_pre(input);
-  build_threads(input);
+  
+  if( input.is_wmm() ) {
+    wmm(input);
+  }else{
+    build_hb(input);
+    build_pre(input);
+    build_threads(input);
+  }
 }
 
 const thread& program::operator[](unsigned int i) const
@@ -425,7 +331,7 @@ std::vector< std::shared_ptr<const instruction> > program::get_assignments_to_va
   vector<std::shared_ptr<const instruction>> result;
   for (unsigned i = 0; i<this->size(); i++) {
     const cssa::thread& t = (*this)[i];
-
+    
     auto find = t.global_var_assign.find(name);
     if (find != t.global_var_assign.end()) {
       const auto& instrs = get<1>(*find);

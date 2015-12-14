@@ -67,6 +67,10 @@ private:
   void build_pre(const input::program& input);
   void build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void build_ses(const input::program& input,z3::context &);
+  void wmm_build_threads(const input::program& input);
+  void wmm_build_pre(const input::program& input);
+  void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
+  void wmm(const input::program& input);
 
   z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
 
