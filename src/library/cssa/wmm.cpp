@@ -711,6 +711,55 @@ void program::wmm_build_pre(const input::program& input) {
   }
 }
 
+void program::wmm_build_hb(const input::program& input) {
+  z3::expr_vector locations(_z3.c);
+  // start location is needed to ensure all locations are mentioned in phi_po
+  shared_ptr<hb_enc::location> start_location = input.start_name();
+  locations.push_back(*start_location);
+  
+  for (unsigned t=0; t<input.threads.size(); t++) {
+    thread thread = *threads[t];
+    shared_ptr<hb_enc::location> prev;
+    for (unsigned j=0; j<input.threads[t].size(); j++) {
+      if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
+        shared_ptr<hb_enc::location> loc = instr->location();
+        locations.push_back(*loc);
+        
+        std::shared_ptr<instruction> ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
+        thread.add_instruction(ninstr);
+      } else {
+        throw cssa_exception("Instruction must be Z3");
+      }
+    }
+  }
+  
+  // make a distinct attribute
+  phi_distinct = distinct(locations);
+  
+  for(unsigned t=0; t<threads.size(); t++) {
+    thread& thread = *threads[t];
+    unsigned j=0;
+    phi_po = phi_po && _hb_encoding.make_hb(start_location, thread[0].loc);
+    for(j=0; j<thread.size()-1; j++) {
+      phi_po = phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc);
+    }
+  }
+  
+  // add atomic sections
+  for (input::location_pair as : input.atomic_sections) {
+    hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
+    hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
+    phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
+  }
+  // add happens-befores
+  for (input::location_pair hb : input.happens_befores) {
+    hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
+    hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
+    phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
+  }
+  phi_po = phi_po && phi_distinct;
+}
+
 void program::wmm(const input::program& input) {
   build_hb(input);
   wmm_build_pre(input);
