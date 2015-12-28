@@ -74,8 +74,6 @@ void trace_analysis::input(input::program& input_program)
     _options.out() << "phi_prp" << endl <<program->phi_prp << endl;
     _options.out() << "phi_fea" << endl <<program->phi_fea << endl;
     _options.out() << endl;
-    printf("\ntrace analysis: print_phi\n");
-    
   }
   
 
@@ -85,8 +83,6 @@ void trace_analysis::gather_statistics(metric& metric)
 {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
-  std::cout<<"\ntrace_analysis:gather_statistics\n";
-  fflush(stdout);
   metric.threads = program->size();
   // count the instructions for the metric
   for(unsigned i = 0; i < program->size(); i++) {
@@ -98,7 +94,6 @@ void trace_analysis::gather_statistics(metric& metric)
     metric.shared_reads++;
     metric.sum_reads_from += get<1>(pi).size();
   }
-  std::cout<<"\ntrace_analysis:gather_statistics 2\n";
 }
 
 
@@ -165,16 +160,13 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   //z3::solver sol_good = make_good(false);
   z3::solver sol_bad = make_bad();
-  std::cout<<"\ntrace_analysis:seperate\n";
-  fflush(stdout);
+
   prune::prune_chain prune_chain;
   if (o.prune_chain.find(string("data_flow"))!=string::npos) metric.data_flow = true;
   if (o.prune_chain.find(string("unsat_core"))!=string::npos) metric.unsat_core = true;
   if (!prune::build_prune_chain(o.prune_chain, prune_chain, z3, *program, make_good(true))) // must be true (=include_infeasable) to be sound while pruning (because we use inputs) #(see below)
       throw "Invalid prune chain";
   
-    std::cout<<"\ntrace_analysis:seperate 2\n"; 
-
   // some check to ensure there are any good feasable traces at all
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
@@ -195,24 +187,15 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     return trace_result::always;
   }
   
-
-
-
-  std::cout<<"\ntrace_analysis:seperate 4\n";
-
   z3::expr result = z3.c.bool_val(false);
   z3::check_result r;
-  std::cout<<"\nsol_bad.check()\t"<<sol_bad.check();
-  while ((r=sol_bad.check()) == z3::check_result::sat) {      //made changes here too 2
-  
+  while ((r=sol_bad.check()) == z3::check_result::sat) { //wmm: made changes here too 2
     auto start_time = chrono::steady_clock::now();
   
     z3::model m = sol_bad.get_model();
   
     o.round++;
     
-    std::cout<<"\ntrace_analysis:seperate 5\n";
-
     if (o.print_rounds >= 1) {
         o.out() << "Round " << o.round << endl;
     }
@@ -225,18 +208,12 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     }
 
     list<z3::expr> hbs = program->get_hbs(m);
-    std::cout<<"\ntrace_analysis: seperate 2\n";
-        fflush(stdout);
     z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
-    std::cout<<"\ntrace_analysis: seperate 3\n";
-        fflush(stdout);
     if (o.machine && o.print_pruning >=1 ) {
       Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(), forbid.simplify());
       if (forbid_value == Z3_L_UNDEF) {
         output::nf::result_type disj;
         output::nf::create_dnf(forbid, disj, hb_encoding);
-        
-
         output::nf::print_one(cout, true, disj, true);
       }
       
@@ -266,8 +243,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   output.init(hb_encoding, make_bad(), make_good(false), program);
   
-  std::cout<<"\ntrace_analysis 8\n";
-  
   if (o.print_output >= 1) {
     o.out() << "Result as formula:" << endl;
     o.out() << result << endl;
@@ -275,20 +250,16 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   
   Z3_lbool b = Z3_get_bool_value(result.ctx(), result.simplify());
   
-  std::cout<<"\nz3_lbool b\t"<<b<<"\n";
-  std::cout<<"\ntrace_analysis 4\n";
-  //b=Z3_L_FALSE;
   trace_result return_result;
   switch (b) {
     case Z3_L_TRUE:
       return_result = trace_result::always;
       break;
     case Z3_L_FALSE:
-      std::cout<<"here -1\n";
       return_result = trace_result::never;
       break;
     default: {
-      std::cout<<"here 2\n";
+
       // check if all traces are bad
       /*sol_good.add(!result);
       if (sol_good.check() == z3::unsat)
@@ -307,9 +278,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
       z3::apply_result res = final.apply(g);
       
       g = res[0];
-
-      std::cout<<"\ntrace_analysis 5\n";
-
       result = z3.c.bool_val(true);
       for (unsigned i = 0; i<g.size()-1; i++)
         result = result && g[i]; // first thing we put in
