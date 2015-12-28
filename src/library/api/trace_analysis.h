@@ -46,7 +46,7 @@ class trace_analysis
 public:
     trace_analysis(options options, z3::context& ctx);
     void input(std::string input_file);
-    void input(std::string input_file, api::mm_types mm);
+    void input(std::string input_file, mm_t mm);
     void input(tara::input::program& input_program);
     void gather_statistics(tara::api::metric& metric);
     trace_result seperate(output::output_base& output, metric& metric);

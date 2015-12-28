@@ -18,6 +18,7 @@
  *
  */
 
+#include "constants.h"
 #include "options.h"
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
@@ -98,13 +99,13 @@ void options::interpret_options(po::variables_map& vm) {
   if (vm.count("mm")) {
     string _mode = seperate_option(vm["mm"].as<string>(), mm_options);
     if (_mode == "sc")
-      mm = mm_types::sc;
+      mm = mm_t::sc;
     else if (_mode == "tso")
-      mm = mm_types::tso;
+      mm = mm_t::tso;
     else if (_mode == "pso")
-      mm = mm_types::pso;
+      mm = mm_t::pso;
     else if (_mode == "none")
-      mm = mm_types::none;
+      mm = mm_t::none;
     else {
       throw arg_exception("Mode must be one of: \"sc\", \"tso\", \"pso\"");
     }

@@ -26,7 +26,7 @@
 #include <vector>
 #include <memory>
 #include <boost/concept_check.hpp>
-#include "api/options.h"
+#include "constants.h"
 #include "input/instruction.h"
 #include "helpers/z3interf.h"
 
@@ -62,9 +62,14 @@ public:
   std::vector<location_pair> happens_befores;
   
   //wmm
-  api::mm_types mm = api::mm_types::sc;
+  mm_t mm = mm_t::sc;
   bool is_wmm() const;
-  void set_mm( api::mm_types );
+  bool is_mm_sc() const;
+  bool is_mm_tso() const;
+  bool is_mm_pso() const;
+  bool is_mm_power() const;
+  void set_mm( mm_t );
+  mm_t get_mm() const;
 
   bool is_global(const variable& name) const;
   bool is_global(const std::string& name) const;

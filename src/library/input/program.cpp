@@ -52,15 +52,46 @@ thread::thread(string name) : name(name)
 program::program()
 {}
 
+//----------------------------------------------------------------------------
+// WMM support
+
 bool program::is_wmm() const
 {
-  return mm != api::mm_types::sc;
+  return mm != mm_t::sc;
 }
 
-void program::set_mm(api::mm_types _mm)
+bool program::is_mm_sc() const
+{
+  return mm == mm_t::sc;
+}
+
+bool program::is_mm_tso() const
+{
+  return mm == mm_t::sc;
+}
+
+bool program::is_mm_pso() const
+{
+  return mm == mm_t::pso;
+}
+
+bool program::is_mm_power() const
+{
+  return mm == mm_t::power;
+}
+
+void program::set_mm(mm_t _mm)
 {
   mm = _mm;
 }
+
+mm_t program::get_mm() const
+{
+  return mm;
+}
+
+// end WMM support
+//----------------------------------------------------------------------------
 
 void program::convert_instructions(z3interf& z3) {
   for (unsigned i=0; i<threads.size(); i++)

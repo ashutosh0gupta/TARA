@@ -21,6 +21,7 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
+#include "helpers_exception.h"
 #include <string>
 #include <unordered_set>
 #include <list>
@@ -130,6 +131,7 @@ namespace cssa {
 namespace helpers {
   
 inline cssa::variable get_unprimed(const cssa::variable& variable) {
+  //converting the primed to unprimed by removing the dot
   if (variable.name[variable.name.size()-1] != '.') {
     return variable;
   } else {
@@ -147,75 +149,64 @@ inline std::string get_unprimed(const std::string& variable) {
   }
 }
 
-inline bool check_correct_global_variable(const cssa::variable& variable, std:: string str)
-{
+  //--------------------------------------------------------------------------
+  // added for wmm code support -- should be eventually removed
+  //--------------------------------------------------------------------------
 
-/*
-  if(str.size())
-	if((variable.name.size()-2)!=0)
-	{
-	 for(i=0;i!=variable.name.size()-2;i++)
-	 {
-		if(variable.name[i]!=str[i])
-			return 0;
-	 }
-	if(i==0)
-	  return 0;
-	else 
-	  return 1;
-	}
-	else
-	{
-	    if(variable.name[0]!=str[0])
-		return 0;
-	    else
-		return 1;
-	}
-	*/
-  bool flag=1,checked=0;
-  unsigned i = variable.name.size();
-        while(i != 0)
-	// for(i=;i>=0;i--)
-	{
-          i--;
-		if(isdigit(variable.name[i]))
-			continue;
-		else
-		{
-		  if(checked==0)
-		  {
-		    if(str.size()!=(i+1))
-		    {
-			flag=0;
-			return 0;
-		    }
-		    else
-		    {
-			checked=1;
-			if(variable.name[i]!=str[i])
-			{
-			    flag=0;
-			    return 0;
-			}
-		    }
-		}
-		else
-		{
-			if(variable.name[i]!=str[i])
-			{
-			    flag=0;
-			    return 0;
-			}	
-		}
-	       }
-	}
-	if(flag==1)
-	  return 1;
-        else{
-          exit(1);// should have never happend
-          return 0;
-        }
+inline bool check_correct_global_variable(const cssa::variable& variable, std:: string prog_name)
+{
+  unsigned vnum_len = variable.name.size();
+  unsigned prog_len = prog_name.size();
+  if( prog_len >= vnum_len) return false;
+  for(unsigned i = prog_len; i < vnum_len;i++) {
+    if( !isdigit(variable.name[i]) ) return false;
+  }
+  for(unsigned i=0; i< prog_len; i++ ) {
+    if( variable.name[i] != prog_name[i] ) return false;
+  }
+  return true;
+
+  // bool flag= true, checked = false;
+  // unsigned i = variable.name.size();
+  // while(i != 0) {
+  //   i--;
+  //   if( isdigit(variable.name[i]) ) {
+  //     continue;
+  //   }else{
+  //     if( checked ) {
+  //       if( variable.name[i]!=str[i] ) return false;
+  //     }else{
+  //       if( str.size() != (i+1) ) {
+  //         return false;
+  //       }else{
+  //         checked=1;
+  //         if( variable.name[i]!=str[i] ) return false;
+  //       }
+  //     }
+  //   }
+  // }
+  // if( flag )
+  //   return true;
+  // else{
+  //   exit(1);// should have never happend
+  //   return false;
+  // }
 }
+
+  inline cssa::variable find_orig_variable( const cssa::variable& var,
+                                             const cssa::variable_set& vars ) {
+    for( auto& v : vars ) {
+      if( check_correct_global_variable( var, v.name ) ) {
+        return v; // TODO: This return value may trigger copy operation; 
+                  // resolve this issue
+      }
+    }
+    throw helpers_exception("variable is not find in a set!");
+  }
+
+  //--------------------------------------------------------------------------
+  // End of wmm support code
+  //--------------------------------------------------------------------------
 
 inline bool is_primed(const std::string& variable) {
   return (variable[variable.size()-1] == '.');

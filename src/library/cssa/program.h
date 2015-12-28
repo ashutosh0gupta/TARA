@@ -66,13 +66,29 @@ private:
   void build_hb(const input::program& input);
   void build_pre(const input::program& input);
   void build_pis(std::vector<pi_needed>& pis, const input::program& input);
-  void build_ses(const input::program& input,z3::context &);
+  void wmm_build_ses(const input::program& input);
+
+  //--------------------------------------------------------------------------
+  //wmm support
+
+private:
+  se_set init_loc;
+  var_to_ses_map wr_events;
+  var_to_ses_map rd_events;
+  // std::shared_ptr<hb_enc::location> init_location; // todo : remove
+  void wmm_build_cssa_thread(const input::program& input);
+  void wmm_build_ssa(const input::program& input);
+  void wmm_mk_distinct_events();
   void wmm_build_threads(const input::program& input);
-  void wmm_build_hb(const input::program& input);
+  void wmm_build_hb(const input::program& input); // should be removed
   void wmm_build_pre(const input::program& input);
   void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
 
+  z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
+  z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
+  z3::expr wmm_mk_ghb( const cssa::se_ptr& before,
+                              const cssa::se_ptr& after );
   z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
 
   //z3::expr build_rf_val(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);// overloading function for including variables in initialisations
@@ -95,12 +111,37 @@ private:
 
 //z3::expr build_fr(hb_enc::location_ptr, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
 
+  void wmm_build_ppo();
+
+  bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
+  void unsupported_mm();
+
+private:
+  mm_t mm = mm_t::none;
+
 public:
-  z3::expr fr = _z3.c.bool_val(true);
+  bool is_wmm() const;
+  bool is_mm_sc() const;
+  bool is_mm_tso() const;
+  bool is_mm_pso() const;
+  bool is_mm_power() const;
+  void set_mm( mm_t );
+
+  z3::expr wf      = _z3.c.bool_val(true);
+  z3::expr rf      = _z3.c.bool_val(true);
+  z3::expr grf     = _z3.c.bool_val(true);
+  z3::expr ws      = _z3.c.bool_val(true);
+
+  z3::expr fr      = _z3.c.bool_val(true);
   z3::expr rf_some = _z3.c.bool_val(true);
-  z3::expr rf_ws = _z3.c.bool_val(true);
-  z3::expr rf_grf = _z3.c.bool_val(true);
-  z3::expr rf_val = _z3.c.bool_val(true);
+  z3::expr rf_ws   = _z3.c.bool_val(true);
+  z3::expr rf_grf  = _z3.c.bool_val(true);
+  z3::expr rf_val  = _z3.c.bool_val(true);
+
+  //End of wmm support
+  //--------------------------------------------------------------------------
+
+public:
   z3::expr phi_pre = _z3.c.bool_val(true);
   z3::expr phi_po = _z3.c.bool_val(true);
   z3::expr phi_vd = _z3.c.bool_val(true);

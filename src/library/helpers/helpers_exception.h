@@ -18,22 +18,23 @@
  *
  */
 
-#include "constants.h"
+#ifndef TARA_API_OUTPUT_HELPERS_EXCEPTION_H
+#define TARA_API_OUTPUT_HELPERS_EXCEPTION_H
 
-using namespace std;
+#include <stdexcept>
+#include <string>
 
 namespace tara {
-const string error_label = string("ERROR");
+namespace helpers {
 
-  string string_of_mm( mm_t mm ) {
-    switch( mm ){
-    case mm_t::none:  return "unspecified";
-    case mm_t::sc:    return "sc";
-    case mm_t::tso:   return "tso";
-    case mm_t::pso:   return "pso";
-    case mm_t::power: return "power";
-    default: return "unspported";
-    }
-  }
-
+class helpers_exception : public std::runtime_error
+{
+public:
+  helpers_exception(const char* what) : runtime_error(what){}
+  helpers_exception(const std::string& what) : runtime_error(what){}
+};
 }
+}
+
+
+#endif // TARA_API_OUTPUT_HELPERS_EXCEPTION_H

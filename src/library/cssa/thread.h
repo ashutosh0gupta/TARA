@@ -25,6 +25,7 @@
 #include "hb_enc/encoding.h"
 #include <unordered_map>
 #include "constants.h"
+#include "cssa/wmm.h"
 
 namespace tara {
 namespace cssa {
@@ -46,6 +47,17 @@ struct instruction {
   variable_set variables_orig() const;
   instruction_type type;
   variable_set havok_vars;
+  
+  //--------------------------------------------------------------------------
+  // WMM support
+  //--------------------------------------------------------------------------
+
+  se_set rds;
+  se_set wrs;
+public:
+  //--------------------------------------------------------------------------
+  // End WMM support
+  //--------------------------------------------------------------------------
   
   instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
   friend std::ostream& operator<< (std::ostream& stream, const instruction& i);

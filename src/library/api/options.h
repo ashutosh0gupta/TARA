@@ -24,17 +24,13 @@
 #include <boost/program_options.hpp>
 #include <string>
 #include <boost/filesystem.hpp>
-
+#include "constants.h"
 
 namespace tara {
 namespace api {
     
 enum class hb_types {
   integer
-};
-
-enum class mm_types {
-  none,sc, tso, pso
 };
 
 class options
@@ -54,7 +50,7 @@ public:
   
   std::string prune_chain;
   
-  mm_types mm = mm_types::none;
+  mm_t mm = mm_t::none;
   std::vector<std::string> mm_options;
 
   std::ostream* _out;
