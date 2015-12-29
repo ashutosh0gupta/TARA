@@ -102,18 +102,18 @@ z3::solver trace_analysis::make_bad()
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
-  z3::expr x=z3.c.int_const("x");
 
-  result.add(x>0);
    result.add(program->phi_po);
    result.add(program->phi_vd);
+   result.add(program->phi_pre);
+   result.add(program->phi_pi);
+   result.add(program->phi_pre);
+   result.add(program->phi_prp);
   // result.add(program->fr);
   // result.add(program->rf_ws);
   // result.add(program->rf_some);
   // result.add(program->rf_grf);
   // result.add(program->rf_val);
-  // result.add(program->phi_pre);
-  // result.add(program->phi_prp);
   
   return move(result);
 }
@@ -123,16 +123,6 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
-  
-   //z3::expr x=z3.c.int_const("x");
-  // z3::expr y=z3.c.int_const("y");
-  // result.add(y>0);
-   //result.add(x>0);
-  //result.add(y>x);
-  //result.add(x+y=3);
-    z3::params p (z3.c);
-   p.set(":unsat_core",true);
-   result.set(p);
   
   result.add(program->phi_po);
   result.add(program->phi_vd);
