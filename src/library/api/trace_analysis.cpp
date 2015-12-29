@@ -103,12 +103,12 @@ z3::solver trace_analysis::make_bad()
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
 
-   result.add(program->phi_po);
-   result.add(program->phi_vd);
-   result.add(program->phi_pre);
-   result.add(program->phi_pi);
-   result.add(program->phi_pre);
-   result.add(program->phi_prp);
+  result.add(program->phi_po);
+  result.add(program->phi_vd);
+  result.add(program->phi_pi);
+  result.add(program->phi_pre);
+  result.add(!program->phi_prp);
+
   // result.add(program->fr);
   // result.add(program->rf_ws);
   // result.add(program->rf_some);
@@ -126,16 +126,21 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   
   result.add(program->phi_po);
   result.add(program->phi_vd);
-  result.add(program->fr,"p3");
-  result.add(program->rf_ws,"p4");
-  result.add(program->rf_some,"p5");
-  result.add(program->rf_grf,"p6");
-  result.add(program->rf_val,"p7");
-  result.add(program->phi_pre,"p8");
-  result.add(!program->phi_prp,"p9"); // had negation from begining
+  result.add(program->phi_pi);
+  result.add(program->phi_pre);
+  result.add(program->phi_prp);
   if (!include_infeasable)
-    result.add(program->phi_fea,"p10");
+    result.add(program->phi_fea);
 
+  // result.add(program->fr,"p3");
+  // result.add(program->rf_ws,"p4");
+  // result.add(program->rf_some,"p5");
+  // result.add(program->rf_grf,"p6");
+  // result.add(program->rf_val,"p7");
+  // result.add(program->phi_pre,"p8");
+  // result.add(!program->phi_prp,"p9"); // had negation from begining
+  // if (!include_infeasable)
+  //   result.add(program->phi_fea,"p10");
 
   return move(result);
 }
@@ -160,20 +165,18 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   // some check to ensure there are any good feasable traces at all
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
-  
 
-  
+  //   std::cout<<"\nmake_good(false).check()\t"<<make_good(false).check();
+  // if (make_good(false).check() == z3::check_result::unsat) {
+  //   z3::expr_vector core2=make_good(false).unsat_core();
+  //   std::cout<<"\ntrace_analysis:seperate inside unsat\n";
+  //    std::cout<<"core2\t"<<core2.size();
+  //    for (unsigned i = 0; i < core2.size(); i++) {
+  //        std::cout << core2[i] << "\n";
+  //        std::cout<<"core2\n";
+  //    }
 
-    std::cout<<"\nmake_good(false).check()\t"<<make_good(false).check();
-  if (make_good(false).check() == z3::check_result::unsat) {        //made changes here 2
-    
-    z3::expr_vector core2=make_good(false).unsat_core();
-    std::cout<<"\ntrace_analysis:seperate inside unsat\n";
-     std::cout<<"core2\t"<<core2.size();
-     for (unsigned i = 0; i < core2.size(); i++) {
-         std::cout << core2[i] << "\n";
-         std::cout<<"core2\n";
-     }
+  if (make_good(false).check() == z3::check_result::unsat) {
     return trace_result::always;
   }
   
@@ -196,7 +199,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         else
           program->print_hb(m, o.out());
     }
-
     list<z3::expr> hbs = program->get_hbs(m);
     z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
     if (o.machine && o.print_pruning >=1 ) {
@@ -206,7 +208,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         output::nf::create_dnf(forbid, disj, hb_encoding);
         output::nf::print_one(cout, true, disj, true);
       }
-      
     }
     if (o.print_rounds >=2) {
         o.out() << "Model:" << endl;
@@ -225,7 +226,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     metric.disjuncts++;
     metric.rounds++;
   }
-
   if (r == z3::check_result::unknown) {
     cerr << "Solver undecided: " << sol_bad.reason_unknown() << endl;
     return trace_result::undecided;
