@@ -32,11 +32,16 @@ enum class instruction_type {
 
 extern const std::string error_label;
 
-enum class mm_t {
-  none, sc, tso, pso, power
-};
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
+  enum class mm_t {
+    none, sc, tso, pso, power
+      };
   std::string string_of_mm( mm_t mm );
-
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 }
 
 #endif // TARA_CONSTANTS_H

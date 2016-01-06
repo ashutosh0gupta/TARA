@@ -295,3 +295,15 @@ cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
   }
   return newvars;
 }
+
+//----------------
+//support for gdb
+void print(const z3::expr& e) {
+  Z3_ast ptr = e;
+  if( ptr )
+    std::cerr << "uninitialized z3 expression!!";
+  else
+    std::cerr << e;
+  std::cerr << "\n";
+}
+//----------------

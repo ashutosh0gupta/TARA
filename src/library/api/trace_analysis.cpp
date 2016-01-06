@@ -54,9 +54,15 @@ void trace_analysis::input(string input_file)
 void trace_analysis::input(string input_file, mm_t mm)
 {
   input::program pa = input::parse::parseFile(input_file.c_str());
+//----------------------------------------------------------------------------
+// start of wmm support
+//----------------------------------------------------------------------------
   if( mm != mm_t::none ) {
     pa.set_mm( mm );
   }
+//----------------------------------------------------------------------------
+// end of wmm support
+//----------------------------------------------------------------------------
   input(pa);
 }
 
@@ -67,13 +73,31 @@ void trace_analysis::input(input::program& input_program)
   program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
   
   if (_options.print_phi) {
-    _options.out() << "phi_po" << endl << program->phi_po << endl;
-    _options.out() << "phi_vd" << endl << program->phi_vd << endl;
-    _options.out() << "phi_pi" << endl << program->phi_pi << endl;
-    _options.out() << "phi_pre" << endl << program->phi_pre << endl;
-    _options.out() << "phi_prp" << endl <<program->phi_prp << endl;
-    _options.out() << "phi_fea" << endl <<program->phi_fea << endl;
-    _options.out() << endl;
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
+    if( input_program.get_mm() != mm_t::none ) {
+      _options.out() <<"phi_po : \n"<< program->phi_po<<"\n";
+      _options.out() <<"fea : \n"<< program->phi_fea<<"\n";
+      _options.out() <<"vd : \n" << program->phi_vd<<"\n";
+      _options.out() <<"prp : \n"<< program->phi_prp<<"\n";
+      _options.out() <<"wf : \n" << program->wf <<"\n";
+      _options.out() <<"rf : \n" << program->rf <<"\n";
+      _options.out() <<"grf: \n" << program->grf<<"\n";
+      _options.out() <<"fr : \n" << program->fr <<"\n";
+      _options.out() <<"ws : \n" << program->ws <<"\n";
+    }else{
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
+      _options.out() << "phi_po" << endl << program->phi_po << endl;
+      _options.out() << "phi_vd" << endl << program->phi_vd << endl;
+      _options.out() << "phi_pi" << endl << program->phi_pi << endl;
+      _options.out() << "phi_pre" << endl << program->phi_pre << endl;
+      _options.out() << "phi_prp" << endl <<program->phi_prp << endl;
+      _options.out() << "phi_fea" << endl <<program->phi_fea << endl;
+      _options.out() << endl;
+    }
   }
   
 
@@ -95,7 +119,25 @@ void trace_analysis::gather_statistics(metric& metric)
     metric.sum_reads_from += get<1>(pi).size();
   }
 }
-
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+void trace_analysis::connect_read_writes( z3::solver& result )
+{
+  if( program->is_mm_declared() ) {
+    result.add( program->phi_po );
+    result.add( program->wf     );
+    result.add( program->grf    );
+    result.add( program->fr     );
+    result.add( program->ws     );
+  }else{
+    result.add( program->phi_po );
+    result.add( program->phi_pi );
+  }
+}
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
 
 z3::solver trace_analysis::make_bad()
 {
@@ -103,17 +145,11 @@ z3::solver trace_analysis::make_bad()
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
 
-  result.add(program->phi_po);
+  // result.add(program->phi_po); // removed due to wmm
   result.add(program->phi_vd);
-  result.add(program->phi_pi);
+  connect_read_writes( result ); //wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
   result.add(!program->phi_prp);
-
-  // result.add(program->fr);
-  // result.add(program->rf_ws);
-  // result.add(program->rf_some);
-  // result.add(program->rf_grf);
-  // result.add(program->rf_val);
   
   return move(result);
 }
@@ -124,14 +160,17 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
   
-  result.add(program->phi_po);
+  // result.add(program->phi_po); // removed due to wmm
   result.add(program->phi_vd);
-  result.add(program->phi_pi);
+  connect_read_writes( result );//wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
   result.add(program->phi_prp);
   if (!include_infeasable)
     result.add(program->phi_fea);
 
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
   // result.add(program->fr,"p3");
   // result.add(program->rf_ws,"p4");
   // result.add(program->rf_some,"p5");
@@ -141,6 +180,9 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   // result.add(!program->phi_prp,"p9"); // had negation from begining
   // if (!include_infeasable)
   //   result.add(program->phi_fea,"p10");
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 
   return move(result);
 }
@@ -166,6 +208,9 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
 
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
   //   std::cout<<"\nmake_good(false).check()\t"<<make_good(false).check();
   // if (make_good(false).check() == z3::check_result::unsat) {
   //   z3::expr_vector core2=make_good(false).unsat_core();
@@ -175,6 +220,9 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   //        std::cout << core2[i] << "\n";
   //        std::cout<<"core2\n";
   //    }
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 
   if (make_good(false).check() == z3::check_result::unsat) {
     return trace_result::always;
@@ -182,13 +230,10 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   
   z3::expr result = z3.c.bool_val(false);
   z3::check_result r;
-  while ((r=sol_bad.check()) == z3::check_result::sat) { //wmm: made changes here too 2
+  while ((r=sol_bad.check()) == z3::check_result::sat) {
     auto start_time = chrono::steady_clock::now();
-  
     z3::model m = sol_bad.get_model();
-  
     o.round++;
-    
     if (o.print_rounds >= 1) {
         o.out() << "Round " << o.round << endl;
     }

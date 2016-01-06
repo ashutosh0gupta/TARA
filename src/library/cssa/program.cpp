@@ -295,13 +295,22 @@ program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::progr
     threads.push_back(move(tp));
   }
   
-  if( input.is_wmm() ) {
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
+  // set memory model
+  set_mm( input.get_mm() );
+  if( is_mm_declared() ) {
     wmm(input);
+    //------------------------------------------------------------------------
+    //end of wmm support
+    //------------------------------------------------------------------------
   }else{
     build_hb(input);
     build_pre(input);
     build_threads(input);
   }
+
 }
 
 const thread& program::operator[](unsigned int i) const

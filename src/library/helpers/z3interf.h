@@ -80,6 +80,11 @@ public:
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
     
 };
+  //----------------
+  //support for gdb
+  void print(const z3::expr&);
+  //----------------
+
 }}
 
 #endif // Z3INTERF_H

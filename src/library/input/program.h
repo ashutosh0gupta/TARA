@@ -61,8 +61,10 @@ public:
   std::vector<location_pair> atomic_sections;
   std::vector<location_pair> happens_befores;
   
-  //wmm
-  mm_t mm = mm_t::sc;
+//----------------------------------------------------------------------------
+// start of wmm support
+//----------------------------------------------------------------------------
+  mm_t mm = mm_t::none;
   bool is_wmm() const;
   bool is_mm_sc() const;
   bool is_mm_tso() const;
@@ -70,6 +72,9 @@ public:
   bool is_mm_power() const;
   void set_mm( mm_t );
   mm_t get_mm() const;
+//----------------------------------------------------------------------------
+// end of wmm support
+//----------------------------------------------------------------------------
 
   bool is_global(const variable& name) const;
   bool is_global(const std::string& name) const;

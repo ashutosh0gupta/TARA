@@ -97,4 +97,19 @@ void thread::add_instruction(const std::shared_ptr<instruction>& instr)
 {
   instructions.push_back(instr);
 }
+
+void instruction::debug_print( std::ostream& o )
+{
+  o << (*this) << "\n";
+  o << "ssa instruction : " << instr << "\n";
+  o << "path constraint : " << path_constraint << "\n";
+  o << "var_read_copy : "; print_set( variables_read_copy,  o);
+  o << "var_read : ";      print_set( variables_read,       o);
+  o << "var_write : ";     print_set( variables_write,      o);
+  o << "var_read_orig : "; print_set( variables_read_orig,  o);
+  o << "var_write_orig : ";print_set( variables_write_orig, o);
+  o << "var_rds : ";       debug_print_se_set(rds, o);
+  o << "var_wrs : ";       debug_print_se_set(wrs, o);
+}
+
 }}

@@ -53,11 +53,12 @@ program::program()
 {}
 
 //----------------------------------------------------------------------------
-// WMM support
+// start of wmm support
+//----------------------------------------------------------------------------
 
 bool program::is_wmm() const
 {
-  return mm != mm_t::sc;
+  return mm != mm_t::sc || mm != mm_t::none;
 }
 
 bool program::is_mm_sc() const
@@ -90,7 +91,8 @@ mm_t program::get_mm() const
   return mm;
 }
 
-// end WMM support
+//----------------------------------------------------------------------------
+// end of wmm support
 //----------------------------------------------------------------------------
 
 void program::convert_instructions(z3interf& z3) {

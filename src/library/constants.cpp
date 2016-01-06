@@ -25,6 +25,9 @@ using namespace std;
 namespace tara {
 const string error_label = string("ERROR");
 
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
   string string_of_mm( mm_t mm ) {
     switch( mm ){
     case mm_t::none:  return "unspecified";
@@ -35,5 +38,8 @@ const string error_label = string("ERROR");
     default: return "unspported";
     }
   }
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 
 }

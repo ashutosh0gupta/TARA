@@ -66,10 +66,10 @@ private:
   void build_hb(const input::program& input);
   void build_pre(const input::program& input);
   void build_pis(std::vector<pi_needed>& pis, const input::program& input);
-  void wmm_build_ses(const input::program& input);
 
   //--------------------------------------------------------------------------
-  //wmm support
+  //start of wmm support
+  //--------------------------------------------------------------------------
 
 private:
   se_set init_loc;
@@ -84,6 +84,7 @@ private:
   void wmm_build_pre(const input::program& input);
   void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
+  void wmm_build_ses();
 
   z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
@@ -120,6 +121,7 @@ private:
   mm_t mm = mm_t::none;
 
 public:
+  bool is_mm_declared() const;
   bool is_wmm() const;
   bool is_mm_sc() const;
   bool is_mm_tso() const;
@@ -138,7 +140,8 @@ public:
   z3::expr rf_grf  = _z3.c.bool_val(true);
   z3::expr rf_val  = _z3.c.bool_val(true);
 
-  //End of wmm support
+  //--------------------------------------------------------------------------
+  //end of wmm support
   //--------------------------------------------------------------------------
 
 public:
