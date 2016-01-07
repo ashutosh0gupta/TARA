@@ -91,6 +91,7 @@ public:
   bool operator!=(const hb &other) const;
   
   friend std::ostream& operator<< (std::ostream& stream, const hb& hb);
+  void debug_print(std::ostream& stream );
   
   hb negate() const;
 private:

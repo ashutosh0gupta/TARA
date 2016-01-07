@@ -113,6 +113,8 @@ ostream& operator<< (std::ostream& stream, const hb& hb) {
   return stream;
 }
 
+  void hb::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
+
 hb hb::negate() const
 {
   return hb(loc2, loc1, !expr);

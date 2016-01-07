@@ -87,12 +87,13 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , et( _et )
   , guard(ctx)
 {
-  assert( et == event_kind_t::r || et == event_kind_t::w );
+  // assert( et == event_kind_t::r || et == event_kind_t::w );
 
+  bool special = (event_kind_t::i == et);
   std::string et_name = et == event_kind_t::r ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
   // shared_ptr<hb_enc::location>
-  e_v = make_shared<hb_enc::location>( ctx, event_name, true);
+  e_v = make_shared<hb_enc::location>( ctx, event_name, special);
 
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
@@ -101,26 +102,26 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   // For each instruction we need to create a set of symbolic event
 }
 
-symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
-                                hb_enc::location_ptr _loc, event_kind_t _et )
-  : tid(0)
-  , v("dummy",ctx)
-  , prog_v("dummy",ctx)
-  , loc(_loc)
-  , et( _et )
-  , guard(ctx)
-{
-  assert( et == event_kind_t::i );
-  std::string event_name = "init#" +loc->name;
-  // shared_ptr<hb_enc::location>
-  e_v = make_shared<hb_enc::location>( ctx, event_name, true);
-  //
-  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
-  locations.push_back( e_v );
-  _hb_enc.make_locations(locations);
+// symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
+//                                 hb_enc::location_ptr _loc, event_kind_t _et )
+//   : tid(0)
+//   , v("dummy",ctx)
+//   , prog_v("dummy",ctx)
+//   , loc(_loc)
+//   , et( _et )
+//   , guard(ctx)
+// {
+//   assert( et == event_kind_t::i );
+//   std::string event_name = "init#" +loc->name;
+//   // shared_ptr<hb_enc::location>
+//   e_v = make_shared<hb_enc::location>( ctx, event_name, true);
+//   //
+//   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+//   locations.push_back( e_v );
+//   _hb_enc.make_locations(locations);
 
-  // For each instruction we need to create a set of symbolic event
-}
+//   // For each instruction we need to create a set of symbolic event
+// }
 
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
@@ -362,7 +363,6 @@ void program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
-  // se_ptr init_se = mk_se_ptr( _z3.c, _hb_encoding, _init_l, event_kind_t::i);
 
   if ( shared_ptr<input::instruction_z3> instr =
        dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
@@ -374,7 +374,7 @@ void program::wmm_build_pre(const input::program& input) {
         nname = v + "#pre";
         new_globals.insert(nname);
         se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), nname, v,
-                               _init_l, event_kind_t::w );
+                               _init_l, event_kind_t::i );
         wr->guard = _z3.c.bool_val(true);
         init_loc.insert(wr);
         wr_events[v].insert( wr );
