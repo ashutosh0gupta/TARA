@@ -205,7 +205,7 @@ void program::wmm_build_ses() {
     const auto& rds = rd_events[v1];
     const auto& wrs = wr_events[v1];
     for( const se_ptr& rd : rds ) {
-      z3::expr some_rfs = _z3.c.bool_val(false);;
+      z3::expr some_rfs = _z3.c.bool_val(false);
       const variable& rd_v = rd->v;
       for( const se_ptr& wr : wrs ) {
         const variable& wr_v = wr->v;
@@ -218,7 +218,7 @@ void program::wmm_build_ses() {
         z3::expr new_rf = implies( b, wmm_mk_ghb( wr, rd ) );
         rf = rf && new_rf;
         //global read from
-        if( in_grf( wr, rd) ) grf = grf && new_rf;
+        if( in_grf( wr, rd ) ) grf = grf && new_rf;
         // from read
         auto& wr2 = wr;
         for( const se_ptr& wr1 : wrs ) {
@@ -469,7 +469,7 @@ void program::wmm_build_ssa( const input::program& input ) {
           }else{
             //unprimmed case
             if ( is_global(v) ) {
-              nname = "pi_" + v + "#" + thread[i].loc->name;
+              nname =  "pi_"+ v + "#" + thread[i].loc->name;
               se_ptr rd = mk_se_ptr( c, _hb_encoding, t,nname,v,
                                      thread[i].loc,event_kind_t::r);
               thread[i].rds.insert( rd );
