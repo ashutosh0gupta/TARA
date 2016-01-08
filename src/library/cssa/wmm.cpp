@@ -54,7 +54,7 @@ bool program::is_mm_sc() const
 
 bool program::is_mm_tso() const
 {
-  return mm == mm_t::sc;
+  return mm == mm_t::tso;
 }
 
 bool program::is_mm_pso() const
