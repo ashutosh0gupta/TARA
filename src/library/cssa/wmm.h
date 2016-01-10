@@ -60,6 +60,11 @@ namespace cssa {
     inline std::string name() const {
       return e_v->name;
     }
+
+    inline bool is_init() const {
+      return et == event_kind_t::i;
+    }
+
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
       stream << var.name();

@@ -3,7 +3,7 @@ global: x y
 pre: (and (= x 0) (= y 0))
 
 thread P0 {rr}:
-w1 : (= x. 1)
+w1: (= x. 1)
 w2: (= rr. y)
 w3: assert(= rr 1) 
 

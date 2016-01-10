@@ -94,6 +94,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   std::string event_name = et_name + "#" + v.name;
   // shared_ptr<hb_enc::location>
   e_v = make_shared<hb_enc::location>( ctx, event_name, special);
+  e_v->thread = _tid;
 
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
@@ -231,11 +232,16 @@ void program::wmm_build_ses() {
       wf = wf && implies( rd->guard, some_rfs );
     }
 
-    for( const se_ptr& wr1 : wrs ) {
-      for( const se_ptr& wr2 : wrs ) {
-        // write serialization constraints
-        // Do we need the following constraints
-        if( wr1->tid != wr2->tid ) {
+    auto it1 = wrs.begin();
+    for( ; it1 != wrs.end() ; it1++ ) {
+      const se_ptr& wr1 = *it1;
+      auto it2 = it1;
+      it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const se_ptr& wr2 = *it2;
+        if( wr1->tid != wr2->tid && // Why this condition?
+            !wr1->is_init() && !wr2->is_init() // no initializations
+            ) {
           ws = ws && ( wmm_mk_ghb( wr1, wr2 ) || wmm_mk_ghb( wr2, wr1 ) );
         }
       }
@@ -279,13 +285,12 @@ void program::wmm_build_ppo() {
 
   for( unsigned t=0; t<threads.size(); t++ ) {
     thread& thread = *threads[t];
-    unsigned j=0;
     if( is_mm_sc() ) {
       unsigned last_j = thread.size();
-      for( j=0; j<thread.size()-1; j++ ) {
+      for( unsigned j=0; j < thread.size(); j++ ) {
         phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
         if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
-          auto& after =thread[j].rds.size() > 0 ? thread[j].rds : thread[j].wrs;
+          auto& after =thread[j].rds.size()>0 ? thread[j].rds : thread[j].wrs;
           if( last_j > j ) {
               phi_po = phi_po && wmm_mk_hbs( init_loc, after );
           }else{
@@ -295,7 +300,6 @@ void program::wmm_build_ppo() {
           }
           last_j = j;
         }
-        phi_po = phi_po && _hb_encoding.make_hb(thread[j].loc, thread[j+1].loc);
       }
       //TODO: deal with atomic section and prespecified happens befores
       // add atomic sections
@@ -313,7 +317,7 @@ void program::wmm_build_ppo() {
     }else if( is_mm_tso() ) {
       unsigned last_rd = thread.size(), last_wr = thread.size();
       bool rd_wr_sync = true;
-      for( j=0; j<thread.size()-1; j++ ) {
+      for( unsigned j=0; j<thread.size(); j++ ) {
         if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
           phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
           if( last_rd > j && thread[j].rds.size() > 0 ) {
@@ -351,7 +355,6 @@ void program::wmm_build_ppo() {
       unsupported_mm();
     }
   }
-
   phi_po = phi_po && phi_distinct;
 }
 
@@ -545,8 +548,7 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
 
         // increase referenced variables
-        //for(variable v: thread[i].variables_write_orig) {
-        for( variable v: thread[i].variables_write ) {
+        for(variable v: thread[i].variables_write_orig) {
           thread_vars[v] = thread[i].loc->name;
           if ( is_global(v) ) {
             global_in_thread[v] = thread.instructions[i]; // useless??

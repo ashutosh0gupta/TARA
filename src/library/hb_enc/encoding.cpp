@@ -77,6 +77,7 @@ ostream& operator<< (ostream& stream, const location_pair& loc_pair) {
   return stream;
 }
 
+void location::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
 
 /*************************
  * hb

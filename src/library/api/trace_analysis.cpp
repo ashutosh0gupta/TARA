@@ -77,6 +77,7 @@ void trace_analysis::input(input::program& input_program)
   //start of wmm support
   //--------------------------------------------------------------------------
     if( input_program.get_mm() != mm_t::none ) {
+      _options.out() << "phi_pre : " << endl << program->phi_pre << endl;
       _options.out() <<"phi_po : \n"<< program->phi_po<<"\n";
       _options.out() <<"fea : \n"<< program->phi_fea<<"\n";
       _options.out() <<"vd : \n" << program->phi_vd<<"\n";

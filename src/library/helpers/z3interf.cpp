@@ -306,4 +306,14 @@ void debug_print(const z3::expr& e) {
     std::cerr << "uninitialized z3 expression!!";
   std::cerr << "\n";
 }
+
+void debug_print(const z3::model& m) {
+  // Z3_ast ptr = m;
+  // if( ptr )
+    std::cerr << m;
+  // else
+  //   std::cerr << "uninitialized z3 model!!";
+  std::cerr << "\n";
+}
+
 //----------------

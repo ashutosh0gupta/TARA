@@ -69,6 +69,8 @@ public:
   
   friend std::ostream& operator<< (std::ostream& stream, const location& loc);
   friend std::ostream& operator<< (std::ostream& stream, const std::shared_ptr<hb_enc::location const>& loc);
+  
+  void debug_print(std::ostream& stream );
 };
 
 typedef std::shared_ptr<hb_enc::location const> location_ptr;
