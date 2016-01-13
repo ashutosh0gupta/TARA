@@ -298,13 +298,19 @@ cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
 
 //----------------
 //support for gdb
-void debug_print(const z3::expr& e) {
+void tara::helpers::debug_print(const z3::expr& e) {
   Z3_ast ptr = e;
   if( ptr )
     std::cerr << e;
   else
     std::cerr << "uninitialized z3 expression!!";
   std::cerr << "\n";
+}
+
+void debug_print(const std::list<z3::expr>& es) {
+  for(const z3::expr e : es ) {
+    debug_print( e );
+  }
 }
 
 void debug_print(const z3::model& m) {

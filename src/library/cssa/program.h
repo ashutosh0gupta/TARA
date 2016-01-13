@@ -90,25 +90,25 @@ private:
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before,
                               const cssa::se_ptr& after );
-  z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
+ //  z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
 
-  //z3::expr build_rf_val(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);// overloading function for including variables in initialisations
+ //  //z3::expr build_rf_val(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);// overloading function for including variables in initialisations
 
-  z3::expr build_rf_grf(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string ,bool,const input::program& input);
+ //  z3::expr build_rf_grf(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string ,bool,const input::program& input);
   
-  //z3::expr build_rf_grf(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);  
+ //  //z3::expr build_rf_grf(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);  
 
-  z3::expr build_rf_some(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, 
-  std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool);
+ //  z3::expr build_rf_some(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, 
+ //  std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool);
 
-  //z3::expr build_rf_some(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, 
-  //std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
+ //  //z3::expr build_rf_some(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, 
+ //  //std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
 
-  z3::expr build_ws(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,bool,const input::program& input);  
+ //  z3::expr build_ws(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,bool,const input::program& input);  
   
-  //z3::expr build_ws(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &);  
+ //  //z3::expr build_ws(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &);  
   
- z3::expr build_fr(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool,bool,const input::program& input);
+ // z3::expr build_fr(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool,bool,const input::program& input);
 
 //z3::expr build_fr(hb_enc::location_ptr, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
 
@@ -169,7 +169,7 @@ public:
   unsigned size() const;
   const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
   variable_set globals;
-    variable_set new_globals;
+    // variable_set new_globals;
   inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
   inline const helpers::z3interf& z3() const { return _z3; }
 public: /* functions */

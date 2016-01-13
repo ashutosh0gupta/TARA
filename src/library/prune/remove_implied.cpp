@@ -27,7 +27,21 @@ using namespace tara::prune;
 using namespace std;
 
 remove_implied::remove_implied(const z3interf& z3, const cssa::program& program) : prune_base(z3, program)
-{}
+{
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  if( program.is_mm_declared() ) {
+    throw std::runtime_error("unsupported");
+    //create a solver
+      
+    // push phi_po
+    
+  }
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
+}
 
 string remove_implied::name()
 {
@@ -37,6 +51,16 @@ string remove_implied::name()
 list< z3::expr > remove_implied::prune(const list< z3::expr >& hbs, const z3::model& m)
 {
   list<z3::expr> result = hbs;
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  if( program.is_mm_declared() ) {
+    throw std::runtime_error("unsupported");
+    return result;
+  }
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
   for (auto it = result.begin() ; it != result.end(); ) {
     bool remove = false;
     for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {

@@ -50,6 +50,14 @@ public:
   bool special;
   int thread; // number of the thread of this location
   int instr_no; // number of this instruction
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  bool is_read;
+  unsigned last_read_intruction; // for tso
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
   /**
    * @brief The previous location in the same thread
    * 

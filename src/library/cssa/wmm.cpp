@@ -77,7 +77,7 @@ void program::set_mm(mm_t _mm)
 // utilities for symbolic events
 
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
-                                unsigned _tid,
+                                unsigned _tid, unsigned instr_no,
                                 const variable& _v, const variable& _prog_v,
                                 hb_enc::location_ptr _loc, event_kind_t _et )
   : tid(_tid)
@@ -95,34 +95,14 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   // shared_ptr<hb_enc::location>
   e_v = make_shared<hb_enc::location>( ctx, event_name, special);
   e_v->thread = _tid;
-
+  e_v->instr_no = instr_no;
+  e_v->is_read = (et == event_kind_t::r);
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
   _hb_enc.make_locations(locations);
 
   // For each instruction we need to create a set of symbolic event
 }
-
-// symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
-//                                 hb_enc::location_ptr _loc, event_kind_t _et )
-//   : tid(0)
-//   , v("dummy",ctx)
-//   , prog_v("dummy",ctx)
-//   , loc(_loc)
-//   , et( _et )
-//   , guard(ctx)
-// {
-//   assert( et == event_kind_t::i );
-//   std::string event_name = "init#" +loc->name;
-//   // shared_ptr<hb_enc::location>
-//   e_v = make_shared<hb_enc::location>( ctx, event_name, true);
-//   //
-//   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
-//   locations.push_back( e_v );
-//   _hb_enc.make_locations(locations);
-
-//   // For each instruction we need to create a set of symbolic event
-// }
 
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
@@ -366,21 +346,24 @@ void program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
+  for( const variable& v : globals ) {
+    variable nname(_z3.c);
+    nname = v + "#pre";
+    se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+                           nname, v, _init_l, event_kind_t::i );
+    wr->guard = _z3.c.bool_val(true);
+    init_loc.insert(wr);
+    wr_events[v].insert( wr );
+    initial_variables.insert(nname);
+  }
 
   if ( shared_ptr<input::instruction_z3> instr =
        dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
-    z3::expr_vector src(_z3.c);
-    z3::expr_vector dst(_z3.c);
-    for(const variable& v: instr->variables()) {
+    z3::expr_vector src(_z3.c), dst(_z3.c);
+    for( const variable& v: instr->variables() ) {
       variable nname(_z3.c);
       if (!is_primed(v)) {
         nname = v + "#pre";
-        new_globals.insert(nname);
-        se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), nname, v,
-                               _init_l, event_kind_t::i );
-        wr->guard = _z3.c.bool_val(true);
-        init_loc.insert(wr);
-        wr_events[v].insert( wr );
       } else {
         throw cssa_exception("Primed variable in precondition");
       }
@@ -419,7 +402,6 @@ void program::wmm_build_cssa_thread(const input::program& input) {
 
 void program::wmm_build_ssa( const input::program& input ) {
   z3::context& c = _z3.c;
-  // vector<pi_needed> pis;
 
   // maps variable to the last place they were assigned
   unordered_map<string, string> thread_vars;
@@ -431,7 +413,6 @@ void program::wmm_build_ssa( const input::program& input ) {
     // set all local vars to "pre"
     for (string v: input.threads[t].locals) {
       thread_vars[v] = "pre";
-      // count_occur[v]=0;
     }
 
     z3::expr path_constraint = c.bool_val(true);
@@ -448,16 +429,10 @@ void program::wmm_build_ssa( const input::program& input ) {
           if( is_primed(v) ) {
             //primmed case
             variable v1 = get_unprimed(v); //converting the primed to unprimed
-            // count_occur[v1]++;
-            // if( thread_vars[v1]=="pre" ) {
-            //   // every lvalued variable gets incremented by 1 and then
-            //   // the local variables are decremented by 1
-            //   count_occur[v1]--;
-            // }
             if( is_global(v1) ) {
               nname = v1 + "#" + thread[i].loc->name;
               //insert write symbolic event
-              se_ptr wr = mk_se_ptr( c,_hb_encoding, t, nname,v1,
+              se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
                                      thread[i].loc,event_kind_t::w);
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
@@ -473,8 +448,8 @@ void program::wmm_build_ssa( const input::program& input ) {
             //unprimmed case
             if ( is_global(v) ) {
               nname =  "pi_"+ v + "#" + thread[i].loc->name;
-              se_ptr rd = mk_se_ptr( c, _hb_encoding, t,nname,v,
-                                     thread[i].loc,event_kind_t::r);
+              se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
+                                     thread[i].loc, event_kind_t::r );
               thread[i].rds.insert( rd );
               rd_events[v].insert( rd );
 
@@ -500,8 +475,8 @@ void program::wmm_build_ssa( const input::program& input ) {
           thread[i].havok_vars.insert(v1);
           if( is_global(v1) ) {
             nname = v1 + "#" + thread[i].loc->name;
-            se_ptr wr = mk_se_ptr( c,_hb_encoding,
-                                   t,nname,v1,thread[i].loc,event_kind_t::w );
+            se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
+                                   thread[i].loc,event_kind_t::w );
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
           } else {
@@ -548,7 +523,7 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
 
         // increase referenced variables
-        for(variable v: thread[i].variables_write_orig) {
+        for( variable v: thread[i].variables_write_orig ) {
           thread_vars[v] = thread[i].loc->name;
           if ( is_global(v) ) {
             global_in_thread[v] = thread.instructions[i]; // useless??
@@ -563,162 +538,156 @@ void program::wmm_build_ssa( const input::program& input ) {
   }
 }
 
-void program::wmm(const input::program& input) {
-  // construct thread scaleton
-  wmm_build_cssa_thread(input);
-  wmm_build_pre(input);
-  // build ssa
-  wmm_build_ssa(input);
-  // declares are read/write events on globals are distinct
-  wmm_mk_distinct_events();
-  // build hb formulas to encode the preserved program order
-  wmm_build_ppo();
-  // build symbolic event structure
-  wmm_build_ses();
+void program::wmm( const input::program& input ) {
+  wmm_build_cssa_thread( input ); // construct thread skeleton
+  wmm_build_pre( input );
+  wmm_build_ssa( input ); // build ssa
+  wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
+  wmm_build_ppo(); // build hb formulas to encode the preserved program order
+  wmm_build_ses(); // build symbolic event structure
 }
-
 
 //----------------------------------------------------------------------------
 // Old code
 //----------------------------------------------------------------------------
 
-z3::expr program::build_rf_val(std::shared_ptr<cssa::instruction> l1,
-                                shared_ptr<instruction> l2,
-                                z3::context & C, std::string str, bool pre) {
+// z3::expr program::build_rf_val(std::shared_ptr<cssa::instruction> l1,
+//                                 shared_ptr<instruction> l2,
+//                                 z3::context & C, std::string str, bool pre) {
 
-  z3::expr exit=C.bool_val(false);
-  z3::expr s = C.bool_const("s");
+//   z3::expr exit=C.bool_val(false);
+//   z3::expr s = C.bool_const("s");
 
-  for(variable v2: l2->variables_read) {
-    if(check_correct_global_variable(v2,str)) {
-      if( pre ) {
-        for(variable v1: new_globals) {
-          if(check_correct_global_variable(v1,str)) {
-            z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
-            return conjecture;
-          }
-        }
-      }else {
-        for(variable v1: l1->variables_write) {
-          // ??? unguarded 
-          // if(check_correct_global_variable(v1,str)) {
-          z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
-          return conjecture;
-        }
-      }
-    }
-  }
+//   for(variable v2: l2->variables_read) {
+//     if(check_correct_global_variable(v2,str)) {
+//       if( pre ) {
+//         for(variable v1: new_globals) {
+//           if(check_correct_global_variable(v1,str)) {
+//             z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
+//             return conjecture;
+//           }
+//         }
+//       }else {
+//         for(variable v1: l1->variables_write) {
+//           // ??? unguarded 
+//           // if(check_correct_global_variable(v1,str)) {
+//           z3::expr conjecture= implies (s,(z3::expr)v2==(z3::expr)v1);
+//           return conjecture;
+//         }
+//       }
+//     }
+//   }
 
-  //std::cout<<"\ninstr_to_var\t"<<instr_to_var[l2]->name<<"\n";
-  //std::cout<<"\nvariable_written\t"<<variable_written[str]->instr<<"\n";
+//   //std::cout<<"\ninstr_to_var\t"<<instr_to_var[l2]->name<<"\n";
+//   //std::cout<<"\nvariable_written\t"<<variable_written[str]->instr<<"\n";
 
-  return exit;
-}
-
-
-
-z3::expr program::build_rf_grf( std::shared_ptr<cssa::instruction> l1,
-                                std::shared_ptr<cssa::instruction> l2,
-                                z3::context & C, std::string str, bool pre,
-                                const input::program& input ) {
-  shared_ptr<hb_enc::location> start_location = input.start_name();
-  z3::expr s=build_rf_val(l1,l2,C,str,pre);
-  z3::expr c=C.bool_const("c");
-
-  if(pre==0) {
-    c=_hb_encoding.make_hb(l1->loc,l2->loc);
-  }else {
-    c=_hb_encoding.make_hb(start_location,l2->loc);
-  }
-
-  z3::expr conjecture=implies(s,c);
-  return conjecture;
-}
-
-z3::expr program::build_rf_some(std::shared_ptr<cssa::instruction> l1,
-                                std::shared_ptr<cssa::instruction> l2,
-                                std::shared_ptr<cssa::instruction> l3,
-                                z3::context & C, std::string str, bool pre) {
-  z3::expr s1=C.bool_const("s1");
-  z3::expr s2=C.bool_const("s2");
-
-  z3::expr conjecture2=build_rf_val(l3,l1,C,str,false);
-  z3::expr conjecture1=C.bool_val(true);
-  if( pre ) {
-    z3::expr conjecture1=build_rf_val(l2,l1,C,str,true);
-  }else {
-    z3::expr conjecture1=build_rf_val(l2,l1,C,str,false);
-  }
-
-  z3::expr conjecture=(conjecture1 || conjecture2);
-  return conjecture;
-}
+//   return exit;
+// }
 
 
 
+// z3::expr program::build_rf_grf( std::shared_ptr<cssa::instruction> l1,
+//                                 std::shared_ptr<cssa::instruction> l2,
+//                                 z3::context & C, std::string str, bool pre,
+//                                 const input::program& input ) {
+//   shared_ptr<hb_enc::location> start_location = input.start_name();
+//   z3::expr s=build_rf_val(l1,l2,C,str,pre);
+//   z3::expr c=C.bool_const("c");
+
+//   if(pre==0) {
+//     c=_hb_encoding.make_hb(l1->loc,l2->loc);
+//   }else {
+//     c=_hb_encoding.make_hb(start_location,l2->loc);
+//   }
+
+//   z3::expr conjecture=implies(s,c);
+//   return conjecture;
+// }
+
+// z3::expr program::build_rf_some(std::shared_ptr<cssa::instruction> l1,
+//                                 std::shared_ptr<cssa::instruction> l2,
+//                                 std::shared_ptr<cssa::instruction> l3,
+//                                 z3::context & C, std::string str, bool pre) {
+//   z3::expr s1=C.bool_const("s1");
+//   z3::expr s2=C.bool_const("s2");
+
+//   z3::expr conjecture2=build_rf_val(l3,l1,C,str,false);
+//   z3::expr conjecture1=C.bool_val(true);
+//   if( pre ) {
+//     z3::expr conjecture1=build_rf_val(l2,l1,C,str,true);
+//   }else {
+//     z3::expr conjecture1=build_rf_val(l2,l1,C,str,false);
+//   }
+
+//   z3::expr conjecture=(conjecture1 || conjecture2);
+//   return conjecture;
+// }
 
 
-z3::expr program::build_ws(std::shared_ptr<cssa::instruction> l1,
-                           std::shared_ptr<cssa::instruction> l2,
-                           z3::context & C, bool pre,
-                           const input::program& input) {
-  shared_ptr<hb_enc::location> start_location = input.start_name();
-  z3::expr c1=C.bool_const("c1");
-  z3::expr c2=C.bool_const("c2");
-  //std::cout<<"\nhere 1 \n";
-  if(pre==0) {
-
-    c1=_hb_encoding.make_hb(l1->loc,l2->loc);
-    c2=_hb_encoding.make_hb(l2->loc,l1->loc);
-  }
-  else {
-    //std::cout<<"\nhere 3 \n";
-    c1=_hb_encoding.make_hb(start_location,l2->loc);
-    //std::cout<<"\nhere 4 \n";
-    c2=_hb_encoding.make_hb(l2->loc,start_location);
-    //std::cout<<"\nhere 5 \n";
-  }
-
-  z3::expr conjecture=implies(!c1,c2);
-  //std::cout<<"\nhere 6 \n";
-  return conjecture;
-}
 
 
-z3::expr program::build_fr( std::shared_ptr<cssa::instruction> l1,
-                            std::shared_ptr<cssa::instruction> l2,
-                            std::shared_ptr<cssa::instruction> l3,
-                            z3::context & C,std::string str,bool pre,
-                            bool pre_where, const input::program& input) {
-  shared_ptr<hb_enc::location> start_location = input.start_name();
-  z3::expr c1=C.bool_const("c1");
-  z3::expr c2=C.bool_const("c2");
-  z3::expr s=C.bool_const("s");;
-  if(pre_where==true) {
-    s=build_rf_val(l1,l2,C,str,!pre);
-  }
-  else {
-    s=build_rf_val(l1,l2,C,str,pre);
-  }
 
-  //pre tells whether there is an initialisation instruction
-  if(pre==0) {
-      c1=_hb_encoding.make_hb(l1->loc,l3->loc);
-      c2=_hb_encoding.make_hb(l2->loc,l3->loc);
-  } else {
-    if(pre_where==0) {
-      // pre_where tells whether l1 or l3 has initialisations instruction {
-      c1=_hb_encoding.make_hb(start_location,l3->loc);
-      c2=_hb_encoding.make_hb(l2->loc,l3->loc);
-    } else {
-      c1=_hb_encoding.make_hb(l1->loc,start_location);
-      c2=_hb_encoding.make_hb(l2->loc,start_location);
-    }
-  }
+// z3::expr program::build_ws(std::shared_ptr<cssa::instruction> l1,
+//                            std::shared_ptr<cssa::instruction> l2,
+//                            z3::context & C, bool pre,
+//                            const input::program& input) {
+//   shared_ptr<hb_enc::location> start_location = input.start_name();
+//   z3::expr c1=C.bool_const("c1");
+//   z3::expr c2=C.bool_const("c2");
+//   //std::cout<<"\nhere 1 \n";
+//   if(pre==0) {
 
-  z3::expr conjecture=implies((s && c1),c2);
-  return conjecture;
-}
+//     c1=_hb_encoding.make_hb(l1->loc,l2->loc);
+//     c2=_hb_encoding.make_hb(l2->loc,l1->loc);
+//   }
+//   else {
+//     //std::cout<<"\nhere 3 \n";
+//     c1=_hb_encoding.make_hb(start_location,l2->loc);
+//     //std::cout<<"\nhere 4 \n";
+//     c2=_hb_encoding.make_hb(l2->loc,start_location);
+//     //std::cout<<"\nhere 5 \n";
+//   }
+
+//   z3::expr conjecture=implies(!c1,c2);
+//   //std::cout<<"\nhere 6 \n";
+//   return conjecture;
+// }
+
+
+// z3::expr program::build_fr( std::shared_ptr<cssa::instruction> l1,
+//                             std::shared_ptr<cssa::instruction> l2,
+//                             std::shared_ptr<cssa::instruction> l3,
+//                             z3::context & C,std::string str,bool pre,
+//                             bool pre_where, const input::program& input) {
+//   shared_ptr<hb_enc::location> start_location = input.start_name();
+//   z3::expr c1=C.bool_const("c1");
+//   z3::expr c2=C.bool_const("c2");
+//   z3::expr s=C.bool_const("s");;
+//   if(pre_where==true) {
+//     s=build_rf_val(l1,l2,C,str,!pre);
+//   }
+//   else {
+//     s=build_rf_val(l1,l2,C,str,pre);
+//   }
+
+//   //pre tells whether there is an initialisation instruction
+//   if(pre==0) {
+//       c1=_hb_encoding.make_hb(l1->loc,l3->loc);
+//       c2=_hb_encoding.make_hb(l2->loc,l3->loc);
+//   } else {
+//     if(pre_where==0) {
+//       // pre_where tells whether l1 or l3 has initialisations instruction {
+//       c1=_hb_encoding.make_hb(start_location,l3->loc);
+//       c2=_hb_encoding.make_hb(l2->loc,l3->loc);
+//     } else {
+//       c1=_hb_encoding.make_hb(l1->loc,start_location);
+//       c2=_hb_encoding.make_hb(l2->loc,start_location);
+//     }
+//   }
+
+//   z3::expr conjecture=implies((s && c1),c2);
+//   return conjecture;
+// }
 
 // ---------------------------------------------------------------------------
 // Build symbolic event structure

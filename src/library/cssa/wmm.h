@@ -42,12 +42,9 @@ namespace cssa {
   {
   public:
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
-                    unsigned _tid,
+                    unsigned _tid, unsigned i,
                     const variable& _v, const variable& _prog_v,
                     hb_enc::location_ptr loc, event_kind_t _et );
-
-    // symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
-    //                 hb_enc::location_ptr loc, event_kind_t _et );
 
   public:
     unsigned tid;
@@ -76,18 +73,12 @@ namespace cssa {
   typedef std::shared_ptr<symbolic_event> se_ptr;
 
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
-                           unsigned _tid,
+                           unsigned _tid, unsigned _instr_no,
                            const variable& _v, const variable& _prog_v,
                            hb_enc::location_ptr _loc, event_kind_t _et ) {
-    return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _v, _prog_v,
-                                            _loc, _et);
+    return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                                            _v, _prog_v, _loc, _et);
   }
-
-  // inline se_ptr mk_se_ptr( z3::context& _ctx,hb_enc::encoding& _hb_enc,
-  //                          hb_enc::location_ptr _loc, event_kind_t _et ) {
-  //   return std::make_shared<symbolic_event>( _ctx, _hb_enc, _loc, _et );
-  // }
-
 
   struct se_hash {
     size_t operator () (const se_ptr &v) const {

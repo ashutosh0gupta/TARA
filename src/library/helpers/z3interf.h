@@ -83,7 +83,9 @@ public:
   //----------------
   //support for gdb
   void debug_print(const z3::expr&);
+  void debug_print(const std::list<z3::expr>&);
   void debug_print(const z3::model&);
+
   //----------------
 
 }}
