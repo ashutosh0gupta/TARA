@@ -57,6 +57,11 @@ bool program::is_mm_tso() const
   return mm == mm_t::tso;
 }
 
+bool program::is_mm_rmo() const
+{
+  return mm == mm_t::rmo;
+}
+
 bool program::is_mm_pso() const
 {
   return mm == mm_t::pso;
@@ -129,6 +134,15 @@ z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
   return _hb_encoding.make_hb( before->e_v, after->e_v );
 }
 
+z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
+                             const cssa::se_ptr& after) {
+  z3::expr hbs = _z3.c.bool_val(true);
+  for( auto& bf : before ) {
+      hbs = hbs && wmm_mk_hb( bf, after );
+  }
+  return hbs;
+}
+
 
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
                              const cssa::se_set& after) {
@@ -158,7 +172,7 @@ void program::unsupported_mm() {
 bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   if( is_mm_sc() ) {
     return true;
-  }else if( is_mm_tso() ) {
+  }else if( is_mm_tso() || is_mm_rmo() ) {
     return wr->tid != rd->tid; //only events with diff threds are part of grf
   }else{
     unsupported_mm();
@@ -331,6 +345,36 @@ void program::wmm_build_ppo() {
         }
       }
       //
+    }else if( is_mm_rmo() ) {
+      var_to_se_map last_read, last_write;
+      for( unsigned j=0; j<thread.size(); j++ ) {
+        if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
+          for( auto rd : thread[j].rds ) {
+            phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
+            last_read[rd->prog_v]  = rd;
+          }
+          for( auto wr : thread[j].wrs ) {
+            bool not_yet_after_init = true;
+            for( auto rd : dependency_relation[wr] ) {
+              phi_po = phi_po && wmm_mk_hb( rd, wr );
+              not_yet_after_init = false;
+            }
+            variable v = wr->prog_v;
+            if( se_ptr rd  = last_read[v] ) {
+              phi_po = phi_po && wmm_mk_hb( rd, wr  );
+              not_yet_after_init = false;
+            }
+            if( se_ptr wr1 = last_write[v] ) {
+              phi_po = phi_po && wmm_mk_hb( wr1, wr );
+              not_yet_after_init = false;
+            }
+            if( not_yet_after_init ) {
+              phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+            }
+            last_write[v] = wr;
+          }
+        }
+      }
     }else{
       unsupported_mm();
     }
@@ -423,10 +467,41 @@ void program::wmm_build_ssa( const input::program& input ) {
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
-        for( const variable& v: instr->variables() ) {
-          variable nname(c);
+        se_set dep_ses;
 
+        // Construct ssa/symbolic events for all the read variables
+        for( const variable& v: instr->variables() ) {
+          if( !is_primed(v) ) {
+            variable nname(c);
+            //unprimmed case
+            if ( is_global(v) ) {
+              nname =  "pi_"+ v + "#" + thread[i].loc->name;
+              se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
+                                     thread[i].loc, event_kind_t::r );
+              thread[i].rds.insert( rd );
+              rd_events[v].insert( rd );
+              dep_ses.insert( rd );
+            }else{
+              nname = thread.name + "." + v + "#" + thread_vars[v];
+              // check if we are reading an initial value
+              if (thread_vars[v] == "pre") {
+                initial_variables.insert(nname);
+              }
+              dep_ses.insert( dependent_events[v].begin(),
+                              dependent_events[v].end());
+            }
+            // the following variable is read by this instruction
+            thread[i].variables_read.insert(nname);
+            thread[i].variables_read_orig.insert(v);
+            src.push_back(v);
+            dst.push_back(nname);
+          }
+        }
+
+        // Construct ssa/symbolic events for all the write variables
+        for( const variable& v: instr->variables() ) {
           if( is_primed(v) ) {
+            variable nname(c);
             //primmed case
             variable v1 = get_unprimed(v); //converting the primed to unprimed
             if( is_global(v1) ) {
@@ -436,40 +511,24 @@ void program::wmm_build_ssa( const input::program& input ) {
                                      thread[i].loc,event_kind_t::w);
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
+              dependency_relation[wr].insert(dep_ses.begin(),dep_ses.end());
             }else{
               nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
+              dependent_events[v1].insert(dep_ses.begin(),dep_ses.end());
             }
             // the following variable is written by this instruction
             thread[i].variables_write.insert(nname);
             thread[i].variables_write_orig.insert(v1);
             // map the instruction to the variable
             variable_written[nname] = thread.instructions[i];
-          }else{
-            //unprimmed case
-            if ( is_global(v) ) {
-              nname =  "pi_"+ v + "#" + thread[i].loc->name;
-              se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
-                                     thread[i].loc, event_kind_t::r );
-              thread[i].rds.insert( rd );
-              rd_events[v].insert( rd );
-
-            }else{
-              nname = thread.name + "." + v + "#" + thread_vars[v];
-              // check if we are reading an initial value
-              if (thread_vars[v] == "pre") {
-                initial_variables.insert(nname);
-              }
-            }
-            // the following variable is read by this instruction
-            thread[i].variables_read.insert(nname);
-            thread[i].variables_read_orig.insert(v);
+            src.push_back(v);
+            dst.push_back(nname);
           }
-          src.push_back(v);
-          dst.push_back(nname);
         }
 
         // thread havoced variables the same
-        for(const variable& v: instr->havok_vars) {
+        for( const variable& v: instr->havok_vars ) {
+          assert( dep_ses.empty() ); // there must be nothing in dep_ses
           variable nname(c);
           variable v1 = get_unprimed(v);
           thread[i].havok_vars.insert(v1);
@@ -479,8 +538,10 @@ void program::wmm_build_ssa( const input::program& input ) {
                                    thread[i].loc,event_kind_t::w );
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
-          } else {
+            dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
+          }else{
             nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
+            dependent_events[v1].insert(dep_ses.begin(),dep_ses.end());
           }
           // this variable is written by this instruction
           thread[i].variables_write.insert(nname);

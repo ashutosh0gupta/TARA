@@ -76,6 +76,11 @@ bool program::is_mm_pso() const
   return mm == mm_t::pso;
 }
 
+bool program::is_mm_rmo() const
+{
+  return mm == mm_t::rmo;
+}
+
 bool program::is_mm_power() const
 {
   return mm == mm_t::power;

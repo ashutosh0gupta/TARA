@@ -34,8 +34,9 @@ const string error_label = string("ERROR");
     case mm_t::sc:    return "sc";
     case mm_t::tso:   return "tso";
     case mm_t::pso:   return "pso";
+    case mm_t::rmo:   return "rmo";
     case mm_t::power: return "power";
-    default: return "unspported";
+    default: return "(so unsupproted that we forgot to give it a name!!)";
     }
   }
   //--------------------------------------------------------------------------

@@ -102,12 +102,14 @@ void options::interpret_options(po::variables_map& vm) {
       mm = mm_t::sc;
     else if (_mode == "tso")
       mm = mm_t::tso;
+    else if (_mode == "rmo")
+      mm = mm_t::rmo;
     else if (_mode == "pso")
       mm = mm_t::pso;
     else if (_mode == "none")
       mm = mm_t::none;
     else {
-      throw arg_exception("Mode must be one of: \"sc\", \"tso\", \"pso\"");
+      throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\"");
     }
   }
 }
