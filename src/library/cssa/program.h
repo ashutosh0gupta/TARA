@@ -90,6 +90,7 @@ private:
   void wmm_build_ses();
 
   z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
+  z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
@@ -116,7 +117,14 @@ private:
 
 //z3::expr build_fr(hb_enc::location_ptr, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
 
+  void wmm_build_sc_ppo   ( thread& thread );
+  void wmm_build_tso_ppo  ( thread& thread );
+  void wmm_build_pso_ppo  ( thread& thread );
+  void wmm_build_rmo_ppo  ( thread& thread );
+  void wmm_build_alpha_ppo( thread& thread );
+  void wmm_build_power_ppo( thread& thread );
   void wmm_build_ppo();
+  void wmm_test_ppo(); // TODO: remove when confident
 
   bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   void unsupported_mm();
@@ -131,6 +139,7 @@ public:
   bool is_mm_tso() const;
   bool is_mm_pso() const;
   bool is_mm_rmo() const;
+  bool is_mm_alpha() const;
   bool is_mm_power() const;
   void set_mm( mm_t );
 

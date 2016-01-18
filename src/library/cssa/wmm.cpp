@@ -57,14 +57,19 @@ bool program::is_mm_tso() const
   return mm == mm_t::tso;
 }
 
+bool program::is_mm_pso() const
+{
+  return mm == mm_t::pso;
+}
+
 bool program::is_mm_rmo() const
 {
   return mm == mm_t::rmo;
 }
 
-bool program::is_mm_pso() const
+bool program::is_mm_alpha() const
 {
-  return mm == mm_t::pso;
+  return mm == mm_t::alpha;
 }
 
 bool program::is_mm_power() const
@@ -134,6 +139,11 @@ z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
   return _hb_encoding.make_hb( before->e_v, after->e_v );
 }
 
+z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
+                             const cssa::se_ptr& after) {
+  return wmm_mk_hbs( before, after );
+}
+
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
                              const cssa::se_ptr& after) {
   z3::expr hbs = _z3.c.bool_val(true);
@@ -172,7 +182,7 @@ void program::unsupported_mm() {
 bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   if( is_mm_sc() ) {
     return true;
-  }else if( is_mm_tso() || is_mm_rmo() ) {
+  }else if( is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha() ) {
     return wr->tid != rd->tid; //only events with diff threds are part of grf
   }else{
     unsupported_mm();
@@ -187,12 +197,10 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
 
 void program::wmm_build_ses() {
   // For each global variable we need to construct
-  // - rf-val boolean bit that declares that declares reading
-  // - rf-grf
-  // - rf-some
-  // - ws
+  // - rf
+  // - grf
+  // - wf
   // - fr
-  // - ppo x
 
   z3::context& c = _z3.c;
 
@@ -208,6 +216,7 @@ void program::wmm_build_ses() {
         z3::expr b = c.bool_const(  bname.c_str() );
         some_rfs = some_rfs || b;
         z3::expr eq = ( (z3::expr)rd_v == (z3::expr)wr_v );
+        // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
         z3::expr new_rf = implies( b, wmm_mk_ghb( wr, rd ) );
@@ -273,113 +282,257 @@ void program::wmm_mk_distinct_events() {
 }
 
 //----------------------------------------------------------------------------
-// build preserved programming order
+// build preserved programming order(ppo)
+
+void program::wmm_build_sc_ppo( thread& thread ) {
+  unsigned last_j = thread.size();
+  for( unsigned j=0; j < thread.size(); j++ ) {
+    phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
+    if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
+      auto& after =thread[j].rds.size()>0 ? thread[j].rds : thread[j].wrs;
+      if( last_j > j ) {
+        phi_po = phi_po && wmm_mk_hbs( init_loc, after );
+      }else{
+        auto& before = thread[last_j].wrs.size() > 0 ?
+          thread[last_j].wrs : thread[last_j].rds;
+        phi_po = phi_po && wmm_mk_hbs( before, after );
+      }
+      last_j = j;
+    }
+  }
+  //TODO: deal with atomic section and prespecified happens befores
+  // add atomic sections
+  // for (input::location_pair as : input.atomic_sections) {
+  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
+  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
+  //   phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
+  // }
+  // // add happens-befores
+  // for (input::location_pair hb : input.happens_befores) {
+  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
+  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
+  //   phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
+  // }
+}
+
+void program::wmm_build_tso_ppo( thread& thread ) {
+  unsigned last_rd = thread.size(), last_wr = thread.size();
+  for( unsigned j=0; j<thread.size(); j++ ) {
+    auto& rds = thread[j].rds, wrs = thread[j].wrs;
+    if( !rds.empty() ) {
+      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
+      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+      last_rd = j;
+    }
+    if( !wrs.empty() ) {
+      auto& last_wrs = last_wr > j ? init_loc : thread[last_wr].wrs;
+      phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
+      last_wr = j;
+      if( last_rd <= j ) {
+        phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+      }
+    }
+
+    // if( rds.size() > 0 || wrs.size() > 0 ) {
+    //   phi_po = phi_po && wmm_mk_hbs( rds, wrs );
+    //   if( last_rd > j && rds.size() > 0 ) {
+    //     phi_po = phi_po && wmm_mk_hbs( init_loc, rds );
+    //     last_rd = j;
+    //     if( wrs.size() > 0 ) last_wr = j;
+    //     rd_wr_sync = (wrs.size() > 0);
+    //   }else{
+    //     if( rds.size() > 0 ) {
+    //       phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, rds);
+    //       last_rd = j;
+    //     }
+    //     if( wrs.size() > 0 ) {
+    //       if( last_wr < j )
+    //         phi_po =phi_po && wmm_mk_hbs(thread[last_wr].wrs,wrs);
+    //       else
+    //         // if(rd_wr_sync) // todo : potential optimization
+    //         phi_po = phi_po && wmm_mk_hbs( init_loc, wrs );
+    //       last_wr = j;
+    //     }
+    //     if( rds.size() > 0 ) {
+    //       rd_wr_sync = (wrs.size() > 0);
+    //     }else{ // wrs.size() > 0
+    //       if( !rd_wr_sync ) {
+    //         //sync it
+    //         phi_po=phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+    //       }
+    //       rd_wr_sync = true;
+    //     }
+    //   }
+    // }
+  }
+}
+
+void program::wmm_build_pso_ppo( thread& thread ) {
+  var_to_se_map last_wr;
+  unsigned last_rd = thread.size();
+  // std::unordered_map<variable,bool,variable_hash, variable_equal>
+  //   rd_wr_in_sync;
+  // for( const variable& v : globals ) { rd_wr_in_sync[v] = false; }
+
+  for( unsigned j=0; j<thread.size(); j++ ) {
+    auto& rds = thread[j].rds;
+    auto& wrs = thread[j].wrs;
+    if( rds.size() > 0 ) {
+      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
+      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+      last_rd = j;
+    }
+
+    for( auto wr : wrs ) {
+      const variable& v = wr->prog_v;
+      auto hbs = last_wr[v] ? wmm_mk_hb( last_wr[v], wr )
+                            : wmm_mk_hbs(  init_loc, wr );
+      phi_po = phi_po && hbs;
+      last_wr[v] = wr;
+      if( last_rd <= j ) {
+        phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
+      }
+    }
+
+    // if( rds.size() > 0 || wrs.size() > 0 ) {
+    //   phi_po = phi_po && wmm_mk_hbs( rds, wrs );
+    //   if( last_rd > j && rds.size() > 0 ) {
+    //     phi_po = phi_po && wmm_mk_hbs( init_loc, rds );
+    //     last_rd = j;
+    //     for( auto wr : wrs ) {
+    //       last_wr[wr->prog_v] = wr;
+    //       rd_wr_in_sync[wr->prog_v] = true;
+    //     }
+    //   }else{
+    //     if( rds.size() > 0 ) {
+    //       phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, rds );
+    //       last_rd = j;
+    //     }
+    //     for( auto wr : wrs ) {
+    //       if( last_wr[wr->prog_v] ) {
+    //         phi_po = phi_po && wmm_mk_hb( last_wr[wr->prog_v], wr );
+    //       }else{
+    //         assert( !rd_wr_in_sync[wr->prog_v] );
+    //         // if(rd_wr_in_sync[wr->prog_v]) // todo : potential optimization
+    //         phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+    //       }
+    //       last_wr[wr->prog_v] = wr;
+    //       if( rds.empty() && !rd_wr_in_sync[wr->prog_v] ) {
+    //         //sync reads and writes
+    //         phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
+    //       }
+    //     }
+    //     for( const variable& v : globals ) { rd_wr_in_sync[v] = false; }
+    //     for( auto wr : wrs ) { rd_wr_in_sync[wr->prog_v] = true; }
+    //   }
+    // }
+  }
+}
+
+void program::wmm_build_rmo_ppo( thread& thread ) {
+  var_to_se_map last_read, last_write;
+  for( unsigned j=0; j<thread.size(); j++ ) {
+
+    for( auto rd : thread[j].rds ) {
+      phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
+      last_read[rd->prog_v]  = rd;
+    }
+
+    for( auto wr : thread[j].wrs ) {
+      bool not_yet_after_init = true;
+      variable v = wr->prog_v;
+
+      if( auto wr1 = last_write[v] ) {
+        phi_po = phi_po && wmm_mk_hb( wr1, wr );
+        not_yet_after_init = false;
+      }
+
+      if( auto rd  = last_read[v] ) {
+        phi_po = phi_po && wmm_mk_hb( rd, wr  );
+        not_yet_after_init = false;
+      }
+
+      for( auto rd : dependency_relation[wr] ) {
+        phi_po = phi_po && wmm_mk_hb( rd, wr );
+        not_yet_after_init = false;
+      }
+
+      if( not_yet_after_init ) {
+        phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+      }
+      last_write[v] = wr;
+    }
+  }
+}
+
+void program::wmm_build_alpha_ppo( thread& thread ) {
+  // implemented but doubtful that is correct!!
+  unsupported_mm();
+
+  var_to_se_map last_wr, last_rd;
+
+  for( unsigned j=0; j<thread.size(); j++ ) {
+    auto& rds = thread[j].rds;
+    auto& wrs = thread[j].wrs;
+    for( const variable& v : globals ) {
+      se_ptr rd, wr;
+      for( auto rd1 : rds ) { if( v == rd1->prog_v ) { rd = rd1; break; } }
+      for( auto wr1 : wrs ) { if( v == wr1->prog_v ) { wr = wr1; break; } }
+      if( rd ) {
+        if( last_rd[v] ) {
+          phi_po = phi_po && wmm_mk_hb( last_rd[v], rd );
+        }else{
+          phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
+        }
+        last_rd[v] = rd;
+      }
+      if( wr ) {
+        if( last_wr[v] ) {
+          phi_po = phi_po && wmm_mk_hb( last_wr[v], wr );
+        }else{
+          phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+        }
+        last_wr[v] = wr;
+        if( last_rd[v] ) {
+          phi_po = phi_po && wmm_mk_hb( last_rd[v], wr );
+        }
+      }
+    }
+  }
+}
+
+void program::wmm_build_power_ppo( thread& thread ) {
+  unsupported_mm();
+}
 
 void program::wmm_build_ppo() {
+  // wmm_test_ppo();
 
   for( unsigned t=0; t<threads.size(); t++ ) {
     thread& thread = *threads[t];
-    if( is_mm_sc() ) {
-      unsigned last_j = thread.size();
-      for( unsigned j=0; j < thread.size(); j++ ) {
-        phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
-        if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
-          auto& after =thread[j].rds.size()>0 ? thread[j].rds : thread[j].wrs;
-          if( last_j > j ) {
-              phi_po = phi_po && wmm_mk_hbs( init_loc, after );
-          }else{
-            auto& before = thread[last_j].wrs.size() > 0 ?
-              thread[last_j].wrs : thread[last_j].rds;
-            phi_po = phi_po && wmm_mk_hbs( before, after );
-          }
-          last_j = j;
-        }
-      }
-      //TODO: deal with atomic section and prespecified happens befores
-      // add atomic sections
-      // for (input::location_pair as : input.atomic_sections) {
-      //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
-      //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
-      //   phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
-      // }
-      // // add happens-befores
-      // for (input::location_pair hb : input.happens_befores) {
-      //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
-      //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
-      //   phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
-      // }
-    }else if( is_mm_tso() ) {
-      unsigned last_rd = thread.size(), last_wr = thread.size();
-      bool rd_wr_sync = true;
-      for( unsigned j=0; j<thread.size(); j++ ) {
-        if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
-          phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
-          if( last_rd > j && thread[j].rds.size() > 0 ) {
-            phi_po = phi_po && wmm_mk_hbs( init_loc, thread[j].rds );
-            last_rd = j;
-            if( thread[j].wrs.size() > 0 ) last_wr = j;
-            rd_wr_sync = (thread[j].wrs.size() > 0);
-          }else{
-            if( thread[j].rds.size() > 0 ) {
-              phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, thread[j].rds);
-              last_rd = j;
-            }
-            if( thread[j].wrs.size() > 0 ) {
-              if( last_wr < j )
-                phi_po =phi_po && wmm_mk_hbs(thread[last_wr].wrs,thread[j].wrs);
-              else
-                // if(rd_wr_sync) // todo : potential optimization
-                  phi_po = phi_po && wmm_mk_hbs( init_loc, thread[j].wrs );
-              last_wr = j;
-            }
-            if( thread[j].rds.size() > 0 ) {
-              rd_wr_sync = (thread[j].wrs.size() > 0);
-            }else{ // thread[j].wrs.size() > 0
-              if( !rd_wr_sync ) {
-                //sync it
-                phi_po=phi_po && wmm_mk_hbs(thread[last_rd].rds, thread[j].wrs);
-              }
-              rd_wr_sync = true;
-            }
-          }
-        }
-      }
-      //
-    }else if( is_mm_rmo() ) {
-      var_to_se_map last_read, last_write;
-      for( unsigned j=0; j<thread.size(); j++ ) {
-        if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
-          for( auto rd : thread[j].rds ) {
-            phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
-            last_read[rd->prog_v]  = rd;
-          }
-          for( auto wr : thread[j].wrs ) {
-            bool not_yet_after_init = true;
-            for( auto rd : dependency_relation[wr] ) {
-              phi_po = phi_po && wmm_mk_hb( rd, wr );
-              not_yet_after_init = false;
-            }
-            variable v = wr->prog_v;
-            if( se_ptr rd  = last_read[v] ) {
-              phi_po = phi_po && wmm_mk_hb( rd, wr  );
-              not_yet_after_init = false;
-            }
-            if( se_ptr wr1 = last_write[v] ) {
-              phi_po = phi_po && wmm_mk_hb( wr1, wr );
-              not_yet_after_init = false;
-            }
-            if( not_yet_after_init ) {
-              phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
-            }
-            last_write[v] = wr;
-          }
-        }
-      }
-    }else{
-      unsupported_mm();
+    if( is_mm_sc() )          { wmm_build_sc_ppo ( thread );
+    }else if( is_mm_tso() )   { wmm_build_tso_ppo( thread );
+    }else if( is_mm_pso() )   { wmm_build_pso_ppo( thread );
+    }else if( is_mm_rmo() )   { wmm_build_rmo_ppo( thread );
+    }else if( is_mm_alpha() ) { wmm_build_alpha_ppo( thread );
+    }else if( is_mm_power() ) { wmm_build_power_ppo( thread );
+    }else{                      unsupported_mm();
     }
   }
   phi_po = phi_po && phi_distinct;
+}
+
+void program::wmm_test_ppo() {
+  unsigned t;
+  phi_po = _z3.c.bool_val(true);
+  for(t=0;t<threads.size();t++){wmm_build_sc_ppo(*threads[t]);}
+  std::cerr << "\nsc" << phi_po; phi_po = _z3.c.bool_val(true);
+  for(t=0;t<threads.size();t++){wmm_build_tso_ppo(*threads[t]);}
+  std::cerr << "\ntso" << phi_po; phi_po = _z3.c.bool_val(true);
+  for(t=0;t<threads.size();t++){wmm_build_pso_ppo(*threads[t]);}
+  std::cerr << "\npso" << phi_po; phi_po = _z3.c.bool_val(true);
+  for(t=0;t<threads.size();t++){wmm_build_rmo_ppo(*threads[t]);}
+  std::cerr << "\nrmo" << phi_po; phi_po = _z3.c.bool_val(true);
 }
 
 //----------------------------------------------------------------------------
@@ -600,6 +753,7 @@ void program::wmm_build_ssa( const input::program& input ) {
 }
 
 void program::wmm( const input::program& input ) {
+  
   wmm_build_cssa_thread( input ); // construct thread skeleton
   wmm_build_pre( input );
   wmm_build_ssa( input ); // build ssa

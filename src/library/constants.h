@@ -36,7 +36,7 @@ extern const std::string error_label;
   //start of wmm support
   //--------------------------------------------------------------------------
   enum class mm_t {
-    none, sc, tso, pso, rmo, power
+    none, sc, tso, pso, rmo, alpha, power
       };
   std::string string_of_mm( mm_t mm );
   //--------------------------------------------------------------------------
