@@ -10,19 +10,17 @@ thread P0 {rr}:
 w1: (= x. 1)
 w2: (= rr. y)
 w3: (= x. rr)
-# w3: assert(= rr 1) 
 
 thread P1 {r}:
 d1: (= y. 1)
 d2: (= r. x)
-# d3: assert(= r 1) 
 d3: assert((or (= r 1) (= x 1) )) 
 
 # Bugs: DR
 
 
 ##########################################
-# tso/pso/rmo should produce same result #
+# tso/pso have should produce same result #
 ##########################################
 # Final result
 # Bad DNF
@@ -37,3 +35,13 @@ d3: assert((or (= r 1) (= x 1) ))
 # Bad DNF
 # hb(R#pi_x#d3,W#x#w1) ∨
 # ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) 
+
+#####################
+# rmo
+#####################
+# Final result
+# Bad DNF
+# ( hb(R#pi_x#d3,W#x#w1) ∧ hb(R#pi_x#d2,W#x#w1) ) ∨
+# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
+# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
+# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(R#pi_x#d3,W#x#w1) )
