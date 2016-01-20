@@ -27,7 +27,17 @@ using namespace tara;
 using namespace std;
 
 data_flow::data_flow(const z3interf& z3, const cssa::program& program) : prune_base(z3, program)
-{}
+{
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  if( program.is_mm_declared() ) {
+      throw std::runtime_error("unsupported");
+  }
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
+}
 
 string data_flow::name()
 {
