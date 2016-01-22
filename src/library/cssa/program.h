@@ -46,6 +46,7 @@ public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
+  var_to_ses_map dependent_events;
 private:
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
@@ -75,7 +76,7 @@ private:
   se_set init_loc;
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
-  var_to_ses_map dependent_events;
+
   se_to_ses_map dependency_relation;
 
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
