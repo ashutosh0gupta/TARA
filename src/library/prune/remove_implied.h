@@ -39,6 +39,8 @@ private:
                           const hb_enc::location_ptr loc2 );
   bool compare_tso_events( const hb_enc::location_ptr loc1,
                            const hb_enc::location_ptr loc2 );
+  bool compare_pso_events( const hb_enc::location_ptr loc1,
+                             const hb_enc::location_ptr loc2 );
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------

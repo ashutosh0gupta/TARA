@@ -58,6 +58,24 @@ string to_string (const location& loc) {
   return res;
 }
 
+
+string get_var_from_location (location_ptr loc) {
+  string res = loc->name;
+unsigned i;
+  for(i=2;i!=res.length();i++)
+  {
+
+	  if(res[i]=='#')
+	  {
+		  res=res.substr(2,i-2);
+		  break;
+	  }
+  }
+
+  return res;
+}
+
+
 ostream& operator<< (ostream& stream, const location& loc) {
   stream << to_string(loc);
   return stream;

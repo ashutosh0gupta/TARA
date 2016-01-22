@@ -84,6 +84,7 @@ public:
 typedef std::shared_ptr<hb_enc::location const> location_ptr;
 
 std::string to_string (const tara::hb_enc::location& loc);
+std::string get_var_from_location (location_ptr loc);
 std::string operator+ (const std::string& lhs, const location_ptr& rhs);
 typedef std::pair<location_ptr,location_ptr> location_pair;
 std::ostream& operator<< (std::ostream& stream, const location_pair& loc_pair);
