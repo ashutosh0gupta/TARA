@@ -25,6 +25,7 @@
 #include <memory>
 #include <z3++.h>
 #include <unordered_map>
+#include "../helpers/helpers.h"
 
 namespace tara {
 namespace hb_enc {
@@ -39,8 +40,11 @@ private:
 public:
   location(location& ) = delete;
   location& operator=(location&) = delete;
-  location(z3::context& ctx, std::string name, bool special = false);
-  
+ // location(z3::context& ctx, std::string name, bool special = false);
+  location(z3::context& ctx, std::string name ,bool special = false);
+
+  //cssa::variable var;
+  std::shared_ptr<cssa::variable> vari;
   std::string name;
   /**
    * @brief True if this is a special location

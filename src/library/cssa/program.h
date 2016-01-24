@@ -46,6 +46,7 @@ public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
+  var_to_ses_map dependent_events;
 private:
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;

@@ -101,11 +101,13 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   bool is_read = (et == event_kind_t::r || event_kind_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
+  //variable vari=v;
   // shared_ptr<hb_enc::location>
   e_v = make_shared<hb_enc::location>( ctx, event_name, special);
   e_v->thread = _tid;
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
+  // std::make_shared<cssa::variable>(v); // todo : why this line was added?
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
   _hb_enc.make_locations(locations);

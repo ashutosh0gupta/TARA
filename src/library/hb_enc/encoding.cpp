@@ -30,7 +30,8 @@ namespace hb_enc {
  * location
  *************************/
   
-location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name), special(special) {}
+location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
+//location::location(z3::context& ctx, string name ,bool special) : expr(z3::expr(ctx)), name(name),special(special) {}
 
 bool location::operator==(const location &other) const {
   // if expr is empty fall back to name
