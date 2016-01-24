@@ -40,6 +40,7 @@ public:
   void addGlobal(std::pair<std::string*,std::string*>* global);
   void addThread(std::string* name);
   void addPrecondition(std::string* pre);
+  void addPostcondition(std::string* post);
   void addAtomicSection(std::string* loc1, std::string* loc2);
   void addHappensBefore(std::string* loc1, std::string* loc2);
   

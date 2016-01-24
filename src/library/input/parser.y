@@ -54,7 +54,7 @@
 
 %parse-param {tara::input::parse& in}
 
-%token INSTRUCTIONS THREAD GLOBAL ERROR PRE LOCAL ASSERT ASSUME HAVOK  AS HB
+%token INSTRUCTIONS THREAD GLOBAL ERROR PRE LOCAL ASSERT ASSUME HAVOK  AS HB POST
 %token COLON COMMA SEMICOLON LBRACE RBRACE LBRACKET RBRACKET LPAREN RPAREN LESS GREATER
 %token <val> NUMBER
 %token <sval> STRING SMT NAME
@@ -66,7 +66,7 @@
 
 %start File
 %%
-File: globals pre threads atomic_sections happens_befores;
+File: globals pre threads atomic_sections happens_befores post;
 
 globals: GLOBAL COLON gnames;
 
@@ -125,6 +125,10 @@ atomic_sections :
 
 happens_befores : 
       | HB COLON hbs
+;
+
+post:  POST COLON SMT { in.addPostcondition($3); }
+    | { in.addPostcondition(nullptr); }
 ;
 
 ases: LBRACKET name name RBRACKET { in.addAtomicSection($2,$3);  } ases

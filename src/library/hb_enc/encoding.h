@@ -54,6 +54,7 @@ public:
 //start of wmm support
 //--------------------------------------------------------------------------
   bool is_read;
+  
   unsigned last_read_intruction; // for tso
 //--------------------------------------------------------------------------
 //end of wmm support

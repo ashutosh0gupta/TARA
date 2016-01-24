@@ -33,7 +33,7 @@
 namespace tara{
 namespace cssa {
 
-  enum class event_kind_t { i, r, w };
+  enum class event_kind_t { i, r, w, f };
 
 //
 // symbolic event

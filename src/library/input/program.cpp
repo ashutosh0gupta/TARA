@@ -101,7 +101,12 @@ mm_t program::get_mm() const
 //----------------------------------------------------------------------------
 
 void program::convert_instructions(z3interf& z3) {
-  for (unsigned i=0; i<threads.size(); i++)
+  variable_set all_variables = globals;
+  for (unsigned i=0; i<threads.size(); i++) {
+    for( auto& local: threads[i].locals ) {
+      variable v1( threads[i].name + "." + local.name, local.type );
+      all_variables.insert(v1);
+    }
     for (unsigned j=0; j<threads[i].size(); j++) {
       //instruction* in = instrs[i][j];
       if (shared_ptr<instruction_str> ins = dynamic_pointer_cast<instruction_str>(threads[i][j])) {
@@ -114,9 +119,14 @@ void program::convert_instructions(z3interf& z3) {
         threads[i][j] = newi;
       }
     }
+  }
     
     if (shared_ptr<instruction_str> ins = dynamic_pointer_cast<instruction_str>(precondition)) {
       precondition = make_shared<instruction_z3>(ins->name, z3, ins->instr, globals, ins->type, variable_set());
+    }
+
+    if (shared_ptr<instruction_str> post = dynamic_pointer_cast<instruction_str>(postcondition)) {
+      postcondition = make_shared<instruction_z3>(post->name, z3, post->instr, all_variables, post->type, variable_set());
     }
     
     convert_names(z3);
@@ -133,6 +143,10 @@ void program::convert_names(z3interf& z3)
   shared_ptr<hb_enc::location> start_location = make_shared<hb_enc::location>(z3.c, "start", true);
   _start_loc = start_location;
   locations.push_back(start_location);
+
+  shared_ptr<hb_enc::location> end_location = make_shared<hb_enc::location>(z3.c, "end", true);
+  _end_loc = end_location;
+  locations.push_back(end_location);
   
   for (unsigned t=0; t<threads.size(); t++) {
     shared_ptr<hb_enc::location> prev;

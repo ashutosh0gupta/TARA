@@ -79,6 +79,11 @@ namespace input {
   
   typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
   typedef std::unordered_set<std::string> string_set;
+
+  //--------------------------------------------------------------------------
+  //support for gdb
+  void debug_print( const variable_set& , std::ostream& out);
+  //--------------------------------------------------------------------------
 }
 
 namespace cssa {
@@ -126,6 +131,12 @@ namespace cssa {
   };
   
   typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
+
+  //--------------------------------------------------------------------------
+  //support for gdb
+  void debug_print( const variable_set& , std::ostream& out);
+  //--------------------------------------------------------------------------
+
 }
 
 namespace helpers {
@@ -165,32 +176,6 @@ inline bool check_correct_global_variable(const cssa::variable& variable, std:: 
     if( variable.name[i] != prog_name[i] ) return false;
   }
   return true;
-
-  // bool flag= true, checked = false;
-  // unsigned i = variable.name.size();
-  // while(i != 0) {
-  //   i--;
-  //   if( isdigit(variable.name[i]) ) {
-  //     continue;
-  //   }else{
-  //     if( checked ) {
-  //       if( variable.name[i]!=str[i] ) return false;
-  //     }else{
-  //       if( str.size() != (i+1) ) {
-  //         return false;
-  //       }else{
-  //         checked=1;
-  //         if( variable.name[i]!=str[i] ) return false;
-  //       }
-  //     }
-  //   }
-  // }
-  // if( flag )
-  //   return true;
-  // else{
-  //   exit(1);// should have never happend
-  //   return false;
-  // }
 }
 
   inline cssa::variable find_orig_variable( const cssa::variable& var,
