@@ -86,10 +86,14 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
   if( !loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
   {
+    if((loc1->vari!=NULL)&&(loc2->vari!=NULL))
+	{
+
 	  if( loc1->vari->name != loc2->vari->name )
 	  {
 		  return false;
 	  }
+	}
   }
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
@@ -108,19 +112,28 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   if( !loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
   {
-	  if( get_var_from_location(loc1) != get_var_from_location(loc2) )
+	  if((loc1->vari!=NULL)&&(loc2->vari!=NULL))
+   {
+
+	  if( loc1->vari->name != loc2->vari->name )
 	  {
 		  return false;
 	  }
+  	}
   }
 
   if( loc1->is_read && !loc2->is_read)
-    {
-  	  if( get_var_from_location(loc1) != get_var_from_location(loc2) )
+  {
+    if((loc1->vari!=NULL)&&(loc2->vari!=NULL))
+	{
+
+  	  if( loc1->vari->name != loc2->vari->name )
   	  {
   		  return false;
   	  }
-    }
+	}
+   }
+
 
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
