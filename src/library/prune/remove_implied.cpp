@@ -142,9 +142,9 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   }
   if(loc1->is_read)
   {
-  for(auto it1=program.dependent_events.begin();it1!=program.dependent_events.end();it1++)
+  for(auto it1=program.dependency_relation.begin();it1!=program.dependency_relation.end();it1++)
     {
-  	  	 if(it1->first.name!=loc1->name)
+  	  	 if((it1->first)->loc!=loc1)
   	  	 {
   	  		 return false;
   	  	 }
@@ -152,7 +152,7 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   	  	 {
   	  		 for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ )
   	  		 {
-  	  			 if((*it2)->e_v==loc2)
+  	  			 if((*it2)->loc==loc2)
   	  			 {
   	  				 return true;
   	  			 }

@@ -47,6 +47,11 @@ public:
   program(const program&) = delete;
   program& operator=(const program&) = delete;
   var_to_ses_map dependent_events;
+  se_to_ses_map dependency_relation;
+  se_set init_loc;
+  var_to_ses_map wr_events;
+  var_to_ses_map rd_events;
+
 private:
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
@@ -73,11 +78,8 @@ private:
   //--------------------------------------------------------------------------
 
 private:
-  se_set init_loc;
-  var_to_ses_map wr_events;
-  var_to_ses_map rd_events;
 
-  se_to_ses_map dependency_relation;
+
 
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
   void wmm_build_cssa_thread(const input::program& input);
