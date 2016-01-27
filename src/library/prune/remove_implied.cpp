@@ -95,10 +95,10 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
   if( !loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
   {
-	  if( loc1->prog_v_name != loc2->prog_v_name )
-	  {
-		  return false;
-	  }
+    if( loc1->prog_v_name != loc2->prog_v_name )
+      {
+        return false;
+      }
   }
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
@@ -115,33 +115,35 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   if( !loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
   {
-	  if( loc1->prog_v_name != loc2->prog_v_name )
-	  {
-		  return false;
-	  }
+    if( loc1->prog_v_name != loc2->prog_v_name )
+      {
+        return false;
+      }
   }
 
   if( loc1->is_read && !loc2->is_read)
   {
-  	  if( loc1->prog_v_name != loc2->prog_v_name )
-  	  {
-  		  return false;
-  	  }
-   }
-  if(loc1->is_read)
-  {
-  for(auto it1=program.dependency_relation.begin();it1!=program.dependency_relation.end();it1++)
+    if( loc1->prog_v_name != loc2->prog_v_name )
+      {
+        return false;
+      }
+  //  }
+  // if(loc1->is_read)
+  // {
+    // todo: create map between locs -> locs
+  for(auto it1=program.dependency_relation.begin();
+      it1!=program.dependency_relation.end();it1++)
     {
-  	  	 if((it1->first)->loc==loc1)
-  	  	 {
-  	  		 for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ )
-  	  		 {
-  	  			 if((*it2)->loc==loc2)
-  	  			 {
-  	  				 return true;
-  	  			 }
-  	  		 }
-  	  	 }
+      if( (it1->first)->loc == loc2 )
+        {
+          for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ )
+            {
+              if((*it2)->loc==loc1)
+                {
+                  return true;
+                }
+            }
+        }
     }
   }
 
