@@ -82,6 +82,11 @@ void program::set_mm(mm_t _mm)
   mm = _mm;
 }
 
+mm_t program::get_mm() const
+{
+  return mm;
+}
+
 
 //----------------------------------------------------------------------------
 // utilities for symbolic events
@@ -97,23 +102,18 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , et( _et )
   , guard(ctx)
 {
-  // assert( et == event_kind_t::r || et == event_kind_t::w );
-
-  bool special = (event_kind_t::i == et);
-  std::string et_name = et == event_kind_t::r ? "R" : "W";
+  bool special = (event_kind_t::i == et || event_kind_t::f == et);
+  bool is_read = (et == event_kind_t::r || event_kind_t::f == et);
+  std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
-  //variable vari=v;
-  // shared_ptr<hb_enc::location>
   e_v = make_shared<hb_enc::location>( ctx, event_name, special);
   e_v->thread = _tid;
   e_v->instr_no = instr_no;
-  e_v->is_read = (et == event_kind_t::r);
-  std::make_shared<cssa::variable>(v);
+  e_v->is_read = is_read;
+  e_v->prog_v_name = prog_v.name;
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
   _hb_enc.make_locations(locations);
-
-  // For each instruction we need to create a set of symbolic event
 }
 
 void symbolic_event::debug_print(std::ostream& stream ) {
@@ -155,6 +155,14 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
   return hbs;
 }
 
+z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
+                             const cssa::se_set& after) {
+  z3::expr hbs = _z3.c.bool_val(true);
+  for( auto& af : after ) {
+      hbs = hbs && wmm_mk_hb( before, af );
+  }
+  return hbs;
+}
 
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
                              const cssa::se_set& after) {
@@ -287,34 +295,18 @@ void program::wmm_mk_distinct_events() {
 // build preserved programming order(ppo)
 
 void program::wmm_build_sc_ppo( thread& thread ) {
-  unsigned last_j = thread.size();
-  for( unsigned j=0; j < thread.size(); j++ ) {
-    phi_po = phi_po && wmm_mk_hbs( thread[j].rds, thread[j].wrs );
-    if( thread[j].rds.size() > 0 || thread[j].wrs.size() > 0 ) {
-      auto& after =thread[j].rds.size()>0 ? thread[j].rds : thread[j].wrs;
-      if( last_j > j ) {
-        phi_po = phi_po && wmm_mk_hbs( init_loc, after );
-      }else{
-        auto& before = thread[last_j].wrs.size() > 0 ?
-          thread[last_j].wrs : thread[last_j].rds;
-        phi_po = phi_po && wmm_mk_hbs( before, after );
-      }
-      last_j = j;
-    }
+  unsigned tsize = thread.size();
+  se_set last = init_loc;
+
+  for( unsigned j = 0; j < tsize; j++ ) {
+    auto& rds = thread[j].rds, wrs = thread[j].wrs;
+    if( rds.empty() && wrs.empty() ) continue;
+    auto& after = rds.empty() ? wrs : rds;
+    phi_po = phi_po && wmm_mk_hbs( last, after ) && wmm_mk_hbs( rds, wrs );
+    last = wrs.empty() ? rds : wrs;
   }
-  //TODO: deal with atomic section and prespecified happens befores
-  // add atomic sections
-  // for (input::location_pair as : input.atomic_sections) {
-  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
-  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
-  //   phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
-  // }
-  // // add happens-befores
-  // for (input::location_pair hb : input.happens_befores) {
-  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
-  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
-  //   phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
-  // }
+  phi_po = phi_po && wmm_mk_hbs( last, post_loc);
+
 }
 
 void program::wmm_build_tso_ppo( thread& thread ) {
@@ -326,6 +318,7 @@ void program::wmm_build_tso_ppo( thread& thread ) {
       phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
       last_rd = j;
     }
+
     if( !wrs.empty() ) {
       auto& last_wrs = last_wr > j ? init_loc : thread[last_wr].wrs;
       phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
@@ -334,47 +327,16 @@ void program::wmm_build_tso_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
       }
     }
-
-    // if( rds.size() > 0 || wrs.size() > 0 ) {
-    //   phi_po = phi_po && wmm_mk_hbs( rds, wrs );
-    //   if( last_rd > j && rds.size() > 0 ) {
-    //     phi_po = phi_po && wmm_mk_hbs( init_loc, rds );
-    //     last_rd = j;
-    //     if( wrs.size() > 0 ) last_wr = j;
-    //     rd_wr_sync = (wrs.size() > 0);
-    //   }else{
-    //     if( rds.size() > 0 ) {
-    //       phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, rds);
-    //       last_rd = j;
-    //     }
-    //     if( wrs.size() > 0 ) {
-    //       if( last_wr < j )
-    //         phi_po =phi_po && wmm_mk_hbs(thread[last_wr].wrs,wrs);
-    //       else
-    //         // if(rd_wr_sync) // todo : potential optimization
-    //         phi_po = phi_po && wmm_mk_hbs( init_loc, wrs );
-    //       last_wr = j;
-    //     }
-    //     if( rds.size() > 0 ) {
-    //       rd_wr_sync = (wrs.size() > 0);
-    //     }else{ // wrs.size() > 0
-    //       if( !rd_wr_sync ) {
-    //         //sync it
-    //         phi_po=phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
-    //       }
-    //       rd_wr_sync = true;
-    //     }
-    //   }
-    // }
   }
+  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
+  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
+  auto& last_wrs = last_wr == thread.size() ? init_loc : thread[last_wr].wrs;
+  phi_po = phi_po && wmm_mk_hbs(last_wrs, post_loc);
 }
 
 void program::wmm_build_pso_ppo( thread& thread ) {
   var_to_se_map last_wr;
   unsigned last_rd = thread.size();
-  // std::unordered_map<variable,bool,variable_hash, variable_equal>
-  //   rd_wr_in_sync;
-  // for( const variable& v : globals ) { rd_wr_in_sync[v] = false; }
 
   for( unsigned j=0; j<thread.size(); j++ ) {
     auto& rds = thread[j].rds;
@@ -395,39 +357,13 @@ void program::wmm_build_pso_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
       }
     }
-
-    // if( rds.size() > 0 || wrs.size() > 0 ) {
-    //   phi_po = phi_po && wmm_mk_hbs( rds, wrs );
-    //   if( last_rd > j && rds.size() > 0 ) {
-    //     phi_po = phi_po && wmm_mk_hbs( init_loc, rds );
-    //     last_rd = j;
-    //     for( auto wr : wrs ) {
-    //       last_wr[wr->prog_v] = wr;
-    //       rd_wr_in_sync[wr->prog_v] = true;
-    //     }
-    //   }else{
-    //     if( rds.size() > 0 ) {
-    //       phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, rds );
-    //       last_rd = j;
-    //     }
-    //     for( auto wr : wrs ) {
-    //       if( last_wr[wr->prog_v] ) {
-    //         phi_po = phi_po && wmm_mk_hb( last_wr[wr->prog_v], wr );
-    //       }else{
-    //         assert( !rd_wr_in_sync[wr->prog_v] );
-    //         // if(rd_wr_in_sync[wr->prog_v]) // todo : potential optimization
-    //         phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
-    //       }
-    //       last_wr[wr->prog_v] = wr;
-    //       if( rds.empty() && !rd_wr_in_sync[wr->prog_v] ) {
-    //         //sync reads and writes
-    //         phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
-    //       }
-    //     }
-    //     for( const variable& v : globals ) { rd_wr_in_sync[v] = false; }
-    //     for( auto wr : wrs ) { rd_wr_in_sync[wr->prog_v] = true; }
-    //   }
-    // }
+  }
+  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
+  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
+  for( auto& g : globals ) {
+    auto hbs = last_wr[g] ? wmm_mk_hbs( last_wr[g], post_loc )
+                          : wmm_mk_hbs(  init_loc, post_loc );
+    phi_po = phi_po && hbs;
   }
 }
 
@@ -465,11 +401,18 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
       last_write[v] = wr;
     }
   }
+
+  for( auto& g : globals ) {
+    auto hbs = last_write[g] ? wmm_mk_hbs( last_write[g], post_loc )
+                             : wmm_mk_hbs(   init_loc, post_loc );
+    phi_po = phi_po && hbs;
+  }
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
   // implemented but doubtful that is correct!!
   unsupported_mm();
+  //todo: post to be supported
 
   var_to_se_map last_wr, last_rd;
 
@@ -538,6 +481,31 @@ void program::wmm_test_ppo() {
 }
 
 //----------------------------------------------------------------------------
+// populate content of threads
+
+void program::wmm_build_cssa_thread(const input::program& input) {
+
+  for( unsigned t=0; t < input.threads.size(); t++ ) {
+    thread& thread = *threads[t];
+    assert( thread.size() == 0 );
+
+    shared_ptr<hb_enc::location> prev;
+    for( unsigned j=0; j < input.threads[t].size(); j++ ) {
+      if( shared_ptr<input::instruction_z3> instr =
+          dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j]) ) {
+
+        shared_ptr<hb_enc::location> loc = instr->location();
+        auto ninstr = make_shared<instruction>( _z3, loc, &thread, instr->name,
+                                                instr->type, instr->instr );
+        thread.add_instruction(ninstr);
+      }else{
+        throw cssa_exception("Instruction must be Z3");
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------
 // encode pre condition of multi-threaded code
 
 void program::wmm_build_pre(const input::program& input) {
@@ -548,7 +516,7 @@ void program::wmm_build_pre(const input::program& input) {
   for( const variable& v : globals ) {
     variable nname(_z3.c);
     nname = v + "#pre";
-    se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+    se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
                            nname, v, _init_l, event_kind_t::i );
     wr->guard = _z3.c.bool_val(true);
     init_loc.insert(wr);
@@ -576,42 +544,66 @@ void program::wmm_build_pre(const input::program& input) {
   }
 }
 
+void program::wmm_build_post(const input::program& input,
+                             unordered_map<string, string>& thread_vars ) {
+    
+  if( shared_ptr<input::instruction_z3> instr =
+      dynamic_pointer_cast<input::instruction_z3>(input.postcondition) ) {
 
-void program::wmm_build_cssa_thread(const input::program& input) {
+    z3::expr tru = _z3.c.bool_val(true);
+    if( eq( instr->instr, tru ) ) return;
 
-  for( unsigned t=0; t < input.threads.size(); t++ ) {
-    thread& thread = *threads[t];
-    assert( thread.size() == 0 );
-
-    shared_ptr<hb_enc::location> prev;
-    for( unsigned j=0; j < input.threads[t].size(); j++ ) {
-      if( shared_ptr<input::instruction_z3> instr =
-          dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j]) ) {
-
-        shared_ptr<hb_enc::location> loc = instr->location();
-        auto ninstr = make_shared<instruction>( _z3, loc, &thread, instr->name,
-                                                instr->type, instr->instr );
-        thread.add_instruction(ninstr);
-      }else{
-        throw cssa_exception("Instruction must be Z3");
-      }
+    std::shared_ptr<hb_enc::location> _end_l = input.end_name();
+    for( const variable& v : globals ) {
+      variable nname(_z3.c);
+      nname = v + "#post";
+      se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+                             nname, v, _end_l, event_kind_t::f );
+      rd->guard = _z3.c.bool_val(true);
+      post_loc.insert( rd );
+      rd_events[v].insert( rd );
     }
+
+    z3::expr_vector src(_z3.c), dst(_z3.c);
+    for( const variable& v: instr->variables() ) {
+      variable nname(_z3.c);
+      if( !is_primed(v) ) {
+        if( is_global(v) ) {
+          nname = v + "#post";
+        }else{
+          nname = v + "#" + thread_vars[v];
+        }
+      } else {
+        throw cssa_exception("Primed variable in postcondition");
+      }
+      src.push_back(v);
+      dst.push_back(nname);
+    }
+    // replace variables in expr
+    phi_post = instr->instr.substitute(src,dst);
+    phi_prp = phi_prp && phi_post;
+  } else {
+    throw cssa_exception("Instruction must be Z3");
   }
 }
 
 void program::wmm_build_ssa( const input::program& input ) {
+
+  wmm_build_pre( input );
+
+  var_to_ses_map dep_events;
   z3::context& c = _z3.c;
 
-  // maps variable to the last place they were assigned
   unordered_map<string, string> thread_vars;
 
   for( unsigned t=0; t < input.threads.size(); t++ ) {
     // last reference to global variable in this thread (if any)
     unordered_map<string, shared_ptr<instruction> > global_in_thread;
+    // maps variable to the last place they were assigned
 
     // set all local vars to "pre"
     for (string v: input.threads[t].locals) {
-      thread_vars[v] = "pre";
+      thread_vars[ threads[t]->name + "." + v ] = "pre";
     }
 
     z3::expr path_constraint = c.bool_val(true);
@@ -625,9 +617,11 @@ void program::wmm_build_ssa( const input::program& input ) {
         se_set dep_ses;
 
         // Construct ssa/symbolic events for all the read variables
-        for( const variable& v: instr->variables() ) {
-          if( !is_primed(v) ) {
+        for( const variable& v1: instr->variables() ) {
+          if( !is_primed(v1) ) {
+            variable v = v1;
             variable nname(c);
+            src.push_back(v);
             //unprimmed case
             if ( is_global(v) ) {
               nname =  "pi_"+ v + "#" + thread[i].loc->name;
@@ -637,18 +631,15 @@ void program::wmm_build_ssa( const input::program& input ) {
               rd_events[v].insert( rd );
               dep_ses.insert( rd );
             }else{
-              nname = thread.name + "." + v + "#" + thread_vars[v];
+              v = thread.name + "." + v;
+              nname = v + "#" + thread_vars[v];
               // check if we are reading an initial value
-              if (thread_vars[v] == "pre") {
-                initial_variables.insert(nname);
-              }
-              dep_ses.insert( dependent_events[v].begin(),
-                              dependent_events[v].end());
+              if (thread_vars[v] == "pre") { initial_variables.insert(nname); }
+              dep_ses.insert( dep_events[v].begin(), dep_events[v].end());
             }
             // the following variable is read by this instruction
             thread[i].variables_read.insert(nname);
             thread[i].variables_read_orig.insert(v);
-            src.push_back(v);
             dst.push_back(nname);
           }
         }
@@ -656,6 +647,7 @@ void program::wmm_build_ssa( const input::program& input ) {
         // Construct ssa/symbolic events for all the write variables
         for( const variable& v: instr->variables() ) {
           if( is_primed(v) ) {
+            src.push_back(v);
             variable nname(c);
             //primmed case
             variable v1 = get_unprimed(v); //converting the primed to unprimed
@@ -663,27 +655,29 @@ void program::wmm_build_ssa( const input::program& input ) {
               nname = v1 + "#" + thread[i].loc->name;
               //insert write symbolic event
               se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
-                                     thread[i].loc,event_kind_t::w);
+                                     thread[i].loc, event_kind_t::w );
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
-              dependency_relation[wr].insert(dep_ses.begin(),dep_ses.end());
+              dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
             }else{
-              nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
-              dependent_events[v1].insert(dep_ses.begin(),dep_ses.end());
+              v1 = thread.name + "." + v1;
+              nname = v1 + "#" + thread[i].loc->name;
+              dep_events[v1].insert( dep_ses.begin(), dep_ses.end() );
             }
             // the following variable is written by this instruction
-            thread[i].variables_write.insert(nname);
-            thread[i].variables_write_orig.insert(v1);
+            thread[i].variables_write.insert( nname );
+            thread[i].variables_write_orig.insert( v1 );
             // map the instruction to the variable
             variable_written[nname] = thread.instructions[i];
-            src.push_back(v);
             dst.push_back(nname);
           }
         }
 
         // thread havoced variables the same
         for( const variable& v: instr->havok_vars ) {
+          assert(false); // untested code
           assert( dep_ses.empty() ); // there must be nothing in dep_ses
+          src.push_back(v);
           variable nname(c);
           variable v1 = get_unprimed(v);
           thread[i].havok_vars.insert(v1);
@@ -695,15 +689,15 @@ void program::wmm_build_ssa( const input::program& input ) {
             wr_events[v1].insert( wr );
             dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
           }else{
-            nname = thread.name + "." + v1 + "#" + thread[i].loc->name;
-            dependent_events[v1].insert(dep_ses.begin(),dep_ses.end());
+            v1 = thread.name + "." + v1;
+            nname = v1 + "#" + thread[i].loc->name;
+            dep_events[v1].insert(dep_ses.begin(),dep_ses.end());
           }
           // this variable is written by this instruction
           thread[i].variables_write.insert(nname);
           thread[i].variables_write_orig.insert(v1);
           // map the instruction to the variable
           variable_written[nname] = thread.instructions[i];
-          src.push_back(v);
           dst.push_back(nname);
           // add havok to initial variables
           initial_variables.insert(nname);
@@ -714,7 +708,7 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
 
         // replace variables in expr
-        z3::expr newi = instr->instr.substitute(src,dst);
+        z3::expr newi = instr->instr.substitute( src, dst );
         // deal with the path-constraint
         thread[i].instr = newi;
         if (thread[i].type == instruction_type::assume) {
@@ -727,7 +721,7 @@ void program::wmm_build_ssa( const input::program& input ) {
                                          path_constraint_variables.end() );
         if ( instr->type == instruction_type::regular ) {
           phi_vd = phi_vd && newi;
-        }else if (instr->type == instruction_type::assert) {
+        }else if ( instr->type == instruction_type::assert ) {
           // add this assertion, but protect it with the path-constraint
           phi_prp = phi_prp && implies(path_constraint,newi);
           // add used variables
@@ -743,7 +737,7 @@ void program::wmm_build_ssa( const input::program& input ) {
           thread_vars[v] = thread[i].loc->name;
           if ( is_global(v) ) {
             global_in_thread[v] = thread.instructions[i]; // useless??
-            thread.global_var_assign[v].push_back(thread.instructions[i]);
+            thread.global_var_assign[v].push_back(thread.instructions[i]); //useless??
           }
         }
       }else{
@@ -752,16 +746,31 @@ void program::wmm_build_ssa( const input::program& input ) {
     }
     phi_fea = phi_fea && path_constraint; //recordes feasibility of threads
   }
+  wmm_build_post( input, thread_vars );
 }
 
 void program::wmm( const input::program& input ) {
   
   wmm_build_cssa_thread( input ); // construct thread skeleton
-  wmm_build_pre( input );
   wmm_build_ssa( input ); // build ssa
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
+
+  //TODO: deal with atomic section and prespecified happens befores
+  // add atomic sections
+  for (input::location_pair as : input.atomic_sections) {
+    throw cssa_exception( "atomic sections are not supported!" );
+  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
+  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
+  //   phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
+  // }
+  // // add happens-befores
+  // for (input::location_pair hb : input.happens_befores) {
+  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
+  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
+  //   phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
+  }
 }
 
 //----------------------------------------------------------------------------

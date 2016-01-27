@@ -40,25 +40,24 @@ private:
 public:
   location(location& ) = delete;
   location& operator=(location&) = delete;
- // location(z3::context& ctx, std::string name, bool special = false);
   location(z3::context& ctx, std::string name ,bool special = false);
 
-  //cssa::variable var;
-  std::shared_ptr<cssa::variable> vari;
   std::string name;
   /**
    * @brief True if this is a special location
    * 
    * This means the location is not actualy in the program, but the start symbol and the like
    */
-  bool special;
+  bool special;  //todo: rename to a meaningful name
   int thread; // number of the thread of this location
   int instr_no; // number of this instruction
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
+  std::string prog_v_name;
+  //std::shared_ptr<cssa::variable> vari;
   bool is_read;
-  unsigned last_read_intruction; // for tso
+  
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------

@@ -209,22 +209,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
 
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
-  //   std::cout<<"\nmake_good(false).check()\t"<<make_good(false).check();
-  // if (make_good(false).check() == z3::check_result::unsat) {
-  //   z3::expr_vector core2=make_good(false).unsat_core();
-  //   std::cout<<"\ntrace_analysis:seperate inside unsat\n";
-  //    std::cout<<"core2\t"<<core2.size();
-  //    for (unsigned i = 0; i < core2.size(); i++) {
-  //        std::cout << core2[i] << "\n";
-  //        std::cout<<"core2\n";
-  //    }
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
-
   if (make_good(false).check() == z3::check_result::unsat) {
     return trace_result::always;
   }

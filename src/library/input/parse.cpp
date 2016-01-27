@@ -128,6 +128,18 @@ void parse::addPrecondition(string* pre)
   delete pre;
 }
 
+void parse::addPostcondition(string* pre)
+{// ---
+  string a;
+  if (pre==nullptr) {
+    a = "true";
+  } else {
+    a = *pre;
+  }
+  p.postcondition = make_shared<instruction_str>(string("postcondition"), a, instruction_type::assert, string_set());
+  delete pre;
+}
+
 void parse::addAtomicSection(string* loc1, string* loc2)
 {
   p.atomic_sections.push_back(make_pair(*loc1,*loc2));

@@ -76,6 +76,7 @@ number  {dig}*
 "order"         { return HB; }
 "pre"           { return PRE;   }
 "precondition"  { return PRE;   }
+"post"          { return POST;  }
 "ERROR"         { return ERROR; }
 "{"             { return LBRACE; }
 "}"             { return RBRACE; }

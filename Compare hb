@@ -1,0 +1,10 @@
+( hb(R#pi_balance#d1[7],W#balance#w2[16]) ∧ hb(R#pi_z#w2[16],R#pi_balance#d1[7]) ) ∨
+( hb(W#balance#d2[8],W#balance#w2[16]) ∧ hb(R#pi_balance#w1[15],R#pi_y#d2[8]) ) ∨
+( hb(R#pi_balance#w1[15],W#balance#d2[8]) ∧ hb(R#pi_y#d2[8],R#pi_balance#w1[15]) ) ∨
+( hb(W#balance#w2[16],W#balance#d2[8]) ∧ hb(R#pi_balance#d1[7],R#pi_z#w2[16]) ) 
+
+( hb(W#balance#w2[16],R#pi_y#d2[8]) ∧ hb(R#pi_balance#d1[7],W#balance#w2[16]) ) ∨
+( hb(R#pi_balance#w1[15],R#pi_balance#d1[7]) ∧ hb(R#pi_y#d2[8],W#balance#w2[16]) ) ∨
+( hb(R#pi_balance#d1[7],R#pi_balance#w1[15]) ∧ hb(W#balance#w2[16],W#balance#d2[8]) ) ∨
+( hb(W#balance#d2[8],W#balance#w2[16]) ∧ hb(R#pi_z#w2[16],W#balance#d2[8]) ) ∨
+( hb(R#pi_balance#w1[15],W#balance#d2[8]) ∧ hb(W#balance#d2[8],R#pi_z#w2[16]) ) 

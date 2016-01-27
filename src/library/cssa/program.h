@@ -46,12 +46,6 @@ public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
-  var_to_ses_map dependent_events;
-  se_to_ses_map dependency_relation;
-  se_set init_loc;
-  var_to_ses_map wr_events;
-  var_to_ses_map rd_events;
-
 private:
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
@@ -77,17 +71,22 @@ private:
   //start of wmm support
   //--------------------------------------------------------------------------
 
+public:
+  se_to_ses_map dependency_relation;
+  se_set init_loc;
+  se_set post_loc;
+  var_to_ses_map wr_events;
+  var_to_ses_map rd_events;
+
 private:
-
-
-
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
-  void wmm_build_cssa_thread(const input::program& input);
-  void wmm_build_ssa(const input::program& input);
+  void wmm_build_cssa_thread( const input::program& input );
+  void wmm_build_ssa( const input::program& input );
   void wmm_mk_distinct_events();
-  void wmm_build_threads(const input::program& input);
-  void wmm_build_hb(const input::program& input); // should be removed
-  void wmm_build_pre(const input::program& input);
+  void wmm_build_threads( const input::program& input );
+  void wmm_build_hb( const input::program& input ); // should be removed
+  void wmm_build_pre( const input::program& input );
+  void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
   void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
   void wmm_build_ses();
@@ -96,6 +95,7 @@ private:
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
+  z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_set& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
 
  //  z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
@@ -145,6 +145,7 @@ public:
   bool is_mm_alpha() const;
   bool is_mm_power() const;
   void set_mm( mm_t );
+  mm_t get_mm() const;
 
   z3::expr wf      = _z3.c.bool_val(true);
   z3::expr rf      = _z3.c.bool_val(true);
@@ -156,6 +157,7 @@ public:
   z3::expr rf_ws   = _z3.c.bool_val(true);
   z3::expr rf_grf  = _z3.c.bool_val(true);
   z3::expr rf_val  = _z3.c.bool_val(true);
+  z3::expr phi_post = _z3.c.bool_val(true);
 
   //--------------------------------------------------------------------------
   //end of wmm support

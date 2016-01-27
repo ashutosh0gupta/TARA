@@ -56,6 +56,7 @@ public:
   std::vector<thread> threads;
   
   std::shared_ptr<instruction> precondition; 
+  std::shared_ptr<instruction> postcondition; // wmm support
   std::shared_ptr<instruction> order_condition; 
   
   std::vector<location_pair> atomic_sections;
@@ -95,8 +96,10 @@ public:
    */
   void check_correctness();
   inline std::shared_ptr<hb_enc::location> start_name() const {return _start_loc;}
+  inline std::shared_ptr<hb_enc::location> end_name() const {return _end_loc;}
 private:
   std::shared_ptr<hb_enc::location> _start_loc;
+  std::shared_ptr<hb_enc::location> _end_loc;
   bool names_converted = false;
 };
 }}

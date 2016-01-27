@@ -313,6 +313,12 @@ void debug_print(const std::list<z3::expr>& es) {
   }
 }
 
+void debug_print(const std::vector< z3::expr >& es) {
+  for(const z3::expr e : es ) {
+    debug_print( e );
+  }
+}
+
 void debug_print(const z3::model& m) {
   // Z3_ast ptr = m;
   // if( ptr )
