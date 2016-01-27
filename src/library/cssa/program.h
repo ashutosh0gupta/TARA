@@ -46,7 +46,6 @@ public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
-  var_to_ses_map dependent_events;
 private:
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
@@ -72,12 +71,14 @@ private:
   //start of wmm support
   //--------------------------------------------------------------------------
 
+public:
+  se_to_ses_map dependency_relation;
+
 private:
   se_set init_loc;
   se_set post_loc;
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
-  se_to_ses_map dependency_relation;
 
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
   void wmm_build_cssa_thread( const input::program& input );
@@ -145,6 +146,7 @@ public:
   bool is_mm_alpha() const;
   bool is_mm_power() const;
   void set_mm( mm_t );
+  mm_t get_mm() const;
 
   z3::expr wf      = _z3.c.bool_val(true);
   z3::expr rf      = _z3.c.bool_val(true);

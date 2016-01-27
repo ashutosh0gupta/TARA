@@ -82,6 +82,11 @@ void program::set_mm(mm_t _mm)
   mm = _mm;
 }
 
+mm_t program::get_mm() const
+{
+  return mm;
+}
+
 
 //----------------------------------------------------------------------------
 // utilities for symbolic events
@@ -102,11 +107,11 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
   //variable vari=v;
-  // shared_ptr<hb_enc::location>
   e_v = make_shared<hb_enc::location>( ctx, event_name, special);
   e_v->thread = _tid;
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
+  e_v->prog_v_name = prog_v.name;
   // std::make_shared<cssa::variable>(v); // todo : why this line was added?
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
@@ -543,12 +548,13 @@ void program::wmm_build_pre(const input::program& input) {
 
 void program::wmm_build_post(const input::program& input,
                              unordered_map<string, string>& thread_vars ) {
-  // return;
+    
   if( shared_ptr<input::instruction_z3> instr =
       dynamic_pointer_cast<input::instruction_z3>(input.postcondition) ) {
-    //
-    // start location is needed to ensure all locations are mentioned in phi_ppo
-    //
+
+    z3::expr tru = _z3.c.bool_val(true);
+    if( eq( instr->instr, tru ) ) return;
+
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
     for( const variable& v : globals ) {
       variable nname(_z3.c);

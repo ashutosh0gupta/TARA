@@ -1,0 +1,27 @@
+global: x y
+
+pre: (and (= x 0) (= y 0))
+
+thread P0 {rr}:
+w1: (= x. 1)
+w2: (= rr. y)
+
+thread P1 {r}:
+d1: (= y. 1)
+d2: (= r. x)
+
+post: (or (= P0.rr 1) (= P1.r 1))
+
+##########################################
+# tso/pso/rmo should produce same result #
+##########################################
+# Final result
+# Bad DNF
+# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+
+#####################
+# sc                #
+#####################
+# Final result
+# All traces are good or infeasable.
+
