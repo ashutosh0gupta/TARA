@@ -133,13 +133,6 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   	  }
 	}
    }
-
-
-  if( loc1->instr_no < loc2-> instr_no ) return true;
-  if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1 == loc2 ) return true;
-    if( loc1->is_read && !loc2->is_read ) return true;
-  }
   if(loc1->is_read)
   {
   for(auto it1=program.dependency_relation.begin();it1!=program.dependency_relation.end();it1++)
@@ -161,6 +154,14 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   	  	 }
     }
   }
+
+
+  if( loc1->instr_no < loc2-> instr_no ) return true;
+  if( loc1->instr_no == loc2->instr_no ) {
+    if( loc1 == loc2 ) return true;
+    if( loc1->is_read && !loc2->is_read ) return true;
+  }
+
   return false;
 }
 
