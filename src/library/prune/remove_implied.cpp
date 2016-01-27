@@ -144,11 +144,12 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   {
   for(auto it1=program.dependency_relation.begin();it1!=program.dependency_relation.end();it1++)
     {
-  	  	 if((it1->first)->loc!=loc1)
-  	  	 {
-  	  		 return false;
-  	  	 }
-  	  	 else
+  	  	 if((it1->first)->loc==loc1)
+//  	  	 {
+//  	  		 if(it1==)
+//  	  		 return false;
+//  	  	 }
+
   	  	 {
   	  		 for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ )
   	  		 {
