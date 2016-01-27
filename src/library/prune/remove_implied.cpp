@@ -93,24 +93,12 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
                                          const hb_enc::location_ptr loc2 ) {
   // check if the other one is more specific
   if( !loc1->is_read && loc2->is_read ) return false;
-//<<<<<<< HEAD
   if( !loc1->is_read && !loc2->is_read)
   {
-    //if((loc1->vari!=NULL)&&(loc2->vari!=NULL))
-	  //assert((loc1->vari!=NULL) && (loc2->vari!=NULL));
-	  //{
-
 	  if( loc1->prog_v_name != loc2->prog_v_name )
 	  {
 		  return false;
 	  }
-	//}
-//=======
-//  if( !loc1->is_read && !loc2->is_read) {
-//    if( loc1->prog_v_name != loc2->prog_v_name ) {
-//      return false;
-//    }
-//>>>>>>> 731c9aa5a51050afad964ac099816f9b9c6fb870
   }
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
