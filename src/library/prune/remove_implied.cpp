@@ -113,6 +113,7 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
                                          const hb_enc::location_ptr loc2 ) {
   // check if the other one is more specific
   if( !loc1->is_read && loc2->is_read ) return false;
+  if( loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
   {
     if( loc1->prog_v_name != loc2->prog_v_name )
