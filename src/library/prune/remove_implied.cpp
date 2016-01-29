@@ -51,6 +51,7 @@ string remove_implied::name()
 bool remove_implied::compare_events( const hb_enc::location_ptr loc1,
                                      const hb_enc::location_ptr loc2 ) {
   // check if these edge is between the same thread
+  if( loc1 == loc2 ) return true;
   if( loc1->thread != loc2->thread ) return false;
 
   switch( program.get_mm() ) {
@@ -69,7 +70,6 @@ bool remove_implied::compare_sc_events( const hb_enc::location_ptr loc1,
   if( loc1->instr_no < loc2-> instr_no ) return true;
   // if they are from same instruction then they must be Rd-Wr
   if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1 == loc2 ) return true;
     if( loc1->is_read && !loc2->is_read ) return true;
   }
   return false;
@@ -82,7 +82,6 @@ bool remove_implied::compare_tso_events( const hb_enc::location_ptr loc1,
 
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1 == loc2 ) return true;
     if( loc1->is_read && !loc2->is_read ) return true;
   }
   return false;
@@ -102,7 +101,7 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
   }
   if( loc1->instr_no < loc2-> instr_no ) return true;
   if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1 == loc2 ) return true;
+    // if( loc1 == loc2 ) return true;
     if( loc1->is_read && !loc2->is_read ) return true;
   }
   return false;
@@ -111,49 +110,26 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
 
 bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
                                          const hb_enc::location_ptr loc2 ) {
-  // check if the other one is more specific
-  if( !loc1->is_read && loc2->is_read ) return false;
-  if( loc1->is_read && loc2->is_read ) return false;
-  if( !loc1->is_read && !loc2->is_read)
-  {
-    if( loc1->prog_v_name != loc2->prog_v_name )
-      {
-        return false;
-      }
-  }
-
-  if( loc1->is_read && !loc2->is_read)
-  {
-    if( loc1->prog_v_name != loc2->prog_v_name )
-      {
-        return false;
-      }
-  //  }
-  // if(loc1->is_read)
-  // {
-    // todo: create map between locs -> locs
-  for(auto it1=program.dependency_relation.begin();
-      it1!=program.dependency_relation.end();it1++)
-    {
-      if( (it1->first)->loc == loc2 )
-        {
-          for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ )
-            {
-              if((*it2)->loc==loc1)
-                {
-                  return true;
-                }
-            }
+  if( loc2->is_read ) return false;
+  // loc2 is write now onwards
+  if ( loc1->is_read ) {
+    // loc1 read - loc2 write
+    // todo: check if dep relation contains intr internal relations
+    for(auto it1=program.dependency_relation.begin();
+        it1!=program.dependency_relation.end();it1++) {
+      if( (it1->first)->loc == loc2 ) {
+        for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
+          if((*it2)->loc==loc1) {
+            return true;
+          }
         }
+      }
     }
   }
 
+  if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
 
   if( loc1->instr_no < loc2-> instr_no ) return true;
-  if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1 == loc2 ) return true;
-    if( loc1->is_read && !loc2->is_read ) return true;
-  }
   return false;
 }
 
