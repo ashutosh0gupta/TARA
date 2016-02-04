@@ -71,6 +71,13 @@ number  {dig}*
 "global"        { return GLOBAL; }
 "assert"        { return ASSERT; }
 "assume"        { return ASSUME; }
+"sync"          { return SYNC; }
+"lwsync"        { return LWSYNC; }
+"fence"         { return FENCE; }
+"dmb"           { return DMB; }
+"barrier"       { return BARRIER; }
+"barrier_a"     { return BARRIER_A; }
+"barrier_b"     { return BARRIER_B; }
 "havok"         { return HAVOK; }
 "atomic"        { return AS; }
 "order"         { return HB; }

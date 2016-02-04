@@ -74,10 +74,12 @@ void parse::addThread(string* name) {
 
 void parse::addInstruction(int thread, string* name, string* command, string_set* havok_vars, tara::instruction_type t)
 {
-  string c = *command;
+  string c = command ? *command : "(true)";
+  string_set tmp;
+  string_set& havok_vars_ = havok_vars ? (*havok_vars) : tmp;
   variable_set havok_variables;
   
-  p.threads[thread].instrs.push_back(make_shared<instruction_str>(*name, c, t, *havok_vars));
+  p.threads[thread].instrs.push_back(make_shared<instruction_str>(*name, c, t, havok_vars_));
   delete command;
   delete name;
   delete havok_vars;

@@ -28,6 +28,13 @@ enum class instruction_type {
   regular,
   assume,
   assert,
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
+    fence,sync,lwsync,dmb,barrier,barrier_a,barrier_b
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 };
 
 extern const std::string error_label;
@@ -39,6 +46,7 @@ extern const std::string error_label;
     none, sc, tso, pso, rmo, alpha, power
       };
   std::string string_of_mm( mm_t mm );
+  bool is_fence(instruction_type type);
   //--------------------------------------------------------------------------
   //end of wmm support
   //--------------------------------------------------------------------------

@@ -55,6 +55,7 @@
 %parse-param {tara::input::parse& in}
 
 %token INSTRUCTIONS THREAD GLOBAL ERROR PRE LOCAL ASSERT ASSUME HAVOK  AS HB POST
+%token FENCE SYNC LWSYNC DMB BARRIER BARRIER_A BARRIER_B
 %token COLON COMMA SEMICOLON LBRACE RBRACE LBRACKET RBRACKET LPAREN RPAREN LESS GREATER
 %token <val> NUMBER
 %token <sval> STRING SMT NAME
@@ -62,7 +63,7 @@
 %type <sval> name_number  instr_name name
 %type <str_set> names havok
 %type <pval> variable 
-%type <instruction_type> instr_type
+%type <instruction_type> instr_type fence
 
 %start File
 %%
@@ -98,9 +99,11 @@ variable: NAME { $$ = new std::pair<std::string*,std::string*>($1, new std::stri
 ;
 
 instrs: instr_name havok instr_type SMT { in.addInstruction(thread, $1, $4, $2, $3); } instrs
-    |
+    | fence_instr instrs |
 ;
 
+fence_instr:  instr_name fence {in.addInstruction(thread, $1, NULL, NULL, $2); }
+        ;
 instr_name: name COLON { instruction++;  $$ = $1; }
       | { instruction++;  $$ = new std::string(thread_name+std::to_string(instruction)); }
 ;
@@ -108,6 +111,15 @@ instr_name: name COLON { instruction++;  $$ = $1; }
 instr_type:  { $$ = tara::instruction_type::regular; }
       | ASSERT { $$ = tara::instruction_type::assert; }
       | ASSUME { $$ = tara::instruction_type::assume; }
+;
+
+fence:  FENCE  { $$ = tara::instruction_type::fence;  }
+      | SYNC   { $$ = tara::instruction_type::sync;   }
+      | LWSYNC { $$ = tara::instruction_type::lwsync; }
+      | DMB    { $$ = tara::instruction_type::dmb;    }
+      | BARRIER   { $$ = tara::instruction_type::barrier;   }
+      | BARRIER_A { $$ = tara::instruction_type::barrier_a; }
+      | BARRIER_B { $$ = tara::instruction_type::barrier_b; }
 ;
 
 havok:   HAVOK {smt_expected = false;} LPAREN names RPAREN { smt_expected=true; $$ = $4; }

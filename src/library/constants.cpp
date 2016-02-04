@@ -40,6 +40,16 @@ const string error_label = string("ERROR");
     default: return "(so unsupproted that we forgot to give it a name!!)";
     }
   }
+
+  bool is_fence(instruction_type type) {
+    return type == instruction_type::fence ||
+      type == instruction_type::sync ||
+      type == instruction_type::lwsync ||
+      type == instruction_type::dmb ||
+      type == instruction_type::barrier ||
+      type == instruction_type::barrier_a ||
+      type == instruction_type::barrier_b;
+  }
   //--------------------------------------------------------------------------
   //end of wmm support
   //--------------------------------------------------------------------------

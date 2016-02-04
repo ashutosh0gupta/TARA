@@ -263,6 +263,10 @@ void program::wmm_build_ses() {
 
 }
 
+void program::wmm_build_fence() {
+  //todo: build constraints for fence
+}
+
 //----------------------------------------------------------------------------
 // declare all events happen at different time points
 
@@ -727,6 +731,9 @@ void program::wmm_build_ssa( const input::program& input ) {
           // add used variables
           assertion_instructions.insert(thread.instructions[i]);
         }
+        if( is_fence( instr->type) ) {
+          //todo : prepage contraints for fence
+        }
 
         for( se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;
@@ -756,6 +763,7 @@ void program::wmm( const input::program& input ) {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
+  wmm_build_fence(); // build symbolic event structure
 
   //TODO: deal with atomic section and prespecified happens befores
   // add atomic sections

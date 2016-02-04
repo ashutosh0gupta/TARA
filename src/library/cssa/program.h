@@ -90,6 +90,7 @@ private:
   void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
   void wmm_build_ses();
+  void wmm_build_fence();
 
   z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
