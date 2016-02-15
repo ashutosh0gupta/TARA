@@ -4,14 +4,18 @@ pre: (and (= balance x) (= deposit_done 0) (= withdraw_done 0) (> y 0) (> z 0))
 
 thread withdraw_thread { withdraw_thread::l2 }:
 w1 [15] : (= |withdraw_thread::l2.| balance)
-w2 [16] : (= balance. (- |withdraw_thread::l2| z))
-w3 [17] : (= withdraw_done. 1)
+#w2 [16] : fence
+w3 [17] : (= balance. (- |withdraw_thread::l2| z))
+#w4 [18] : fence
+w5 [19] : (= withdraw_done. 1)
 
 
 thread deposit_thread { deposit_thread::l }:
 d1 [7] : (= |deposit_thread::l.| balance)
-d2 [8] : (= balance. (+ |deposit_thread::l| y))
-d3 [9] : (= deposit_done. 1)
+#d2 [8] : fence
+d3 [9] : (= balance. (+ |deposit_thread::l| y))
+#d4 [10]: fence
+d5 [11] : (= deposit_done. 1)
 
 
 thread check_result_thread :
@@ -25,4 +29,4 @@ c2 [23] : assert(= balance (- (+ x y) z))
 # Bad DNF
 # ( hb(d2[8],w2[16]) ∧ hb(w1[15],d2[8]) ) ∨
 # ( hb(w2[16],d2[8]) ∧ hb(d1[7],w2[16]) ) 
-# 
+#

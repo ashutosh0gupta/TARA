@@ -47,7 +47,7 @@ struct instruction {
   variable_set variables_orig() const;
   instruction_type type;
   variable_set havok_vars;
-  
+
   //--------------------------------------------------------------------------
   // WMM support
   //--------------------------------------------------------------------------
@@ -74,6 +74,7 @@ public:
   thread& operator=(thread&) = delete;
 private:
 public:
+
   std::vector<std::shared_ptr<instruction>> instructions;
   const std::string name;
   std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;

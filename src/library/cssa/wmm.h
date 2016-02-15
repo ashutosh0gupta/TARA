@@ -50,7 +50,7 @@ namespace cssa {
     unsigned tid;
     variable v;               // variable with ssa name
     variable prog_v;          // variable name in the program
-    hb_enc::location_ptr loc; // location in program
+    hb_enc::location_ptr loc; // location in
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     event_kind_t et;
     z3::expr guard;

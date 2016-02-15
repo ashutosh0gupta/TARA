@@ -4,12 +4,6 @@ pre: (and (= x 0) (= y 0))
 
 thread P0 {rr}:
 w1: (= x. 1)
-w2: fence
-w4: dmb
-w5: lwsync
-w6: barrier
-w7: barrier_a
-w8: barrier_b
 w3: (= rr. y)
 
 thread P1 {r}:

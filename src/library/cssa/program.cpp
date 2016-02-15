@@ -110,6 +110,12 @@ void program::build_threads(const input::program& input)
           path_constraint = path_constraint && newi;
           path_constraint_variables.insert(thread[i].variables_read.begin(), thread[i].variables_read.end());
         }
+//        if(thread[i].type == instruction_type::fence)
+//        {
+//        	instr_to_barr.insert({i,instr->type});
+//        	tid_to_barr.insert({t,instr->type});
+//
+//        }
         thread[i].path_constraint = path_constraint;
         thread[i].variables_read.insert(path_constraint_variables.begin(), path_constraint_variables.end());
         if (instr->type == instruction_type::regular) {

@@ -61,7 +61,6 @@ public:
   
   std::vector<location_pair> atomic_sections;
   std::vector<location_pair> happens_befores;
-  
 //----------------------------------------------------------------------------
 // start of wmm support
 //----------------------------------------------------------------------------

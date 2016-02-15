@@ -263,9 +263,6 @@ void program::wmm_build_ses() {
 
 }
 
-void program::wmm_build_fence() {
-  //todo: build constraints for fence
-}
 
 //----------------------------------------------------------------------------
 // declare all events happen at different time points
@@ -336,6 +333,7 @@ void program::wmm_build_tso_ppo( thread& thread ) {
   // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
   auto& last_wrs = last_wr == thread.size() ? init_loc : thread[last_wr].wrs;
   phi_po = phi_po && wmm_mk_hbs(last_wrs, post_loc);
+  //phi_po = phi_po && fences;
 }
 
 void program::wmm_build_pso_ppo( thread& thread ) {
@@ -369,6 +367,7 @@ void program::wmm_build_pso_ppo( thread& thread ) {
                           : wmm_mk_hbs(  init_loc, post_loc );
     phi_po = phi_po && hbs;
   }
+  //phi_po = phi_po && fences;
 }
 
 void program::wmm_build_rmo_ppo( thread& thread ) {
@@ -411,6 +410,7 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
                              : wmm_mk_hbs(   init_loc, post_loc );
     phi_po = phi_po && hbs;
   }
+  	//phi_po = phi_po && fences;
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
@@ -469,6 +469,7 @@ void program::wmm_build_ppo() {
     }
   }
   phi_po = phi_po && phi_distinct;
+  //phi_po = phi_po && fences;
 }
 
 void program::wmm_test_ppo() {
@@ -588,6 +589,40 @@ void program::wmm_build_post(const input::program& input,
     phi_prp = phi_prp && phi_post;
   } else {
     throw cssa_exception("Instruction must be Z3");
+  }
+}
+
+void program::wmm_build_fence() {
+  //todo: build constraints for fence
+  for( auto it1 = tid_to_barr.begin(); it1!=tid_to_barr.end();it1++)
+  {
+    for( auto it2 = instr_to_barr.begin(); it2!=instr_to_barr.end();it2++)
+  	{
+    	cout<<"\nt "<<it1->first<<"\t i"<<it2->first<<"\n";
+    	thread& thread = *threads[it1->first];
+    	if(is_mm_tso())
+    	{
+    		auto& rds = thread[it2->first+1].rds, wrs = thread[it2->first-1].wrs;
+    		if( !rds.empty() && !wrs.empty() )
+    		{
+    			phi_po = phi_po && wmm_mk_hbs( wrs, rds );
+    			//fences = fences && wmm_mk_hbs( wrs, rds );
+    		}
+    	}
+    	else if(is_mm_pso())
+    	{
+    		auto& rds_before = thread[it2->first-1].rds, rds_after = thread[it2->first+1].rds;
+    		auto& wrs_before = thread[it2->first-1].wrs, wrs_after = thread[it2->first+1].wrs;
+    		if( !rds_after.empty() && !wrs_before.empty() )
+       		{
+       			phi_po = phi_po && wmm_mk_hbs( wrs_before,rds_after );
+       		}
+    		else if(!wrs_after.empty() && !wrs_before.empty())
+    		{
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before,wrs_after );
+    		}
+    	}
+  	}
   }
 }
 
@@ -733,7 +768,10 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
         if( is_fence( instr->type) ) {
           //todo : prepage contraints for fence
-        }
+        	instr_to_barr.insert({i,instr->type});
+        	tid_to_barr.insert({t,instr->type});
+        	//wmm_build_fence( input ); // build symbolic event structure
+        	}
 
         for( se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;
