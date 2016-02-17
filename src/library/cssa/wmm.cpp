@@ -102,11 +102,14 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , et( _et )
   , guard(ctx)
 {
-  bool special = (event_kind_t::i == et || event_kind_t::f == et);
-  bool is_read = (et == event_kind_t::r || event_kind_t::f == et);
+  if( et != event_kind_t::r &&  event_kind_t::w != et ) {
+    throw cssa_exception("symboic event with wrong parameters!");
+  }
+  // bool special = (event_kind_t::i == et || event_kind_t::f == et);
+  bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
-  e_v = make_shared<hb_enc::location>( ctx, event_name, special);
+  e_v = make_shared<hb_enc::location>( ctx, event_name, false);
   e_v->thread = _tid;
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
@@ -116,9 +119,54 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   _hb_enc.make_locations(locations);
 }
 
+// barrier events
+symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
+                                unsigned _tid, unsigned instr_no,
+                                hb_enc::location_ptr _loc, event_kind_t _et )
+  : tid(_tid)
+  , v("dummy",ctx)
+  , prog_v( "dummy",ctx)
+  , loc(_loc)
+  , et( _et )
+  , guard(ctx)
+{
+  std::string event_name;
+  switch( et ) {
+  case event_kind_t::barr: { event_name = "#barr";  break; }
+  case event_kind_t::pre : { event_name = "#pre" ;  break; }
+  case event_kind_t::post: { event_name = "#post";  break; }
+  default: cssa_exception("unreachable code!!");
+  }
+  event_name = loc->name+event_name;
+  e_v = make_shared<hb_enc::location>( ctx, event_name, true);
+  e_v->thread = _tid;
+  e_v->instr_no = instr_no;
+  e_v->is_read = (event_kind_t::post == et);
+  e_v->prog_v_name = prog_v.name;
+  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  locations.push_back( e_v );
+  _hb_enc.make_locations(locations);
+}
+
+z3::expr symbolic_event::get_var_expr( const variable& g ) {
+  assert( et != event_kind_t::barr);
+  if( et == event_kind_t::r || et == event_kind_t::w) {
+    z3::expr v_expr = (z3::expr)(v);
+    return v_expr;
+  }
+  variable tmp_v(g.sort.ctx());
+  switch( et ) {
+  // case event_kind_t::barr: { tmp_v = g+"#barr";  break; }
+  case event_kind_t::pre : { tmp_v = g+"#pre" ;  break; }
+  case event_kind_t::post: { tmp_v = g+"#post";  break; }
+  default: cssa_exception("unreachable code!!");
+  }
+  return (z3::expr)(tmp_v);
+}
+
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
-  if( et != event_kind_t::i ) {
+  if( et == event_kind_t::r || et == event_kind_t::w ) {
     std::string s = et == event_kind_t::r ? "Read" : "Write";
     stream << s << " var: " << v << ", orig_var : " <<prog_v
            << ", loc :" << loc << "\n";
@@ -219,13 +267,13 @@ void program::wmm_build_ses() {
     const auto& wrs = wr_events[v1];
     for( const se_ptr& rd : rds ) {
       z3::expr some_rfs = _z3.c.bool_val(false);
-      const variable& rd_v = rd->v;
+      z3::expr rd_v = rd->get_var_expr(v1);
       for( const se_ptr& wr : wrs ) {
-        const variable& wr_v = wr->v;
+        z3::expr wr_v = wr->get_var_expr(v1);
         std::string bname = wr->name()+"-"+rd->name();
         z3::expr b = c.bool_const(  bname.c_str() );
         some_rfs = some_rfs || b;
-        z3::expr eq = ( (z3::expr)rd_v == (z3::expr)wr_v );
+        z3::expr eq = ( rd_v == wr_v );
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
@@ -312,28 +360,39 @@ void program::wmm_build_sc_ppo( thread& thread ) {
 
 void program::wmm_build_tso_ppo( thread& thread ) {
   unsigned last_rd = thread.size(), last_wr = thread.size();
+  se_set barr_events = init_loc;
+  bool no_rd_occured = true, no_wr_occured = true;
   for( unsigned j=0; j<thread.size(); j++ ) {
-    auto& rds = thread[j].rds, wrs = thread[j].wrs;
-    if( !rds.empty() ) {
-      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
-      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
-      last_rd = j;
-    }
-
-    if( !wrs.empty() ) {
-      auto& last_wrs = last_wr > j ? init_loc : thread[last_wr].wrs;
-      phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
-      last_wr = j;
-      if( last_rd <= j ) {
-        phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+    if( is_fence( thread[j].type ) ) {
+      auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
+      phi_po = phi_po && wmm_mk_hbs(last_rds, thread[j].barr);
+      auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
+      phi_po = phi_po && wmm_mk_hbs(last_wrs, thread[j].barr);
+      barr_events = thread[j].barr;
+      no_wr_occured = no_rd_occured = true;
+    }else{
+      auto& rds = thread[j].rds, wrs = thread[j].wrs;
+      if( !rds.empty() ) {
+        auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
+        phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+        last_rd = j;
+        no_rd_occured = false;
+      }
+      if( !wrs.empty() ) {
+        auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
+        phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
+        last_wr = j;
+        if( last_rd <= j ) {
+          phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+        }
+        no_wr_occured = false;
       }
     }
   }
-  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
+  // auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
   // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
-  auto& last_wrs = last_wr == thread.size() ? init_loc : thread[last_wr].wrs;
+  auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
   phi_po = phi_po && wmm_mk_hbs(last_wrs, post_loc);
-  //phi_po = phi_po && fences;
 }
 
 void program::wmm_build_pso_ppo( thread& thread ) {
@@ -518,15 +577,15 @@ void program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
+  se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
+                         _init_l, event_kind_t::pre );
+  wr->guard = _z3.c.bool_val(true);
+  init_loc.insert(wr);
   for( const variable& v : globals ) {
     variable nname(_z3.c);
     nname = v + "#pre";
-    se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
-                           nname, v, _init_l, event_kind_t::i );
-    wr->guard = _z3.c.bool_val(true);
-    init_loc.insert(wr);
-    wr_events[v].insert( wr );
     initial_variables.insert(nname);
+    wr_events[v].insert( wr );
   }
 
   if ( shared_ptr<input::instruction_z3> instr =
@@ -559,12 +618,13 @@ void program::wmm_build_post(const input::program& input,
     if( eq( instr->instr, tru ) ) return;
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
+    se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+                           _end_l, event_kind_t::post );
+    rd->guard = _z3.c.bool_val(true);
+
     for( const variable& v : globals ) {
       variable nname(_z3.c);
       nname = v + "#post";
-      se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
-                             nname, v, _end_l, event_kind_t::f );
-      rd->guard = _z3.c.bool_val(true);
       post_loc.insert( rd );
       rd_events[v].insert( rd );
     }
@@ -593,11 +653,12 @@ void program::wmm_build_post(const input::program& input,
 }
 
 void program::wmm_build_fence() {
+  return;
   //todo: build constraints for fence
   for( auto it1 = tid_to_barr.begin(); it1!=tid_to_barr.end();it1++)
   {
     for( auto it2 = instr_to_barr.begin(); it2!=instr_to_barr.end();it2++)
-  	{
+      {
     	cout<<"\nt "<<it1->first<<"\t i"<<it2->first<<"\n";
     	thread& thread = *threads[it1->first];
     	if(is_mm_tso())
@@ -768,10 +829,13 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
         if( is_fence( instr->type) ) {
           //todo : prepage contraints for fence
-        	instr_to_barr.insert({i,instr->type});
-        	tid_to_barr.insert({t,instr->type});
-        	//wmm_build_fence( input ); // build symbolic event structure
-        	}
+          se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
+                                   thread[i].loc, event_kind_t::barr );
+          thread[i].barr.insert( barr );
+          instr_to_barr.insert({i,instr->type});
+          tid_to_barr.insert({t,instr->type});
+          //wmm_build_fence( input ); // build symbolic event structure
+        }
 
         for( se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;

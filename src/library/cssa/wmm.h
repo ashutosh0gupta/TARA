@@ -33,7 +33,13 @@
 namespace tara{
 namespace cssa {
 
-  enum class event_kind_t { i, r, w, f };
+  enum class event_kind_t {
+      pre,  // initialization event
+      r,    // read events
+      w,    // write events
+      barr, // barrier events
+      post  // final event
+      };
 
 //
 // symbolic event
@@ -45,6 +51,10 @@ namespace cssa {
                     unsigned _tid, unsigned i,
                     const variable& _v, const variable& _prog_v,
                     hb_enc::location_ptr loc, event_kind_t _et );
+
+    symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
+                    unsigned _tid, unsigned instr_no,
+                    hb_enc::location_ptr _loc, event_kind_t _et );
 
   public:
     unsigned tid;
@@ -59,7 +69,7 @@ namespace cssa {
     }
 
     inline bool is_init() const {
-      return et == event_kind_t::i;
+      return et == event_kind_t::pre;
     }
 
     friend std::ostream& operator<< (std::ostream& stream,
@@ -68,6 +78,7 @@ namespace cssa {
       return stream;
     }
     void debug_print(std::ostream& stream );
+    z3::expr get_var_expr(const variable&);
   };
 
   typedef std::shared_ptr<symbolic_event> se_ptr;
@@ -78,6 +89,13 @@ namespace cssa {
                            hb_enc::location_ptr _loc, event_kind_t _et ) {
     return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
                                             _v, _prog_v, _loc, _et);
+  }
+
+  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+                           unsigned _tid, unsigned _instr_no,
+                           hb_enc::location_ptr _loc, event_kind_t _et ) {
+    return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                                            _loc, _et);
   }
 
   struct se_hash {

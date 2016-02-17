@@ -78,7 +78,7 @@ public:
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
   std::unordered_map<unsigned,tara::instruction_type> instr_to_barr;
-    std::unordered_map<unsigned,tara::instruction_type> tid_to_barr;
+  std::unordered_map<unsigned,tara::instruction_type> tid_to_barr;
 
 private:
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove

@@ -32,7 +32,7 @@ data_flow::data_flow(const z3interf& z3, const cssa::program& program) : prune_b
 //start of wmm support
 //--------------------------------------------------------------------------
   if( program.is_mm_declared() ) {
-      throw std::runtime_error("unsupported");
+      throw std::runtime_error("data_flow analysis is unsupported for mms!!");
   }
 //--------------------------------------------------------------------------
 //end of wmm support
