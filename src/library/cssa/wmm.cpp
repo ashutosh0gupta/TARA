@@ -359,39 +359,33 @@ void program::wmm_build_sc_ppo( thread& thread ) {
 }
 
 void program::wmm_build_tso_ppo( thread& thread ) {
-  unsigned last_rd = thread.size(), last_wr = thread.size();
-  bool no_rd_occured = true, no_wr_occured = true;
+  se_set last_rds = init_loc, last_wrs = init_loc;
+
+  bool rd_occured = false;
   se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_fence( thread[j].type ) ) {
-      auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
-      phi_po = phi_po && wmm_mk_hbs(last_rds, thread[j].barr);
-      auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
-      phi_po = phi_po && wmm_mk_hbs(last_wrs, thread[j].barr);
-      barr_events = thread[j].barr;
-      no_wr_occured = no_rd_occured = true;
+      phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
+      phi_po = phi_po && wmm_mk_hbs( last_wrs, thread[j].barr );
+      last_rds = last_wrs = thread[j].barr;
+      rd_occured = false;
     }else{
       auto& rds = thread[j].rds, wrs = thread[j].wrs;
       if( !rds.empty() ) {
-        auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
         phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
-        last_rd = j;
-        no_rd_occured = false;
+        last_rds = rds;
+        rd_occured = true;
       }
       if( !wrs.empty() ) {
-        auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
         phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
-        last_wr = j;
-        if( !no_rd_occured ) {
-          phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+        last_wrs = wrs;
+
+        if( rd_occured ) {
+          phi_po = phi_po && wmm_mk_hbs(last_rds, wrs);
         }
-        no_wr_occured = false;
       }
     }
   }
-  // auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
-  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
-  auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
   phi_po = phi_po && wmm_mk_hbs(last_wrs, post_loc);
 }
 
