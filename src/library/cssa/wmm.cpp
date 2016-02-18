@@ -191,7 +191,7 @@ z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
 
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_ptr& after) {
-  return wmm_mk_hbs( before, after );
+  return wmm_mk_hb( before, after );
 }
 
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
@@ -360,8 +360,8 @@ void program::wmm_build_sc_ppo( thread& thread ) {
 
 void program::wmm_build_tso_ppo( thread& thread ) {
   unsigned last_rd = thread.size(), last_wr = thread.size();
-  se_set barr_events = init_loc;
   bool no_rd_occured = true, no_wr_occured = true;
+  se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_fence( thread[j].type ) ) {
       auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
@@ -382,7 +382,7 @@ void program::wmm_build_tso_ppo( thread& thread ) {
         auto& last_wrs = no_wr_occured ? barr_events : thread[last_wr].wrs;
         phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
         last_wr = j;
-        if( last_rd <= j ) {
+        if( !no_rd_occured ) {
           phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
         }
         no_wr_occured = false;
@@ -397,79 +397,101 @@ void program::wmm_build_tso_ppo( thread& thread ) {
 
 void program::wmm_build_pso_ppo( thread& thread ) {
   var_to_se_map last_wr;
-  unsigned last_rd = thread.size();
+  assert( init_loc.size() == 1);
+  se_ptr init_l = *init_loc.begin();
+  for( auto& g : globals ) last_wr[g] = init_l;
 
+  // unsigned last_rd = thread.size();
+  bool no_rd_occurred = true;
+  // se_set barr_events = init_loc;
+  se_set last_rds = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
-    auto& rds = thread[j].rds;
-    auto& wrs = thread[j].wrs;
-    if( rds.size() > 0 ) {
-      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
-      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
-      last_rd = j;
-    }
+    if( is_fence( thread[j].type ) ) {
+      // auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
+      // phi_po = phi_po && wmm_mk_hbs(last_rds, thread[j].barr);
+      phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
+      last_rds = thread[j].barr;
+      // barr_events = thread[j].barr;
+      no_rd_occurred = true;
+      assert( thread[j].barr.size() == 1);
+      se_ptr barr = *thread[j].barr.begin();
+      for( auto& g : globals ) {
+        phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
+        last_wr[g] = barr;
+      }
+    }else{
+      auto& rds = thread[j].rds;
+      auto& wrs = thread[j].wrs;
+      if( rds.size() > 0 ) {
+        // auto& last_rds = no_rd_occurred ? barr_events : thread[last_rd].rds;
+        phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+        last_rds = rds;
+        // last_rd = j;
+        no_rd_occurred = false;
+      }
 
-    for( auto wr : wrs ) {
-      const variable& v = wr->prog_v;
-      auto hbs = last_wr[v] ? wmm_mk_hb( last_wr[v], wr )
-                            : wmm_mk_hbs(  init_loc, wr );
-      phi_po = phi_po && hbs;
-      last_wr[v] = wr;
-      if( last_rd <= j ) {
-        phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
+      for( auto wr : wrs ) {
+        const variable& v = wr->prog_v;
+        phi_po = phi_po && wmm_mk_hb( last_wr[v], wr );
+        last_wr[v] = wr;
+        if( !no_rd_occurred ) {
+          phi_po = phi_po && wmm_mk_hbs( last_rds, wr );
+        }
       }
     }
   }
-  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
-  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
+  // only writes must be ordered with post event
   for( auto& g : globals ) {
-    auto hbs = last_wr[g] ? wmm_mk_hbs( last_wr[g], post_loc )
-                          : wmm_mk_hbs(  init_loc, post_loc );
-    phi_po = phi_po && hbs;
+    phi_po = phi_po && wmm_mk_hbs( last_wr[g], post_loc );
   }
   //phi_po = phi_po && fences;
 }
 
 void program::wmm_build_rmo_ppo( thread& thread ) {
-  var_to_se_map last_read, last_write;
+  var_to_se_map last_rd, last_wr;
+  se_set collected_rds;
+
+  assert( init_loc.size() == 1);
+  se_ptr barr = *init_loc.begin();
+  for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
+
   for( unsigned j=0; j<thread.size(); j++ ) {
+    if( is_fence( thread[j].type ) ) {
+      assert( thread[j].barr.size() == 1);
+      barr = *thread[j].barr.begin();
+      for( se_ptr rd : collected_rds) {
+        phi_po = phi_po && wmm_mk_hbs( rd, barr );
+      }
+      collected_rds.clear();
 
-    for( auto rd : thread[j].rds ) {
-      phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
-      last_read[rd->prog_v]  = rd;
-    }
-
-    for( auto wr : thread[j].wrs ) {
-      bool not_yet_after_init = true;
-      variable v = wr->prog_v;
-
-      if( auto wr1 = last_write[v] ) {
-        phi_po = phi_po && wmm_mk_hb( wr1, wr );
-        not_yet_after_init = false;
+      for( auto& g : globals ) {
+        phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
+        last_rd[g] = last_wr[g] = barr;
+      }
+    }else{
+      for( auto rd : thread[j].rds ) {
+        phi_po = phi_po && wmm_mk_hbs( barr, rd );
+        last_rd[rd->prog_v]  = rd;
+        collected_rds.insert( rd );
       }
 
-      if( auto rd  = last_read[v] ) {
-        phi_po = phi_po && wmm_mk_hb( rd, wr  );
-        not_yet_after_init = false;
-      }
+      for( auto wr : thread[j].wrs ) {
+        variable v = wr->prog_v;
 
-      for( auto rd : dependency_relation[wr] ) {
-        phi_po = phi_po && wmm_mk_hb( rd, wr );
-        not_yet_after_init = false;
-      }
+        phi_po = phi_po && wmm_mk_hb( last_wr[v], wr );
+        phi_po = phi_po && wmm_mk_hb( last_rd[v], wr );
+        collected_rds.erase( last_rd[v] );// optimization??
 
-      if( not_yet_after_init ) {
-        phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+        for( auto rd : dependency_relation[wr] )
+          phi_po = phi_po && wmm_mk_hb( rd, wr );
+
+        last_wr[v] = wr;
       }
-      last_write[v] = wr;
     }
   }
 
-  for( auto& g : globals ) {
-    auto hbs = last_write[g] ? wmm_mk_hbs( last_write[g], post_loc )
-                             : wmm_mk_hbs(   init_loc, post_loc );
-    phi_po = phi_po && hbs;
-  }
-  	//phi_po = phi_po && fences;
+  for( auto& g : globals )
+    phi_po = phi_po && wmm_mk_hbs( last_wr[g], post_loc );
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
