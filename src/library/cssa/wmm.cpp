@@ -697,8 +697,12 @@ void program::wmm_build_post(const input::program& input,
   }
 }
 
+// void program::wmm_add_fence(thread& t, unsigned i ) {
+
+//}
+
 void program::wmm_build_fence() {
-  return;
+  // return;
   //todo: build constraints for fence
   for( auto it1 = tid_to_instr.begin(); it1!=tid_to_instr.end();it1++)
   {
@@ -943,7 +947,7 @@ void program::wmm_build_ssa( const input::program& input ) {
                                    thread[i].loc, event_kind_t::barr );
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i});
-          cout<<"\nt "<<t<<"\t i"<<i<<"\n";
+          // cout<<"\nt "<<t<<"\t i"<<i<<"\n";
         }
 
         for( se_ptr wr : thread[i].wrs ) {
