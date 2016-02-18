@@ -141,6 +141,16 @@ z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
   return _hb_encoding.make_hb( before->e_v, after->e_v );
 }
 
+z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
+                             hb_enc::location_ptr loc) {
+  return _hb_encoding.make_hb( before->e_v, loc );
+}
+
+z3::expr program::wmm_mk_hb(hb_enc::location_ptr loc,
+                             const cssa::se_ptr& after) {
+  return _hb_encoding.make_hb( loc, after->e_v );
+}
+
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_ptr& after) {
   return wmm_mk_hbs( before, after );
@@ -155,6 +165,15 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
   return hbs;
 }
 
+z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
+                             hb_enc::location_ptr loc) {
+  z3::expr hbs = _z3.c.bool_val(true);
+  for( auto& bf : before ) {
+      hbs = hbs && wmm_mk_hb( bf, loc );
+  }
+  return hbs;
+}
+
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_set& after) {
   z3::expr hbs = _z3.c.bool_val(true);
@@ -163,6 +182,16 @@ z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
   }
   return hbs;
 }
+
+z3::expr program::wmm_mk_hbs(hb_enc::location_ptr loc,
+                             const cssa::se_set& after) {
+  z3::expr hbs = _z3.c.bool_val(true);
+  for( auto& af : after ) {
+      hbs = hbs && wmm_mk_hb( loc, af );
+  }
+  return hbs;
+}
+
 
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
                              const cssa::se_set& after) {
@@ -594,37 +623,102 @@ void program::wmm_build_post(const input::program& input,
 
 void program::wmm_build_fence() {
   //todo: build constraints for fence
-  for( auto it1 = tid_to_barr.begin(); it1!=tid_to_barr.end();it1++)
+  for( auto it1 = tid_to_instr.begin(); it1!=tid_to_instr.end();it1++)
   {
-    for( auto it2 = instr_to_barr.begin(); it2!=instr_to_barr.end();it2++)
-  	{
-    	cout<<"\nt "<<it1->first<<"\t i"<<it2->first<<"\n";
+	  unsigned flag_first_read=0;
+    	//cout<<"\nt "<<it1->first<<"\t i"<<it1->second<<"\n";
     	thread& thread = *threads[it1->first];
+    	auto& fence = thread[it1->second].loc;
+    	auto& rds_before = thread[it1->second-1].rds;
+    	auto& rds_after = thread[it1->second+1].rds;
+    	auto& wrs_before = thread[it1->second-1].wrs;
+    	auto& wrs_after = thread[it1->second+1].wrs;
+
     	if(is_mm_tso())
     	{
-    		auto& rds = thread[it2->first+1].rds, wrs = thread[it2->first-1].wrs;
-    		if( !rds.empty() && !wrs.empty() )
+    		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs, rds );
-    			//fences = fences && wmm_mk_hbs( wrs, rds );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
     		}
+    		else if(!rds_before.empty())
+    		{
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
+    			for(int j=it1->second-2; j!=0; j-- )
+    			 {
+    	   			wrs_before = thread[j].wrs;
+    	   			if(!wrs_before.empty())
+    				{
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    	   				break;
+	    			}
+	    		}
+    		}
+
+    		if( !rds_after.empty() )
+    		{
+       			phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+       		}
+       		else if(!wrs_after.empty())
+       		{
+       			phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+       			for( int j=it1->second+2; j!=thread.size(); j++ )
+       			{
+       	   			rds_after = thread[j].rds;
+       	   			if(!wrs_before.empty())
+       				{
+     	   				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+     	   				break;
+ 	    			}
+ 	    		}
+       		}
     	}
     	else if(is_mm_pso())
     	{
-    		auto& rds_before = thread[it2->first-1].rds, rds_after = thread[it2->first+1].rds;
-    		auto& wrs_before = thread[it2->first-1].wrs, wrs_after = thread[it2->first+1].wrs;
-    		if( !rds_after.empty() && !wrs_before.empty() )
-       		{
-       			phi_po = phi_po && wmm_mk_hbs( wrs_before,rds_after );
-       		}
-    		else if(!wrs_after.empty() && !wrs_before.empty())
+    		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs_before,wrs_after );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    		}
+    		else if(!rds_before.empty())
+    		{
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
+    			for(int j=it1->second-2; j>=0; j-- )
+    			 {
+    	   			wrs_before = thread[j].wrs;
+    	   			if(!wrs_before.empty())
+    				{
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+	    			}
+	    		}
+    		}
+    		if(!wrs_after.empty() || !rds_after.empty())
+    		{
+    			if( !rds_after.empty() && flag_first_read==0 )
+    			{
+    				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+    				flag_first_read=1;
+    			}
+    			if(!wrs_after.empty())
+    			{
+    				phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    			}
+    			for( int i=it1->second+2; i<=thread.size()-1; i++ )
+    			{
+    				rds_after = thread[i].rds;
+    				wrs_after = thread[i].wrs;
+    				if(!rds_after.empty() && flag_first_read==0)
+    				{
+    					phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+    					flag_first_read=1;
+    				}
+    				if(!wrs_after.empty())
+    				{
+    					phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    				}
+    			}
     		}
     	}
   	}
   }
-}
 
 void program::wmm_build_ssa( const input::program& input ) {
 
@@ -768,9 +862,8 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
         if( is_fence( instr->type) ) {
           //todo : prepage contraints for fence
-        	instr_to_barr.insert({i,instr->type});
-        	tid_to_barr.insert({t,instr->type});
-        	//wmm_build_fence( input ); // build symbolic event structure
+        	tid_to_instr.insert({t,i});
+        	cout<<"\nt "<<t<<"\t i"<<i<<"\n";
         	}
 
         for( se_ptr wr : thread[i].wrs ) {
