@@ -77,9 +77,7 @@ public:
   se_set post_loc;
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
-  std::unordered_map<unsigned,tara::instruction_type> instr_to_barr;
-  std::unordered_map<unsigned,tara::instruction_type> tid_to_barr;
-
+  std::unordered_map<unsigned,unsigned> tid_to_instr;
 private:
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
   void wmm_build_cssa_thread( const input::program& input );
@@ -100,7 +98,10 @@ private:
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_set& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
-
+  z3::expr wmm_mk_hb(const cssa::se_ptr& before,hb_enc::location_ptr loc);
+  z3::expr wmm_mk_hb( hb_enc::location_ptr loc, const cssa::se_ptr& after);
+  z3::expr wmm_mk_hbs(hb_enc::location_ptr loc,const cssa::se_set& after);
+  z3::expr wmm_mk_hbs(const cssa::se_set& before, hb_enc::location_ptr loc );
  //  z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
 
  //  //z3::expr build_rf_val(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);// overloading function for including variables in initialisations
