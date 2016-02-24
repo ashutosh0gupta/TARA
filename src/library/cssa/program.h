@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/concept_check.hpp>
+#include<utility>
 
 namespace tara{
 namespace cssa {
@@ -77,7 +78,7 @@ public:
   se_set post_loc;
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
-  std::unordered_map<unsigned,unsigned> tid_to_instr;
+  std::unordered_multimap <int,int>tid_to_instr;
 private:
   // std::shared_ptr<hb_enc::location> init_location; // todo : remove
   void wmm_build_cssa_thread( const input::program& input );

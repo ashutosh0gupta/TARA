@@ -23,6 +23,7 @@
 #include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
+#include<utility>
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
@@ -393,12 +394,7 @@ void program::wmm_build_tso_ppo( thread& thread ) {
   bool rd_occured = false;
   se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
-    if( is_fence( thread[j].type ) ) {
-      phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
-      phi_po = phi_po && wmm_mk_hbs( last_wrs, thread[j].barr );
-      last_rds = last_wrs = thread[j].barr;
-      rd_occured = false;
-    }else{
+		  if(!is_fence( thread[j].type )){
       auto& rds = thread[j].rds, wrs = thread[j].wrs;
       if( !rds.empty() ) {
         phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
@@ -429,20 +425,7 @@ void program::wmm_build_pso_ppo( thread& thread ) {
   // se_set barr_events = init_loc;
   se_set last_rds = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
-    if( is_fence( thread[j].type ) ) {
-      // auto& last_rds = no_rd_occured ? barr_events : thread[last_rd].rds;
-      // phi_po = phi_po && wmm_mk_hbs(last_rds, thread[j].barr);
-      phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
-      last_rds = thread[j].barr;
-      // barr_events = thread[j].barr;
-      no_rd_occurred = true;
-      assert( thread[j].barr.size() == 1);
-      se_ptr barr = *thread[j].barr.begin();
-      for( auto& g : globals ) {
-        phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
-        last_wr[g] = barr;
-      }
-    }else{
+    	if(!is_fence(thread[j].type)){
       auto& rds = thread[j].rds;
       auto& wrs = thread[j].wrs;
       if( rds.size() > 0 ) {
@@ -698,14 +681,13 @@ void program::wmm_build_post(const input::program& input,
 }
 
 void program::wmm_build_fence() {
-  return;
-  //todo: build constraints for fence
-  for( auto it1 = tid_to_instr.begin(); it1!=tid_to_instr.end();it1++)
-  {
-	  unsigned flag_first_read=0;
-    	//cout<<"\nt "<<it1->first<<"\t i"<<it1->second<<"\n";
-    	thread& thread = *threads[it1->first];
-    	auto& fence = thread[it1->second].loc;
+  //return;
+	int first_read;
+  for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++)
+	{
+	  first_read=0;
+    	thread& thread=*threads[it1->first];
+    	auto& barrier = thread[it1->second].barr;
     	auto& rds_before = thread[it1->second-1].rds;
     	auto& rds_after = thread[it1->second+1].rds;
     	auto& wrs_before = thread[it1->second-1].wrs;
@@ -715,17 +697,17 @@ void program::wmm_build_fence() {
     	{
     		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
     		}
     		else if(!rds_before.empty())
     		{
-    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
-    			for(int j=it1->second-2; j!=0; j-- )
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
+    			for(int j=it1->second-2; j>=0; j-- )
     			 {
     	   			wrs_before = thread[j].wrs;
     	   			if(!wrs_before.empty())
     				{
-    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
     	   				break;
 	    			}
 	    		}
@@ -733,17 +715,17 @@ void program::wmm_build_fence() {
 
     		if( !rds_after.empty() )
     		{
-       			phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+       			phi_po = phi_po && wmm_mk_hbs(barrier, rds_after );
        		}
        		else if(!wrs_after.empty())
        		{
-       			phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+       			phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
        			for( int j=it1->second+2; j!=thread.size(); j++ )
        			{
        	   			rds_after = thread[j].rds;
        	   			if(!wrs_before.empty())
        				{
-     	   				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+     	   				phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
      	   				break;
  	    			}
  	    		}
@@ -753,50 +735,49 @@ void program::wmm_build_fence() {
     	{
     		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier);
     		}
     		else if(!rds_before.empty())
     		{
-    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
     			for(int j=it1->second-2; j>=0; j-- )
     			 {
     	   			wrs_before = thread[j].wrs;
     	   			if(!wrs_before.empty())
     				{
-    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
 	    			}
 	    		}
     		}
     		if(!wrs_after.empty() || !rds_after.empty())
     		{
-    			if( !rds_after.empty() && flag_first_read==0 )
+    			if( !rds_after.empty() && first_read==0 )
     			{
-    				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
-    				flag_first_read=1;
+    				phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+    				first_read=1;
     			}
     			if(!wrs_after.empty())
     			{
-    				phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    				phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
     			}
     			for( int i=it1->second+2; i<=thread.size()-1; i++ )
     			{
     				rds_after = thread[i].rds;
     				wrs_after = thread[i].wrs;
-    				if(!rds_after.empty() && flag_first_read==0)
+    				if(!rds_after.empty() && first_read==0)
     				{
-    					phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
-    					flag_first_read=1;
+    					phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+    					first_read=1;
     				}
     				if(!wrs_after.empty())
     				{
-    					phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    					phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
     				}
     			}
     		}
     	}
   	}
   }
-
 void program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
@@ -943,7 +924,6 @@ void program::wmm_build_ssa( const input::program& input ) {
                                    thread[i].loc, event_kind_t::barr );
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i});
-          cout<<"\nt "<<t<<"\t i"<<i<<"\n";
         }
 
         for( se_ptr wr : thread[i].wrs ) {
