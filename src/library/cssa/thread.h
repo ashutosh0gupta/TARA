@@ -54,7 +54,7 @@ struct instruction {
 
   se_set rds;
   se_set wrs;
-  se_set barr; //the event created for fence if the instruction is fence type
+  se_set barr; //the event created for barrier if the instruction is barrier type
 public:
   //--------------------------------------------------------------------------
   // End WMM support

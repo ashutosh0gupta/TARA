@@ -91,7 +91,8 @@ private:
   void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
   void wmm_build_ses();
-  void wmm_build_fence(); //void wmm_build_fence(const input::program& input)
+  void wmm_build_barrier();
+  void wmm_add_barrier(int tid, int instr);
 
   z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
@@ -176,7 +177,7 @@ public:
   z3::expr phi_prp = _z3.c.bool_val(true);
   z3::expr phi_fea = _z3.c.bool_val(true); // feasable traces
   z3::expr phi_distinct = _z3.c.bool_val(true); // ensures that all locations are distinct
-  z3::expr fences = _z3.c.bool_val(true);
+  //z3::expr fences = _z3.c.bool_val(true);
   std::unordered_set<std::shared_ptr<instruction>> assertion_instructions; // set of instructions that are assertions
   std::unordered_map<std::string, std::vector<pi_function_part>> pi_functions; // maps a pi variable to a set of function parts
   std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written; // where a local variable is written
