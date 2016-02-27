@@ -681,6 +681,7 @@ void program::wmm_build_post(const input::program& input,
   }
 }
 
+<<<<<<< HEAD
 void program::wmm_add_barrier(int tid, int instr)
 {
 	//assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
@@ -1001,6 +1002,10 @@ void program::wmm_build_ssa( const input::program& input ) {
                                    thread[i].loc, event_kind_t::barr );
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i});
+<<<<<<< HEAD
+=======
+          // cout<<"\nt "<<t<<"\t i"<<i<<"\n";
+>>>>>>> eaf970807adfe2a785e3ca5f2e9f0f1a117caaf1
         }
 
         for( se_ptr wr : thread[i].wrs ) {
