@@ -8,44 +8,53 @@ pre: (and (= x 0) (= y 0))
 
 thread P0 {rr}:
 w1: (= x. 1)
-w2: fence
-w3: (= rr. y)
-w4: fence
-w5: (= x. rr)
+w5: fence
+w2: (= rr. y)
+w6: fence
+w3: (= x. rr)
 
 thread P1 {r}:
 d1: (= y. 1)
-d2: fence
-d3: (= r. x)
 d4: fence
-d5: assert((or (= r 1) (= x 1) )) 
+d2: (= r. x)
+d3: assert((or (= r 1) (= x 1) )) 
 
 # Bugs: DR
 
 
 ##########################################
 # tso/pso have should produce same result #
+#! -r unsat_core,remove_implied -M tso
+#! -r unsat_core,remove_implied -M pso
 ##########################################
-# Final result
-# Bad DNF
-# hb(R#pi_x#d3,W#x#w1) ∨
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) ∨
-# ( hb(W#x#w3,R#pi_x#d3) ∧ hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+#~
+#Final result
+#Bad DNF
+#hb(R#pi_x#d3,W#x#w1) ∨
+#( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) ∨
+#( hb(W#x#w3,R#pi_x#d3) ∧ hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+#~
 
 #####################
 # sc
+#! -r unsat_core,remove_implied -M sc
 #####################
-# Final result
-# Bad DNF
-# hb(R#pi_x#d3,W#x#w1) ∨
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) 
+#~
+#Final result
+#Bad DNF
+#hb(R#pi_x#d3,W#x#w1) ∨
+#( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) 
+#~
 
 #####################
 # rmo
+#! -r unsat_core,remove_implied -M rmo
 #####################
-# Final result
-# Bad DNF
-# ( hb(R#pi_x#d3,W#x#w1) ∧ hb(R#pi_x#d2,W#x#w1) ) ∨
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(R#pi_x#d3,W#x#w1) )
+#~
+#Final result
+#Bad DNF
+#( hb(R#pi_x#d3,W#x#w1) ∧ hb(R#pi_x#d2,W#x#w1) ) ∨
+#( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
+#( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(W#x#w3,R#pi_x#d3) ) ∨
+#( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ∧ hb(R#pi_x#d3,W#x#w1) )
+#~

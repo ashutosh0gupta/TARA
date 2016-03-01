@@ -87,7 +87,6 @@ void trace_analysis::input(input::program& input_program)
       _options.out() <<"grf: \n" << program->grf<<"\n";
       _options.out() <<"fr : \n" << program->fr <<"\n";
       _options.out() <<"ws : \n" << program->ws <<"\n";
-      _options.out() << "fences" << endl <<program->fences << endl;
     }else{
   //--------------------------------------------------------------------------
   //end of wmm support

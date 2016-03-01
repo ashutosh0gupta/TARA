@@ -23,6 +23,8 @@
 #include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
+#include <utility>
+#include <assert.h>
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
@@ -102,11 +104,14 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , et( _et )
   , guard(ctx)
 {
-  bool special = (event_kind_t::i == et || event_kind_t::f == et);
-  bool is_read = (et == event_kind_t::r || event_kind_t::f == et);
+  if( et != event_kind_t::r &&  event_kind_t::w != et ) {
+    throw cssa_exception("symboic event with wrong parameters!");
+  }
+  // bool special = (event_kind_t::i == et || event_kind_t::f == et);
+  bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
-  e_v = make_shared<hb_enc::location>( ctx, event_name, special);
+  e_v = make_shared<hb_enc::location>( ctx, event_name, false);
   e_v->thread = _tid;
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
@@ -116,9 +121,54 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   _hb_enc.make_locations(locations);
 }
 
+// barrier events
+symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
+                                unsigned _tid, unsigned instr_no,
+                                hb_enc::location_ptr _loc, event_kind_t _et )
+  : tid(_tid)
+  , v("dummy",ctx)
+  , prog_v( "dummy",ctx)
+  , loc(_loc)
+  , et( _et )
+  , guard(ctx)
+{
+  std::string event_name;
+  switch( et ) {
+  case event_kind_t::barr: { event_name = "#barr";  break; }
+  case event_kind_t::pre : { event_name = "#pre" ;  break; }
+  case event_kind_t::post: { event_name = "#post";  break; }
+  default: cssa_exception("unreachable code!!");
+  }
+  event_name = loc->name+event_name;
+  e_v = make_shared<hb_enc::location>( ctx, event_name, true);
+  e_v->thread = _tid;
+  e_v->instr_no = instr_no;
+  e_v->is_read = (event_kind_t::post == et);
+  e_v->prog_v_name = prog_v.name;
+  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  locations.push_back( e_v );
+  _hb_enc.make_locations(locations);
+}
+
+z3::expr symbolic_event::get_var_expr( const variable& g ) {
+  assert( et != event_kind_t::barr);
+  if( et == event_kind_t::r || et == event_kind_t::w) {
+    z3::expr v_expr = (z3::expr)(v);
+    return v_expr;
+  }
+  variable tmp_v(g.sort.ctx());
+  switch( et ) {
+  // case event_kind_t::barr: { tmp_v = g+"#barr";  break; }
+  case event_kind_t::pre : { tmp_v = g+"#pre" ;  break; }
+  case event_kind_t::post: { tmp_v = g+"#post";  break; }
+  default: cssa_exception("unreachable code!!");
+  }
+  return (z3::expr)(tmp_v);
+}
+
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
-  if( et != event_kind_t::i ) {
+  if( et == event_kind_t::r || et == event_kind_t::w ) {
     std::string s = et == event_kind_t::r ? "Read" : "Write";
     stream << s << " var: " << v << ", orig_var : " <<prog_v
            << ", loc :" << loc << "\n";
@@ -153,7 +203,7 @@ z3::expr program::wmm_mk_hb(hb_enc::location_ptr loc,
 
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_ptr& after) {
-  return wmm_mk_hbs( before, after );
+  return wmm_mk_hb( before, after );
 }
 
 z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
@@ -248,13 +298,13 @@ void program::wmm_build_ses() {
     const auto& wrs = wr_events[v1];
     for( const se_ptr& rd : rds ) {
       z3::expr some_rfs = _z3.c.bool_val(false);
-      const variable& rd_v = rd->v;
+      z3::expr rd_v = rd->get_var_expr(v1);
       for( const se_ptr& wr : wrs ) {
-        const variable& wr_v = wr->v;
+        z3::expr wr_v = wr->get_var_expr(v1);
         std::string bname = wr->name()+"-"+rd->name();
         z3::expr b = c.bool_const(  bname.c_str() );
         some_rfs = some_rfs || b;
-        z3::expr eq = ( (z3::expr)rd_v == (z3::expr)wr_v );
+        z3::expr eq = ( rd_v == wr_v );
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
@@ -340,106 +390,115 @@ void program::wmm_build_sc_ppo( thread& thread ) {
 }
 
 void program::wmm_build_tso_ppo( thread& thread ) {
-  unsigned last_rd = thread.size(), last_wr = thread.size();
-  for( unsigned j=0; j<thread.size(); j++ ) {
-    auto& rds = thread[j].rds, wrs = thread[j].wrs;
-    if( !rds.empty() ) {
-      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
-      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
-      last_rd = j;
-    }
+  se_set last_rds = init_loc, last_wrs = init_loc;
 
-    if( !wrs.empty() ) {
-      auto& last_wrs = last_wr > j ? init_loc : thread[last_wr].wrs;
-      phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
-      last_wr = j;
-      if( last_rd <= j ) {
-        phi_po = phi_po && wmm_mk_hbs(thread[last_rd].rds, wrs);
+  bool rd_occured = false;
+  se_set barr_events = init_loc;
+  for( unsigned j=0; j<thread.size(); j++ ) {
+		  if(!is_barrier( thread[j].type )){
+      auto& rds = thread[j].rds, wrs = thread[j].wrs;
+      if( !rds.empty() ) {
+        phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+        last_rds = rds;
+        rd_occured = true;
+      }
+      if( !wrs.empty() ) {
+        phi_po = phi_po && wmm_mk_hbs( last_wrs, wrs );
+        last_wrs = wrs;
+
+        if( rd_occured ) {
+          phi_po = phi_po && wmm_mk_hbs(last_rds, wrs);
+        }
       }
     }
   }
-  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
-  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
-  auto& last_wrs = last_wr == thread.size() ? init_loc : thread[last_wr].wrs;
   phi_po = phi_po && wmm_mk_hbs(last_wrs, post_loc);
-  //phi_po = phi_po && fences;
 }
 
 void program::wmm_build_pso_ppo( thread& thread ) {
   var_to_se_map last_wr;
-  unsigned last_rd = thread.size();
+  assert( init_loc.size() == 1);
+  se_ptr init_l = *init_loc.begin();
+  for( auto& g : globals ) last_wr[g] = init_l;
 
+  // unsigned last_rd = thread.size();
+  bool no_rd_occurred = true;
+  // se_set barr_events = init_loc;
+  se_set last_rds = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
-    auto& rds = thread[j].rds;
-    auto& wrs = thread[j].wrs;
-    if( rds.size() > 0 ) {
-      auto& last_rds = last_rd > j ? init_loc : thread[last_rd].rds;
-      phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
-      last_rd = j;
-    }
+    	if(!is_barrier(thread[j].type)){
+      auto& rds = thread[j].rds;
+      auto& wrs = thread[j].wrs;
+      if( rds.size() > 0 ) {
+        // auto& last_rds = no_rd_occurred ? barr_events : thread[last_rd].rds;
+        phi_po = phi_po && wmm_mk_hbs( last_rds, rds );
+        last_rds = rds;
+        // last_rd = j;
+        no_rd_occurred = false;
+      }
 
-    for( auto wr : wrs ) {
-      const variable& v = wr->prog_v;
-      auto hbs = last_wr[v] ? wmm_mk_hb( last_wr[v], wr )
-                            : wmm_mk_hbs(  init_loc, wr );
-      phi_po = phi_po && hbs;
-      last_wr[v] = wr;
-      if( last_rd <= j ) {
-        phi_po = phi_po && wmm_mk_hbs( thread[last_rd].rds, wr );
+      for( auto wr : wrs ) {
+        const variable& v = wr->prog_v;
+        phi_po = phi_po && wmm_mk_hb( last_wr[v], wr );
+        last_wr[v] = wr;
+        if( !no_rd_occurred ) {
+          phi_po = phi_po && wmm_mk_hbs( last_rds, wr );
+        }
       }
     }
   }
-  // auto& last_rds = last_rd == thread.size() ? init_loc : thread[last_rd].rds;
-  // phi_po = phi_po && wmm_mk_hbs(last_rds, post_loc);
+  // only writes must be ordered with post event
   for( auto& g : globals ) {
-    auto hbs = last_wr[g] ? wmm_mk_hbs( last_wr[g], post_loc )
-                          : wmm_mk_hbs(  init_loc, post_loc );
-    phi_po = phi_po && hbs;
+    phi_po = phi_po && wmm_mk_hbs( last_wr[g], post_loc );
   }
-  //phi_po = phi_po && fences;
+  //phi_po = phi_po && barriers;
 }
 
 void program::wmm_build_rmo_ppo( thread& thread ) {
-  var_to_se_map last_read, last_write;
+  var_to_se_map last_rd, last_wr;
+  se_set collected_rds;
+
+  assert( init_loc.size() == 1);
+  se_ptr barr = *init_loc.begin();
+  for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
+
   for( unsigned j=0; j<thread.size(); j++ ) {
+    if( is_barrier( thread[j].type ) ) {
+      assert( thread[j].barr.size() == 1);
+      barr = *thread[j].barr.begin();
+      for( se_ptr rd : collected_rds) {
+        phi_po = phi_po && wmm_mk_hbs( rd, barr );
+      }
+      collected_rds.clear();
 
-    for( auto rd : thread[j].rds ) {
-      phi_po = phi_po && wmm_mk_hbs( init_loc, rd );
-      last_read[rd->prog_v]  = rd;
-    }
-
-    for( auto wr : thread[j].wrs ) {
-      bool not_yet_after_init = true;
-      variable v = wr->prog_v;
-
-      if( auto wr1 = last_write[v] ) {
-        phi_po = phi_po && wmm_mk_hb( wr1, wr );
-        not_yet_after_init = false;
+      for( auto& g : globals ) {
+        phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
+        last_rd[g] = last_wr[g] = barr;
+      }
+    }else{
+      for( auto rd : thread[j].rds ) {
+        phi_po = phi_po && wmm_mk_hbs( barr, rd );
+        last_rd[rd->prog_v]  = rd;
+        collected_rds.insert( rd );
       }
 
-      if( auto rd  = last_read[v] ) {
-        phi_po = phi_po && wmm_mk_hb( rd, wr  );
-        not_yet_after_init = false;
-      }
+      for( auto wr : thread[j].wrs ) {
+        variable v = wr->prog_v;
 
-      for( auto rd : dependency_relation[wr] ) {
-        phi_po = phi_po && wmm_mk_hb( rd, wr );
-        not_yet_after_init = false;
-      }
+        phi_po = phi_po && wmm_mk_hb( last_wr[v], wr );
+        phi_po = phi_po && wmm_mk_hb( last_rd[v], wr );
+        collected_rds.erase( last_rd[v] );// optimization??
 
-      if( not_yet_after_init ) {
-        phi_po = phi_po && wmm_mk_hbs( init_loc, wr );
+        for( auto rd : dependency_relation[wr] )
+          phi_po = phi_po && wmm_mk_hb( rd, wr );
+
+        last_wr[v] = wr;
       }
-      last_write[v] = wr;
     }
   }
 
-  for( auto& g : globals ) {
-    auto hbs = last_write[g] ? wmm_mk_hbs( last_write[g], post_loc )
-                             : wmm_mk_hbs(   init_loc, post_loc );
-    phi_po = phi_po && hbs;
-  }
-  	//phi_po = phi_po && fences;
+  for( auto& g : globals )
+    phi_po = phi_po && wmm_mk_hbs( last_wr[g], post_loc );
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
@@ -498,7 +557,7 @@ void program::wmm_build_ppo() {
     }
   }
   phi_po = phi_po && phi_distinct;
-  //phi_po = phi_po && fences;
+  //phi_po = phi_po && barriers;
 }
 
 void program::wmm_test_ppo() {
@@ -547,15 +606,15 @@ void program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
+  se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
+                         _init_l, event_kind_t::pre );
+  wr->guard = _z3.c.bool_val(true);
+  init_loc.insert(wr);
   for( const variable& v : globals ) {
     variable nname(_z3.c);
     nname = v + "#pre";
-    se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
-                           nname, v, _init_l, event_kind_t::i );
-    wr->guard = _z3.c.bool_val(true);
-    init_loc.insert(wr);
-    wr_events[v].insert( wr );
     initial_variables.insert(nname);
+    wr_events[v].insert( wr );
   }
 
   if ( shared_ptr<input::instruction_z3> instr =
@@ -588,12 +647,13 @@ void program::wmm_build_post(const input::program& input,
     if( eq( instr->instr, tru ) ) return;
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
+    se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+                           _end_l, event_kind_t::post );
+    rd->guard = _z3.c.bool_val(true);
+
     for( const variable& v : globals ) {
       variable nname(_z3.c);
       nname = v + "#post";
-      se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
-                             nname, v, _end_l, event_kind_t::f );
-      rd->guard = _z3.c.bool_val(true);
       post_loc.insert( rd );
       rd_events[v].insert( rd );
     }
@@ -621,14 +681,88 @@ void program::wmm_build_post(const input::program& input,
   }
 }
 
-void program::wmm_build_fence() {
-  //todo: build constraints for fence
-  for( auto it1 = tid_to_instr.begin(); it1!=tid_to_instr.end();it1++)
-  {
-	  unsigned flag_first_read=0;
-    	//cout<<"\nt "<<it1->first<<"\t i"<<it1->second<<"\n";
-    	thread& thread = *threads[it1->first];
-    	auto& fence = thread[it1->second].loc;
+void program::wmm_add_barrier(int tid, int instr)
+{
+	//assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
+	thread & thread= *threads[tid];
+	auto& barrier_before = thread[instr+1].rds; // everything before (above) is ordered wrt this barrier
+	auto& barrier_after = thread[instr].wrs;   // everything after (below) is ordered wrt this barrier
+	auto& rds_before = thread[instr].rds;
+	auto& rds_after = thread[instr+1].rds;
+	auto& wrs_before = thread[instr].wrs;
+	auto& wrs_after = thread[instr+1].wrs;
+
+	if( !rds_before.empty() || !wrs_before.empty() )
+	{
+		if( !rds_before.empty() && !wrs_before.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+			phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+		}
+		else if( !rds_before.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+		}
+		else if( !wrs_before.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+		}
+
+		for(int j=instr-1; j>=0; j-- )
+		{
+			rds_before = thread[j].rds;
+			wrs_before = thread[j].wrs;
+			if(!rds_before.empty())
+			{
+				phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+			}
+			if(!wrs_before.empty())
+			{
+				phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+			}
+		}
+	}
+
+	if( !rds_after.empty() || !wrs_after.empty() )
+	{
+		if( !rds_after.empty() && !wrs_after.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+			phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+		}
+		else if( !rds_after.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+		}
+		else if( !wrs_after.empty() )
+		{
+			phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+		}
+
+		for(int i=instr+2; i<thread.size(); i++ )
+		{
+			rds_after = thread[i].rds;
+			wrs_after = thread[i].wrs;
+			if(!rds_after.empty())
+			{
+				phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+			}
+			if(!wrs_after.empty())
+			{
+				phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+			}
+		}
+	}
+
+}
+void program::wmm_build_barrier() {
+  //return;
+	int first_read;
+  for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++)
+	{
+	  first_read=0;
+    	thread& thread=*threads[it1->first];
+    	auto& barrier = thread[it1->second].barr;
     	auto& rds_before = thread[it1->second-1].rds;
     	auto& rds_after = thread[it1->second+1].rds;
     	auto& wrs_before = thread[it1->second-1].wrs;
@@ -638,17 +772,17 @@ void program::wmm_build_fence() {
     	{
     		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
     		}
     		else if(!rds_before.empty())
     		{
-    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
-    			for(int j=it1->second-2; j!=0; j-- )
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
+    			for(int j=it1->second-2; j>=0; j-- )
     			 {
     	   			wrs_before = thread[j].wrs;
     	   			if(!wrs_before.empty())
     				{
-    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
     	   				break;
 	    			}
 	    		}
@@ -656,70 +790,74 @@ void program::wmm_build_fence() {
 
     		if( !rds_after.empty() )
     		{
-       			phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+    			phi_po = phi_po && wmm_mk_hbs(barrier, rds_after );
+    		}
        		}
        		else if(!wrs_after.empty())
        		{
-       			phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+       			phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
+
        			for( int j=it1->second+2; j!=thread.size(); j++ )
        			{
        	   			rds_after = thread[j].rds;
        	   			if(!wrs_before.empty())
        				{
-     	   				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+     	   				phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
      	   				break;
  	    			}
  	    		}
        		}
-    	}
-    	else if(is_mm_pso())
+		else if(is_mm_pso())
     	{
     		if( !wrs_before.empty() )
     		{
-    			phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier);
     		}
     		else if(!rds_before.empty())
     		{
-    			phi_po = phi_po && wmm_mk_hbs( rds_before, fence );
+    			phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
     			for(int j=it1->second-2; j>=0; j-- )
     			 {
     	   			wrs_before = thread[j].wrs;
     	   			if(!wrs_before.empty())
     				{
-    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, fence );
+    	   				phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
+
 	    			}
 	    		}
     		}
     		if(!wrs_after.empty() || !rds_after.empty())
     		{
-    			if( !rds_after.empty() && flag_first_read==0 )
+    			if( !rds_after.empty() && first_read==0 )
     			{
-    				phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
-    				flag_first_read=1;
+    				phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+    				first_read=1;
     			}
     			if(!wrs_after.empty())
     			{
-    				phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    				phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
     			}
     			for( int i=it1->second+2; i<=thread.size()-1; i++ )
     			{
     				rds_after = thread[i].rds;
     				wrs_after = thread[i].wrs;
-    				if(!rds_after.empty() && flag_first_read==0)
+    				if(!rds_after.empty() && first_read==0)
     				{
-    					phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
-    					flag_first_read=1;
+    					phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+    					first_read=1;
     				}
     				if(!wrs_after.empty())
     				{
-    					phi_po = phi_po && wmm_mk_hbs( fence, wrs_after );
+    					phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
     				}
     			}
     		}
     	}
-  	}
-  }
 
+  wmm_add_barrier(0,0);
+  wmm_add_barrier(1,0);
+  }
+}
 void program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
@@ -860,11 +998,14 @@ void program::wmm_build_ssa( const input::program& input ) {
           // add used variables
           assertion_instructions.insert(thread.instructions[i]);
         }
-        if( is_fence( instr->type) ) {
-          //todo : prepage contraints for fence
-        	tid_to_instr.insert({t,i});
-        	cout<<"\nt "<<t<<"\t i"<<i<<"\n";
-        	}
+        if( is_barrier( instr->type) ) {
+          //todo : prepage contraints for barrier
+          se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
+                                   thread[i].loc, event_kind_t::barr );
+          thread[i].barr.insert( barr );
+          tid_to_instr.insert({t,i});
+        }
+
 
         for( se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;
@@ -894,7 +1035,7 @@ void program::wmm( const input::program& input ) {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
-  wmm_build_fence(); // build symbolic event structure
+  wmm_build_barrier(); // build symbolic event structure
 
   //TODO: deal with atomic section and prespecified happens befores
   // add atomic sections
