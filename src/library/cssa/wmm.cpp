@@ -787,7 +787,6 @@ void program::wmm_build_barrier() {
 	    			}
 	    		}
     		}
-
     		if( !rds_after.empty() )
     		{
     			phi_po = phi_po && wmm_mk_hbs(barrier, rds_after );
@@ -1005,8 +1004,6 @@ void program::wmm_build_ssa( const input::program& input ) {
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i});
         }
-
-
         for( se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;
         }
