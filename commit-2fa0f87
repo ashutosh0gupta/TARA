@@ -1,0 +1,26 @@
+commit 2fa0f87cad668c65fa05d7b19f8dc78603120674
+Author: ShikharDPandya <shikharpandya5@gmail.com>
+Date:   Mon Feb 29 17:03:21 2016 +0530
+
+    conflict resolved: added function "add_barrier"
+
+diff --git a/src/library/cssa/wmm.cpp b/src/library/cssa/wmm.cpp
+index 0af1cc4..aee7086 100644
+--- a/src/library/cssa/wmm.cpp
++++ b/src/library/cssa/wmm.cpp
+@@ -734,7 +734,6 @@ void program::wmm_build_fence() {
+ 	    			}
+ 	    		}
+     		}
+-
+     		if( !rds_after.empty() )
+     		{
+        			phi_po = phi_po && wmm_mk_hbs( fence, rds_after );
+@@ -949,7 +948,6 @@ void program::wmm_build_ssa( const input::program& input ) {
+           tid_to_instr.insert({t,i});
+           // cout<<"\nt "<<t<<"\t i"<<i<<"\n";
+         }
+-
+         for( se_ptr wr : thread[i].wrs ) {
+           wr->guard = path_constraint;
+         }
