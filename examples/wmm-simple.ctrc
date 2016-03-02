@@ -8,11 +8,14 @@ pre: (and (= x 0) (= y 0))
 
 thread P0 {rr}:
 w1: (= x. 1)
+w5: fence
 w2: (= rr. y)
+w6: fence
 w3: (= x. rr)
 
 thread P1 {r}:
 d1: (= y. 1)
+d4: fence
 d2: (= r. x)
 d3: assert((or (= r 1) (= x 1) )) 
 

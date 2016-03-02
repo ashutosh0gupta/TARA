@@ -46,7 +46,7 @@ extern const std::string error_label;
     none, sc, tso, pso, rmo, alpha, power
       };
   std::string string_of_mm( mm_t mm );
-  bool is_fence(instruction_type type);
+  bool is_barrier(instruction_type type);
   //--------------------------------------------------------------------------
   //end of wmm support
   //--------------------------------------------------------------------------

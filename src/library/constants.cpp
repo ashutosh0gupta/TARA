@@ -41,7 +41,7 @@ const string error_label = string("ERROR");
     }
   }
 
-  bool is_fence(instruction_type type) {
+  bool is_barrier(instruction_type type) {
     return type == instruction_type::fence ||
       type == instruction_type::sync ||
       type == instruction_type::lwsync ||
