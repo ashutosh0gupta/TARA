@@ -1,3 +1,7 @@
+########################################
+# DO NOT CHANGE THIS EXAMPLE ANYMORE   #
+########################################
+
 global: x y
 
 pre: (and (= x 0) (= y 0))
@@ -14,14 +18,23 @@ post: (or (= P0.rr 1) (= P1.r 1))
 
 ##########################################
 # tso/pso/rmo should produce same result #
+#! -r unsat_core,remove_implied -M tso
+#! -r unsat_core,remove_implied -M pso
+#! -r unsat_core,remove_implied -M rmo
 ##########################################
-# Final result
-# Bad DNF
-# ( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##
+#~
 
-#####################
-# sc                #
-#####################
-# Final result
-# All traces are good or infeasable.
-
+########################################
+# sc                                   #
+#! -r unsat_core,remove_implied -M sc
+########################################
+#~
+##
+##All traces are good or infeasable.
+#~

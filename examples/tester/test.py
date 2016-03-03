@@ -62,7 +62,6 @@ class example:
                 process_diff( output, result )
                 
     def load_running_cases(self):
-        printf( "%s\n", self.fname )        
         with open(self.filename, 'r') as f:
             options = []
             output = ''
@@ -83,11 +82,17 @@ class example:
                         started = True
 
     def __init__( self, fname ):
-        self.fname = fname
-        self.filename = '../'+fname
+        self.filename = fname
         self.count = 0
         self.load_running_cases()
 
-files=['wmm-simple.ctrc','wmm-simple-fence.ctrc']
+known_files=['../wmm-simple.ctrc','../wmm-simple-fence.ctrc','../wmm-litmus-tso.ctrc']
+
+if len(sys.argv) > 1:
+    files=sys.argv[1:]
+else:
+    files=known_files
+
 for f in files:
-    benchmakr = example(f)
+        printf( "%s\n", f )
+        benchmakr = example(f)
