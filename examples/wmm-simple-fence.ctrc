@@ -28,10 +28,12 @@ d4: assert((or (= r 1) (= x 1) ))
 #! -r unsat_core,remove_implied -M pso
 #####################
 #~
-#Final result
-#Bad DNF
-#hb(R#pi_x#d4,W#x#w1) ∨
-#( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d4) ) 
+##
+##Final result
+##Bad DNF
+##hb(R#pi_x#d4,W#x#w1) ∨
+##( hb(R#pi_y#w3,W#y#d1) ∧ hb(W#x#w4,R#pi_x#d3) ) 
+##
 #~
 
 #####################
@@ -39,8 +41,10 @@ d4: assert((or (= r 1) (= x 1) ))
 #! -r unsat_core,remove_implied -M rmo
 #####################
 #~
-#Final result
-#Bad DNF
-#( hb(R#pi_x#d4,W#x#w1) ∧ hb(R#pi_x#d3,W#x#w1) ) ∨
-#( hb(R#pi_y#w3,W#y#d1) ∧ hb(W#x#w4,R#pi_x#d3) ∧ hb(W#x#w4,R#pi_x#d4) ) 
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#d4,W#x#w1) ∧ hb(R#pi_x#d3,W#x#w1) ) ∨
+##( hb(R#pi_y#w3,W#y#d1) ∧ hb(W#x#w4,R#pi_x#d3) ∧ hb(W#x#w4,R#pi_x#d4) ) 
+##
 #~
