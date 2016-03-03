@@ -27,6 +27,7 @@ clean :
 	rm -rf $(BUILDDIR)/buildr
 	rm -rf $(BUILDDIR)/buildd
 	rm -f tara
+	find -name "*~"| xargs rm -rf
 
 patch :
 	mkdir -p z3-patch
