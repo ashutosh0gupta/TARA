@@ -1,0 +1,46 @@
+########################################
+# DO NOT CHANGE THIS EXAMPLE ANYMORE   #
+########################################
+
+global: x y z
+
+pre: (and (= x 0) (= y 0) (= z 0) )
+
+thread P0 {r}:
+w1: (= x. 1)
+w2: (= r. y)
+
+thread P1 {s}:
+d1: (= y. 1)
+d2: (= s. z)
+
+thread P2 {t}:
+z1: (= z. 1)
+z2: (= t. x)
+
+post: (or (= P0.r 1) (= P1.s 1) (= P2.t 1))
+#post: (= P1.r 1)
+
+
+##########################################
+# tso/pso/rmo should produce same result #
+#! -r unsat_core,remove_implied -M tso
+#! -r unsat_core,remove_implied -M pso
+#! -r unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_z#d2,W#z#z1) ∧ hb(R#pi_x#z2,W#x#w1) ) 
+##
+#~
+
+########################################
+# sc                                   #
+#! -r unsat_core,remove_implied -M sc
+########################################
+#~
+##
+##All traces are good or infeasable.
+#~

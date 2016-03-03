@@ -9,6 +9,13 @@ import sys
 import io
 import difflib
 
+
+known_files=['../wmm-simple.ctrc',
+             '../wmm-simple-fence.ctrc',
+             '../wmm-litmus-tso.ctrc',
+             '../wmm-litmus-tso-redundant.ctrc'
+             ]
+
 #------------------------------------------------------------------
 # General utilities
 
@@ -86,7 +93,6 @@ class example:
         self.count = 0
         self.load_running_cases()
 
-known_files=['../wmm-simple.ctrc','../wmm-simple-fence.ctrc','../wmm-litmus-tso.ctrc']
 
 if len(sys.argv) > 1:
     files=sys.argv[1:]
