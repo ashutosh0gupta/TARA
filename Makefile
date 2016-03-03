@@ -58,7 +58,10 @@ build/z3/buildd/libz3.so : build/z3/patched
 	make -C $(BUILDDIR)/z3/buildd
 
 
-test: release
-	for f in examples/*.ctrc; do \
-		echo -n "$$f: "; ./tara --ofile "$$f" > /dev/null; echo "Done"; \
-	done; true
+runtest:
+	make -C examples/tester/
+
+test: release runtest
+	# for f in examples/*.ctrc; do \
+	# 	echo -n "$$f: "; ./tara --ofile "$$f" > /dev/null; echo "Done"; \
+	# done; true
