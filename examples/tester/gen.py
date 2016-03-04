@@ -21,8 +21,6 @@ call_options =sys.argv[1:]
 
 bin_name = "../../tara"
 output = check_output([bin_name]+call_options)
-printf("%s", output )
-
 
 opt_string = ' '.join(call_options[:-1])
 printf("################################################\n")

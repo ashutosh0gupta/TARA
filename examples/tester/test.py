@@ -13,7 +13,8 @@ import difflib
 known_files=['../wmm-simple.ctrc',
              '../wmm-simple-fence.ctrc',
              '../wmm-litmus-tso.ctrc',
-             '../wmm-litmus-tso-redundant.ctrc'
+             '../wmm-litmus-tso-redundant.ctrc',
+             '../wmm-litmus-tso-3-thread.ctrc'
              ]
 
 #------------------------------------------------------------------
