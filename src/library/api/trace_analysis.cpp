@@ -19,7 +19,6 @@
  */
 
 #include "trace_analysis.h"
-
 #include "helpers/z3interf.h"
 #include "input/parse.h"
 #include "cssa/program.h"
@@ -71,7 +70,7 @@ void trace_analysis::input(input::program& input_program)
   input_program.convert_instructions(z3);
   input_program.check_correctness();
   program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
-  
+
   if (_options.print_phi) {
   //--------------------------------------------------------------------------
   //start of wmm support

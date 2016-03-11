@@ -13,6 +13,8 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     z3::expr trigger = sol.ctx().fresh_constant("implied_assumption", sol.ctx().bool_sort());
     triggers.push_back(trigger);
     z3::expr translation = translate(i);
+    //std::cout<<"\nexpr 1 "<<translation<<"\n";
+    //std::cout<<"\nexpr 2 "<<trigger<<"\n";
     sol.add(implies(trigger,translation));
   }
   

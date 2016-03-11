@@ -22,11 +22,12 @@
 #define TARA_API_OUTPUT_NF_H
 
 #include "api/output/output_base.h"
-
+//#include"temp_functions.h"
 #include <z3++.h>
 #include "hb_enc/encoding.h"
 #include <vector>
-
+#include "input/program.h"
+#include "helpers/helpers.h"
 
 namespace tara {
 namespace api {
@@ -37,7 +38,8 @@ class nf : public output_base
 public:
   typedef std::list< tara::hb_enc::hb > row_type;
   typedef std::list< row_type > result_type;
-
+  //friend inline bool detect_ones();
+  //friend void tara::helpers::get_input(const input::program& input);
   /**
    * @brief Constructor
    * 
@@ -54,13 +56,15 @@ public:
   const result_type& get_result(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   z3::expr get_result_expr(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   virtual void print(std::ostream& stream, bool machine_readable) const override;
-  void print(std::ostream& stream, bool machine_readable, bool bad, bool good, bool dnf, bool cnf, bool verify = false) const;
+  void print(std::ostream& stream, bool machine_readable, bool Show_Cycle, bool bad, bool good, bool dnf, bool cnf, bool verify = false) const;
   //virtual z3::expr output() const;
   
   virtual void gather_statistics(metric& metric) const override;
   
   static void create_dnf(const z3::expr& formula, result_type& result, const tara::hb_enc::encoding& hb_encoding);
   static void print_one(std::ostream& stream, bool machine_readable, const result_type& result, bool dnf_not_cnf);
+  void get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const;
+
 private:
   mutable result_type result_bad_dnf;
   mutable result_type result_bad_cnf;

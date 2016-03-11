@@ -19,9 +19,12 @@
  */
 
 #include "nf.h"
+#include "temp_functions.h"
 #include "prune/remove_implied.h"
 #include <boost/iterator/iterator_concepts.hpp>
 #include "helpers/z3interf_templates.h"
+#include "input/program.h"
+#include <stack>
 
 using namespace tara;
 using namespace tara::helpers;
@@ -81,7 +84,100 @@ void nf::prune_simple(nf::result_type& result, const z3::expr& po)
 }
 
 
-void nf::print(ostream& stream, bool machine_readable, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify) const
+void nf::get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const
+{
+	unsigned index1=0,index2=0,obj_count,trav_next_index=0,curr=0;
+	std::vector< std::vector < bool > > Adjacency_Matrix;
+	Adjacency_Matrix=prog.build_po();
+	bool flag=true;
+	unsigned size_of_matrix=Adjacency_Matrix.size(),row=0,col=0;
+	if(result.size()<1)
+		cout<<"Less than 1";
+	for(list<row_type>::const_iterator conj = result.begin(); conj != result.end(); conj++)
+	{
+		if (!machine_readable && conj->size()>1)
+		{
+			for (auto hb = conj->begin(); hb != conj->end(); hb++)
+			{
+				index1=0,index2=0;
+				auto hb1 = *hb;
+				if (!machine_readable)
+				{
+					for(int i = 0; i < hb1.loc1->thread; i++)
+					{
+						index1+=prog.no_of_instructions(i);
+					}
+					index1+=hb1.loc1->instr_no;
+
+					for(int i = 0; i < hb1.loc2->thread; i++)
+					{
+						index2+=prog.no_of_instructions(i);
+					}
+					index2+=hb1.loc2->instr_no;
+					Adjacency_Matrix[index1][index2]=true;
+				}
+			}
+		}
+	}
+
+	obj_count=0;
+	graph_vertices obj[size_of_matrix];
+	std::stack< graph_vertices > Adj_Mat;
+
+	for (; row < size_of_matrix; ++row)
+	{
+		obj[obj_count].index=row;
+		if(detect_multiple_ones(Adjacency_Matrix[row]))
+		{
+			obj[obj_count].multiple=true;
+		}
+		else
+			obj[obj_count].multiple=false;
+		obj[obj_count].next_index=detect_next_one(Adjacency_Matrix[row],0);
+		obj_count++;
+	}
+
+	for(row=0;row<size_of_matrix;row++)
+	{
+		for(col=0;col<size_of_matrix;col++)
+		{
+			cout<<Adjacency_Matrix[row][col]<<"\t";
+		}
+		cout<<"\n";
+	}
+
+	trav_next_index=0;
+	while(graph_vertices::index_count!=size_of_matrix)//graph_vertices::index_count==size_of_matrix
+	{
+		flag=false;
+		curr=trav_next_index;
+		Adj_Mat.push(obj[trav_next_index]);
+		if(obj[trav_next_index].is_traversed==false)
+			graph_vertices::index_count++;
+		obj[trav_next_index].is_traversed=true;
+		trav_next_index=obj[trav_next_index].next_index;
+		if(obj[curr].multiple)
+			obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
+
+
+		if(cycles_detected(Adj_Mat,obj[trav_next_index]))
+		{
+			search_cycles(Adj_Mat,obj[trav_next_index],trav_next_index);
+			trav_next_index=obj[curr].next_index;
+		}
+		while(trav_next_index==0)
+		{
+			Adj_Mat.pop();
+			if(Adj_Mat.top().multiple)
+				trav_next_index=detect_next_one(Adjacency_Matrix[Adj_Mat.top().index],Adj_Mat.top().next_index);
+			else
+				trav_next_index=0;
+		}
+
+	}
+
+}
+void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify) const
 {
   ready_or_throw();
 
@@ -89,6 +185,7 @@ void nf::print(ostream& stream, bool machine_readable, bool bad_dnf, bool bad_cn
   if (bad_dnf) {
     if (print_header) stream << "Bad DNF" << endl;
     print_one(stream, machine_readable, get_result(true, true), true);
+    if(Show_Cycle) get_cycles(get_result(true,true),*program,false,true);
     if (verify) verify_result(stream, true, get_result_expr(true, true));
     if (print_header) stream << endl;
   }
@@ -98,7 +195,7 @@ void nf::print(ostream& stream, bool machine_readable, bool bad_dnf, bool bad_cn
     if (verify) verify_result(stream, true, get_result_expr(true, false));
     if (print_header) stream << endl;
   }
-  
+
   if (good_dnf) {
     if (print_header) stream << "Good DNF" << endl;
     print_one(stream, machine_readable, get_result(false, true), true);
@@ -115,7 +212,7 @@ void nf::print(ostream& stream, bool machine_readable, bool bad_dnf, bool bad_cn
 
 void nf::print(ostream& stream, bool machine_readable) const
 {
-  print(stream, machine_readable, bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
+  print(stream, machine_readable,true,bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
 }
 
 void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type& result, bool dnf_not_cnf)
@@ -124,22 +221,39 @@ void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type
     if (!machine_readable && conj->size()>1)  
       stream << "( ";
     for (auto hb = conj->begin(); hb != conj->end(); hb++) {
-      auto hb1 = *hb;
+
+    	auto hb1 = *hb;
       if (!machine_readable)
-        stream << hb1 << " ";
+        {
+    	  stream << hb1 << " ";
+
+        }
+
       else
         stream << hb1.loc1 << "<" << hb1.loc2 << " ";
       if (!last_element(hb, *conj))
         if (!machine_readable)
-          stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_AND) : z3interf::opSymbol(Z3_OP_OR)) << " ";
+          {
+        	stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_AND) : z3interf::opSymbol(Z3_OP_OR)) << " ";
+
+          }
     }
     if (!machine_readable && conj->size()>1)
-      stream << ") ";
+      {
+    	stream << ") ";
+
+      }
     if (!last_element(conj, result))
       if (!machine_readable)
-        stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_OR) : z3interf::opSymbol(Z3_OP_AND));
+      {
+    	  stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_OR) : z3interf::opSymbol(Z3_OP_AND));
+
+      }
+
       stream << endl;
+
   }
+
 }
 
 z3::expr nf::get_result_expr(bool bad_not_good, bool dnf_not_cnf) const
