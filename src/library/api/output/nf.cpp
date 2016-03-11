@@ -212,7 +212,7 @@ void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad
 
 void nf::print(ostream& stream, bool machine_readable) const
 {
-  print(stream, machine_readable,true,bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
+  print(stream, machine_readable,false,bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
 }
 
 void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type& result, bool dnf_not_cnf)
@@ -222,33 +222,21 @@ void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type
       stream << "( ";
     for (auto hb = conj->begin(); hb != conj->end(); hb++) {
 
-    	auto hb1 = *hb;
+      auto hb1 = *hb;
       if (!machine_readable)
-        {
-    	  stream << hb1 << " ";
-
-        }
+        stream << hb1 << " ";
 
       else
         stream << hb1.loc1 << "<" << hb1.loc2 << " ";
       if (!last_element(hb, *conj))
         if (!machine_readable)
-          {
-        	stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_AND) : z3interf::opSymbol(Z3_OP_OR)) << " ";
-
-          }
+          stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_AND) : z3interf::opSymbol(Z3_OP_OR)) << " ";
     }
     if (!machine_readable && conj->size()>1)
-      {
-    	stream << ") ";
-
-      }
+      stream << ") ";
     if (!last_element(conj, result))
       if (!machine_readable)
-      {
     	  stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_OR) : z3interf::opSymbol(Z3_OP_AND));
-
-      }
 
       stream << endl;
 
