@@ -80,7 +80,6 @@ public:
   var_to_ses_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
 private:
-  // std::shared_ptr<hb_enc::location> init_location; // todo : remove
   void wmm_build_cssa_thread( const input::program& input );
   void wmm_build_ssa( const input::program& input );
   void wmm_mk_distinct_events();
@@ -94,37 +93,24 @@ private:
   void wmm_build_barrier();
   void wmm_add_barrier(int tid, int instr);
 
+  z3::expr wmm_insert_tso_barrier( thread & thread, unsigned instr, se_ptr );
+  z3::expr wmm_insert_pso_barrier( thread & thread, unsigned instr, se_ptr );
+  z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, se_ptr );
+  z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
+
   z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_set& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
+
+  // todo : remove the following functions
   z3::expr wmm_mk_hb(const cssa::se_ptr& before,hb_enc::location_ptr loc);
   z3::expr wmm_mk_hb( hb_enc::location_ptr loc, const cssa::se_ptr& after);
   z3::expr wmm_mk_hbs(hb_enc::location_ptr loc,const cssa::se_set& after);
   z3::expr wmm_mk_hbs(const cssa::se_set& before, hb_enc::location_ptr loc );
- //  z3::expr build_rf_val(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &, std::string , bool);
-
- //  //z3::expr build_rf_val(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);// overloading function for including variables in initialisations
-
- //  z3::expr build_rf_grf(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string ,bool,const input::program& input);
-  
- //  //z3::expr build_rf_grf(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,std::string &);  
-
- //  z3::expr build_rf_some(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, 
- //  std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool);
-
- //  //z3::expr build_rf_some(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, 
- //  //std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
-
- //  z3::expr build_ws(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, z3::context &,bool,const input::program& input);  
-  
- //  //z3::expr build_ws(std::shared_ptr<input::instruction>, std::shared_ptr<cssa::instruction>, z3::context &);  
-  
- // z3::expr build_fr(std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string,bool,bool,const input::program& input);
-
-//z3::expr build_fr(hb_enc::location_ptr, std::shared_ptr<cssa::instruction>, std::shared_ptr<cssa::instruction>,z3::context &,std::string);  
+  //---------------------------------------
 
   void wmm_build_sc_ppo   ( thread& thread );
   void wmm_build_tso_ppo  ( thread& thread );
