@@ -1178,7 +1178,7 @@ void program::wmm( const input::program& input ) {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
-  wmm_build_barrier(); // build symbolic event structure
+  wmm_build_barrier(); // build barrier
 
   //TODO: deal with atomic section and prespecified happens befores
   // add atomic sections

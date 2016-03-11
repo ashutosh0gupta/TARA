@@ -21,7 +21,7 @@
 #include "program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-
+#include <vector>
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
@@ -142,6 +142,43 @@ void program::build_threads(const input::program& input)
     phi_fea = phi_fea && path_constraint;
   }
   build_pis(pis, input);
+}
+
+int program::no_of_threads() const
+{
+	return threads.size();
+}
+
+int program:: no_of_instructions(unsigned tid) const
+{
+	return threads[tid]->instructions.size();
+}
+
+std::vector< vector < bool > > program:: build_po() const
+{
+	unsigned count=0,temp=0;
+	for (unsigned t=0; t<threads.size(); t++)
+	{
+		thread& thread = *threads[t];
+		count+=thread.size();
+	}
+
+	std::vector < std::vector <bool> > Adjacency_Matrix(count,std::vector <bool>(count,0));
+
+	for (unsigned t=0; t<threads.size(); t++)
+	{
+		thread& thread = *threads[t];
+		for (unsigned i=0; i<thread.size(); i++)
+		{
+			//instr_to_MatIndex[threads[t]->instructions[i]->name]=temp;
+			if(i!=thread.size()-1)
+			{
+				Adjacency_Matrix[temp][temp+1]=true;
+			}
+			temp=temp+1;
+		}
+	}
+	return Adjacency_Matrix;
 }
 
 void program::build_pis(vector< program::pi_needed >& pis, const input::program& input)

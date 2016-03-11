@@ -47,11 +47,14 @@ public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
+  std::vector< std::vector < bool > > build_po() const;
+  //std::unordered_map<std::string,int>instr_to_MatIndex;
+  int no_of_threads() const;
+  int no_of_instructions(unsigned tid) const;
 private:
+  std::vector<std::shared_ptr<cssa::thread>> threads;
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
-  
-  std::vector<std::shared_ptr<cssa::thread>> threads;
   
   struct pi_needed {
     variable name;
