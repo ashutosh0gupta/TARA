@@ -82,6 +82,17 @@ public:
   var_to_ses_map wr_events;
   var_to_ses_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
+  // class isEq{
+  // public:
+  //   inline bool operator( )( const z3::expr& a, const z3::expr&b ) {
+  //     // return z3::eq(a,b);
+  //     const Z3_ast ap = a;
+  //     const Z3_ast bp = b;
+  //     return ap == bp;
+  //   }
+  // };
+  // std::map<z3::expr, std::pair<se_ptr,se_ptr>, isEq > reading_map;
+  std::set< std::tuple<std::string,se_ptr,se_ptr> > reading_map;
 private:
   void wmm_build_cssa_thread( const input::program& input );
   void wmm_build_ssa( const input::program& input );
@@ -101,19 +112,15 @@ private:
   z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, se_ptr );
   z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
 
-  z3::expr wmm_mk_hb( const cssa::se_ptr& before, const cssa::se_ptr& after );
+  z3::expr wmm_mk_hb ( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_set& after );
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
 
-  // todo : remove the following functions
-  z3::expr wmm_mk_hb(const cssa::se_ptr& before,hb_enc::location_ptr loc);
-  z3::expr wmm_mk_hb( hb_enc::location_ptr loc, const cssa::se_ptr& after);
-  z3::expr wmm_mk_hbs(hb_enc::location_ptr loc,const cssa::se_set& after);
-  z3::expr wmm_mk_hbs(const cssa::se_set& before, hb_enc::location_ptr loc );
-  //---------------------------------------
+  bool hb_eval( const z3::model& model,
+                const cssa::se_ptr& before, const cssa::se_ptr& after );
 
   void wmm_build_sc_ppo   ( thread& thread );
   void wmm_build_tso_ppo  ( thread& thread );
@@ -122,9 +129,13 @@ private:
   void wmm_build_alpha_ppo( thread& thread );
   void wmm_build_power_ppo( thread& thread );
   void wmm_build_ppo();
+
+  void wmm_print_dot( std::ostream& stream, z3::model m ) const;
+  void wmm_print_dot( z3::model m ) const;
   void wmm_test_ppo(); // TODO: remove when confident
 
   bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
+  bool anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   void unsupported_mm();
 
 private:

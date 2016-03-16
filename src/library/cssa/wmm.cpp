@@ -186,19 +186,14 @@ void tara::cssa::debug_print_se_set(const se_set& set, std::ostream& out) {
 //----------------------------------------------------------------------------
 // hb utilities
 
+bool program::hb_eval( const z3::model& m,
+                       const cssa::se_ptr& before, const cssa::se_ptr& after ) {
+  return _hb_encoding.eval_hb( m, before->e_v, after->e_v );
+}
+
 z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
                              const cssa::se_ptr& after) {
   return _hb_encoding.make_hb( before->e_v, after->e_v );
-}
-
-z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
-                             hb_enc::location_ptr loc) {
-  return _hb_encoding.make_hb( before->e_v, loc );
-}
-
-z3::expr program::wmm_mk_hb(hb_enc::location_ptr loc,
-                             const cssa::se_ptr& after) {
-  return _hb_encoding.make_hb( loc, after->e_v );
 }
 
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
@@ -215,29 +210,11 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
   return hbs;
 }
 
-z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
-                             hb_enc::location_ptr loc) {
-  z3::expr hbs = _z3.c.bool_val(true);
-  for( auto& bf : before ) {
-      hbs = hbs && wmm_mk_hb( bf, loc );
-  }
-  return hbs;
-}
-
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_set& after) {
   z3::expr hbs = _z3.c.bool_val(true);
   for( auto& af : after ) {
       hbs = hbs && wmm_mk_hb( before, af );
-  }
-  return hbs;
-}
-
-z3::expr program::wmm_mk_hbs(hb_enc::location_ptr loc,
-                             const cssa::se_set& after) {
-  z3::expr hbs = _z3.c.bool_val(true);
-  for( auto& af : after ) {
-      hbs = hbs && wmm_mk_hb( loc, af );
   }
   return hbs;
 }
@@ -279,6 +256,23 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   }
 }
 
+bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
+  assert( wr->tid == threads.size() ||
+          rd->tid == threads.size() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() ) {
+    // should come here for those memory models where rd-wr on
+    // same variables are in ppo
+    if( wr->tid == rd->tid && wr->e_v->instr_no >= rd->e_v->instr_no ) {
+      return true;
+    }
+    //
+  }else{
+    unsupported_mm();
+  }
+  return false;
+}
+
 //----------------------------------------------------------------------------
 // Build symbolic event structure
 // In original implementation this part of constraints are
@@ -286,10 +280,11 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
 
 void program::wmm_build_ses() {
   // For each global variable we need to construct
-  // - rf
-  // - grf
-  // - wf
-  // - fr
+  // - wf  well formed
+  // - rf  read from
+  // - grf global read from
+  // - fr  from read
+  // - ws  write serialization
 
   z3::context& c = _z3.c;
 
@@ -300,9 +295,11 @@ void program::wmm_build_ses() {
       z3::expr some_rfs = _z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
       for( const se_ptr& wr : wrs ) {
+        if( anti_ppo_read( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr(v1);
-        std::string bname = wr->name()+"-"+rd->name();
+        std::string bname = v1+"-"+wr->name()+"-"+rd->name();
         z3::expr b = c.bool_const(  bname.c_str() );
+        reading_map.insert( std::make_tuple(bname,wr,rd) );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
         // well formed
@@ -313,17 +310,17 @@ void program::wmm_build_ses() {
         //global read from
         if( in_grf( wr, rd ) ) grf = grf && new_rf;
         // from read
-        auto& wr2 = wr;
-        for( const se_ptr& wr1 : wrs ) {
-          if( wr1->name() != wr2->name() ) {
-            auto cond = b && wmm_mk_ghb(wr2, wr1) && wr1->guard;
-            fr = fr && implies( cond , wmm_mk_ghb( rd, wr1 ) );
+        for( const se_ptr& after_wr : wrs ) {
+          if( after_wr->name() != wr->name() ) {
+            auto cond = b && wmm_mk_ghb(wr, after_wr) && after_wr->guard;
+            fr = fr && implies( cond , wmm_mk_ghb( rd, after_wr ) );
           }
         }
       }
       wf = wf && implies( rd->guard, some_rfs );
     }
 
+    // write serialization
     auto it1 = wrs.begin();
     for( ; it1 != wrs.end() ; it1++ ) {
       const se_ptr& wr1 = *it1;
@@ -661,7 +658,7 @@ void program::wmm_build_post(const input::program& input,
     if( eq( instr->instr, tru ) ) return;
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
-    se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), UINT_MAX,
+    se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
                            _end_l, event_kind_t::post );
     rd->guard = _z3.c.bool_val(true);
 
@@ -1183,15 +1180,7 @@ void program::wmm( const input::program& input ) {
   //TODO: deal with atomic section and prespecified happens befores
   // add atomic sections
   for (input::location_pair as : input.atomic_sections) {
-    throw cssa_exception( "atomic sections are not supported!" );
-  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
-  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
-  //   phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
-  // }
-  // // add happens-befores
-  // for (input::location_pair hb : input.happens_befores) {
-  //   hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
-  //   hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
-  //   phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
+    cerr << "#WARNING: atomic sections are declared!! Not supproted in wmm mode!\n";
+    // throw cssa_exception( "atomic sections are not supported!" );
   }
 }

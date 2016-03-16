@@ -19,6 +19,7 @@
  */
 
 #include "prune_functions.h"
+#include "prune/diffvar.h"
 #include "prune/data_flow.h"
 #include "prune/remove_implied.h"
 #include "prune/unsat_core.h"
@@ -81,6 +82,8 @@ namespace prune {
         prune = unique_ptr<prune::prune_base>(new remove_implied(z3, program));
       else if (p=="unsat_core")
         prune = unique_ptr<prune::prune_base>(new unsat_core(z3, program, sol_good));
+      else if (p=="diffvar")
+        prune = unique_ptr<prune::prune_base>(new diffvar(z3, program));
       else {
         cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\"." << endl;
         return false;

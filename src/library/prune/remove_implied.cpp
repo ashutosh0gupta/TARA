@@ -53,7 +53,7 @@ bool remove_implied::compare_events( const hb_enc::location_ptr loc1,
   // check if these edge is between the same thread
   if( loc1 == loc2 ) return true;
   if( loc1->thread != loc2->thread ) return false;
-
+  
   switch( program.get_mm() ) {
   case mm_t::sc:  return compare_sc_events(  loc1, loc2 ); break;
   case mm_t::tso: return compare_tso_events( loc1, loc2 ); break;

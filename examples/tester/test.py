@@ -1,4 +1,12 @@
 #!/usr/bin/python
+#-------------------------------------------------------------------------------
+#todo:
+# - add option parsing (-v option)
+# - add more example
+# - report if unexpected input in example files
+# - annotate more files and add them here
+# - add concurrent launches
+#-------------------------------------------------------------------------------
 
 from __future__ import print_function
 import xml.etree.ElementTree as ET
@@ -14,7 +22,9 @@ known_files=['../wmm-simple.ctrc',
              '../wmm-simple-fence.ctrc',
              '../wmm-litmus-tso.ctrc',
              '../wmm-litmus-tso-redundant.ctrc',
-             '../wmm-litmus-tso-3-thread.ctrc'
+             '../wmm-litmus-tso-3-thread.ctrc',
+             '../locks.ctrc',
+             '../wmm-rmo-reduction.ctrc'
              ]
 
 #------------------------------------------------------------------

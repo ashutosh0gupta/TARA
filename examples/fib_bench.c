@@ -34,8 +34,8 @@ thread3() {
 void main () {
     i = 1;
     j = 1;
-    f1 = 1;
-    f2 = 1;
+    f1 = 0;
+    f2 = 0;
     
     thread1 ();
     thread2 ();

@@ -1,0 +1,48 @@
+global: nondet_int STATE_SENT old_uuid uuid
+
+pre: (and (= uuid nondet_int) (= old_uuid uuid) (= STATE_SENT 0))
+
+thread drbd_connect_thread :
+b1: (= STATE_SENT. 1)
+b2: assert(not (= uuid old_uuid))
+b3: (= STATE_SENT. 0)
+
+
+thread drbd_set_role_thread :
+a1: assume(= STATE_SENT 0) # assume from if
+a2: (= uuid. (+ uuid 1))
+
+# Bugs: OV
+
+#####################
+# Final result
+# Bad DNF
+# hb(b2[45],a5[31]) 
+# 
+
+
+################################################
+#!-r unsat_core,remove_implied -M sc
+#!-r unsat_core,remove_implied -M tso
+#!-r unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(R#pi_uuid#b2,W#uuid#a2) ∨
+##hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) 
+##
+#~
+
+################################################
+#!-r unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(R#pi_uuid#b2,W#uuid#a2) ∨
+##( hb(R#pi_STATE_SENT#a1,W#STATE_SENT#b3) ∧ hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) ) 
+##
+#~

@@ -1,3 +1,5 @@
+#include <iostream>
+#include <fstream>
 #include "cssa/program.h"
 #include "helpers/helpers.h"
 
@@ -8,7 +10,7 @@ using namespace tara::cssa;
 using namespace std;
 
 void program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
-{ 
+{  if( is_mm_declared() ) { wmm_print_dot( m ); return; } //wmm support
   if (!machine_readable){
     // initial values
     auto git = initial_variables.begin();
@@ -129,3 +131,90 @@ z3::expr program::get_initial(const z3::model& m) const
   }
   return res;
 }
+
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+
+void program::wmm_print_dot( z3::model m ) const {
+  std::ofstream myfile;
+  myfile.open( "/tmp/.iteration-sat-dump" );
+  if( myfile.is_open() ) {
+    wmm_print_dot( myfile, m );
+  }else{
+    // warning( "failed to open /tmp/.iteration-sat-dump");
+  }
+  myfile.close();
+}
+
+void program::wmm_print_dot( ostream& stream, z3::model m ) const {
+    // output the program as a dot file
+  stream << "digraph hbs {" << endl;
+  // output labels
+  for (unsigned t=0; t<threads.size(); t++) {
+    const thread& thread = *threads[t];
+    stream << "subgraph cluster_" << t << " {\n";
+    stream << "color=lightgrey;\n";
+    stream << "label = \"" << thread.name << "\"";
+    for (unsigned i=0; i < thread.instructions.size(); i++) {
+      stream << "\"" << thread[i].loc->name << "\""
+             << " [label=\"" << thread[i] << "\"]" << endl;
+    }
+    stream << " }\n";
+  }
+
+  stream << "pre" << " [label=\""  << phi_pre << "\"]" << endl;
+  stream << "post" << " [label=\"" << phi_post << "\"]" << endl;
+
+  // add white edges between instructions
+  for (unsigned t=0; t<threads.size(); t++) {
+    const thread& thread = *threads[t];
+    for (unsigned i=0; i<thread.instructions.size()-1; i++) {
+      stream << "\"" << thread[i].loc->name << "\""  << "->"
+             << "\"" << thread[i+1].loc->name << "\""
+             << " [color=white]" << endl;
+    }
+  }
+
+  for( auto& it : reading_map ) {
+    std::string bname = std::get<0>(it);
+    z3::expr b = _z3.c.bool_const(  bname.c_str() );
+    if( m.eval( b ).get_bool() ) {
+      se_ptr wr = std::get<1>(it);
+      se_ptr rd = std::get<2>(it);
+      unsigned wr_tid      = wr->e_v->thread;
+      std::string wr_name;
+      if( wr_tid == threads.size() ) {
+        wr_name = "pre";
+      }else{
+        const thread& wr_thread = *threads[wr_tid];
+        unsigned wr_instr_no = wr->e_v->instr_no;
+        wr_name = wr_thread[wr_instr_no].loc->name;
+      }
+      unsigned rd_tid      = rd->e_v->thread;
+      std::string rd_name;
+      if( rd_tid == threads.size() ) {
+        rd_name = "post";
+      }else{
+        const thread& rd_thread = *threads[rd_tid];
+        unsigned rd_instr_no = rd->e_v->instr_no;
+        rd_name = rd_thread[rd_instr_no].loc->name;
+      }
+      // stream << "\"" << bname << "\""
+      //        << " [label=\"" << bname << "\"]" << endl;
+      // stream <<  "\"" << wr_name << "\" -> \"" << bname << "\"" << endl;
+      // stream <<"\"" <<  bname <<"\" -> \"" <<  rd_name << "\"" << endl;
+      stream << "\"" << wr_name << "\" -> \"" << rd_name << "\"" << endl;
+    }
+  }
+
+  // for (hb_enc::hb hb : hbs) {
+  //   stream << hb.loc1->name << "->" << hb.loc2->name << " [constraint = false]" << endl;
+  // }
+  stream << "}" << endl;
+
+}
+
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------

@@ -1,19 +1,19 @@
+###############################################################
+# DO NOT CHANGE THIS EXAMPLE - IT IS PART OF THE TEST SUITE   #
+###############################################################
+
 global: nondet_int m x y z balance deposit_done withdraw_done
 
 pre: (and (= balance x) (= deposit_done 0) (= withdraw_done 0) (> y 0) (> z 0))
 
 thread withdraw_thread { withdraw_thread::l2 }:
 w1 [15] : (= |withdraw_thread::l2.| balance)
-#w2 [16] : fence
 w2 [17] : (= balance. (- |withdraw_thread::l2| z))
-#w4 [18] : fence
 w3 [19] : (= withdraw_done. 1)
 
 thread deposit_thread { deposit_thread::l }:
 d1 [7] : (= |deposit_thread::l.| balance)
-#d2 [8] : fence
 d2 [9] : (= balance. (+ |deposit_thread::l| y))
-#d4 [10]: fence
 d3 [11]: (= deposit_done. 1)
 
 thread check_result_thread :
@@ -22,9 +22,55 @@ c2 [23] : assert(= balance (- (+ x y) z))
 
 # Bugs: DR
 
-#####################
-# Final result
-# Bad DNF
-# ( hb(d2[8],w2[16]) ∧ hb(w1[15],d2[8]) ) ∨
-# ( hb(w2[16],d2[8]) ∧ hb(d1[7],w2[16]) ) 
-#
+################################################
+#!
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(d2[9],w2[17]) ∧ hb(w1[15],d2[9]) ) ∨
+##( hb(w2[17],d2[9]) ∧ hb(d1[7],w2[17]) ) 
+##
+#~
+
+################################################
+#!-r unsat_core,remove_implied -M sc
+#!-r unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_balance#w1[15],W#balance#d2[9]) ∧ hb(W#balance#d2[9],W#balance#w2[17]) ) ∨
+##( hb(W#balance#w2[17],W#balance#d2[9]) ∧ hb(R#pi_balance#d1[7],W#balance#w2[17]) ) 
+##
+#~
+
+################################################
+#!-r unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(R#pi_balance#c2[23],W#balance#d2[9]) ) ∨
+##( hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(W#balance#w2[17],W#balance#d2[9]) ) ∨
+##( hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(R#pi_balance#c2[23],W#balance#w2[17]) ) ∨
+##( hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#balance#d2[9],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ) 
+##
+#~
+
+################################################
+#!-r unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(R#pi_balance#c2[23],W#balance#d2[9]) ) ∨
+##( hb(W#balance#w2[17],R#pi_balance#c2[23]) ∧ hb(W#balance#d2[9],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ) ∨
+##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(W#balance#w2[17],W#balance#d2[9]) ∧ hb(W#balance#w2[17],R#pi_balance#c2[23]) ) ∨
+##( hb(W#balance#d2[9],R#pi_balance#c2[23]) ∧ hb(R#pi_balance#c2[23],W#balance#w2[17]) ) 
+##
+#~
