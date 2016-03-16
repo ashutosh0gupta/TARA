@@ -24,9 +24,9 @@ post: (or (= P0.r 1) (= P1.s 1) (= P2.t 1))
 
 ##########################################
 # tso/pso/rmo should produce same result #
-#! -r unsat_core,remove_implied -M tso
-#! -r unsat_core,remove_implied -M pso
-#! -r unsat_core,remove_implied -M rmo
+#! -r diffvar,unsat_core,remove_implied -M tso
+#! -r diffvar,unsat_core,remove_implied -M pso
+#! -r diffvar,unsat_core,remove_implied -M rmo
 ################################################
 #~
 ##
@@ -38,7 +38,7 @@ post: (or (= P0.r 1) (= P1.s 1) (= P2.t 1))
 
 ########################################
 # sc                                   #
-#! -r unsat_core,remove_implied -M sc
+#! -r diffvar,unsat_core,remove_implied -M sc
 ########################################
 #~
 ##

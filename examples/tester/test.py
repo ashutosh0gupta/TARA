@@ -24,7 +24,12 @@ known_files=['../wmm-simple.ctrc',
              '../wmm-litmus-tso-redundant.ctrc',
              '../wmm-litmus-tso-3-thread.ctrc',
              '../locks.ctrc',
-             '../wmm-rmo-reduction.ctrc'
+             '../wmm-rmo-reduction.ctrc',
+             '../wmm-fib-1.ctrc',
+             '../wmm-fib-2.ctrc',
+             '../wmm-fib-3.ctrc',
+             '../wmm-fib-4.ctrc',
+             '../wmm-fib-5.ctrc'
              ]
 
 #------------------------------------------------------------------

@@ -13,3 +13,54 @@ a2: (= i. (+ i l1))
 
 post: (and (< i 3) (< j 3))
 
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(W#j#b2,R#pi_j#a1) ∨
+##hb(W#i#a2,R#pi_i#b1) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(W#j#b2,R#pi_j#a1) ∨
+##hb(W#i#a2,R#pi_i#b1) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(W#j#b2,R#pi_j#a1) ∨
+##hb(W#i#a2,R#pi_i#b1) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(W#j#b2,R#pi_j#a1) ∨
+##hb(W#i#a2,R#pi_i#b1) 
+##
+#~
+

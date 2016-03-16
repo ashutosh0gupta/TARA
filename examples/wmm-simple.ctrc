@@ -21,8 +21,8 @@ d3: assert((or (= r 1) (= x 1) ))
 
 ##########################################
 # tso/pso have should produce same result #
-#! -r unsat_core,remove_implied -M tso
-#! -r unsat_core,remove_implied -M pso
+#! -r diffvar,unsat_core,remove_implied -M tso
+#! -r diffvar,unsat_core,remove_implied -M pso
 ##########################################
 #~
 ##
@@ -36,7 +36,7 @@ d3: assert((or (= r 1) (= x 1) ))
 
 #####################
 # sc
-#! -r unsat_core,remove_implied -M sc
+#! -r diffvar,unsat_core,remove_implied -M sc
 #####################
 #~
 ##
@@ -49,7 +49,7 @@ d3: assert((or (= r 1) (= x 1) ))
 
 #####################
 # rmo
-#! -r unsat_core,remove_implied -M rmo
+#! -r diffvar,unsat_core,remove_implied -M rmo
 #####################
 #~
 ##

@@ -23,9 +23,9 @@ d4: assert((or (= r 1) (= x 1) ))
 
 #####################
 # sc/tso/pso
-#! -r unsat_core,remove_implied -M sc
-#! -r unsat_core,remove_implied -M tso
-#! -r unsat_core,remove_implied -M pso
+#! -r diffvar,unsat_core,remove_implied -M sc
+#! -r diffvar,unsat_core,remove_implied -M tso
+#! -r diffvar,unsat_core,remove_implied -M pso
 #####################
 #~
 ##
@@ -38,7 +38,7 @@ d4: assert((or (= r 1) (= x 1) ))
 
 #####################
 ## rmo
-#! -r unsat_core,remove_implied -M rmo
+#! -r diffvar,unsat_core,remove_implied -M rmo
 #####################
 #~
 ##

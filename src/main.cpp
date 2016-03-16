@@ -111,6 +111,37 @@ void real_main(int argc, char **argv) {
   
   ofstream file_out;
   if (o.output_to_file) {
+    //prepare option string
+    // string ops="#!";
+    // for( int i = 1; i < argc-1; i++ ) {
+    //   if( strcmp( argv[i], "-f" ) ) {
+    //     ops.append( " ");
+    //     ops.append( argv[i] );
+    //   }
+    // }
+    // ifstream file_in (o.input_file);
+    // file_out.open(o.input_file+".new", ios::out | ios::trunc);
+    // string line;
+    // bool ops_found = false, output_found = false, output_finished = false;
+    // while( getline(file_in, line) ) {
+    //   if( !ops_found ) {
+    //     file_out << line << endl;
+    //     if( line == ops ) ops_found = true;
+    //   }else if( !output_found ) {
+    //     if( line.length() == 2 && line[0] == '#' && line[1] == '~' ) {
+    //       file_out << line << endl;
+    //       output_found = true;
+    //     }
+    //   }else if( !output_finished) {
+    //     if( line.length() == 2 && line[0] == '#' && line[1] == '~' ) {
+    //       // file_out << line << endl;
+    //       output_finished = true;
+    //     }
+    //   }else{
+    //     file_rest << line << endl;
+    //   }
+    // }
+
     // prepare output to the file if desired
     ifstream file_in (o.input_file);
     file_out.open(o.input_file+".new", ios::out | ios::trunc);

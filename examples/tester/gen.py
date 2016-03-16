@@ -21,13 +21,19 @@ call_options =sys.argv[1:]
 
 bin_name = "../../tara"
 output = check_output([bin_name]+call_options)
+outs = output.split('\n')
 
 opt_string = ' '.join(call_options[:-1])
-printf("################################################\n")
-printf("#!%s\n", opt_string )
-printf("################################################\n")
-outs = output.split('\n')
-printf( "#~\n" )
-for s in outs[:-1]:
-    printf( "##%s\n", s )
-printf( "#~\n" )
+fname = call_options[-1]
+with open( fname, "a") as myfile:
+    myfile.write( "\n################################################\n" )
+    myfile.write( "#!" )
+    myfile.write( opt_string )
+    myfile.write( "\n" )
+    myfile.write("################################################\n")
+    myfile.write("#~\n")
+    for s in outs[:-1]:
+        myfile.write( "##" )
+        myfile.write( s )
+        myfile.write( "\n" )
+    myfile.write( "#~\n\n" )
