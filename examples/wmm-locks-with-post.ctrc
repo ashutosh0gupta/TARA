@@ -1,0 +1,16 @@
+global: nondet_int m x y z balance
+
+pre: (and (= balance x) (= deposit_done 0) (= withdraw_done 0) (> y 0) (> z 0))
+
+thread withdraw_thread { withdraw_thread::l2 }:
+w1: (= |withdraw_thread::l2.| balance)
+w2: (= balance. (- |withdraw_thread::l2| z))
+
+thread deposit_thread { deposit_thread::l }:
+d1: (= |deposit_thread::l.| balance)
+d2: (= balance. (+ |deposit_thread::l| y))
+
+post: (= balance (- (+ x y) z))
+
+# Bugs: DR
+

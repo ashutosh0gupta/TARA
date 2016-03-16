@@ -49,12 +49,12 @@ list< z3::expr > diffvar::prune( const list< z3::expr >& hbs,
     unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
     auto& l1 = hb1->loc1;
     auto& l2 = hb1->loc2;
-    if( l1->thread != l2->thread &&  l1->prog_v_name != l2->prog_v_name &&
-        !l1->special && !l2->special ) {
-      it = result.erase(it);
-    }else{
-      ++it;
+    bool remove = false;
+    if( !l1->special && !l2->special && l1->thread != l2->thread ) {
+      if( l1->prog_v_name != l2->prog_v_name ) remove = true;
+      if( l1->is_read && l2->is_read ) remove = true; // todo: is_it_correct
     }
+    if( remove ) it = result.erase(it); else ++it;
   }
 
   return result;

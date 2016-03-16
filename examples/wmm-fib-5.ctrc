@@ -1,0 +1,30 @@
+global: dummy_int i j
+
+pre: (and (= i 1) (= j 1))
+
+thread thread2 { l2 }:
+b1: (= l2. i)
+b2: (= j. (+ j l2))
+b3: (= l2. i)
+b4: (= j. (+ j l2))
+b5: (= l2. i)
+b6: (= j. (+ j l2))
+b7: (= l2. i)
+b8: (= j. (+ j l2))
+b9: (= l2. i)
+b10: (= j. (+ j l2))
+
+thread thread1 { l1 }:
+a1: (= l1. j)
+a2: (= i. (+ i l1))
+a3: (= l1. j)
+a4: (= i. (+ i l1))
+a5: (= l1. j)
+a6: (= i. (+ i l1))
+a7: (= l1. j)
+a8: (= i. (+ i l1))
+a9: (= l1. j)
+a10: (= i. (+ i l1))
+
+post: (and (< i 144) (< j 144))
+
