@@ -144,14 +144,19 @@ void program::build_threads(const input::program& input)
   build_pis(pis, input);
 }
 
-int program::no_of_threads() const
+unsigned program::no_of_threads() const
 {
 	return threads.size();
 }
 
-int program:: no_of_instructions(unsigned tid) const
+unsigned program:: no_of_instructions(unsigned tid) const
 {
 	return threads[tid]->instructions.size();
+}
+
+std::string program::instr_name(unsigned tid, unsigned instr_no) const
+{
+	return threads[tid]->instructions[instr_no]->loc->name;
 }
 
 std::vector< vector < bool > > program:: build_po() const
@@ -170,7 +175,6 @@ std::vector< vector < bool > > program:: build_po() const
 		thread& thread = *threads[t];
 		for (unsigned i=0; i<thread.size(); i++)
 		{
-			//instr_to_MatIndex[threads[t]->instructions[i]->name]=temp;
 			if(i!=thread.size()-1)
 			{
 				Adjacency_Matrix[temp][temp+1]=true;

@@ -7,6 +7,7 @@
 #include<vector>
 #include<string>
 #include<stack>
+
 #ifndef TEMP_FUNCTIONS_H_
 #define TEMP_FUNCTIONS_H_
 
@@ -39,7 +40,7 @@
 			return false;
 		}
 
-		inline unsigned detect_next_one(std::vector<bool> Row, unsigned offset)
+		inline int detect_next_one(std::vector<bool> Row, unsigned offset)
 		{
 			for(unsigned i = offset+1; i < Row.size(); i++)
 			{
@@ -48,46 +49,75 @@
 					return i;
 				}
 			}
-			return 0;
+			return -1;
 		}
 
+		inline unsigned number_of_edges(std::vector<std::vector<bool>> Matrix)
+		{
+			unsigned count=0;
+			for(unsigned i = 0; i < Matrix.size(); i++)
+			{
+				for(unsigned j = 0; j < Matrix.size(); j++)
+				{
+					if(Matrix[i][j]==true)
+					{
+						count++;
+					}
+				}
+
+			}
+			return count;
+		}
 
 		struct graph_vertices{
 			bool multiple;	//multiple edges from this vertex to some vertex
 			bool is_traversed;
-			//std::string name;
+			std::string name;
+			unsigned type;
 			unsigned index;			//row index of Adjacency_Matrix
-			unsigned next_index;	// if multiple edges then points to the next vertex to which the edge is directed
+			int next_index;	// if multiple edges then points to the next vertex to which the edge is directed
 			static unsigned index_count;
 		};
 		unsigned graph_vertices::index_count=0;
 
-		inline bool cycles_detected( std::stack< graph_vertices > A, graph_vertices G)
+		inline unsigned cycles_detected( std::stack< graph_vertices> A, graph_vertices G)
 		{
+			unsigned count=0;
+			bool flag=false;
 			while(!A.empty())
 			{
-				if(G.index == A.top().index)
+				if(G.index==A.top().index)
 				{
-					return true;
+					flag=true;
+				}
+				if(G.index == A.top().index && count>2)
+				{
+						return 2;
 				}
 				else
 				{
 					A.pop();
+					count++;
 				}
 			}
-			return false;
+			if(flag)
+				return 1;
+			else
+				return 0;
 		}
 
-		inline void search_cycles( std::stack< graph_vertices > A, graph_vertices G, unsigned trav_next_index)
+		inline void search_cycles( std::stack< graph_vertices> A, graph_vertices G, unsigned trav_next_index)
 		{
-			std::cout<<G.index<<"->";
+			std::string temp=G.name;
+			std::cout<<G.name<<"<-";
 			fflush(stdout);
 			while(G.index!=A.top().index && !A.empty())
 			{
-				std::cout<<A.top().index<<"->";
+				std::cout<<A.top().name<<"<-";
 				fflush(stdout);
 				A.pop();
 			}
+			std::cout<<temp<<"\n";
 		}
 
 #endif /* TEMP_FUNCTIONS_H_ */
