@@ -1,0 +1,55 @@
+global: x y
+
+pre: (and (= x 0) (= y 0))
+
+thread P0 {rr}:
+w1: (= x. 1)
+w2: (= y. 1)
+
+thread P1 {r1 r2}:
+d1: (= r1. y)
+d2: (= r2. x)
+d3: assert( (or (= r1 0) (= r2 1)))
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#y#w2,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#y#w2,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##
+#~
+

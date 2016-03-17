@@ -18,19 +18,23 @@ import io
 import difflib
 
 
-known_files=['../wmm-simple.ctrc',
-             '../wmm-simple-fence.ctrc',
-             '../wmm-litmus-tso.ctrc',
-             '../wmm-litmus-tso-redundant.ctrc',
-             '../wmm-litmus-tso-3-thread.ctrc',
-             '../locks.ctrc',
-             '../wmm-rmo-reduction.ctrc',
-             '../wmm-fib-1.ctrc',
-             '../wmm-fib-2.ctrc',
-             '../wmm-fib-3.ctrc',
-             '../wmm-fib-4.ctrc',
-             '../wmm-fib-5.ctrc'
-             ]
+known_files=[ '../locks.ctrc',
+              '../wmm-simple.ctrc',
+              '../wmm-simple-fence.ctrc',
+              '../wmm-litmus-mp.ctrc',
+              '../wmm-litmus-mp-s.ctrc',
+              '../wmm-litmus-wrc.ctrc',
+              '../wmm-litmus-isa2.ctrc',
+              '../wmm-litmus-sb.ctrc',
+              '../wmm-litmus-sb-redundant.ctrc',
+              '../wmm-litmus-sb-3-thread.ctrc',
+              '../wmm-rmo-reduction.ctrc',
+              '../wmm-fib-1.ctrc',
+              '../wmm-fib-2.ctrc',
+              '../wmm-fib-3.ctrc',
+              '../wmm-fib-4.ctrc',
+              '../wmm-fib-5.ctrc'
+            ]
 
 #------------------------------------------------------------------
 # General utilities

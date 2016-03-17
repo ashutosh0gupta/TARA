@@ -1,0 +1,54 @@
+global: x y
+
+pre: (and (= x 0) (= y 0))
+
+thread P0:
+w1: (= x. 2)
+w2: (= y. 1)
+
+thread P1 {r1}:
+d1: (= r1. y)
+d2: (= x. 1)
+
+post: (or (= P1.r1 0) (not (= x 2)) )
+
+################################################
+#!-r unsat_core,remove_implied,diffvar -M sc
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r unsat_core,remove_implied,diffvar -M tso
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r unsat_core,remove_implied,diffvar -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#x#d2,W#x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
+##
+#~
+
+################################################
+#!-r unsat_core,remove_implied,diffvar -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#x#d2,W#x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
+##
+#~
+
