@@ -49,8 +49,9 @@ public:
   program& operator=(const program&) = delete;
   std::vector< std::vector < bool > > build_po() const;
   //std::unordered_map<std::string,int>instr_to_MatIndex;
-  int no_of_threads() const;
-  int no_of_instructions(unsigned tid) const;
+  unsigned no_of_threads() const;
+  unsigned no_of_instructions(unsigned tid) const;
+  std::string instr_name(unsigned tid,unsigned instr_no) const;
 private:
   std::vector<std::shared_ptr<cssa::thread>> threads;
   helpers::z3interf& _z3;

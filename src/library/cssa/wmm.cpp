@@ -383,12 +383,10 @@ void program::wmm_build_sc_ppo( thread& thread ) {
     last = wrs.empty() ? rds : wrs;
   }
   phi_po = phi_po && wmm_mk_hbs( last, post_loc);
-
 }
 
 void program::wmm_build_tso_ppo( thread& thread ) {
   se_set last_rds = init_loc, last_wrs = init_loc;
-
   bool rd_occured = false;
   se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
@@ -994,9 +992,6 @@ void program::wmm_build_barrier() {
         }
       }
     }
-
-    wmm_add_barrier(0,0);
-    wmm_add_barrier(1,0);
   }
 }
 
