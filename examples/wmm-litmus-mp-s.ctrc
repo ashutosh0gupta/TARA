@@ -1,3 +1,7 @@
+# source :
+# L. Maranget, S. Sarkar, P. Sewell
+# A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
+
 global: x y
 
 pre: (and (= x 0) (= y 0))
@@ -13,7 +17,7 @@ d2: (= x. 1)
 post: (or (= P1.r1 0) (not (= x 2)) )
 
 ################################################
-#!-r unsat_core,remove_implied,diffvar -M sc
+#!-r diffvar,unsat_core,remove_implied -M sc
 ################################################
 #~
 ##
@@ -22,7 +26,7 @@ post: (or (= P1.r1 0) (not (= x 2)) )
 
 
 ################################################
-#!-r unsat_core,remove_implied,diffvar -M tso
+#!-r diffvar,unsat_core,remove_implied -M tso
 ################################################
 #~
 ##
@@ -31,7 +35,7 @@ post: (or (= P1.r1 0) (not (= x 2)) )
 
 
 ################################################
-#!-r unsat_core,remove_implied,diffvar -M pso
+#!-r diffvar,unsat_core,remove_implied -M pso
 ################################################
 #~
 ##
@@ -42,7 +46,7 @@ post: (or (= P1.r1 0) (not (= x 2)) )
 #~
 
 ################################################
-#!-r unsat_core,remove_implied,diffvar -M rmo
+#!-r diffvar,unsat_core,remove_implied -M rmo
 ################################################
 #~
 ##

@@ -1,5 +1,3 @@
-# Write to Read Causality
-
 global: x y
 
 pre: (and (= x 0) (= y 0))
@@ -7,15 +5,18 @@ pre: (and (= x 0) (= y 0))
 thread P0:
 a1: (= x. 1)
 
-thread P1 {r1}:
-b1: (= r1. x)
-b2: (= y. 1)
+thread P1:
+b1: (= y. 1)
 
-thread P2 {r2 r3}:
-c1: (= r2. y)
-c2: (= r3. x)
+thread P2 {r1 r2}:
+c1: (= r1. x)
+c2: (= r2. y)
 
-post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
+thread P3 {r3 r4}:
+d1: (= r3. y)
+d2: (= r4. x)
+
+post: (or (= P2.r1 0) (= P2.r2 1) (= P3.r3 0) (= P3.r4 1) )
 
 
 ################################################
@@ -25,7 +26,6 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ##
 ##All traces are good or infeasable.
 #~
-
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M tso
@@ -52,7 +52,7 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#b2,R#pi_y#c1) ∧ hb(R#pi_x#c2,W#x#a1) ) 
+##( hb(W#x#a1,R#pi_x#c1) ∧ hb(R#pi_y#c2,W#y#b1) ∧ hb(W#y#b1,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#a1) ) 
 ##
 #~
 

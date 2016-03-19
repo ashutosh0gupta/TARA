@@ -1,29 +1,29 @@
-# Write to Read Causality
+# source :
+# L. Maranget, S. Sarkar, P. Sewell
+# A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
 
 global: x y
 
 pre: (and (= x 0) (= y 0))
 
-thread P0:
-a1: (= x. 1)
+thread P0 {r1}:
+w1: (= r1. x)
+w2: assume(= r1 1)
+w3: (= y. r1)
 
-thread P1 {r1}:
-b1: (= r1. x)
-b2: (= y. 1)
+thread P1 {r2}:
+d1: (= r2. y)
+d2: assume(= r2 1)
+d3: (= x. r2)
 
-thread P2 {r2 r3}:
-c1: (= r2. y)
-c2: (= r3. x)
-
-post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
-
+post: (= P0.r1 P1.r2)
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
 ################################################
 #~
 ##
-##All traces are good or infeasable.
+##All traces are bad or infeasable.
 #~
 
 
@@ -32,7 +32,7 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ################################################
 #~
 ##
-##All traces are good or infeasable.
+##All traces are bad or infeasable.
 #~
 
 
@@ -41,7 +41,7 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ################################################
 #~
 ##
-##All traces are good or infeasable.
+##All traces are bad or infeasable.
 #~
 
 
@@ -50,9 +50,6 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ################################################
 #~
 ##
-##Final result
-##Bad DNF
-##( hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#b2,R#pi_y#c1) ∧ hb(R#pi_x#c2,W#x#a1) ) 
-##
+##All traces are bad or infeasable.
 #~
 
