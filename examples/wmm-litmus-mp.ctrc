@@ -37,7 +37,7 @@ d3: assert( (or (= r1 0) (= r2 1)))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#y#w2,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
 ##
 #~
 
@@ -49,7 +49,7 @@ d3: assert( (or (= r1 0) (= r2 1)))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#y#w2,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
 ##
 #~
 

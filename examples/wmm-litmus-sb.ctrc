@@ -12,25 +12,47 @@ d2: (= r. x)
 
 post: (or (= P0.rr 1) (= P1.r 1))
 
-##########################################
-# tso/pso/rmo should produce same result #
-#! -r diffvar,unsat_core,remove_implied -M tso
-#! -r diffvar,unsat_core,remove_implied -M pso
-#! -r diffvar,unsat_core,remove_implied -M rmo
-##########################################
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
 #~
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_y#w2,W#y#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(R#pi_y#w2,W#y#d1) ) 
 ##
 #~
 
-########################################
-# sc                                   #
-#! -r diffvar,unsat_core,remove_implied -M sc
-########################################
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(R#pi_y#w2,W#y#d1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(R#pi_y#w2,W#y#d1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
 #~
 ##
 ##All traces are good or infeasable.
 #~
+

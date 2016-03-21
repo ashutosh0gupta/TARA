@@ -63,8 +63,14 @@ public:
   
   static void create_dnf(const z3::expr& formula, result_type& result, const tara::hb_enc::encoding& hb_encoding);
   static void print_one(std::ostream& stream, bool machine_readable, const result_type& result, bool dnf_not_cnf);
+  //--------------------------------------------------------------------------
+  //start of wmm support
+  //--------------------------------------------------------------------------
   void get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const;
-
+  static void sort_result( nf::result_type& result );
+  //--------------------------------------------------------------------------
+  //end of wmm support
+  //--------------------------------------------------------------------------
 private:
   mutable result_type result_bad_dnf;
   mutable result_type result_bad_cnf;

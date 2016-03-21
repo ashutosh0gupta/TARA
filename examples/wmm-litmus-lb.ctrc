@@ -51,7 +51,7 @@ post: (or (not (= P0.r1 1)) (not (= P1.r2 1)) )
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#y#w2,R#pi_y#d1) ∧ hb(W#x#d2,R#pi_x#w1) ) 
+##( hb(W#x#d2,R#pi_x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
 ##
 #~
 

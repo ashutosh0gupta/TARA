@@ -256,7 +256,23 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   }
 }
 
+//----------------------------------------------------------------------------
+// coherence preserving code
+// po-loc must be compatible with
+// n - nothing to do
+// r - relaxed
+// u - not visible
+// (pp-loc)/(ses)
+//                     sc   tso   pso   rmo
+//  - ws      (w->w)   n/n  n/n   n/n   n/n
+//  - fr      (r->w)   n/n  r/n   r/n   r/n
+//  - fr;rf   (r->r)   n/n  n/u   n/u   r/u
+//  - rf      (w->r)   n/n  n/u   n/u   n/u
+//  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
+
 bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
+  // preventing coherence violation - rf
+  // (if rf is local then may not visible to global ordering)
   assert( wr->tid == threads.size() ||
           rd->tid == threads.size() ||
           wr->prog_v.name == rd->prog_v.name );
@@ -273,10 +289,36 @@ bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   return false;
 }
 
+bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
+  return false;
+  // preventing coherence violation - fr;
+  // (if rf is local then may not visible to global ordering)
+  // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
+  assert( wr->tid == threads.size() || rd->tid == threads.size() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() ) {
+    if( wr->tid == rd->tid && rd->e_v->instr_no > wr->e_v->instr_no ) {
+      return true;
+    }
+    //
+  }else{
+    unsupported_mm();
+  }
+  return false;
+}
+
 //----------------------------------------------------------------------------
 // Build symbolic event structure
 // In original implementation this part of constraints are
 // referred as pi constraints
+
+z3::expr program::get_rf_bvar( const variable& v1, se_ptr wr, se_ptr rd,
+                               bool record ) {
+  std::string bname = v1+"-"+wr->name()+"-"+rd->name();
+  z3::expr b = _z3.c.bool_const(  bname.c_str() );
+  if( record ) reading_map.insert( std::make_tuple(bname,wr,rd) );
+  return b;
+}
 
 void program::wmm_build_ses() {
   // For each global variable we need to construct
@@ -286,20 +328,27 @@ void program::wmm_build_ses() {
   // - fr  from read
   // - ws  write serialization
 
-  z3::context& c = _z3.c;
+  // z3::context& c = _z3.c;
 
   for( const variable& v1 : globals ) {
     const auto& rds = rd_events[v1];
     const auto& wrs = wr_events[v1];
+    unsigned c_tid = 0;
+    se_set tid_rds;
     for( const se_ptr& rd : rds ) {
       z3::expr some_rfs = _z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
+      if( rd->tid != c_tid ) {
+        tid_rds.clear();
+        c_tid = rd->tid;
+      }
       for( const se_ptr& wr : wrs ) {
         if( anti_ppo_read( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr(v1);
-        std::string bname = v1+"-"+wr->name()+"-"+rd->name();
-        z3::expr b = c.bool_const(  bname.c_str() );
-        reading_map.insert( std::make_tuple(bname,wr,rd) );
+        // std::string bname = v1+"-"+wr->name()+"-"+rd->name();
+        // z3::expr b = c.bool_const(  bname.c_str() );
+        // reading_map.insert( std::make_tuple(bname,wr,rd) );
+        z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
         // well formed
@@ -313,11 +362,21 @@ void program::wmm_build_ses() {
         for( const se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && wmm_mk_ghb(wr, after_wr) && after_wr->guard;
-            fr = fr && implies( cond , wmm_mk_ghb( rd, after_wr ) );
+            if( anti_po_loc_fr( rd, after_wr ) ) {
+              fr = fr && !cond;
+            }else{
+              auto new_fr = wmm_mk_ghb( rd, after_wr );
+              for( auto before_rd : tid_rds ) {
+                z3::expr anti_coherent_b = get_rf_bvar( v1, after_wr, before_rd, false );
+                new_fr = !anti_coherent_b && new_fr;
+              }
+              fr = fr && implies( cond , new_fr );
+            }
           }
         }
       }
       wf = wf && implies( rd->guard, some_rfs );
+      tid_rds.insert( rd );
     }
 
     // write serialization
@@ -664,7 +723,7 @@ void program::wmm_build_post(const input::program& input,
       variable nname(_z3.c);
       nname = v + "#post";
       post_loc.insert( rd );
-      rd_events[v].insert( rd );
+      rd_events[v].push_back( rd );
     }
 
     z3::expr_vector src(_z3.c), dst(_z3.c);
@@ -863,6 +922,8 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
   return new_ord;
 }
 
+//----------------------------------------------------------------------------
+
 void program::wmm_add_barrier(int tid, int instr) {
   //assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
   thread & thread= *threads[tid];
@@ -1036,7 +1097,7 @@ void program::wmm_build_ssa( const input::program& input ) {
               se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
                                      thread[i].loc, event_kind_t::r );
               thread[i].rds.insert( rd );
-              rd_events[v].insert( rd );
+              rd_events[v].push_back( rd );
               dep_ses.insert( rd );
             }else{
               v = thread.name + "." + v;

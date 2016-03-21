@@ -15,7 +15,31 @@ a2: (= uuid. (+ uuid 1))
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(R#pi_uuid#b2,W#uuid#a2) ∨
+##hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) 
+##
+#~
+
+
+################################################
 #!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##hb(R#pi_uuid#b2,W#uuid#a2) ∨
+##hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) 
+##
+#~
+
+
+################################################
 #!-r diffvar,unsat_core,remove_implied -M pso
 ################################################
 #~
@@ -27,6 +51,7 @@ a2: (= uuid. (+ uuid 1))
 ##
 #~
 
+
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M rmo
 ################################################
@@ -34,7 +59,8 @@ a2: (= uuid. (+ uuid 1))
 ##
 ##Final result
 ##Bad DNF
-##hb(R#pi_uuid#b2,W#uuid#a2) ∨
-##( hb(R#pi_STATE_SENT#a1,W#STATE_SENT#b3) ∧ hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) ) 
+##( hb(R#pi_STATE_SENT#a1,W#STATE_SENT#b3) ∧ hb(W#STATE_SENT#b1,R#pi_STATE_SENT#a1) ) ∨
+##hb(R#pi_uuid#b2,W#uuid#a2) 
 ##
 #~
+

@@ -26,9 +26,22 @@ known_files=[ '../locks.ctrc',
               '../wmm-litmus-wrc.ctrc',
               '../wmm-litmus-isa2.ctrc',
               '../wmm-litmus-sb.ctrc',
+              '../wmm-litmus-sb-2+2w.ctrc',
+              '../wmm-litmus-sb-3-thread.ctrc',
+              '../wmm-litmus-sb-r.ctrc',
               '../wmm-litmus-iriw.ctrc',
               '../wmm-litmus-sb-redundant.ctrc',
               '../wmm-litmus-sb-3-thread.ctrc',
+              '../wmm-litmus-corr0.ctrc',
+              '../wmm-litmus-corr2.ctrc',
+              '../wmm-litmus-corw1.ctrc',
+              '../wmm-litmus-coww.ctrc',
+              '../wmm-litmus-corr1.ctrc',
+#              '../wmm-litmus-corw.ctrc',
+              '../wmm-litmus-cowr.ctrc',
+              '../wmm-litmus-lb-ctrl.ctrc',
+              '../wmm-litmus-lb-data.ctrc',
+              '../wmm-litmus-lb.ctrc',
               '../wmm-rmo-reduction.ctrc',
               '../wmm-fib-1.ctrc',
               '../wmm-fib-2.ctrc',
@@ -36,6 +49,9 @@ known_files=[ '../locks.ctrc',
               '../wmm-fib-4.ctrc',
               '../wmm-fib-5.ctrc'
             ]
+
+#wmm-litmus-sb-self-read.ctrc
+        
 
 #------------------------------------------------------------------
 # General utilities
@@ -80,14 +96,14 @@ class example:
     def populate_runs( self, options, output ):
         for o in options:
             self.count = self.count + 1
-            printf( "[test %d]...", self.count )
+            printf( "[%d..", self.count )
             result = self.execute_example(o)
             if result == output:
-                printf( "[passed]\n" )
+                printf( "pass] " )
             else:
-                printf( "[failed]\n" )
-                printf( "options were: %s \n", o)
-                process_diff( output, result )
+                printf( "fail]\n" )
+                printf( "call: %s %s %s\n", bin_name, o, self.filename)
+                # process_diff( output, result )
                 
     def load_running_cases(self):
         with open(self.filename, 'r') as f:
@@ -108,6 +124,7 @@ class example:
                         options.append( line[2:-1] )
                     if line[:2] == '#~' :
                         started = True
+            printf( "\n" )
 
     def __init__( self, fname ):
         self.filename = fname

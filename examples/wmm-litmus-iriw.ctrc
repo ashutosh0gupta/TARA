@@ -27,6 +27,7 @@ post: (or (= P2.r1 0) (= P2.r2 1) (= P3.r3 0) (= P3.r4 1) )
 ##All traces are good or infeasable.
 #~
 
+
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M tso
 ################################################
@@ -52,7 +53,7 @@ post: (or (= P2.r1 0) (= P2.r2 1) (= P3.r3 0) (= P3.r4 1) )
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#x#a1,R#pi_x#c1) ∧ hb(R#pi_y#c2,W#y#b1) ∧ hb(W#y#b1,R#pi_y#d1) ∧ hb(R#pi_x#d2,W#x#a1) ) 
+##( hb(R#pi_x#d2,W#x#a1) ∧ hb(R#pi_y#c2,W#y#b1) ∧ hb(W#x#a1,R#pi_x#c1) ∧ hb(W#y#b1,R#pi_y#d1) ) 
 ##
 #~
 

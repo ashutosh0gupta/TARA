@@ -47,8 +47,6 @@ post: (or (not (= P1.r1 2)) (not (= P1.r2 1)) )
 ################################################
 #~
 ##
-##Final result
-##Bad DNF
-##( hb(W#x#w1,R#pi_x#d1) ∧ hb(R#pi_x#d2,W#x#w1) ) 
-##
+##All traces are good or infeasable.
 #~
+

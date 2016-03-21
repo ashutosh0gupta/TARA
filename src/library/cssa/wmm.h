@@ -112,10 +112,13 @@ namespace cssa {
   };
 
   typedef std::unordered_set<se_ptr, se_hash, se_equal> se_set;
+  typedef std::vector<se_ptr> se_vec;
 
   typedef std::unordered_map<variable, se_ptr, variable_hash, variable_equal> var_to_se_map;
 
   typedef std::unordered_map<variable, se_set, variable_hash, variable_equal> var_to_ses_map;
+
+  typedef std::unordered_map<variable, se_vec, variable_hash, variable_equal> var_to_se_vec_map;
 
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 

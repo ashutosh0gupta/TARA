@@ -108,6 +108,12 @@ public:
   void debug_print(std::ostream& stream );
   
   hb negate() const;
+
+  friend bool operator< (const hb& hb1, const hb& hb2);
+  // static bool hb_cmp(hb& hb1, hb& hb2) {
+  //   return hb1.loc1->name < hb2.loc1->name ||
+  //     ( hb1.loc1->name ==  hb2.loc1->name &&
+  //       hb1.loc2->name < hb1.loc2->name );}
 private:
   z3::expr expr;
   uint32_t _signature = 0;

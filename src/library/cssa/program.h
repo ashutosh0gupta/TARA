@@ -81,7 +81,7 @@ public:
   se_set init_loc;
   se_set post_loc;
   var_to_ses_map wr_events;
-  var_to_ses_map rd_events;
+  var_to_se_vec_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
   // class isEq{
   // public:
@@ -123,6 +123,9 @@ private:
   bool hb_eval( const z3::model& model,
                 const cssa::se_ptr& before, const cssa::se_ptr& after );
 
+  z3::expr get_rf_bvar( const variable& v1, se_ptr wr, se_ptr rd,
+                        bool record=true );
+
   void wmm_build_sc_ppo   ( thread& thread );
   void wmm_build_tso_ppo  ( thread& thread );
   void wmm_build_pso_ppo  ( thread& thread );
@@ -137,6 +140,7 @@ private:
 
   bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   bool anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
+  bool anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr );
   void unsupported_mm();
 
 private:

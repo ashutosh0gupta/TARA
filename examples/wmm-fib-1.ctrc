@@ -20,8 +20,8 @@ post: (and (< i 3) (< j 3))
 ##
 ##Final result
 ##Bad DNF
-##hb(W#j#b2,R#pi_j#a1) ∨
-##hb(W#i#a2,R#pi_i#b1) 
+##hb(W#i#a2,R#pi_i#b1) ∨
+##hb(W#j#b2,R#pi_j#a1) 
 ##
 #~
 
@@ -33,8 +33,8 @@ post: (and (< i 3) (< j 3))
 ##
 ##Final result
 ##Bad DNF
-##hb(W#j#b2,R#pi_j#a1) ∨
-##hb(W#i#a2,R#pi_i#b1) 
+##hb(W#i#a2,R#pi_i#b1) ∨
+##hb(W#j#b2,R#pi_j#a1) 
 ##
 #~
 
@@ -46,8 +46,8 @@ post: (and (< i 3) (< j 3))
 ##
 ##Final result
 ##Bad DNF
-##hb(W#j#b2,R#pi_j#a1) ∨
-##hb(W#i#a2,R#pi_i#b1) 
+##hb(W#i#a2,R#pi_i#b1) ∨
+##hb(W#j#b2,R#pi_j#a1) 
 ##
 #~
 
@@ -59,8 +59,8 @@ post: (and (< i 3) (< j 3))
 ##
 ##Final result
 ##Bad DNF
-##hb(W#j#b2,R#pi_j#a1) ∨
-##hb(W#i#a2,R#pi_i#b1) 
+##hb(W#i#a2,R#pi_i#b1) ∨
+##hb(W#j#b2,R#pi_j#a1) 
 ##
 #~
 

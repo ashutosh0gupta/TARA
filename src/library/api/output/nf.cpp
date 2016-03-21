@@ -84,6 +84,19 @@ void nf::prune_simple(nf::result_type& result, const z3::expr& po)
   z3interf::remove_implied<row_type>(po, result, translator);
 }
 
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+void nf::sort_result( nf::result_type& result ) {
+  for(list<row_type>::iterator it = result.begin(); it != result.end(); it++) {
+    row_type& conj = *it;
+    conj.sort();
+  }
+  result.sort();
+}
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
 
 void nf::get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const
 {
@@ -371,6 +384,7 @@ const nf::result_type& nf::get_result(bool bad_not_good, bool dnf_not_cnf) const
       prune_implied_outside(result, *sol_bad);
       prune_simple(result, program->phi_po);
     }
+    sort_result( result );
   }
   else if (!bad_not_good && dnf_not_cnf) {
     create_dnf(!*_output, result, *_hb_encoding);
@@ -378,6 +392,7 @@ const nf::result_type& nf::get_result(bool bad_not_good, bool dnf_not_cnf) const
       prune_implied_within(result, *sol_bad);
       prune_implied_outside(result, *sol_good);
     }
+    sort_result( result );
   }
   else if (bad_not_good && !dnf_not_cnf) {
     result = get_result(false, true);

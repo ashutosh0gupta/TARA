@@ -128,6 +128,13 @@ bool hb::operator!=(const hb &other) const {
   return !(*this == other);
 }
 
+bool operator< (const hb& hb1, const hb& hb2)
+{
+  return hb1.loc1->name < hb2.loc1->name ||
+    ( hb1.loc1->name ==  hb2.loc1->name &&
+      hb1.loc2->name < hb1.loc2->name );
+}
+
 ostream& operator<< (std::ostream& stream, const hb& hb) {
   stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
   return stream;

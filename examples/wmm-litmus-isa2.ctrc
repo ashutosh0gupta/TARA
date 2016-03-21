@@ -44,7 +44,7 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#y#a2,R#pi_y#b1) ∧ hb(W#z#b2,R#pi_z#c1) ∧ hb(R#pi_x#c2,W#x#a1) ) 
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#y#a2,R#pi_y#b1) ∧ hb(W#z#b2,R#pi_z#c1) ) 
 ##
 #~
 
@@ -56,7 +56,7 @@ post: (or (= P1.r1 0) (= P2.r2 0) (= P2.r3 1) )
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#y#a2,R#pi_y#b1) ∧ hb(W#z#b2,R#pi_z#c1) ∧ hb(R#pi_x#c2,W#x#a1) ) 
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#y#a2,R#pi_y#b1) ∧ hb(W#z#b2,R#pi_z#c1) ) 
 ##
 #~
 

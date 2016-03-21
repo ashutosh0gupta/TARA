@@ -16,7 +16,6 @@ a4: (= i. (+ i l1))
 
 post: (and (< i 8) (< j 8))
 
-
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
 ################################################
@@ -24,8 +23,8 @@ post: (and (< i 8) (< j 8))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#j#b4,R#pi_j#a3) ∧ hb(W#i#a2,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a1) ) ∨
-##( hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#j#b2,R#pi_j#a3) ) 
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a3) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ) 
 ##
 #~
 
@@ -37,8 +36,8 @@ post: (and (< i 8) (< j 8))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#i#a2,R#pi_i#b3) ) ∨
-##( hb(W#j#b2,R#pi_j#a3) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ) 
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a3) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ) 
 ##
 #~
 
@@ -50,8 +49,8 @@ post: (and (< i 8) (< j 8))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#i#a2,R#pi_i#b3) ) ∨
-##( hb(W#j#b2,R#pi_j#a3) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ) 
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a3) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ) 
 ##
 #~
 
@@ -63,8 +62,8 @@ post: (and (< i 8) (< j 8))
 ##
 ##Final result
 ##Bad DNF
-##( hb(W#j#b4,R#pi_j#a3) ∧ hb(R#pi_i#b3,W#i#a4) ∧ hb(R#pi_j#a1,W#j#b4) ∧ hb(W#i#a2,R#pi_i#b3) ∧ hb(R#pi_i#b1,W#i#a2) ∧ hb(W#j#b2,R#pi_j#a1) ) ∨
-##( hb(W#i#a2,R#pi_i#b1) ∧ hb(R#pi_j#a1,W#j#b2) ∧ hb(R#pi_i#b1,W#i#a4) ∧ hb(R#pi_j#a3,W#j#b4) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#i#a4,R#pi_i#b3) ) 
+##( hb(R#pi_i#b1,W#i#a2) ∧ hb(R#pi_i#b3,W#i#a4) ∧ hb(R#pi_j#a1,W#j#b4) ∧ hb(W#i#a2,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ) ∨
+##( hb(R#pi_i#b1,W#i#a4) ∧ hb(R#pi_j#a1,W#j#b2) ∧ hb(R#pi_j#a3,W#j#b4) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#j#b2,R#pi_j#a3) ) 
 ##
 #~
 
