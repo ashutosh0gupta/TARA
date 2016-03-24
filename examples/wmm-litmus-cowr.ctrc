@@ -2,22 +2,18 @@
 # L. Maranget, S. Sarkar, P. Sewell
 # A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
 
-# - deviated from the original example 
-
 global: x
 
 pre: (and (= x 0))
 
-thread P0 {r1 r2 r3}:
+thread P0 {r1}:
 a1: (= x. 1)
-l1: (= r1. x)
-l2: (= r2. x)
-l3: (= r3. x)
+a2: (= r1. x)
 
 thread P1 :
 b1: (= x. 2)
 
-post: (or (not (= P0.r1 2)) (not (= P0.r2 1)) (not (= P0.r3 2)))
+post: (or (not (= P0.r1 2)) (not (= x 1)) )
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc

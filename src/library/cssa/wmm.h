@@ -72,6 +72,18 @@ namespace cssa {
       return et == event_kind_t::pre;
     }
 
+    inline bool is_rd() const {
+      return et == event_kind_t::r;
+    }
+
+    inline bool is_wr() const {
+      return et == event_kind_t::w;
+    }
+
+    inline unsigned get_instr_no() const {
+      return e_v->instr_no;
+    }
+
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
       stream << var.name();
@@ -82,20 +94,27 @@ namespace cssa {
   };
 
   typedef std::shared_ptr<symbolic_event> se_ptr;
+  typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
                            unsigned _tid, unsigned _instr_no,
                            const variable& _v, const variable& _prog_v,
-                           hb_enc::location_ptr _loc, event_kind_t _et ) {
-    return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                           hb_enc::location_ptr _loc, event_kind_t _et,
+                           name_to_ses_map& se_store ) {
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
                                             _v, _prog_v, _loc, _et);
+    se_store[e->name()] = e;
+    return e;
   }
 
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
                            unsigned _tid, unsigned _instr_no,
-                           hb_enc::location_ptr _loc, event_kind_t _et ) {
-    return std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                           hb_enc::location_ptr _loc, event_kind_t _et,
+                           name_to_ses_map& se_store ) {
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
                                             _loc, _et);
+    se_store[e->name()] = e;
+    return e;
   }
 
   struct se_hash {
@@ -121,6 +140,7 @@ namespace cssa {
   typedef std::unordered_map<variable, se_vec, variable_hash, variable_equal> var_to_se_vec_map;
 
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
+
 
   void debug_print_se_set(const se_set& set, std::ostream& out);
 

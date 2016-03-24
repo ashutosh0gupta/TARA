@@ -1,16 +1,72 @@
-global: nondet_int m x y z balance
+global: nondet_int m x y z balance lock w_finished d_finished
 
-pre: (and (= balance x) (= deposit_done 0) (= withdraw_done 0) (> y 0) (> z 0))
+pre: (and (= balance x) (> y 0) (> z 0) (= lock 0) (= w_finished 0) (= d_finished 0))
 
 thread withdraw_thread { withdraw_thread::l2 }:
-w1: (= |withdraw_thread::l2.| balance)
-w2: (= balance. (- |withdraw_thread::l2| z))
+a1: assume(= lock 0)
+a2: (= lock. 1)
+a3: (= |withdraw_thread::l2.| balance)
+a4: (= balance. (- |withdraw_thread::l2| z))
+a5: (= lock. 0)
+a6: (= w_finished. 1)
 
 thread deposit_thread { deposit_thread::l }:
-d1: (= |deposit_thread::l.| balance)
-d2: (= balance. (+ |deposit_thread::l| y))
+b1: assume(= lock 0)
+b2: (= lock. 2)
+b3: (= |deposit_thread::l.| balance)
+b4: (= balance. (+ |deposit_thread::l| y))
+b5: (= lock. 0)
+b6: (= d_finished. 1)
 
-post: (= balance (- (+ x y) z))
+post: (implies (and (= d_finished 1) (= w_finished 1) ) (= balance (- (+ x y) z)) )
+# post: (= balance (- (+ x y) z))
 
 # Bugs: DR
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_balance#d1,W#balance#w2) ∧ hb(R#pi_balance#w1,W#balance#d2) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_balance#d1,W#balance#w2) ∧ hb(R#pi_balance#w1,W#balance#d2) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_balance#d1,W#balance#w2) ∧ hb(R#pi_balance#w1,W#balance#d2) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_balance#d1,W#balance#w2) ∧ hb(R#pi_balance#w1,W#balance#d2) ) 
+##
+#~
 

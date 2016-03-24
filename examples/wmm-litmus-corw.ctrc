@@ -15,7 +15,7 @@ a2: (= x. 1)
 thread P1 :
 b1: (= x. 2)
 
-post: (or (not (= x 2)) (not (= P0.r2 1)) (not (= P0.r2 2)))
+post: (or (not (= x 2)) (not (= P0.r1 2)) )
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc

@@ -187,7 +187,7 @@ void tara::cssa::debug_print_se_set(const se_set& set, std::ostream& out) {
 // hb utilities
 
 bool program::hb_eval( const z3::model& m,
-                       const cssa::se_ptr& before, const cssa::se_ptr& after ) {
+                       const cssa::se_ptr& before, const cssa::se_ptr& after ) const{
   return _hb_encoding.eval_hb( m, before->e_v, after->e_v );
 }
 
@@ -290,7 +290,6 @@ bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
 }
 
 bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
-  return false;
   // preventing coherence violation - fr;
   // (if rf is local then may not visible to global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
@@ -675,7 +674,7 @@ void program::wmm_build_pre(const input::program& input) {
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
   se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
-                         _init_l, event_kind_t::pre );
+                         _init_l, event_kind_t::pre, se_store );
   wr->guard = _z3.c.bool_val(true);
   init_loc.insert(wr);
   for( const variable& v : globals ) {
@@ -716,7 +715,7 @@ void program::wmm_build_post(const input::program& input,
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
     se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
-                           _end_l, event_kind_t::post );
+                           _end_l, event_kind_t::post, se_store );
     rd->guard = _z3.c.bool_val(true);
 
     for( const variable& v : globals ) {
@@ -908,7 +907,7 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
 
   //todo : prepage contraints for barrier
   se_ptr new_barr = mk_se_ptr( _z3.c, _hb_encoding, tid, instr, thread[instr].loc,
-                               event_kind_t::barr );
+                               event_kind_t::barr, se_store );
   z3::expr new_ord(_z3.c);
   if(is_mm_tso()) {
     new_ord = wmm_insert_tso_barrier( thread, instr, new_barr );
@@ -1095,7 +1094,7 @@ void program::wmm_build_ssa( const input::program& input ) {
             if ( is_global(v) ) {
               nname =  "pi_"+ v + "#" + thread[i].loc->name;
               se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
-                                     thread[i].loc, event_kind_t::r );
+                                     thread[i].loc, event_kind_t::r,se_store);
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( rd );
@@ -1124,7 +1123,7 @@ void program::wmm_build_ssa( const input::program& input ) {
               nname = v1 + "#" + thread[i].loc->name;
               //insert write symbolic event
               se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
-                                     thread[i].loc, event_kind_t::w );
+                                     thread[i].loc, event_kind_t::w,se_store);
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
               dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
@@ -1153,7 +1152,7 @@ void program::wmm_build_ssa( const input::program& input ) {
           if( is_global(v1) ) {
             nname = v1 + "#" + thread[i].loc->name;
             se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
-                                   thread[i].loc,event_kind_t::w );
+                                   thread[i].loc,event_kind_t::w, se_store);
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
             dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
@@ -1199,7 +1198,7 @@ void program::wmm_build_ssa( const input::program& input ) {
         if( is_barrier( instr->type) ) {
           //todo : prepage contraints for barrier
           se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
-                                   thread[i].loc, event_kind_t::barr );
+                                   thread[i].loc, event_kind_t::barr,se_store);
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i}); // for shikhar code
         }

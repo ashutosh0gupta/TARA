@@ -2,25 +2,22 @@
 # L. Maranget, S. Sarkar, P. Sewell
 # A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
 
-# Write to Read Causality
+# - deviated from the original example 
 
-global: x y
+global: x
 
-pre: (and (= x 0) (= y 0))
+pre: (and (= x 0))
 
-thread P0:
+thread P0 {r1 r2 r3}:
 a1: (= x. 1)
+l1: (= r1. x)
+l2: (= r2. x)
+l3: (= r3. x)
 
-thread P1 {r1}:
-b1: (= r1. x)
-b2: (= y. 1)
+thread P1 :
+b1: (= x. 2)
 
-thread P2 {r2 r3}:
-c1: (= r2. y)
-c2: (= r3. x)
-
-post: (not (and (= P1.r1 1) (= P2.r2 1) (= P2.r3 0) ) )
-
+post: (or (not (= P0.r1 2)) (not (= P0.r2 1)) (not (= P0.r3 2)))
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
@@ -54,9 +51,6 @@ post: (not (and (= P1.r1 1) (= P2.r2 1) (= P2.r3 0) ) )
 ################################################
 #~
 ##
-##Final result
-##Bad DNF
-##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#b2,R#pi_y#c1) ) 
-##
+##All traces are good or infeasable.
 #~
 

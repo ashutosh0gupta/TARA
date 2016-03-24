@@ -77,6 +77,7 @@ private:
   //--------------------------------------------------------------------------
 
 public:
+  name_to_ses_map se_store;
   se_to_ses_map dependency_relation;
   se_set init_loc;
   se_set post_loc;
@@ -121,7 +122,7 @@ private:
   z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
 
   bool hb_eval( const z3::model& model,
-                const cssa::se_ptr& before, const cssa::se_ptr& after );
+                const cssa::se_ptr& before, const cssa::se_ptr& after ) const;
 
   z3::expr get_rf_bvar( const variable& v1, se_ptr wr, se_ptr rd,
                         bool record=true );

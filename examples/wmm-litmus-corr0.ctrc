@@ -16,7 +16,6 @@ d2: (= r2. x)
 
 post: (or (not (= P1.r1 2)) (not (= P1.r2 1)) )
 
-######## ERASE TESTS ABOVE #######
 
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
