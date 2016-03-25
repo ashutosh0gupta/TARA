@@ -182,18 +182,41 @@ void barrier_synthesis::output(const z3::expr& output)
 }
 
 edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
+
+  if( !program->is_mm_sc() && !program->is_mm_sc() &&
+      !program->is_mm_pso() && !program->is_mm_rmo() )
+    program->unsupported_mm();
+
   assert( before->tid == after->tid );
   unsigned b_num = before->get_instr_no();
   unsigned a_num = after->get_instr_no();
   assert( b_num <= a_num);
-  if( program->is_mm_sc() )
   if( a_num == b_num ) {
-    // if( before->is_rd() && after->is_wr() ) return true;
-    // return false;
+    if( before->is_rd() && after->is_wr() ) return edge_type::ppo;
+    return edge_type::rpo;
   }
+  if( program->has_barrier_in_range( before->tid, b_num, a_num ) )
+    return edge_type::ppo;
 
   if( program->is_mm_sc() ) {
+    return edge_type::ppo;
+  }else if( program->is_mm_tso() ) {
+    if( before->is_wr() && after->is_rd() ) return edge_type::rpo;
+    return edge_type::ppo;
+  }else if( program->is_mm_pso() ) {
+    if( before->is_rd() ) return edge_type::ppo;
+    if( before->is_wr() && after->is_rd() ) return edge_type::rpo;
+    if( before->prog_v == after->prog_v ) return edge_type::ppo;
+    return edge_type::rpo;
+  }else if( program->is_mm_rmo() ) {
+    if( after->is_rd() ) return edge_type::rpo;
+    if( before->prog_v == after->prog_v ) return edge_type::ppo;
+    if( before->is_wr() ) return edge_type::rpo;
+    auto& deps = program->dependency_relation.at(after);
+    if( deps.find(before) != deps.end() ) return edge_type::ppo;
+    return edge_type::rpo;
   }else{
+    program->unsupported_mm();
   }
   return edge_type::ppo;//todo for each memory type
 }
@@ -220,8 +243,7 @@ typedef  set< pair<se_ptr,se_ptr> > hb_conj;
 // typedef  vector< hb_conj > se_cnf;
 
 void barrier_synthesis::find_cycles(nf::result_type& cnf) {
-
-  vector<vector<cycle>> all_cycles;
+  all_cycles.clear();
   all_cycles.resize( cnf.size() );
   unsigned cnf_num = 0;
   for( auto c : cnf ) {
@@ -297,6 +319,28 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
   }
 }
 
+void barrier_synthesis::print(ostream& stream, bool machine_readable) const
+{
+  if (print_nfs && !machine_readable)
+    normal_form.print(stream, false);
+  stream << "barrier synthesis printing code is not written!!\n";
+  // print locks and wait-notifies
+  // if (!machine_readable) stream << "Locks: ";
+  // for (auto l:locks) {
+  //   stream << l << " ";
+  // }
+  // stream << endl;
+  // if (!machine_readable) stream << "Barriers: ";
+  // for (auto b:barriers) {
+  //   stream << b << " ";
+  // }
+  // stream << endl;
+  // if (!machine_readable) stream << "Wait-notifies: ";
+  // for (auto hb:wait_notifies) {
+  //   stream << hb << " ";
+  // }
+  stream << endl;
+}
 
 void barrier_synthesis::gather_statistics(api::metric& metric) const
 {

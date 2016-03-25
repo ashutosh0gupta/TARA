@@ -30,6 +30,7 @@ enum class modes {
   seperate,
   as,
   synthesis,
+  wmm_synthesis,//wmm support
   bugs,
 };
 

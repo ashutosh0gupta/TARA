@@ -41,7 +41,7 @@ void options_cmd::get_description_cmd(po::options_description& desc, po::positio
   ("help,h", "produce help message")
   ("input,i", po::value(&input_file), "file to process")
   ("config,c", po::value<string>(), "a config file to parse")
-  ("mode,o", po::value<string>()->default_value("seperate"), "selects the mode of operation (\"seperate\",\"as\",\"synthesis\",\"bugs\")")
+  ("mode,o", po::value<string>()->default_value("seperate"), "selects the mode of operation (\"seperate\",\"as\",\"synthesis\",\"bugs\",\"wmm_synthesis\")")
   ("ofile,f", po::bool_switch(&output_to_file), "append the output to the end of the input file")
   ("metric", po::bool_switch(&output_metric), "outputs statistics about the run")
   ;
@@ -91,6 +91,8 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       mode = modes::as;
     else if (_mode == "synthesis")
       mode = modes::synthesis;
+    else if (_mode == "wmm_synthesis")
+      mode = modes::wmm_synthesis;
     else if (_mode == "bugs")
       mode = modes::bugs;
     else {

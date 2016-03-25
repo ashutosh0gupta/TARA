@@ -240,7 +240,7 @@ z3::expr program::wmm_mk_ghb( const cssa::se_ptr& before,
 //----------------------------------------------------------------------------
 // memory model utilities
 
-void program::unsupported_mm() {
+void program::unsupported_mm() const {
   std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
   throw cssa_exception( msg.c_str() );
 }
@@ -254,6 +254,15 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
     unsupported_mm();
     return false;
   }
+}
+
+bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
+                                    unsigned end_inst_num ) const {
+  const thread& thread = *threads[tid];
+  for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
+    if( is_barrier( thread[i].type ) ) return true;
+  }
+  return false;
 }
 
 //----------------------------------------------------------------------------

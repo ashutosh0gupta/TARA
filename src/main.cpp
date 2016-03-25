@@ -28,6 +28,7 @@
 #include <api/output/nf.h>
 #include <api/output/smt.h>
 #include <api/output/synthesis.h>
+#include <api/output/barrier_synthesis.h> // support for wmm
 #include <api/output/bugs.h>
 #include <helpers/helpers.h>
 #include "options_cmd.h"
@@ -178,10 +179,12 @@ void real_main(int argc, char **argv) {
   }*/
   
   bool synthesise = o.mode == modes::synthesis;
+  bool wmm_synthesis = o.mode == modes::wmm_synthesis;
   bool bugs = o.mode == modes::bugs;
   switch (o.mode) {
     case modes::bugs:
     case modes::synthesis:
+    case modes::wmm_synthesis:
     case modes::seperate: {
       bool silent = false;
       unique_ptr<output::output_base> output;
@@ -194,7 +197,7 @@ void real_main(int argc, char **argv) {
           if (p=="verify") verify = true;
           else if (p=="nfs") print_nfs = true;
         }
-        output = synthesise ? unique_ptr<output::output_base>(new output::synthesis(verify, print_nfs)) : unique_ptr<output::output_base>(new output::bugs(verify, print_nfs)) ;
+        output = wmm_synthesis ? unique_ptr<output::output_base>(new output::barrier_synthesis(verify, print_nfs)) : synthesise ? unique_ptr<output::output_base>(new output::synthesis(verify, print_nfs)) : unique_ptr<output::output_base>(new output::bugs(verify, print_nfs)) ;
       } else {
         bool bad_dnf = false;
         bool bad_cnf = false;

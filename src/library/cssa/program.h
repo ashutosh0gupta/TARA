@@ -142,7 +142,6 @@ private:
   bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   bool anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   bool anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr );
-  void unsupported_mm();
 
 private:
   mm_t mm = mm_t::none;
@@ -158,7 +157,9 @@ public:
   bool is_mm_power() const;
   void set_mm( mm_t );
   mm_t get_mm() const;
-
+  void unsupported_mm() const;
+  bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
+                             unsigned end_inst_num ) const;
   z3::expr wf      = _z3.c.bool_val(true);
   z3::expr rf      = _z3.c.bool_val(true);
   z3::expr grf     = _z3.c.bool_val(true);
