@@ -58,7 +58,6 @@ post: (and (< i 21) (< j 21))
 ##
 #~
 
-
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M rmo
 ################################################
@@ -66,8 +65,8 @@ post: (and (< i 21) (< j 21))
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_i#b1,W#i#a2) ∧ hb(R#pi_i#b3,W#i#a4) ∧ hb(R#pi_i#b5,W#i#a6) ∧ hb(R#pi_j#a1,W#j#b4) ∧ hb(R#pi_j#a3,W#j#b6) ∧ hb(W#i#a2,R#pi_i#b3) ∧ hb(W#i#a4,R#pi_i#b5) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b6,R#pi_j#a5) ) ∨
-##( hb(R#pi_i#b1,W#i#a4) ∧ hb(R#pi_i#b3,W#i#a6) ∧ hb(R#pi_j#a1,W#j#b2) ∧ hb(R#pi_j#a3,W#j#b4) ∧ hb(R#pi_j#a5,W#j#b6) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a6,R#pi_i#b5) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#j#b4,R#pi_j#a5) ) 
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a6,R#pi_i#b5) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#j#b4,R#pi_j#a5) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#i#a4,R#pi_i#b5) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b6,R#pi_j#a5) ) 
 ##
 #~
 

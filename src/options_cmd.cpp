@@ -96,7 +96,7 @@ void options_cmd::interpret_options(po::variables_map& vm) {
     else if (_mode == "bugs")
       mode = modes::bugs;
     else {
-      throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\"");
+      throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\",\"wmm_synthesis\"");
     }
   }
 

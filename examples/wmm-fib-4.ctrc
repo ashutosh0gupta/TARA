@@ -71,8 +71,8 @@ post: (and (< i 55) (< j 55))
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_i#b1,W#i#a2) ∧ hb(R#pi_i#b3,W#i#a4) ∧ hb(R#pi_i#b5,W#i#a6) ∧ hb(R#pi_i#b7,W#i#a8) ∧ hb(R#pi_j#a1,W#j#b4) ∧ hb(R#pi_j#a3,W#j#b6) ∧ hb(R#pi_j#a5,W#j#b8) ∧ hb(W#i#a2,R#pi_i#b3) ∧ hb(W#i#a4,R#pi_i#b5) ∧ hb(W#i#a6,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b6,R#pi_j#a5) ∧ hb(W#j#b8,R#pi_j#a7) ) ∨
-##( hb(R#pi_i#b1,W#i#a4) ∧ hb(R#pi_i#b3,W#i#a6) ∧ hb(R#pi_i#b5,W#i#a8) ∧ hb(R#pi_j#a1,W#j#b2) ∧ hb(R#pi_j#a3,W#j#b4) ∧ hb(R#pi_j#a5,W#j#b6) ∧ hb(R#pi_j#a7,W#j#b8) ∧ hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a6,R#pi_i#b5) ∧ hb(W#i#a8,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#j#b4,R#pi_j#a5) ∧ hb(W#j#b6,R#pi_j#a7) ) 
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a6,R#pi_i#b5) ∧ hb(W#i#a8,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#j#b4,R#pi_j#a5) ∧ hb(W#j#b6,R#pi_j#a7) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#i#a4,R#pi_i#b5) ∧ hb(W#i#a6,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b6,R#pi_j#a5) ∧ hb(W#j#b8,R#pi_j#a7) ) 
 ##
 #~
 

@@ -100,6 +100,7 @@ class example:
         for o in options:
             self.count = self.count + 1
             printf( "[%d..", self.count )
+            sys.stdout.flush()
             result = self.execute_example(o)
             if result == output:
                 printf( "pass] " )

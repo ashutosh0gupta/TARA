@@ -44,9 +44,9 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
     switch( edge.type ) {
     case edge_type::hb:  {stream << "->";} break;
     case edge_type::ppo: {stream << "=>";} break;
-    case edge_type::rpo: {stream << "~>";} break;
+    case edge_type::rpo: {stream << "~~>";} break;
     }
-    stream << ","<< edge.after->name();
+    stream << edge.after->name();
   }
   stream << ")";
   return stream;
@@ -124,7 +124,7 @@ bool cycle::add_edge( se_ptr before, se_ptr after, edge_type t ) {
     cycle_edge ed(before, after, t);
     edges.push_back(ed);
   }else{
-    // thorw appriate error
+    // throw error
     assert(false);
   }
   // close();
@@ -147,9 +147,9 @@ void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
                               const z3::solver& sol_undesired,
                               std::shared_ptr< const cssa::program > _program )
 {
-    output_base::init(hb_encoding, sol_desired, sol_undesired, program);
-    normal_form.init(hb_encoding, sol_desired, sol_undesired, program);
-    program = _program;
+    output_base::init(hb_encoding, sol_desired, sol_undesired, _program);
+    normal_form.init(hb_encoding, sol_desired, sol_undesired, _program);
+    // program = _program;
 }
 
 
@@ -158,7 +158,7 @@ void barrier_synthesis::output(const z3::expr& output)
     output_base::output(output);
     normal_form.output(output);
     
-    nf::result_type cnf = normal_form.get_result(false, false);
+    nf::result_type cnf = normal_form.get_result(true, true);
 
     // cycles.clear();
     // do the synthesis
@@ -183,11 +183,14 @@ void barrier_synthesis::output(const z3::expr& output)
 
 edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
 
-  if( !program->is_mm_sc() && !program->is_mm_sc() &&
+  assert( before );
+  assert( after );
+  assert( before->is_rd() || before->is_wr() );
+  assert( after->is_rd() || after->is_wr() );
+  assert( before->tid == after->tid );
+  if( !program->is_mm_sc() && !program->is_mm_tso() &&
       !program->is_mm_pso() && !program->is_mm_rmo() )
     program->unsupported_mm();
-
-  assert( before->tid == after->tid );
   unsigned b_num = before->get_instr_no();
   unsigned a_num = after->get_instr_no();
   assert( b_num <= a_num);
@@ -218,11 +221,11 @@ edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
   }else{
     program->unsupported_mm();
   }
-  return edge_type::ppo;//todo for each memory type
+  return edge_type::ppo;
 }
 
 void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
-                                       se_ptr e ) {
+                                      se_ptr e ) {
   unsigned i_no = e->get_instr_no();
 
   se_vec& es = event_lists[e->tid];
@@ -231,15 +234,14 @@ void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
     se_ptr& e1 = *it;
     if( e1 == e ) return;
     if( e1->get_instr_no() > i_no ||
-        (e1->get_instr_no() == i_no && e1->is_rd() && e->is_rd() ) ) {
+        ( e1->get_instr_no() == i_no && e1->is_wr() && e->is_rd() ) ) {
       break;
     }
   }
-  it--;
   es.insert( it, e);
 }
 
-typedef  set< pair<se_ptr,se_ptr> > hb_conj;
+typedef  std::vector< pair<se_ptr,se_ptr> > hb_conj;
 // typedef  vector< hb_conj > se_cnf;
 
 void barrier_synthesis::find_cycles(nf::result_type& cnf) {
@@ -254,15 +256,15 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
     for( tara::hb_enc::hb& h : c ) {
       se_ptr b = program->se_store.at( h.loc1->name );
       se_ptr a = program->se_store.at( h.loc2->name );
-      hbs.insert({b,a});
+      hbs.push_back({b,a});
       insert_event( event_lists, b);
       insert_event( event_lists, a);
     }
     vector<cycle>& cycles = all_cycles[cnf_num];
 
     while( !hbs.empty() ) {
-      auto hb= hbs.begin();
-      se_ptr b = hb->first;
+      auto hb= hbs[0];
+      se_ptr b = hb.first;
       // se_ptr a = hb->second;
       set<se_ptr> explored;
       cycle ancestor; // current candidate cycle
@@ -289,12 +291,14 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
             cycles.push_back(c);
           }else{
             // Further expansion
-            for( auto it = hbs.begin(); it != hbs.end(); it++ ) {
+            for( auto it = hbs.begin(); it != hbs.end(); ) {
               auto hb_from_b = *it;
               if( hb_from_b.first == b ) {
                 se_ptr a = hb_from_b.second;
                 stack.push_back( {a,edge_type::hb} );
                 it = hbs.erase(it);
+              }else{
+                it++;
               }
             }
             se_vec& es = event_lists[b->tid];
@@ -304,7 +308,7 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
             }
             for(;it < es.end();it++) {
               se_ptr a = *it;
-              if( a->tid != b->tid ) break;
+              if( a->get_instr_no() != b->get_instr_no() ) break;
               if( a->is_wr() && b->is_rd() ) break;
             }
             for(;it < es.end();it++) {
@@ -319,10 +323,24 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
   }
 }
 
+void barrier_synthesis::print_all_cycles( ostream& stream ) const
+{
+  stream << "cycles found!\n";
+  for( auto& cycles : all_cycles ) {
+    stream << "[" << endl;
+    for( auto& cycle : cycles ) {
+      stream << cycle << endl;
+    }
+    stream << "]" << endl;
+  }
+}
+
 void barrier_synthesis::print(ostream& stream, bool machine_readable) const
 {
   if (print_nfs && !machine_readable)
     normal_form.print(stream, false);
+  print_all_cycles( stream );
+
   stream << "barrier synthesis printing code is not written!!\n";
   // print locks and wait-notifies
   // if (!machine_readable) stream << "Locks: ";

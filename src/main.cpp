@@ -190,7 +190,7 @@ void real_main(int argc, char **argv) {
       unique_ptr<output::output_base> output;
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
         output = unique_ptr<output::output_base>(new output::smt());
-      } if (synthesise||bugs) {
+      } if (synthesise||bugs||wmm_synthesis) {
         bool verify = false;
         bool print_nfs = false;
         for (string p : o.mode_options) {

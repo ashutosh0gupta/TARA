@@ -63,8 +63,18 @@ public:
   void pop();
   unsigned has_cycle();
   unsigned size() { return edges.size(); };
-  inline se_ptr first() { assert( edges.size() > 0 ); return edges[0].before; };
-  inline se_ptr last() { assert( edges.size() > 0 ); return edges.back().before; };
+  inline se_ptr first() {
+    if( edges.size() > 0 )
+      return edges[0].before;
+    else
+      return nullptr;
+  };
+  inline se_ptr last() {
+    if( edges.size() > 0 )
+      return edges.back().after;
+    else
+      return nullptr;
+  };
 
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
 private:
@@ -92,7 +102,7 @@ private:
   bool print_nfs;
   nf normal_form;
 
-  std::shared_ptr<const cssa::program> program;
+  // std::shared_ptr<const cssa::program> program;
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
@@ -102,6 +112,8 @@ private:
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
 
   void gen_max_sat_problem();
+
+  void print_all_cycles( std::ostream& stream ) const;
 
 //   std::list<hb_enc::hb> wait_notifies;
 //   std::list<lock> locks;
