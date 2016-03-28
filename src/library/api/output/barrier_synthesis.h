@@ -107,7 +107,7 @@ private:
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
 
-  void find_cycles(nf::result_type& cnf);
+  void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
 

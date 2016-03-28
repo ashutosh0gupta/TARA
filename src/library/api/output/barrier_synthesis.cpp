@@ -158,7 +158,7 @@ void barrier_synthesis::output(const z3::expr& output)
     output_base::output(output);
     normal_form.output(output);
     
-    nf::result_type cnf = normal_form.get_result(true, true);
+    nf::result_type bad_dnf = normal_form.get_result(true, true);
 
     // cycles.clear();
     // do the synthesis
@@ -171,7 +171,7 @@ void barrier_synthesis::output(const z3::expr& output)
     // measure time
     auto start_time = chrono::steady_clock::now();
 
-    find_cycles(cnf);
+    find_cycles( bad_dnf );
     
     // Management
     // info = to_string(cycles.size()) + " " //+
@@ -244,11 +244,11 @@ void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
 typedef  std::vector< pair<se_ptr,se_ptr> > hb_conj;
 // typedef  vector< hb_conj > se_cnf;
 
-void barrier_synthesis::find_cycles(nf::result_type& cnf) {
+void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
   all_cycles.clear();
-  all_cycles.resize( cnf.size() );
-  unsigned cnf_num = 0;
-  for( auto c : cnf ) {
+  all_cycles.resize( bad_dnf.size() );
+  unsigned bad_dnf_num = 0;
+  for( auto c : bad_dnf ) {
     hb_conj hbs;
     vector<se_vec> event_lists;
     event_lists.resize( program->no_of_threads() );
@@ -260,7 +260,7 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
       insert_event( event_lists, b);
       insert_event( event_lists, a);
     }
-    vector<cycle>& cycles = all_cycles[cnf_num];
+    vector<cycle>& cycles = all_cycles[bad_dnf_num];
 
     while( !hbs.empty() ) {
       auto hb= hbs[0];
@@ -319,7 +319,7 @@ void barrier_synthesis::find_cycles(nf::result_type& cnf) {
         }
       }
     }
-    cnf_num++;
+    bad_dnf_num++;
   }
 }
 
