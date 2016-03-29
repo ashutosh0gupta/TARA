@@ -22,6 +22,7 @@
 #include "barrier_synthesis.h"
 #include "api/output/output_base_utilities.h"
 #include <chrono>
+#include<algorithm>
 
 using namespace tara;
 using namespace tara::cssa;
@@ -67,6 +68,11 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
 
 cycle_edge::cycle_edge( se_ptr _before, se_ptr _after, edge_type _type )
     :before(_before),after(_after),type(_type) {}
+
+bool ValueComp(const se_ptr & before,const se_ptr & after)
+{
+	return before->e_v->instr_no < after->e_v->instr_no;
+}
 
 cycle::cycle( cycle& _c, unsigned i ) {
   edges = _c.edges;
@@ -369,6 +375,53 @@ void barrier_synthesis::gather_statistics(api::metric& metric) const
 
 //----------------------------------------------------------------------------
 void barrier_synthesis::gen_max_sat_problem() {
-  
-}
 
+	std::list< std::list< tara::hb_enc::hb > > result=normal_form.get_result(false,false);
+	std::vector<std::list<cycle_edge>> rpo_set(program->no_of_threads());
+	std::vector<se_ptr> sorted_cuts;
+	unsigned index=0;
+	find_cycles(result);
+
+	z3::expr_vector r(program->get_z3().c);
+
+	for (unsigned i = 0; i < program->no_of_threads(); ++i)
+		for (unsigned j = 0; j < program->no_of_instructions(i)-1; ++j)
+		{
+			std::stringstream r_name;
+            r_name << "r_" << i << "__" << j << '_' <<j+1;
+            r.push_back(program->get_z3().c.bool_const(r_name.str().c_str()));
+		}
+
+	for(auto cnf:all_cycles)
+	{
+		z3::expr dnf=program->get_z3().c.bool_val(true);
+		for(auto cycle:cnf)
+		{
+			//std::unordered_set<cycle_edge>;
+			z3::expr b=program->get_z3().c.bool_const("b");
+			z3::expr cnf_of_rpos=program->get_z3().c.bool_const("cnf_of_rpos");
+			for(auto rpo:cycle.edges)
+			{
+				if(rpo.type==edge_type::rpo)
+				{
+					index=program->tid_instr_to_index(rpo.before->tid,rpo.before->e_v->instr_no);
+					cnf_of_rpos = cnf_of_rpos && r[index];
+					rpo_set[rpo.before->tid].push_back(rpo);
+				}
+				//chck each edge for rpo: push them in another vector
+				//compare the edges in same thread
+			}
+			for(unsigned i = 0; i < rpo_set.size();i++)
+				for(auto rpo_from_set:rpo_set[i])
+				{
+					sorted_cuts.push_back(rpo_from_set.before);
+					sorted_cuts.push_back(rpo_from_set.after);
+				}
+			std::sort(std::begin(sorted_cuts),std::end(sorted_cuts),ValueComp);
+
+			z3::expr B= implies(b,cnf_of_rpos);
+			dnf = dnf || B;
+		}
+		cut = cut && dnf;
+	}
+}

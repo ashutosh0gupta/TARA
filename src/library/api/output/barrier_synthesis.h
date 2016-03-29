@@ -24,7 +24,8 @@
 #include "cssa/program.h"
 #include "cssa/wmm.h"
 #include "api/output/nf.h"
-
+//#include "helpers/z3interf.h"
+#include <z3++.h>
 using namespace tara::cssa;
 
 namespace tara {
@@ -44,6 +45,7 @@ public:
   se_ptr before;
   se_ptr after;
   edge_type type;
+  friend bool ValueComp(const se_ptr &,const se_ptr &);
 };
 
 class cycle
@@ -63,8 +65,7 @@ public:
   void pop();
   unsigned has_cycle();
   unsigned size() { return edges.size(); };
-  inline se_ptr first() {
-    if( edges.size() > 0 )
+  inline se_ptr first() {if( edges.size() > 0 )
       return edges[0].before;
     else
       return nullptr;
@@ -75,7 +76,7 @@ public:
     else
       return nullptr;
   };
-
+  friend class barrier_synthesis;
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
 private:
   std::vector<cycle_edge> edges;
@@ -102,11 +103,11 @@ private:
   bool print_nfs;
   nf normal_form;
 
-  // std::shared_ptr<const cssa::program> program;
+  std::shared_ptr<const cssa::program> program;
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
-
+  z3::expr cut = program->get_z3().c.bool_val(true);
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );

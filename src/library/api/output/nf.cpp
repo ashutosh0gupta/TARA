@@ -25,7 +25,7 @@
 #include "helpers/z3interf_templates.h"
 #include "input/program.h"
 #include <stack>
-#include<boost/graph/adjacency_list.hpp>
+//#include<boost/graph/adjacency_list.hpp>
 
 using namespace tara;
 using namespace tara::helpers;
@@ -319,6 +319,7 @@ void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad
 void nf::print(ostream& stream, bool machine_readable) const
 {
   print(stream, machine_readable,false,bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
+	//print(stream, machine_readable,false,false, true, good_dnf,good_cnf , verify);
 }
 
 void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type& result, bool dnf_not_cnf)

@@ -51,7 +51,10 @@ public:
   //std::unordered_map<std::string,int>instr_to_MatIndex;
   unsigned no_of_threads() const;
   unsigned no_of_instructions(unsigned tid) const;
+  unsigned total_instructions() const;
   std::string instr_name(unsigned tid,unsigned instr_no) const;
+  unsigned tid_instr_to_index(unsigned tid, unsigned instr_no) const;
+  helpers::z3interf& get_z3() const;
 private:
   std::vector<std::shared_ptr<cssa::thread>> threads;
   helpers::z3interf& _z3;
