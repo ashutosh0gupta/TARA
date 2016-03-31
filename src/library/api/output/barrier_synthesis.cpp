@@ -379,49 +379,63 @@ void barrier_synthesis::gen_max_sat_problem() {
 	std::list< std::list< tara::hb_enc::hb > > result=normal_form.get_result(false,false);
 	std::vector<std::list<cycle_edge>> rpo_set(program->no_of_threads());
 	std::vector<se_ptr> sorted_cuts;
-	unsigned index=0;
+	unsigned count=0,count2=0;
 	find_cycles(result);
 
-	z3::expr_vector r(program->get_z3().c);
-
-	for (unsigned i = 0; i < program->no_of_threads(); ++i)
-		for (unsigned j = 0; j < program->no_of_instructions(i)-1; ++j)
-		{
-			std::stringstream r_name;
-            r_name << "r_" << i << "__" << j << '_' <<j+1;
-            r.push_back(program->get_z3().c.bool_const(r_name.str().c_str()));
-		}
-
-	for(auto cnf:all_cycles)
+	for(auto cycles:all_cycles)
 	{
-		z3::expr dnf=program->get_z3().c.bool_val(true);
-		for(auto cycle:cnf)
+		z3::expr dummy_disjunct=sol_bad->ctx().bool_const("dummy_disjunct"); //cut=(b11 \/ b12) /\ (b21 \/ b22) => cut = disjunct1 /\ disjunct2
+		for(auto cycle:cycles)
 		{
+			count++;
 			//std::unordered_set<cycle_edge>;
-			z3::expr b=program->get_z3().c.bool_const("b");
-			z3::expr cnf_of_rpos=program->get_z3().c.bool_const("cnf_of_rpos");
-			for(auto rpo:cycle.edges)
+			stringstream b_name;
+			b_name<<"b"<<count;
+			z3::expr b=sol_bad->ctx().bool_const(b_name.str().c_str());
+			z3_to_cycle[b]=cycle;
+			dummy_disjunct=dummy_disjunct || b;
+			for(auto edges:cycle.edges)
 			{
-				if(rpo.type==edge_type::rpo)
+				if(edges.type==edge_type::rpo)
 				{
-					index=program->tid_instr_to_index(rpo.before->tid,rpo.before->e_v->instr_no);
-					cnf_of_rpos = cnf_of_rpos && r[index];
-					rpo_set[rpo.before->tid].push_back(rpo);
+					rpo_set[edges.before->tid].push_back(edges);
 				}
-				//chck each edge for rpo: push them in another vector
+				//check each edge for rpo: push them in another vector
 				//compare the edges in same thread
 			}
+			z3::expr dummy_conjunct=sol_bad->ctx().bool_const("dummy_conjunct"); //(c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=> dummy_conjunct => b1
 			for(unsigned i = 0; i < rpo_set.size();i++)
+			{
 				for(auto rpo_from_set:rpo_set[i])
 				{
 					sorted_cuts.push_back(rpo_from_set.before);
 					sorted_cuts.push_back(rpo_from_set.after);
 				}
-			std::sort(std::begin(sorted_cuts),std::end(sorted_cuts),ValueComp);
-
-			z3::expr B= implies(b,cnf_of_rpos);
-			dnf = dnf || B;
+				std::sort(std::begin(sorted_cuts),std::end(sorted_cuts),ValueComp);
+				z3::expr dummy_disjunct2=sol_bad->ctx().bool_const("dummy_disjunct2"); // (c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=> dummy_disjunct1 /\ dummy_disjunct... => b1
+				for(auto rpo_from_set:rpo_set[i])
+				{
+					for(auto it=sorted_cuts.begin(); it!=sorted_cuts.end();)
+					{
+						auto it_curr=it++;
+						if(it==sorted_cuts.end())
+							break;
+						if(((*it_curr)->e_v)->instr_no == ((*it)->e_v)->instr_no)
+							continue;
+						else if((rpo_from_set.before)->e_v->instr_no <= (*it_curr)->e_v->instr_no && rpo_from_set.after->e_v->instr_no >= (*it)->e_v->instr_no)
+						{
+							count2++;
+							stringstream s_name;
+							s_name<<"s"<<count2;
+							z3::expr s=sol_bad->ctx().bool_const(s_name.str().c_str());
+							dummy_disjunct2=dummy_disjunct2 || s;
+						}
+					}
+				}
+				dummy_conjunct=dummy_conjunct && dummy_disjunct2;
+			}
+			z3::expr hard_cons2=implies(dummy_conjunct,b);
 		}
-		cut = cut && dnf;
+		cut = cut && dummy_disjunct;
 	}
 }

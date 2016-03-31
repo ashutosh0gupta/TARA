@@ -82,7 +82,6 @@ private:
   std::vector<cycle_edge> edges;
   std::string name;
   bool closed;
-
   void remove_suffix( unsigned i );
   void remove_prefix( unsigned i );
 
@@ -99,6 +98,7 @@ public:
                      std::shared_ptr<const cssa::program> program ) override;
   virtual void output(const z3::expr& output) override;
   virtual void gather_statistics(metric& metric) const override;
+  friend class cycle;
 private:
   bool print_nfs;
   nf normal_form;
@@ -107,7 +107,11 @@ private:
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
-  z3::expr cut = program->get_z3().c.bool_val(true);
+  z3::expr cut = sol_bad->ctx().bool_const("cut");
+  //std::unordered_multimap<z3::expr,cycle_edge>cut_to_rpo;
+  //std::unordered_map<cycle,z3::expr>cycle_to_z3;
+  //std::unordered_multimap<cycle_edge,cycle>rpo_to_cycle;
+  std::unordered_map<z3::expr,cycle>z3_to_cycle;
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );

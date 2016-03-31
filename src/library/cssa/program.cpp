@@ -159,20 +159,6 @@ std::string program::instr_name(unsigned tid, unsigned instr_no) const
 	return threads[tid]->instructions[instr_no]->loc->name;
 }
 
-unsigned program::tid_instr_to_index(unsigned tid, unsigned instr_no) const
-{
-	unsigned index=0;
-	for(unsigned i=0;i<tid;i++)
-	{
-		index+=no_of_instructions(i);
-	}
-	for(unsigned i=0;i<instr_no;i++)
-	{
-		index++;
-	}
-	return index;
-}
-
 unsigned program::total_instructions() const
 {
 	unsigned count=0;
@@ -181,11 +167,6 @@ unsigned program::total_instructions() const
 		count+=no_of_instructions(i);
 	}
 	return count;
-}
-
-helpers::z3interf& program::get_z3() const
-{
-	return _z3;
 }
 
 std::vector< vector < bool > > program:: build_po() const
