@@ -87,6 +87,8 @@ private:
 
 };
 
+typedef std::shared_ptr<cycle> cycle_ptr;
+
 class barrier_synthesis : public output_base
 {
 public:
@@ -111,7 +113,7 @@ private:
   //std::unordered_multimap<z3::expr,cycle_edge>cut_to_rpo;
   //std::unordered_map<cycle,z3::expr>cycle_to_z3;
   //std::unordered_multimap<cycle_edge,cycle>rpo_to_cycle;
-  std::unordered_map<z3::expr,cycle>z3_to_cycle;
+  std::unordered_map<z3::expr, cycle_ptr >z3_to_cycle;
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );

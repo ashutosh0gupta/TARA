@@ -94,9 +94,6 @@ void nf::sort_result( nf::result_type& result ) {
   }
   result.sort();
 }
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
 
 void nf::get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const
 {
@@ -282,6 +279,10 @@ void nf::get_cycles(const result_type& result,const cssa::program& prog, bool ma
 		trav_next_index=obj[obj_count].index;
 		}
 }
+
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
 
 void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify) const
 {
