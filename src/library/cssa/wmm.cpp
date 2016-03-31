@@ -375,7 +375,9 @@ void program::wmm_build_ses() {
             }else{
               auto new_fr = wmm_mk_ghb( rd, after_wr );
               for( auto before_rd : tid_rds ) {
-                z3::expr anti_coherent_b = get_rf_bvar( v1, after_wr, before_rd, false );
+                //disable this code rf
+                z3::expr anti_coherent_b =
+                  get_rf_bvar( v1, after_wr, before_rd, false );
                 new_fr = !anti_coherent_b && new_fr;
               }
               fr = fr && implies( cond , new_fr );

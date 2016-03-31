@@ -79,7 +79,7 @@ public:
   };
   friend class barrier_synthesis;
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
-  std::unordered_map<unsigned,std::vector<se_ptr>>tid_to_se_ptr;
+  // std::unordered_map<unsigned,std::vector<se_ptr>>tid_to_se_ptr;
 private:
   std::vector<cycle_edge> edges;
   std::string name;
@@ -112,36 +112,23 @@ private:
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
-  z3::expr cut = sol_bad->ctx().bool_const("cut");
-  //std::unordered_multimap<z3::expr,cycle_edge>cut_to_rpo;
-  //std::unordered_map<cycle,z3::expr>cycle_to_z3;
-  //std::unordered_multimap<cycle_edge,cycle>rpo_to_cycle;
-  //std::unordered_map<z3::expr, cycle_ptr >z3_to_cycle;
-  boost::bimap<z3::expr, cycle_ptr >z3_to_cycle;
+
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
 
+
+  z3::expr cut = sol_bad->ctx().bool_val(true);
+  std::vector<z3::expr> soft;
+  boost::bimap<z3::expr, cycle* >z3_to_cycle;
+  std::unordered_map< unsigned, std::vector<se_ptr> > tid_to_se_ptr;
+  boost::bimap<se_ptr,z3::expr> segment_map;
   void gen_max_sat_problem();
 
   void print_all_cycles( std::ostream& stream ) const;
 
-//   std::list<hb_enc::hb> wait_notifies;
-//   std::list<lock> locks;
-//   std::list<barrier> barriers;
-//   void synthesise(nf::result_type& disjunct);
-//   bool find_lock(const tara::api::output::nf::row_type& disjunct);
-//   bool find_barrier(const nf::row_type& disjunct, nf::result_type::iterator current, nf::result_type& list);
-//   // /**
-//   //  * @brief Merge the locks accross threads.
-//   //  */
-//   // void merge_locks_multithread();
-//   // /**
-//   //  * @brief Merge the locks within a thread.
-//   //  */
-//   // void merge_locks();
-//   // void merge_barriers();
-//   // void merge_barriers_multithread();
+
+  z3::expr get_fresh_bool();
 
   long long unsigned time;
   std::string info;

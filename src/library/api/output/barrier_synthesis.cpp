@@ -376,66 +376,114 @@ void barrier_synthesis::gather_statistics(api::metric& metric) const
 
 
 //----------------------------------------------------------------------------
+z3::expr barrier_synthesis::get_fresh_bool() {
+  static unsigned count = 0;
+  z3::context& z3_ctx = sol_bad->ctx();
+  stringstream b_name;
+  b_name<<"b"<<count;
+  z3::expr b = z3_ctx.bool_const(b_name.str().c_str());
+  count++;
+  return b;
+}
+
 void barrier_synthesis::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();
+
   //std::vector<std::list<cycle_edge>> rpo_set(program->no_of_threads());
   //std::vector<se_ptr> sorted_cuts;
-
-  unsigned count=0,count2=0, no_of_threads=program->no_of_threads();
+  // unsigned count2=0, no_of_threads=program->no_of_threads();
 
   z3_to_cycle.clear();
 
-  for(auto cycles:all_cycles) {
+  for( auto& cycles : all_cycles ) {
      //cut=(b11 \/ b12) /\ (b21 \/ b22) => cut = disjunct1 /\ disjunct2
-      z3::expr c_disjunct=z3_ctx.bool_val(false);
-      for(auto cycle:cycles) {
-        count++;
-        //std::unordered_set<cycle_edge>;
-        stringstream b_name;
-        b_name<<"b"<<count;
-        z3::expr b=z3_ctx.bool_const(b_name.str().c_str());
-        z3_to_cycle.insert({b,cycle_ptr( &cycle )});
-        c_disjunct=c_disjunct || b;
+      // z3::expr c_disjunct = z3_ctx.bool_val(false);
+      for( auto& cycle : cycles ) {
+        // z3::expr b = get_fresh_bool();
+        // z3_to_cycle.insert({b, &cycle});
+        // c_disjunct=c_disjunct || b;
 
-        for( auto edge:cycle.edges ) {
+        for( auto edge : cycle.edges ) {
           if( edge.type==edge_type::rpo ) {
-            cycle.tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
-            cycle.tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
-            std::sort(std::begin(cycle.tid_to_se_ptr[ edge.before->tid ] ),std::end( cycle.tid_to_se_ptr[ edge.before->tid ]  ),ValueComp);
+            //check each edge for rpo: push them in another vector
+            //compare the edges in same thread
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
           }
-          //check each edge for rpo: push them in another vector
-          //compare the edges in same thread
         }
       }
-      cut = cut && c_disjunct;
+      // cut = cut && c_disjunct;
   }
-  for(auto cycles:all_cycles){
-	  for(auto cycle:cycles){
-        //(c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=> dummy_conjunct => b1
-        z3::expr dummy_conjunct=z3_ctx.bool_const("dummy_conjunct");
-        for(unsigned i=0;i<no_of_threads;i++){
-        	 // (c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=>
-        	 // dummy_disjunct1 /\ dummy_disjunct... => b1
-        	z3::expr s_disjunct = z3_ctx.bool_val(false);
-        	for(auto it= cycle.tid_to_se_ptr[i].begin(); cycle.tid_to_se_ptr[i].end(); ){
-        		auto it_curr=it++;
-        		if(it==cycle.tid_to_se_ptr[i].end)
-        			break;
-        		if((*it_curr)->e_v->instr_no == (*it)->e_v->instr_no)
-        			continue;
-        		else
-        		{
-        			count2++;
-        			stringstream s_name;
-        			s_name<<"s"<<count2;
-        			z3::expr segment=z3_ctx.bool_const(s_name.str().c_str());
-        			s_disjunct = s_disjunct || segment;
-        		}
-        	}
-        	dummy_conjunct=dummy_conjunct && s_disjunct;
+
+  for( auto it : tid_to_se_ptr ) {
+    std::vector<se_ptr>& vec = it.second;
+    std::sort( vec.begin(), vec.end() );
+    vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
+    for(auto e : vec ) {
+      z3::expr s = get_fresh_bool();
+      segment_map.insert( {e,s} );
+      soft.push_back( !s);
+    }
+  }
+
+
+  for( auto& cycles : all_cycles ) {
+    z3::expr c_disjunct = z3_ctx.bool_val(false);
+    for( auto& cycle : cycles ) {
+      z3::expr r_conjunct = z3_ctx.bool_val(true);
+      for( auto edge : cycle.edges ) {
+        if( edge.type==edge_type::rpo ) {
+          unsigned tid = edge.before->tid;
+          auto& events = tid_to_se_ptr.at(tid);
+          bool in_range = false;
+          z3::expr s_disjunct = z3_ctx.bool_val(false);
+          for( auto e : events ) {
+            if( e == edge.before ) in_range = true;
+            if( e == edge.after ) break;
+            if( in_range ) {
+              auto find_z3 = segment_map.left.find( e );
+              s_disjunct = s_disjunct || find_z3->second;
+            }
+          }
+          r_conjunct = r_conjunct && s_disjunct;
         }
-        auto find_z3 = z3_to_cycle.right.find(cycle);
-        z3::expr hard_cons2=implies(dummy_conjunct,find_z3->first);
       }
+      z3::expr c = get_fresh_bool();
+      z3_to_cycle.insert({c, &cycle});
+      c_disjunct=c_disjunct || c;
+      cut = cut && implies( r_conjunct, c );
+    }
+    cut = cut && c_disjunct;
   }
+
+
+  //     //(c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=> dummy_conjunct => b1
+  //     z3::expr dummy_conjunct=z3_ctx.bool_val(true);
+
+
+  //     for( unsigned i=0; i < no_of_threads ; i++ ) {
+  //       // (c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=>
+  //       // dummy_disjunct1 /\ dummy_disjunct... => b1
+  //       z3::expr s_disjunct = z3_ctx.bool_val(false);
+  //       for(auto it= cycle.tid_to_se_ptr[i].begin(); cycle.tid_to_se_ptr[i].end(); ){
+  //         auto it_curr=it++;
+  //         if(it==cycle.tid_to_se_ptr[i].end)
+  //           break;
+  //         if((*it_curr)->e_v->instr_no == (*it)->e_v->instr_no)
+  //           continue;
+  //         else
+  //           {
+  //             count2++;
+  //             stringstream s_name;
+  //             s_name<<"s"<<count2;
+  //             z3::expr segment=z3_ctx.bool_const(s_name.str().c_str());
+  //             s_disjunct = s_disjunct || segment;
+  //           }
+  //       }
+  //       dummy_conjunct=dummy_conjunct && s_disjunct;
+  //     }
+  //     auto find_z3 = z3_to_cycle.right.find( cycle);
+  //     z3::expr hard_cons2=implies(dummy_conjunct,find_z3->first);
+  //   }
+  // }
 }
