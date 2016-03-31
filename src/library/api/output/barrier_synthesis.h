@@ -24,6 +24,7 @@
 #include "cssa/program.h"
 #include "cssa/wmm.h"
 #include "api/output/nf.h"
+#include <boost/bimap.hpp>
 //#include "helpers/z3interf.h"
 #include <z3++.h>
 using namespace tara::cssa;
@@ -78,10 +79,12 @@ public:
   };
   friend class barrier_synthesis;
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
+  std::unordered_map<unsigned,std::vector<se_ptr>>tid_to_se_ptr;
 private:
   std::vector<cycle_edge> edges;
   std::string name;
   bool closed;
+
   void remove_suffix( unsigned i );
   void remove_prefix( unsigned i );
 
@@ -113,7 +116,8 @@ private:
   //std::unordered_multimap<z3::expr,cycle_edge>cut_to_rpo;
   //std::unordered_map<cycle,z3::expr>cycle_to_z3;
   //std::unordered_multimap<cycle_edge,cycle>rpo_to_cycle;
-  std::unordered_map<z3::expr, cycle_ptr >z3_to_cycle;
+  //std::unordered_map<z3::expr, cycle_ptr >z3_to_cycle;
+  boost::bimap<z3::expr, cycle_ptr >z3_to_cycle;
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
