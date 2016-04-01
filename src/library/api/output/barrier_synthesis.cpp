@@ -23,7 +23,7 @@
 #include "api/output/output_base_utilities.h"
 #include <chrono>
 #include<algorithm>
-
+#include "MaxSAT.cpp"
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::api::output;
