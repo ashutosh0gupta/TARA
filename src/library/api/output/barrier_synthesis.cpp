@@ -23,7 +23,6 @@
 #include "api/output/output_base_utilities.h"
 #include <chrono>
 #include <algorithm>
-// #include "max_sat.cpp"
 
 using namespace tara;
 using namespace tara::cssa;
@@ -495,7 +494,7 @@ void barrier_synthesis::gen_max_sat_problem() {
 // max sat code
 
 
-void assert_hard_constraints( z3::solver &s,
+void barrier_synthesis:: assert_hard_constraints( z3::solver &s,
                               std::vector<z3::expr>& cnstrs)
                               // unsigned num_cnstrs, z3::expr_vector cnstrs)
 {
@@ -523,7 +522,7 @@ void assert_hard_constraints( z3::solver &s,
 //     return result;
 // }
 
-void assert_soft_constraints( z3::solver&s ,z3::context& ctx,
+void barrier_synthesis:: assert_soft_constraints( z3::solver&s ,z3::context& ctx,
                               std::vector<z3::expr>& cnstrs,
                               std::vector<z3::expr>& aux_vars )
 {
@@ -532,38 +531,29 @@ void assert_soft_constraints( z3::solver&s ,z3::context& ctx,
     aux_vars.push_back(n);
     s.add( f || n ) ;
   }
-    // unsigned i;
-    // z3::expr_vector aux_vars(ctx);
-    // aux_vars = mk_fresh_bool_var_array(ctx, num_cnstrs);
-    // for (i = 0; i < num_cnstrs; i++) {
-    //     z3::expr assumption = cnstrs[i];
-    //     //Z3_assert_cnstr(ctx, mk_binary_or(ctx, assumption, aux_vars[i]));
-    //     s.add( assumption|| aux_vars[i] );
-    // }
-    // return aux_vars;
 }
 
-z3::expr at_most_one( z3::expr_vector& vars ) {
+z3::expr barrier_synthesis:: at_most_one( z3::expr_vector& vars ) {
   z3::expr result = vars.ctx().bool_val(true);
   if( vars.size() <= 1 ) return result;
   // todo check for size 0
   z3::expr last_xor = vars[0];
   
   for( unsigned i = 1; i < vars.size(); i++ ) {
-    auto& curr_xor = (vars[i] != vars[i-1]);
+    z3::expr curr_xor = (vars[i] != vars[i-1]);
     result = result && (!last_xor || curr_xor);
-    last_xor = x;
+    last_xor = curr_xor;
   }
   return result;
 }
 
-int fu_malik_maxsat_step( z3::solver &s,
+int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
                           z3::context &ctx,
-                          std::vector<z3::expr>& sofr_cnstrs,
+                          std::vector<z3::expr>& soft_cnstrs,
                           std::vector<z3::expr>& aux_vars ) {
     z3::expr_vector assumptions(ctx);
     z3::expr_vector core(ctx);
-    for (i = 0; i < soft_cnstrs.size(); i++) {
+    for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
       assumptions.push_back(!aux_vars[i]);
       //core[i]=false;
     }
@@ -574,7 +564,7 @@ int fu_malik_maxsat_step( z3::solver &s,
       core=s.unsat_core();
       z3::expr_vector block_vars(ctx);
       // update soft-constraints and aux_vars
-      for (i = 0; i < soft_cnstrs.size(); i++) {
+      for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
         unsigned j;
         // check whether assumption[i] is in the core or not
         for( j = 0; j < core.size(); j++ ) {
@@ -590,33 +580,31 @@ int fu_malik_maxsat_step( z3::solver &s,
           s.add( soft_cnstrs[i] || new_aux_var );
         }
       }
-      z3::expr at_most_one = at_most_one( block_vars );
-      s.add( at_most_one );
+      z3::expr at_most_1 = at_most_one( block_vars );
+      s.add( at_most_1 );
       return 0; // not done.
     }
 }
 
-int fu_malik_maxsat( z3::context& ctx,
+int barrier_synthesis:: fu_malik_maxsat( z3::context& ctx,
                      std::vector<z3::expr>& hard_cnstrs,
                      std::vector<z3::expr>& soft_cnstrs ) {
-  z3::expr_vector aux_vars(ctx);
     unsigned k;
     z3::solver s(ctx);
     assert_hard_constraints(s, hard_cnstrs);
     // printf("checking whether hard constraints are satisfiable...\n");
-    //is_sat = s.check();
     if( s.check() ==z3::check_result::sat ) {
       return -1;
     }
-    if( num_soft_cnstrs == 0 )
+    if( soft_cnstrs.size() == 0 )
       return 0; // nothing to be done...
     std::vector<z3::expr> aux_vars;
-    assert_soft_constraints( s, soft_cnstrs, aux_vars );
+    assert_soft_constraints( s,ctx ,soft_cnstrs, aux_vars );
     k = 0;
     for (;;) {
       printf("iteration %d\n", k);
       if( fu_malik_maxsat_step(s, ctx, soft_cnstrs, aux_vars) ) {
-        return num_soft_cnstrs - k;
+        return soft_cnstrs.size() - k;
       }
       k++;
     }
