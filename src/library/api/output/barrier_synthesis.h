@@ -126,13 +126,13 @@ private:
 
   void print_all_cycles( std::ostream& stream ) const;
 
-
+  std::vector<se_ptr>barrier_where;
   z3::expr get_fresh_bool();
   void assert_hard_constraints( z3::solver &s,std::vector<z3::expr>& cnstrs);
   void assert_soft_constraints( z3::solver&s ,z3::context& ctx,std::vector<z3::expr>& cnstrs, std::vector<z3::expr>& aux_vars );
   z3::expr at_most_one( z3::expr_vector& vars );
   int fu_malik_maxsat_step( z3::solver &s, z3::context &ctx, std::vector<z3::expr>& sofr_cnstrs, std::vector<z3::expr>& aux_vars );
-  int fu_malik_maxsat( z3::context& ctx, std::vector<z3::expr>& hard_cnstrs, std::vector<z3::expr>& soft_cnstrs );
+  z3::model fu_malik_maxsat( z3::context& ctx, z3::expr hard_cnstrs, std::vector<z3::expr>& soft_cnstrs );
 
   long long unsigned time;
   std::string info;

@@ -25,7 +25,6 @@
 #include "helpers/z3interf_templates.h"
 #include "input/program.h"
 #include <stack>
-//#include<boost/graph/adjacency_list.hpp>
 
 using namespace tara;
 using namespace tara::helpers;

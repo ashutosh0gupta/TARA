@@ -22,7 +22,6 @@
 #define TARA_API_OUTPUT_NF_H
 
 #include "api/output/output_base.h"
-//#include"temp_functions.h"
 #include <z3++.h>
 #include "hb_enc/encoding.h"
 #include <vector>
