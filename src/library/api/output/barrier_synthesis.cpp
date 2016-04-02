@@ -180,7 +180,11 @@ void barrier_synthesis::output(const z3::expr& output)
     find_cycles( bad_dnf );
 
     gen_max_sat_problem();
+    // z3::mode m = 
+    fu_malik_maxsat( ctx, cut, soft );
 
+    // iterate segment map and s
+    
     // Management
     // info = to_string(cycles.size()) + " " //+
     //   // to_string(barriers.size()) + " " 
@@ -494,32 +498,13 @@ void barrier_synthesis::gen_max_sat_problem() {
 // max sat code
 
 
-void barrier_synthesis:: assert_hard_constraints( z3::solver &s,
-                              std::vector<z3::expr>& cnstrs)
-                              // unsigned num_cnstrs, z3::expr_vector cnstrs)
-{
-  for( auto f : cnstrs ) {
-    s.add( f) ;
-  }
-    //     //z3::solver s(ctx);
-    // unsigned i;
-    // for (i = 0; i < num_cnstrs; i++) {
-    // 	s.add(cnstrs[i]);
-    //     //Z3_assert_cnstr(ctx, cnstrs[i]);
-    // }
-}
-
-// z3::expr_vector mk_fresh_bool_var_array(z3::context &ctx, unsigned num_vars)
+// void barrier_synthesis:: assert_hard_constraints( z3::solver &s,
+//                               std::vector<z3::expr>& cnstrs)
+//                               // unsigned num_cnstrs, z3::expr_vector cnstrs)
 // {
-//     z3::expr_vector result(ctx);
-//     unsigned i;
-//     for (i = 0; i < num_vars; i++) {
-//     	std::stringstream x_name;
-//     	x_name << "x" << i;
-//     	z3::expr x=ctx.bool_const(x_name.str().c_str());
-//         result.push_back(x);
-//     }
-//     return result;
+//   for( auto f : cnstrs ) {
+//     s.add( f) ;
+//   }
 // }
 
 void barrier_synthesis:: assert_soft_constraints( z3::solver&s ,z3::context& ctx,
@@ -587,11 +572,12 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
 }
 
 int barrier_synthesis:: fu_malik_maxsat( z3::context& ctx,
-                     std::vector<z3::expr>& hard_cnstrs,
-                     std::vector<z3::expr>& soft_cnstrs ) {
+                                         z3::expr hard,
+                                         std::vector<z3::expr>& soft_cnstrs ) {
     unsigned k;
     z3::solver s(ctx);
-    assert_hard_constraints(s, hard_cnstrs);
+    s.add( hard );
+    // assert_hard_constraints(s, hard_cnstrs);
     // printf("checking whether hard constraints are satisfiable...\n");
     if( s.check() ==z3::check_result::sat ) {
       return -1;

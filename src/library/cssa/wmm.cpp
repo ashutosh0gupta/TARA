@@ -352,10 +352,7 @@ void program::wmm_build_ses() {
       }
       for( const se_ptr& wr : wrs ) {
         if( anti_ppo_read( wr, rd ) ) continue;
-        z3::expr wr_v = wr->get_var_expr(v1);
-        // std::string bname = v1+"-"+wr->name()+"-"+rd->name();
-        // z3::expr b = c.bool_const(  bname.c_str() );
-        // reading_map.insert( std::make_tuple(bname,wr,rd) );
+        z3::expr wr_v = wr->get_var_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
@@ -375,7 +372,7 @@ void program::wmm_build_ses() {
             }else{
               auto new_fr = wmm_mk_ghb( rd, after_wr );
               for( auto before_rd : tid_rds ) {
-                //disable this code rf
+                //disable this code for rmo
                 z3::expr anti_coherent_b =
                   get_rf_bvar( v1, after_wr, before_rd, false );
                 new_fr = !anti_coherent_b && new_fr;
