@@ -54,6 +54,22 @@ private:
   hb_enc::integer _hb_encoding = hb_enc::integer(c);
   
 public:
+
+  // bool isEq( z3::expr& a, z3::expr&b ) {
+  //   Z3_ast ap = a;
+  //   Z3_ast bp = b;
+  //   return ap == bp;
+  // }
+
+  // struct exprComp {
+  //   bool operator() (const z3::expr& a, const z3::expr& b) const
+  //   {
+  //     Z3_ast ap = a;
+  //     Z3_ast bp = b;
+  //     return ap < bp;
+  //   }
+  // };
+
   static std::string opSymbol(Z3_decl_kind decl);
 
   z3::solver create_solver() const;

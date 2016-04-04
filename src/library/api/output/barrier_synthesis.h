@@ -107,7 +107,7 @@ private:
   bool print_nfs;
   nf normal_form;
 
-  std::shared_ptr<const cssa::program> program;
+  // std::shared_ptr<const cssa::program> program;
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
@@ -117,11 +117,12 @@ private:
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
 
 
-  z3::expr cut = sol_bad->ctx().bool_val(true);
+  std::vector<z3::expr> cut;
   std::vector<z3::expr> soft;
   boost::bimap<z3::expr, cycle* >z3_to_cycle;
   std::unordered_map< unsigned, std::vector<se_ptr> > tid_to_se_ptr;
-  boost::bimap<se_ptr,z3::expr> segment_map;
+  std::unordered_map<se_ptr,z3::expr> segment_map;
+  // std::map<std::string, se_ptr> rev_segment_map;
   void gen_max_sat_problem();
 
   void print_all_cycles( std::ostream& stream ) const;

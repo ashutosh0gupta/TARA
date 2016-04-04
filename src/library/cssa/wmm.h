@@ -84,6 +84,10 @@ namespace cssa {
       return e_v->instr_no;
     }
 
+    inline unsigned get_tid() const {
+      return tid;
+    }
+
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
       stream << var.name();

@@ -166,32 +166,29 @@ void barrier_synthesis::output(const z3::expr& output)
     
     nf::result_type bad_dnf = normal_form.get_result(true, true);
 
-    // cycles.clear();
-    // do the synthesis
-    // locks.clear();
-    // wait_notifies.clear();
-    // barriers.clear();
-    // cycle_counter = 1;
-    // barrier_counter = 1;
-
     // measure time
     auto start_time = chrono::steady_clock::now();
 
     find_cycles( bad_dnf );
 
     gen_max_sat_problem();
-
-    z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut, soft );
-    for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
-    	if(m.eval(it->right).get_bool())
-    		barrier_where.push_back( it->left );
+    {
+      std::cout << cut[0] << endl;
+      std::cout << "soft:" << endl;
+      for( auto s : soft ) {
+        std::cout << s << endl;
+      }
     }
-    // iterate segment map and s
-    
-    // Management
-    // info = to_string(cycles.size()) + " " //+
-    //   // to_string(barriers.size()) + " " 
-    //   ;
+    z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
+    for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
+      se_ptr e = it->first;
+      z3::expr b = it->second;
+      if( m.eval(b).get_bool() )
+        barrier_where.push_back( e );
+    }
+
+    info = to_string(all_cycles.size()) + " " + to_string(barrier_where.size()) + " ";
+
     auto delay = chrono::steady_clock::now() - start_time;
     time = chrono::duration_cast<chrono::microseconds>(delay).count();
 }
@@ -354,29 +351,14 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const
 {
   if (print_nfs && !machine_readable)
     normal_form.print(stream, false);
-  print_all_cycles( stream );
+  // print_all_cycles( stream );
 
-  std::cout<<"Barriers must be inserted after these places:- \n";
-      for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
-      	std::cout << barrier_where[i];
-      }
+  stream <<"Barriers must be inserted after these places:- \n";
+  for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
+    stream << "thread " << barrier_where[i]->get_tid() << ",instr no "
+           <<  barrier_where[i]->get_instr_no()  << endl;
+  }
 
-  stream << "barrier synthesis printing code is not written!!\n";
-  // print locks and wait-notifies
-  // if (!machine_readable) stream << "Locks: ";
-  // for (auto l:locks) {
-  //   stream << l << " ";
-  // }
-  // stream << endl;
-  // if (!machine_readable) stream << "Barriers: ";
-  // for (auto b:barriers) {
-  //   stream << b << " ";
-  // }
-  // stream << endl;
-  // if (!machine_readable) stream << "Wait-notifies: ";
-  // for (auto hb:wait_notifies) {
-  //   stream << hb << " ";
-  // }
   stream << endl;
 }
 
@@ -398,17 +380,12 @@ z3::expr barrier_synthesis::get_fresh_bool() {
   return b;
 }
 
+bool cmp (se_ptr a,se_ptr b) { return (a->get_instr_no() <b->get_instr_no()); }
+
 void barrier_synthesis::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();
 
-  //std::vector<std::list<cycle_edge>> rpo_set(program->no_of_threads());
-  //std::vector<se_ptr> sorted_cuts;
-  // unsigned count2=0, no_of_threads=program->no_of_threads();
-
-  z3_to_cycle.clear();
-
   for( auto& cycles : all_cycles ) {
-     //cut=(b11 \/ b12) /\ (b21 \/ b22) => cut = disjunct1 /\ disjunct2
       for( auto& cycle : cycles ) {
         for( auto edge : cycle.edges ) {
           if( edge.type==edge_type::rpo ) {
@@ -421,9 +398,9 @@ void barrier_synthesis::gen_max_sat_problem() {
       }
   }
 
-  for( auto it : tid_to_se_ptr ) {
-    std::vector<se_ptr>& vec = it.second;
-    std::sort( vec.begin(), vec.end() );
+  for( auto it = tid_to_se_ptr.begin();  it != tid_to_se_ptr.end(); it++ ) {
+    std::vector<se_ptr>& vec = it->second;
+    std::sort( vec.begin(), vec.end(), cmp );
     vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
     for(auto e : vec ) {
       z3::expr s = get_fresh_bool();
@@ -432,8 +409,9 @@ void barrier_synthesis::gen_max_sat_problem() {
     }
   }
 
-
+  z3::expr hard = z3_ctx.bool_val(true);
   for( auto& cycles : all_cycles ) {
+    if( cycles.size() == 0 ) continue;
     z3::expr c_disjunct = z3_ctx.bool_val(false);
     for( auto& cycle : cycles ) {
       z3::expr r_conjunct = z3_ctx.bool_val(true);
@@ -447,7 +425,7 @@ void barrier_synthesis::gen_max_sat_problem() {
             if( e == edge.before ) in_range = true;
             if( e == edge.after ) break;
             if( in_range ) {
-              auto find_z3 = segment_map.left.find( e );
+              auto find_z3 = segment_map.find( e );
               s_disjunct = s_disjunct || find_z3->second;
             }
           }
@@ -455,59 +433,20 @@ void barrier_synthesis::gen_max_sat_problem() {
         }
       }
       z3::expr c = get_fresh_bool();
-      z3_to_cycle.insert({c, &cycle});
+      // z3_to_cycle.insert({c, &cycle});
       c_disjunct=c_disjunct || c;
-      cut = cut && implies( r_conjunct, c );
+      hard = hard && implies( c, r_conjunct );
     }
-    cut = cut && c_disjunct;
+    hard = hard && c_disjunct;
   }
+  cut.push_back( hard );
 
-
-  //     //(c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=> dummy_conjunct => b1
-  //     z3::expr dummy_conjunct=z3_ctx.bool_val(true);
-
-
-  //     for( unsigned i=0; i < no_of_threads ; i++ ) {
-  //       // (c1 \/ c2) /\ (c3 \/ c4) /\ (c5 \/ c6) => b1 <=>
-  //       // dummy_disjunct1 /\ dummy_disjunct... => b1
-  //       z3::expr s_disjunct = z3_ctx.bool_val(false);
-  //       for(auto it= cycle.tid_to_se_ptr[i].begin(); cycle.tid_to_se_ptr[i].end(); ){
-  //         auto it_curr=it++;
-  //         if(it==cycle.tid_to_se_ptr[i].end)
-  //           break;
-  //         if((*it_curr)->e_v->instr_no == (*it)->e_v->instr_no)
-  //           continue;
-  //         else
-  //           {
-  //             count2++;
-  //             stringstream s_name;
-  //             s_name<<"s"<<count2;
-  //             z3::expr segment=z3_ctx.bool_const(s_name.str().c_str());
-  //             s_disjunct = s_disjunct || segment;
-  //           }
-  //       }
-  //       dummy_conjunct=dummy_conjunct && s_disjunct;
-  //     }
-  //     auto find_z3 = z3_to_cycle.right.find( cycle);
-  //     z3::expr hard_cons2=implies(dummy_conjunct,find_z3->first);
-  //   }
-  // }
 }
 
 
 
 // ===========================================================================
 // max sat code
-
-
-// void barrier_synthesis:: assert_hard_constraints( z3::solver &s,
-//                               std::vector<z3::expr>& cnstrs)
-//                               // unsigned num_cnstrs, z3::expr_vector cnstrs)
-// {
-//   for( auto f : cnstrs ) {
-//     s.add( f) ;
-//   }
-// }
 
 void barrier_synthesis:: assert_soft_constraints( z3::solver&s ,z3::context& ctx,
                               std::vector<z3::expr>& cnstrs,
@@ -579,17 +518,8 @@ z3::model barrier_synthesis:: fu_malik_maxsat( z3::context& ctx,
     s.add( hard );
     // assert_hard_constraints(s, hard_cnstrs);
     // printf("checking whether hard constraints are satisfiable...\n");
-    if( s.check() == z3::check_result::unsat ) {
-    	assert("false");
-    }
-    if( soft_cnstrs.size() == 0 )
-    {
-//    	z3::model m=s.get_model();
-//    	z3::expr fals=ctx.bool_val(false);
-//    	s.add(fals);
-//    	return m;
-    	assert("soft_constarints are 0");
-    }
+    assert( s.check() != z3::unsat );
+    assert( soft_cnstrs.size() > 0 );
 
     std::vector<z3::expr> aux_vars;
     assert_soft_constraints( s,ctx ,soft_cnstrs, aux_vars );
