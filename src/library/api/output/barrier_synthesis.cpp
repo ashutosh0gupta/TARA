@@ -333,6 +333,7 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
     }
     bad_dnf_num++;
   }
+  std::cout<<"Number of Cycles\t"<<all_cycles[0].size()<<"\n";
 }
 
 void barrier_synthesis::print_all_cycles( ostream& stream ) const
@@ -358,7 +359,7 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const
     stream << "thread " << barrier_where[i]->get_tid() << ",instr no "
            <<  barrier_where[i]->get_instr_no()  << endl;
   }
-
+  print_all_cycles(stream);
   stream << endl;
 }
 
