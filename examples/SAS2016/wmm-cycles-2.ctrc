@@ -8,6 +8,7 @@ thread P0:
 w1: (= x. 1)
 w2: (= y. 1)
 w3: (= w. 1)
+#wf: barrier
 w4: (= z. 1)
 
 thread P1 {r1 r2 r3 r4}:

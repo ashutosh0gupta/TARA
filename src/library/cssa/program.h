@@ -143,7 +143,7 @@ private:
   bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   bool anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
   bool anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr );
-
+  bool is_rd_rd_coherance_preserved();
 private:
   mm_t mm = mm_t::none;
 

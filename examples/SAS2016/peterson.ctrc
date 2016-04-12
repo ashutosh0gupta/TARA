@@ -1,29 +1,33 @@
 ###Peterson###
 
-global: flag1 flag2 turn cs
+global: flag1 flag2 turn cs finished1 finished2
 
-pre: (and (= flag1 0) (= flag2 0) (= cs 0))
+pre: (and (= flag1 0) (= flag2 0) (= cs 0) (= finished1 0) (= finished2 0))
 
-thread P1 {r0 r1 finished1}:
-w0: (= finished1. 0)
+thread P1 {r0 r1}:
 w1: (= flag1. 1)
 w2: (= turn. 1)
-w4: (= r1. turn)
+wf: fence
 w3: (= r0. flag2)
-w5: assume(not (and (= r0 1) (= r1 1)))
+w4: (= r1. turn)
+#w5: assume(not (and (= r0 1) (= r1 1)))
 w6: (= cs. (+ cs 1))
 w7: (= flag1. 0)
 w8: (= finished1. 1)
 
-thread P2 {r2 r3 finished2}:
-d0: (= finished2. 0)
+thread P2 {r2 r3}:
 d1: (= flag2. 1)
 d2: (= turn. 0)
-d4: (= r3. turn)
+df: fence
 d3: (= r2. flag1)
-d5: assume(not (and (= r2 1) (= r3 0)))
+d4: (= r3. turn)
+#d5: assume(not (and (= r2 1) (= r3 0)))
 d6: (= cs. (+ cs 1))
 d7: (= flag2. 0)
 d8: (= finished2. 1)
 
-post: (implies (and (= P1.finished1 1) (= P2.finished2 1)) (= cs 2) )
+post: (implies (and (not (and (= P1.r0 1) (= P1.r1 1))) (not (and (= P2.r2 1) (= P2.r3 0)))) (= cs 2))
+
+#(implies (and (= finished1 1) (= finished2 1)) (= cs 2) )
+#(or (= finished1 0) (= finished2 0))
+

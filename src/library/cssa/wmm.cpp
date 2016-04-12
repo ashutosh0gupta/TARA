@@ -315,6 +315,17 @@ bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
   return false;
 }
 
+bool program::is_rd_rd_coherance_preserved() {
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() ) {
+    return true;
+  }else if( is_mm_rmo() ){
+    return false;
+  }else{
+    unsupported_mm();
+    return false; // dummy return
+  }
+}
+
 //----------------------------------------------------------------------------
 // Build symbolic event structure
 // In original implementation this part of constraints are
@@ -371,11 +382,13 @@ void program::wmm_build_ses() {
               fr = fr && !cond;
             }else{
               auto new_fr = wmm_mk_ghb( rd, after_wr );
-              for( auto before_rd : tid_rds ) {
-                //disable this code for rmo
-                z3::expr anti_coherent_b =
-                  get_rf_bvar( v1, after_wr, before_rd, false );
-                new_fr = !anti_coherent_b && new_fr;
+              if( is_rd_rd_coherance_preserved() ) {
+                for( auto before_rd : tid_rds ) {
+                  //disable this code for rmo
+                  z3::expr anti_coherent_b =
+                    get_rf_bvar( v1, after_wr, before_rd, false );
+                  new_fr = !anti_coherent_b && new_fr;
+                }
               }
               fr = fr && implies( cond , new_fr );
             }
@@ -457,7 +470,6 @@ void program::wmm_build_tso_ppo( thread& thread ) {
   se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
-      continue;
       phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
       phi_po = phi_po && wmm_mk_hbs( last_wrs, thread[j].barr );
       last_rds = last_wrs = thread[j].barr;
@@ -493,7 +505,6 @@ void program::wmm_build_pso_ppo( thread& thread ) {
   se_set last_rds = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier(thread[j].type) ) {
-      continue; // disabled syncing here
       phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
       last_rds = thread[j].barr;
       no_rd_occurred = true;
@@ -1063,6 +1074,8 @@ void program::wmm_build_barrier() {
   }
 }
 
+//----------------------------------------------------------------------------
+
 void program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
@@ -1238,7 +1251,7 @@ void program::wmm( const input::program& input ) {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
-  wmm_build_barrier(); // build barrier
+  // wmm_build_barrier(); // build barrier// ppo already has the code
 
   //TODO: deal with atomic section and prespecified happens befores
   // add atomic sections

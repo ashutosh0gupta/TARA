@@ -19,9 +19,9 @@ build/buildr/Makefile: build/z3/buildr/libz3.so
 	mkdir -p $(BUILDDIR)/buildr
 	cd $(BUILDDIR)/buildr; cmake -DCMAKE_BUILD_TYPE=Release $(SRCDIR)
 
-build/buildd/Makefile: build/z3/buildr/libz3.so
+build/buildd/Makefile: build/z3/buildd/libz3.so
 	mkdir -p $(BUILDDIR)/buildd
-	cd $(BUILDDIR)/buildd; cmake -DCMAKE_BUILD_TYPE=Debug $(SRCDIR)
+	cd $(BUILDDIR)/buildd; cmake -DCMAKE_BUILD_TYPE=Debug -DZ3_DEBUG:BOOL=TRUE $(SRCDIR)
 
 clean :
 	rm -rf $(BUILDDIR)/buildr

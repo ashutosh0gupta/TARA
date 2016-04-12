@@ -167,6 +167,7 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   connect_read_writes( result );//wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
   result.add(program->phi_prp);
+  if( !program->is_mm_declared() ) //wmm disable TODO: hack??
   if (!include_infeasable)
     result.add(program->phi_fea);
 

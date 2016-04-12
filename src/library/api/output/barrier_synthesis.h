@@ -94,7 +94,7 @@ typedef std::shared_ptr<cycle> cycle_ptr;
 class barrier_synthesis : public output_base
 {
 public:
-  barrier_synthesis(bool verify, bool print_nfs);
+  barrier_synthesis(bool verify, bool verbose);
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   virtual void init( const hb_enc::encoding& hb_encoding,
                      const z3::solver& sol_desired,
@@ -104,7 +104,7 @@ public:
   virtual void gather_statistics(metric& metric) const override;
   friend class cycle;
 private:
-  bool print_nfs;
+  bool verbose;
   nf normal_form;
 
   // std::shared_ptr<const cssa::program> program;

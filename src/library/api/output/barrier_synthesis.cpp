@@ -143,8 +143,8 @@ bool cycle::add_edge( se_ptr after, edge_type t ) {
 
 //----------------------------------------------------------------------------
 
-barrier_synthesis::barrier_synthesis(bool verify, bool print_nfs)
-  : print_nfs(print_nfs)
+barrier_synthesis::barrier_synthesis(bool verify, bool _verbose)
+  : verbose(_verbose)
   , normal_form(false, false, false, true, verify)
 {}
 
@@ -158,40 +158,6 @@ void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
     // program = _program;
 }
 
-
-void barrier_synthesis::output(const z3::expr& output)
-{
-    output_base::output(output);
-    normal_form.output(output);
-    
-    nf::result_type bad_dnf = normal_form.get_result(true, true);
-
-    // measure time
-    auto start_time = chrono::steady_clock::now();
-
-    find_cycles( bad_dnf );
-
-    gen_max_sat_problem();
-    {
-      std::cout << cut[0] << endl;
-      std::cout << "soft:" << endl;
-      for( auto s : soft ) {
-        std::cout << s << endl;
-      }
-    }
-    z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
-    for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
-      se_ptr e = it->first;
-      z3::expr b = it->second;
-      if( m.eval(b).get_bool() )
-        barrier_where.push_back( e );
-    }
-
-    info = to_string(all_cycles.size()) + " " + to_string(barrier_where.size()) + " ";
-
-    auto delay = chrono::steady_clock::now() - start_time;
-    time = chrono::duration_cast<chrono::microseconds>(delay).count();
-}
 
 edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
 
@@ -331,13 +297,14 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
         }
       }
     }
+    if( cycles.size() == 0 ) {
+      runtime_error( "failed barrier synthesis! a conjunct found without any cycles!!" );
+    }
     bad_dnf_num++;
   }
-  std::cout<<"Number of Cycles\t"<<all_cycles[0].size()<<"\n";
 }
 
-void barrier_synthesis::print_all_cycles( ostream& stream ) const
-{
+void barrier_synthesis::print_all_cycles( ostream& stream ) const {
   stream << "cycles found!\n";
   for( auto& cycles : all_cycles ) {
     stream << "[" << endl;
@@ -348,18 +315,21 @@ void barrier_synthesis::print_all_cycles( ostream& stream ) const
   }
 }
 
-void barrier_synthesis::print(ostream& stream, bool machine_readable) const
-{
-  if (print_nfs && !machine_readable)
+void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
+  if( verbose && !machine_readable )
     normal_form.print(stream, false);
-  // print_all_cycles( stream );
 
-  stream <<"Barriers must be inserted after these places:- \n";
-  for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
-    stream << "thread " << barrier_where[i]->get_tid() << ",instr no "
-           <<  barrier_where[i]->get_instr_no()  << endl;
+  if( verbose ) {
+    stream << "Detected cycles:\n";
+    print_all_cycles( stream );
   }
-  print_all_cycles(stream);
+
+  stream <<"Barriers must be inserted after the following instructions:- \n";
+  for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
+    stream << "thread " << barrier_where[i]->get_tid() << ",instr "
+           <<  barrier_where[i]->loc->name << endl;
+  }
+
   stream << endl;
 }
 
@@ -388,14 +358,17 @@ void barrier_synthesis::gen_max_sat_problem() {
 
   for( auto& cycles : all_cycles ) {
       for( auto& cycle : cycles ) {
+        bool found = false;
         for( auto edge : cycle.edges ) {
           if( edge.type==edge_type::rpo ) {
             //check each edge for rpo: push them in another vector
             //compare the edges in same thread
             tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
             tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
+            found = true;
           }
         }
+        if( !found ) runtime_error( "cycles found without any relaxed program oders!!" );
       }
   }
 
@@ -412,7 +385,7 @@ void barrier_synthesis::gen_max_sat_problem() {
 
   z3::expr hard = z3_ctx.bool_val(true);
   for( auto& cycles : all_cycles ) {
-    if( cycles.size() == 0 ) continue;
+    if( cycles.size() == 0 ) continue; // throw error unfixable situation
     z3::expr c_disjunct = z3_ctx.bool_val(false);
     for( auto& cycle : cycles ) {
       z3::expr r_conjunct = z3_ctx.bool_val(true);
@@ -444,15 +417,14 @@ void barrier_synthesis::gen_max_sat_problem() {
 
 }
 
-
-
 // ===========================================================================
 // max sat code
 
-void barrier_synthesis:: assert_soft_constraints( z3::solver&s ,z3::context& ctx,
-                              std::vector<z3::expr>& cnstrs,
-                              std::vector<z3::expr>& aux_vars )
-{
+void barrier_synthesis::assert_soft_constraints( z3::solver&s ,
+                                                 z3::context& ctx,
+                                                 std::vector<z3::expr>& cnstrs,
+                                                 std::vector<z3::expr>& aux_vars
+                                                 ) {
   for( auto f : cnstrs ) {
     auto n = get_fresh_bool();
     aux_vars.push_back(n);
@@ -511,14 +483,13 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
     }
 }
 
-z3::model barrier_synthesis:: fu_malik_maxsat( z3::context& ctx,
-                                         z3::expr hard,
-                                         std::vector<z3::expr>& soft_cnstrs ) {
+z3::model
+barrier_synthesis::fu_malik_maxsat( z3::context& ctx,
+                                    z3::expr hard,
+                                    std::vector<z3::expr>& soft_cnstrs ) {
     unsigned k;
     z3::solver s(ctx);
     s.add( hard );
-    // assert_hard_constraints(s, hard_cnstrs);
-    // printf("checking whether hard constraints are satisfiable...\n");
     assert( s.check() != z3::unsat );
     assert( soft_cnstrs.size() > 0 );
 
@@ -526,12 +497,53 @@ z3::model barrier_synthesis:: fu_malik_maxsat( z3::context& ctx,
     assert_soft_constraints( s,ctx ,soft_cnstrs, aux_vars );
     k = 0;
     for (;;) {
-      printf("iteration %d\n", k);
       if( fu_malik_maxsat_step(s, ctx, soft_cnstrs, aux_vars) ) {
     	  z3::model m=s.get_model();
-    	  //return soft_cnstrs.size() - k;
     	  return m;
       }
       k++;
     }
+}
+
+// ===========================================================================
+// main function for synthesis
+
+void barrier_synthesis::output(const z3::expr& output) {
+    output_base::output(output);
+    normal_form.output(output);
+    
+    nf::result_type bad_dnf = normal_form.get_result(true, true);
+
+    // measure time
+    auto start_time = chrono::steady_clock::now();
+
+    find_cycles( bad_dnf );
+
+    gen_max_sat_problem();
+
+    if( verbose ) {
+      std::cout << cut[0] << endl;
+      std::cout << "soft:" << endl;
+      for( auto s : soft ) {
+        std::cout << s << endl;
+      }
+    }
+
+    if( soft.size() ==  0 ) {
+      runtime_error( "No relaxed edge found in any cycle!!" );
+      return;
+    }
+    z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
+    for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
+      se_ptr e = it->first;
+      z3::expr b = it->second;
+      if( m.eval(b).get_bool() )
+        barrier_where.push_back( e );
+    }
+
+    info = to_string(all_cycles.size()) + " " +
+      to_string(barrier_where.size()) + " ";
+
+    auto delay = chrono::steady_clock::now() - start_time;
+    time = chrono::duration_cast<chrono::microseconds>(delay).count();
 }

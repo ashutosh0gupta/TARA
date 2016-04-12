@@ -112,6 +112,9 @@ void real_main(int argc, char **argv) {
   
   ofstream file_out;
   if (o.output_to_file) {
+    //========================================================================
+    //Ashutosh: test mangement
+    //========================================================================
     //prepare option string
     // string ops="#!";
     // for( int i = 1; i < argc-1; i++ ) {
@@ -142,6 +145,7 @@ void real_main(int argc, char **argv) {
     //     file_rest << line << endl;
     //   }
     // }
+    //========================================================================
 
     // prepare output to the file if desired
     ifstream file_in (o.input_file);

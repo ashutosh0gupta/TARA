@@ -53,6 +53,7 @@ namespace smt {
     // find arithmatic theory
     family_id arith_id = m_manager.get_family_id("arith");    
     theory * th = m_context->get_theory( arith_id );
+    if( th == NULL ) return;
     theory_mi_arith* ar_th = reinterpret_cast<theory_mi_arith*>(th);
     // collect the asserted atoms
     vector< std::pair<bool_var, bool> > bvars; 
