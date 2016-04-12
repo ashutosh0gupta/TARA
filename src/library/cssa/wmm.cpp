@@ -940,142 +940,6 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
   return new_ord;
 }
 
-//----------------------------------------------------------------------------
-
-void program::wmm_add_barrier(int tid, int instr) {
-  //assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
-  thread & thread= *threads[tid];
-  auto& barrier_before = thread[instr+1].rds; // everything before (above) is ordered wrt this barrier
-  auto& barrier_after = thread[instr].wrs;   // everything after (below) is ordered wrt this barrier
-  auto& rds_before = thread[instr].rds;
-  auto& rds_after = thread[instr+1].rds;
-  auto& wrs_before = thread[instr].wrs;
-  auto& wrs_after = thread[instr+1].wrs;
-
-  if( !rds_before.empty() || !wrs_before.empty() ) {
-    if( !rds_before.empty() && !wrs_before.empty() ) {
-          phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
-          phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
-    }else if( !rds_before.empty() ) {
-      phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
-    } else if( !wrs_before.empty() ) {
-      phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
-    }
-
-    for(int j=instr-1; j>=0; j-- ) {
-      rds_before = thread[j].rds;
-      wrs_before = thread[j].wrs;
-      if(!rds_before.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
-      }
-      if(!wrs_before.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
-      }
-    }
-  }
-
-  if( !rds_after.empty() || !wrs_after.empty() ) {
-    if( !rds_after.empty() && !wrs_after.empty() ) {
-      phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
-      phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
-    } else if( !rds_after.empty() ) {
-      phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
-    } else if( !wrs_after.empty() ) {
-      phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
-    }
-
-    for(unsigned i=instr+2; i<thread.size(); i++ ) {
-      rds_after = thread[i].rds;
-      wrs_after = thread[i].wrs;
-      if(!rds_after.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
-      }
-      if(!wrs_after.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
-      }
-    }
-  }
-}
-
-void program::wmm_build_barrier() {
-  //return;
-  int first_read;
-  for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++) {
-    first_read=0;
-    thread& thread=*threads[it1->first];
-    auto& barrier = thread[it1->second].barr;
-    auto& rds_before = thread[it1->second-1].rds;
-    auto& rds_after = thread[it1->second+1].rds;
-    auto& wrs_before = thread[it1->second-1].wrs;
-    auto& wrs_after = thread[it1->second+1].wrs;
-
-    if(is_mm_tso()) {
-      if( !wrs_before.empty() ) {
-        phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
-      } else if(!rds_before.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
-        for(int j=it1->second-2; j>=0; j-- ) {
-          wrs_before = thread[j].wrs;
-          if(!wrs_before.empty()) {
-            phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
-            break;
-          }
-        }
-      }
-      if( !rds_after.empty() ) {
-        phi_po = phi_po && wmm_mk_hbs(barrier, rds_after );
-      }
-    } else if(!wrs_after.empty()) {
-      phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
-
-      for( unsigned j=it1->second+2; j!=thread.size(); j++ ) {
-        rds_after = thread[j].rds;
-        if(!wrs_before.empty()) {
-          phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
-          break;
-        }
-      }
-    }
-    else if(is_mm_pso()) {
-      if( !wrs_before.empty() ) {
-        phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier);
-      }
-      else if(!rds_before.empty()) {
-        phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
-        for(int j=it1->second-2; j>=0; j-- ){
-          wrs_before = thread[j].wrs;
-          if(!wrs_before.empty()){
-            phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
-
-          }
-        }
-      }
-      if(!wrs_after.empty() || !rds_after.empty()){
-        if( !rds_after.empty() && first_read==0 ){
-          phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
-          first_read=1;
-        }
-        if(!wrs_after.empty()){
-          phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
-        }
-        for( unsigned i=it1->second+2; i<=thread.size()-1; i++ ){
-          rds_after = thread[i].rds;
-          wrs_after = thread[i].wrs;
-          if(!rds_after.empty() && first_read==0){
-            phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
-            first_read=1;
-          }
-          if(!wrs_after.empty()) {
-            phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
-          }
-        }
-      }
-    }
-  }
-}
-
-//----------------------------------------------------------------------------
-
 void program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
@@ -1260,3 +1124,141 @@ void program::wmm( const input::program& input ) {
     // throw cssa_exception( "atomic sections are not supported!" );
   }
 }
+
+
+//----------------------------------------------------------------------------
+// unused code
+
+void program::wmm_add_barrier(int tid, int instr) {
+  //assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
+  thread & thread= *threads[tid];
+  auto& barrier_before = thread[instr+1].rds; // everything before (above) is ordered wrt this barrier
+  auto& barrier_after = thread[instr].wrs;   // everything after (below) is ordered wrt this barrier
+  auto& rds_before = thread[instr].rds;
+  auto& rds_after = thread[instr+1].rds;
+  auto& wrs_before = thread[instr].wrs;
+  auto& wrs_after = thread[instr+1].wrs;
+
+  if( !rds_before.empty() || !wrs_before.empty() ) {
+    if( !rds_before.empty() && !wrs_before.empty() ) {
+          phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+          phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+    }else if( !rds_before.empty() ) {
+      phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+    } else if( !wrs_before.empty() ) {
+      phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+    }
+
+    for(int j=instr-1; j>=0; j-- ) {
+      rds_before = thread[j].rds;
+      wrs_before = thread[j].wrs;
+      if(!rds_before.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( rds_before , barrier_before );
+      }
+      if(!wrs_before.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( wrs_before , barrier_before );
+      }
+    }
+  }
+
+  if( !rds_after.empty() || !wrs_after.empty() ) {
+    if( !rds_after.empty() && !wrs_after.empty() ) {
+      phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+      phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+    } else if( !rds_after.empty() ) {
+      phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+    } else if( !wrs_after.empty() ) {
+      phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+    }
+
+    for(unsigned i=instr+2; i<thread.size(); i++ ) {
+      rds_after = thread[i].rds;
+      wrs_after = thread[i].wrs;
+      if(!rds_after.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( barrier_after , rds_after );
+      }
+      if(!wrs_after.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( barrier_after , wrs_after );
+      }
+    }
+  }
+}
+
+void program::wmm_build_barrier() {
+  //return;
+  int first_read;
+  for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++) {
+    first_read=0;
+    thread& thread=*threads[it1->first];
+    auto& barrier = thread[it1->second].barr;
+    auto& rds_before = thread[it1->second-1].rds;
+    auto& rds_after = thread[it1->second+1].rds;
+    auto& wrs_before = thread[it1->second-1].wrs;
+    auto& wrs_after = thread[it1->second+1].wrs;
+
+    if(is_mm_tso()) {
+      if( !wrs_before.empty() ) {
+        phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
+      } else if(!rds_before.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
+        for(int j=it1->second-2; j>=0; j-- ) {
+          wrs_before = thread[j].wrs;
+          if(!wrs_before.empty()) {
+            phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
+            break;
+          }
+        }
+      }
+      if( !rds_after.empty() ) {
+        phi_po = phi_po && wmm_mk_hbs(barrier, rds_after );
+      }
+    } else if(!wrs_after.empty()) {
+      phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
+
+      for( unsigned j=it1->second+2; j!=thread.size(); j++ ) {
+        rds_after = thread[j].rds;
+        if(!wrs_before.empty()) {
+          phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+          break;
+        }
+      }
+    }
+    else if(is_mm_pso()) {
+      if( !wrs_before.empty() ) {
+        phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier);
+      }
+      else if(!rds_before.empty()) {
+        phi_po = phi_po && wmm_mk_hbs( rds_before, barrier );
+        for(int j=it1->second-2; j>=0; j-- ){
+          wrs_before = thread[j].wrs;
+          if(!wrs_before.empty()){
+            phi_po = phi_po && wmm_mk_hbs( wrs_before, barrier );
+
+          }
+        }
+      }
+      if(!wrs_after.empty() || !rds_after.empty()){
+        if( !rds_after.empty() && first_read==0 ){
+          phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+          first_read=1;
+        }
+        if(!wrs_after.empty()){
+          phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
+        }
+        for( unsigned i=it1->second+2; i<=thread.size()-1; i++ ){
+          rds_after = thread[i].rds;
+          wrs_after = thread[i].wrs;
+          if(!rds_after.empty() && first_read==0){
+            phi_po = phi_po && wmm_mk_hbs( barrier, rds_after );
+            first_read=1;
+          }
+          if(!wrs_after.empty()) {
+            phi_po = phi_po && wmm_mk_hbs( barrier, wrs_after );
+          }
+        }
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------------

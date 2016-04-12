@@ -1,11 +1,10 @@
 ###Bakery###
 
-global: c1 c2 n1 n2 cs
+global: c1 c2 n1 n2 cs finished1 finished2
 
-pre: (and (= c1 0) (= c2 0) (= cs 0) (= n1 1) (= n2 1))
+pre: (and (= c1 0) (= c2 0) (= cs 0) (= n1 1) (= n2 1) (= finished1 0) (= finished2 0))
 
-thread P1 {r1 r2 finished1}:
-w0: (= finished1. 0)
+thread P1 {r1 r2}:
 w1: (= c1. 1)
 w2: (= r2. n2)
 w3: (= r1. (+ r2 1))
@@ -16,8 +15,7 @@ w7: (= n1. 0)
 w8: (= cs. (+ cs 1))
 w9: (= finished1. 1)
 
-thread P2 {s1 s2 finished2}:
-d0: (= finished2. 0)
+thread P2 {s1 s2}:
 d1: (= c2. 1)
 d2: (= s1. n1)
 d3: (= s2. (+ s1 1))
@@ -28,4 +26,4 @@ d7: (= n2. 0)
 d8: (= cs. (+ cs 1))
 d9: (= finished2. 1)
 
-post: (implies (and (= P1.finished1 1) (= P2.finished2 1)) (= cs 2) )
+post: (implies (and (= finished1 1) (= finished2 1)) (= cs 2) )
