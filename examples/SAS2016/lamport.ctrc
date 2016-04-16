@@ -1,11 +1,11 @@
 ###Lamport###
+## * more paths should be encoded
 
-global: x y b1 b2 cs
+global: x y b1 b2 cs finished1 finished2
 
-pre: (= cs 0)
+pre: (and (= cs 0) (= finished1 0) (= finished2 0))
 
-thread P1 {finished1}:
-w0 : (= finished1. 0)
+thread P1 :
 w1 : (= b1. 1)
 w2 : (= x. 1)
 w3 : assume(= y 0)
@@ -16,8 +16,7 @@ w7 : (= y. 0)
 w8 : (= b1. 0)
 w9: (= finished1. 1)
 
-thread P2 {finished2}:
-d0 : (= finished2. 0)
+thread P2 :
 d1 : (= b2. 1)
 d2 : (= x. 2)
 d3 : assume(= y 0)
@@ -28,4 +27,4 @@ d7 : (= y. 0)
 d8 : (= b2. 0)
 d9: (= finished2. 1)
 
-post: (implies (and (= P1.finished1 1) (= P2.finished2 1)) (= cs 2) )
+post: (implies (and (= finished1 1) (= finished2 1)) (= cs 2) )
