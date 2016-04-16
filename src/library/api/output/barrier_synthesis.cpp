@@ -221,7 +221,7 @@ void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
 
 typedef  std::vector< pair<se_ptr,se_ptr> > hb_conj;
 // typedef  vector< hb_conj > se_cnf;
-
+//todo: not detecting all cycles??
 void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
   all_cycles.clear();
   all_cycles.resize( bad_dnf.size() );

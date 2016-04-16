@@ -1,0 +1,71 @@
+global: x1 x2 x3 x4 x5 x6 x7 x8 x9 x10
+
+pre: (and (= x1 0) (= x2  0) (= x3 0) (= x4 0) (= x5 0) (= x6 0) (= x7  0) (= x8 0) (= x9 0) (= x10 0) )
+
+thread P0 { rr }:
+w1: (= x1. 1)
+w2: (= x2. 1)
+w3: (= x3. 1)
+w4: (= x4. 1)
+w5: (= x5. 1)
+w6: (= x6. 1)
+w7: (= x7. 1)
+w8: (= x8. 1)
+w9: (= x9. 1)
+w10: (= x10. 1)
+
+thread P1 {r1 r2 r3 r4 r5 r6 r7 r8 r9 r10}:
+d10:(= r10. x10)
+d9: (= r9. x9)
+d8: (= r8. x8)
+d7: (= r7. x7)
+d6: (= r6. x6)
+d5: (= r5. x5)
+d4: (= r4. x4)
+d3: (= r3. x3)
+d2: (= r2. x2)
+d1: (= r1. x1)
+d0: assert( (or (= r10 0) (= r1 1)))
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x1#d1,W#x1#w1) ∧ hb(W#x10#w10,R#pi_x10#d10) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(W#y#w2,R#pi_y#d1) ) 
+##
+#~
+
