@@ -1,33 +1,31 @@
 ###Szymanski###
 
-global: flag1 flag2 cs
+global: flag1 flag2 cs finished1 finished2
 
-pre: (and (= flag1 0) (= flag2 0) (= cs 0))
+pre: (and (= flag1 0) (= flag2 0) (= cs 0) (= finished1 0) (= finished2 0))
 
-thread P1 {finished1}:
-w0 : (= finished1. 0)
+thread P1 :
 w1 : (= flag1. 1)
 w2 : assume(< flag2 3)
 w3 : (= flag1. 3)
 w4 : assume(not (= flag2 1))
 w5 : (= flag1. 4)
-w6 : assume(< flag2 2)
+# w6 : assume(< flag2 2)
 w7 : (= cs. (+ cs 1))
 w8 : assume(or (> 2 flag2) (< flag2 3))
 w9 : (= flag1. 0)
 w10: (= finished1. 1)
 
-thread P2 {finished2}:
-d0 : (= finished2. 0)
+thread P2 :
 d1 : (= flag2. 1)
 d2 : assume(< flag1 3)
 d3 : (= flag2. 3)
-d4 : assume(or (> flag1 1) (< flag1 1))
+d4 : assume(not (= flag1 1))
 d5 : (= flag2. 4)
 d6 : assume(< flag1 2)
 d7 : (= cs. (+ cs 1))
-d8 : assume(or (> 2 flag1) (< flag1 3))
+# d8 : assume(or (> 2 flag1) (< flag1 3))
 d9 : (= flag2. 0)
 d10: (= finished2. 1)
 
-post: (implies (and (= P1.finished1 1) (= P2.finished2 1)) (= cs 2) )
+post: (implies (and (= finished1 1) (= finished2 1)) (= cs 2) )
