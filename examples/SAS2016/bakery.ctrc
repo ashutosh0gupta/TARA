@@ -2,28 +2,42 @@
 
 global: c1 c2 n1 n2 cs finished1 finished2
 
-pre: (and (= c1 0) (= c2 0) (= cs 0) (= n1 1) (= n2 1) (= finished1 0) (= finished2 0))
+pre: (and (= c1 0) (= c2 0) (= cs 0) (= n1 0) (= n2 0) (= finished1 0) (= finished2 0))
 
-thread P1 {r1 r2}:
+thread P1 {r1 r2 r3}:
 w1: (= c1. 1)
-w2: (= r2. n2)
-w3: (= r1. (+ r2 1))
-w4: (= n1. r1)
-w5: (= c1. 0)
-w6: assume(not (or (and (not (= r2 0)) (< r2 r1))))
-w7: (= n1. 0)
-w8: (= cs. (+ cs 1))
-w9: (= finished1. 1)
+#wf1: barrier
+w2: (= r1. n1)
+w3: (= r2. n2)
+w4: (ite (> r2 r1) (= r3. (+ r2 1)) (= r3. (+ r1 1)))
+w5: (= n1. r3)
+#wf2: barrier
+w6: (= c1. 0)
+w7: assume(= c2 0)
+w8: (= r1. n1)
+w9: (= r2. n2)
+w10: assume( (or (= r2 0) (not (< r2 r1)) ) )
+w12: (= cs. (+ cs 1))
+#wf3: barrier
+w13: (= n1. 0)
+w14: (= finished1. 1)
 
-thread P2 {s1 s2}:
+thread P2 {r1 r2 r3}:
 d1: (= c2. 1)
-d2: (= s1. n1)
-d3: (= s2. (+ s1 1))
-d4: (= n2. s2)
-d5: (= c2. 0)
-d6: assume(not (or (and (not (= s1 0)) (< s1 s2))))
-d7: (= n2. 0)
-d8: (= cs. (+ cs 1))
-d9: (= finished2. 1)
+#df1: barrier # this barrier is not needed
+d2: (= r1. n1)
+d3: (= r2. n2)
+d4: (ite (> r2 r1) (= r3. (+ r2 1)) (= r3. (+ r1 1)))
+d5: (= n2. r3)
+#df2: barrier
+d6: (= c2. 0)
+d7: assume(= c1 0)
+d8: (= r1. n1)
+d9: (= r2. n2)
+d10: assume( (or (= r1 0) (< r2 r1) ) )
+d12: (= cs. (+ cs 1))
+#df3: barrier
+d13: (= n2. 0)
+d14: (= finished2. 1)
 
 post: (implies (and (= finished1 1) (= finished2 1)) (= cs 2) )
