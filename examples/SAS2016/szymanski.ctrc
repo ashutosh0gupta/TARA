@@ -6,11 +6,13 @@ pre: (and (= flag1 0) (= flag2 0) (= cs 0) (= finished1 0) (= finished2 0))
 
 thread P1 :
 w1 : (= flag1. 1)
+#wf1: barrier
 w2 : assume(< flag2 3)
 w3 : (= flag1. 3)
 w4 : assume(not (= flag2 1))
 w5 : (= flag1. 4)
 w7 : (= cs. (+ cs 1))
+#wf3: barrier
 w8 : assume(or (> 2 flag2) (< flag2 3))
 w9 : (= flag1. 0)
 w10: (= finished1. 1)
@@ -19,10 +21,12 @@ thread P2 :
 d1 : (= flag2. 1)
 d2 : assume(< flag1 3)
 d3 : (= flag2. 3)
+#df2: barrier
 d4 : assume(not (= flag1 1))
 d5 : (= flag2. 4)
 d6 : assume(< flag1 2)
 d7 : (= cs. (+ cs 1))
+#df3: barrier
 d9 : (= flag2. 0)
 d10: (= finished2. 1)
 

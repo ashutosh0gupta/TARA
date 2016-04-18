@@ -32,6 +32,8 @@ namespace tara {
 namespace api {
 namespace output {
 
+  typedef  std::vector< std::pair<se_ptr,se_ptr> > hb_conj;
+
 enum class edge_type {
   hb,  // hbs appear in the formula
   ppo, // preserved program order
@@ -63,6 +65,7 @@ public:
   void remove_prefix( se_ptr e );
   void remove_suffix( se_ptr e );
   void pop();
+  void clear();
   unsigned has_cycle();
   unsigned size() { return edges.size(); };
   inline se_ptr first() {if( edges.size() > 0 )
@@ -112,10 +115,58 @@ private:
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;
 
+  //-------------------------------------------------------------
+  // new cycle detection
+
+  std::map< se_ptr, int> index_map;
+  std::map< se_ptr, int> lowlink_map;
+  std::map< se_ptr, bool> on_stack;
+  se_vec scc_stack;
+  int scc_index;
+
+  std::map< se_ptr, se_set > B_map;
+  std::map< se_ptr, bool > blocked;
+  cycle ancestor_stack;
+  se_ptr root;
+
+  void succ( se_ptr e,
+             hb_conj& hbs,
+             std::vector<se_vec>& event_lists,
+             std::set<se_ptr>& filter,
+             std::vector< std::pair< se_ptr, edge_type> >& next_set );
+  void find_sccs_rec( se_ptr e,
+                      hb_conj& hbs,
+                      std::vector<se_vec>& event_lists,
+                      std::set<se_ptr>& filter,
+                      std::vector< std::set<se_ptr> >& sccs );
+
+  void find_sccs(  hb_conj& hbs,
+                   std::vector<se_vec>& event_lists,
+                   std::set<se_ptr>& filter,
+                   std::vector< std::set<se_ptr> >& sccs );
+
+  void cycles_unblock( se_ptr e );
+
+  bool find_true_cycles_rec( se_ptr e,
+                             hb_conj& hbs,
+                             std::vector<se_vec>& event_lists,
+                             std::set<se_ptr>& scc,
+                             std::vector<cycle>& found_cycles );
+
+  void find_true_cycles( se_ptr e,
+                         hb_conj& hbs,
+                         std::vector<se_vec>& event_lists,
+                         std::set<se_ptr>& scc,
+                         std::vector<cycle>& found_cycles );
+  void find_cycles_internal( hb_conj& hbs,
+                             std::vector<se_vec>& event_lists,
+                             std::set<se_ptr>& all_events,
+                             std::vector<cycle>& cycles);
   void find_cycles(nf::result_type& bad_dnf);
   edge_type is_ppo(se_ptr before, se_ptr after);
   void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
 
+  //-------------------------------------------------------------
 
   std::vector<z3::expr> cut;
   std::vector<z3::expr> soft;
