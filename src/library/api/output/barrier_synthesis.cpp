@@ -250,7 +250,7 @@ void barrier_synthesis::succ( se_ptr e,
     se_ptr a = *it;
       if( filter.find( a ) == filter.end() ) continue;
     next_set.push_back( {a, is_ppo(e, a) });
-    break; // todo <- do we miss anything
+    // break; // todo <- do we miss anything
   }
 }
 
