@@ -1,0 +1,20 @@
+###Multiple Cycles in single disjunct###
+
+global: x y w z
+
+pre: (and (= x 0) (= y 0) (= w 0) (= z 0))
+
+thread P0:
+w1: (= x. 1)
+w2: (= y. 1)
+w3: (= w. 1)
+#wf: barrier
+w4: (= z. 1)
+
+thread P1 {r1 r2 r3 r4}:
+d1: (= r1. y)
+d2: (= r2. x)
+d3: (= r3. z)
+d4: (= r4. w)
+
+post: (or (implies (= P1.r1 1) (= P1.r2 1)) (implies (= P1.r3 1) (= P1.r4 1)))

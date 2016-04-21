@@ -1,0 +1,30 @@
+###Lamport###
+## * more paths should be encoded
+
+global: x y b1 b2 cs finished1 finished2
+
+pre: (and (= cs 0) (= finished1 0) (= finished2 0))
+
+thread P1 :
+w1 : (= b1. 1)
+w2 : (= x. 1)
+w3 : assume(= y 0)
+w4 : (= y. 1)
+w5 : assume(= x 1)
+w6 : (= cs. (+ cs 1))
+w7 : (= y. 0)
+w8 : (= b1. 0)
+w9: (= finished1. 1)
+
+thread P2 :
+d1 : (= b2. 1)
+d2 : (= x. 2)
+d3 : assume(= y 0)
+d4 : (= y. 2)
+d5 : assume(= x 2)
+d6 : (= cs. (+ cs 1))
+d7 : (= y. 0)
+d8 : (= b2. 0)
+d9: (= finished2. 1)
+
+post: (implies (and (= finished1 1) (= finished2 1)) (= cs 2) )

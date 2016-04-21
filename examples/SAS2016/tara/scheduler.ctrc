@@ -1,0 +1,33 @@
+###Scheduler###
+
+global: current Pone Ptwo
+
+pre: (and (= current 1) (= Pone 0) (= Ptwo 1))
+
+thread P0 {r0 r1 r2} :
+w1: (= r0. Pone)
+w2: (= r1. Ptwo)
+w3: assume(not (and (= r0 0) (= r1 0)))
+w4: (= r2. current)
+w5: assume(= r2 1)
+w6: (= Pone. 1)
+#wf: barrier
+w7: (= Ptwo. 0)
+#wf: barrier
+w8: (= current. 2)
+
+thread P1 {s0 s1 s2}:
+d1: (= s0. Pone)
+d2: (= s1. Ptwo)
+d3: assume(not (and (= s0 0) (= s1 0)))
+d4: (= s2. current)
+d5: assume(= s2 2)
+d6: (= Pone. 0)
+d7: (= Ptwo. 1)
+d8: (= current. 1)
+
+post: (or(and (= Pone 1) (= Ptwo 0)) (and(= Pone 0) (= Ptwo 1)))
+
+# (implies (and (not (and (= P0.r0 0) (= P0.r1 0))) (not (and (= P1.s0 0) (= P1.s1 0))) (= P1.s2 2) (= P0.r2 1)) (or(and (= Pone 1) (= Ptwo 0)) (and(= Pone 0) (= Ptwo 1))))
+
+
