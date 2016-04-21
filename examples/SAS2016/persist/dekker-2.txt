@@ -1,0 +1,63 @@
+# turn - 1; flag1 - 2; flag2 - 3; sum - 4;
+
+thread t1
+initial q0
+transition q0  q1 write 1 2
+transition q1  q2 read r1 3
+transition q2  q3 check == r1 1
+transition q3  q4 read r2 1
+transition q4  q5 check == r2 0
+transition q5  q6 read r1 3
+transition q6  q7 check != r1 1
+transition q7  q8 read r3 4
+transition q8  q9 write + r3 1 4
+transition q9  q10 write 1 1
+transition q10 q11 write 0 2
+transition q11 q12 write 1 2
+transition q12 q13 read r1 3
+transition q13 q14 check == r1 1
+transition q14 q15 read r2 1
+transition q15 q16 check == r2 0
+transition q16 q17 read r1 3
+transition q17 q18 check != r1 1
+transition q18 q19 read r3 4
+transition q19 q20 write + r3 1 4
+transition q20 q21 write 1 1
+transition q21 q22 write 0 2
+
+transition q7 q0 noop
+end
+
+thread t2
+initial q0
+transition q0   q1 write 1 3
+transition q1   q2 read r1 2
+transition q2   q3 check == r1 1
+transition q3   q4 read r2 1
+transition q4   q5 check != r2 1
+transition q5   q6 write 0 3
+transition q6   q7 read r2 1
+transition q7   q8 check == r2 1
+transition q8   q9 write 1 3
+transition q9   q10 read r1 2
+transition q10  q11 check != r1 1
+transition q11  q12 read r3 4
+transition q12  q13 write + r3 1 4
+transition q13  q14 write 0 1
+transition q14  q15 write 0 3
+transition q15  q16 write 1 3
+transition q16  q17 read r1 2
+transition q17  q18 check == r1 1
+transition q18  q19 read r2 1
+transition q19  q20 check != r2 1
+transition q20  q21 write 0 3
+transition q21  q22 read r2 1
+transition q22  q23 check == r2 1
+transition q23  q24 write 1 3
+transition q24  q25 read r1 2
+transition q25  q26 check != r1 1
+transition q26  q27 read r3 4
+transition q27  q28 write + r3 1 4
+transition q28  q29 write 0 1
+transition q29  q30 write 0 3
+end

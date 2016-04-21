@@ -1,0 +1,28 @@
+# turn - 1; flag1 - 2; flag2 - 3; sum - 4
+memory_size 4
+
+thread t1
+initial q0
+transition q0 q1 write 1 2
+transition q1 q2 write 1 1
+transition q2 q3 read r0 3
+transition q3 q4 read r1 1
+transition q4 q5 check || != r1 1 != r0 1
+transition q5 q6 read r4 4
+transition q6 q7 write + r4 1 4
+transition q7 q8 write 0 2
+transition q8 q0 noop
+end
+
+thread t2
+initial q0
+transition q0 q1 write 1 3
+transition q1 q2 write 0 1
+transition q2 q3 read r2 2
+transition q3 q4 read r3 1
+transition q4 q5 check || != r3 0 != r2 1
+transition q5 q6 read r4 4
+transition q6 q7 write + r4 1 4
+transition q7 q8 write 0 3
+transition q8 q0 noop
+end

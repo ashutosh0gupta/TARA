@@ -1,0 +1,9 @@
+fence|natural_long.c|th1|15|c::x1|natural_long.c|th1|16|c::x2
+fence|natural_long.c|th1|16|c::x2|natural_long.c|th1|17|c::x3
+fence|natural_long.c|th1|17|c::x3|natural_long.c|th1|18|c::x4
+fence|natural_long.c|th1|18|c::x4|natural_long.c|th1|19|c::x5
+fence|natural_long.c|th1|19|c::x5|natural_long.c|th1|20|c::x6
+fence|natural_long.c|th1|20|c::x6|natural_long.c|th1|21|c::x7
+fence|natural_long.c|th1|21|c::x7|natural_long.c|th1|22|c::x8
+fence|natural_long.c|th1|22|c::x8|natural_long.c|th1|23|c::x9
+fence|natural_long.c|th1|23|c::x9|natural_long.c|th1|24|c::x10

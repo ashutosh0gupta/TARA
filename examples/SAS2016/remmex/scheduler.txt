@@ -1,0 +1,47 @@
+int current = 1;
+int Pone = 0;
+int Ptwo = 1;
+int check = 0;
+proctype p1 {
+		int r0;
+		int r1;
+		int r2;		
+		r0 = loadval(Pone);
+		r1 = loadval(Ptwo);
+		if 
+		::(!((r0 == 0) && (r1 == 0))) ->
+			r2 = loadval(current);
+			if
+			::(r2 == 1) ->
+				store(Pone,1);
+				store(Ptwo,0);
+				store(current,2);
+			fi;
+
+		fi;
+}
+
+
+proctype p2 {
+		int s0;
+		int s1;
+		int s2;		
+		s0 = loadval(Pone);
+		s1 = loadval(Ptwo);
+		if 
+		::(!((s0 == 0) && (s1 == 0))) ->
+			s2 = loadval(current);
+			if
+			::(s2 == 2) ->
+				store(Pone,0);
+				store(Ptwo,1);
+				store(current,1);
+			fi;
+
+		fi;
+		s0 = loadval(Pone);
+		s1 = loadval(Ptwo);
+		if
+		::( ((s0 == 1) && (s1 == 1)) || ((s0 == 0) && (s1 == 0)) )  -> store(check,1);
+		fi;
+}

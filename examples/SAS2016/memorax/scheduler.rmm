@@ -1,0 +1,52 @@
+/* Scheduler */
+
+forbidden
+  CS CS
+data
+  Pone= 0 : [0:3]
+  Ptwo = 0 : [0:3]
+  current = 0 : [0:3]
+  check = 0 : [0:1]
+  finished = 0 : [0:1]
+process
+registers
+  $r0 = * : [0:3]
+  $r1 = * : [0:3]
+  $r2 = * : [0:3]
+  $r3 = * : [0:3]
+text
+  read: $r0 := Pone;
+  read: $r1 := Ptwo;
+  if $r0 != 0 || $r1 != 0  then{
+  	    read: $r2 := current;
+	    if $r2 = 1 then{
+            	write: Pone := 1;   
+		write: Ptwo := 0;
+		write: current := 2;
+		read: $r2 := finished;
+		read: $r0 := Pone;
+		read: $r1 := Ptwo;
+		if [$r0 != 1 || $r2 != 0] && [$r0 != 0 && $r1 != 0] && $r2 = 1 then 
+			CS: write: check := 1
+  	   }
+  }
+
+process
+registers
+  $s0 = * : [0:3]
+  $s1 = * : [0:3]
+  $s2 = * : [0:3]
+text
+  read: $s0 := Pone;
+  read: $s1 := Ptwo;
+  if $s0 != 0 || $s1 != 0  then{
+  	    read: $s2 := current;
+	    if $s2 = 2 then{
+            	write: Pone := 0;   
+		write: Ptwo := 1;
+		write: current := 1;
+		fence;
+		write: finished := 1;
+		CS: write: check := 1
+  	   }
+  }

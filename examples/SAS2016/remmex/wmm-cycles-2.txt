@@ -1,0 +1,1 @@
+int x = 0;int y = 0;int z = 0;int w = 0;int v;int check = 0;proctype p1 {		store(x,v);		store(w,v);		store(y,1);		store(z,1);}proctype p2 {		int r1;		int r2;		int r3;		int r4;		r1 = loadval(y);		r2 = loadval(x);		r3 = loadval(z);		r4 = loadval(w); 		if		:: (r1 == 1 && r2 == 0 ) || ( r3 == 1 && r4 == 0 ) -> store(check,2);		fi;}

@@ -1,0 +1,61 @@
+/* Dekker's lock with deadlock protection */
+
+forbidden
+  CS CS
+data
+  x = * : [0:3]
+  y = * : [0:3]
+  b1 = * : [0:3]
+  b2 = * : [0:3]
+  sum= 0 : [0:3]
+  check = 0 : [0:1]
+  finished = 0 : [0:1]
+
+process
+registers
+  $r1 = * : [0:3]
+  $r2 = * : [0:3]
+  $r3 = * : [0:3]
+  $r5 = * : [0:3]
+text
+  write: b1 := 1;
+  write: x := 1;
+  read: $r2 := y;
+  if $r2 = 0 then{
+	    write: y := 1;
+	    read: $r1 := x;
+  	    if $r1 = 1 then{
+  	    	read: $r3 := sum;
+  	    	write: sum := $r3 + 1;		
+		write: y := 0;
+	    	write: b1 := 0;
+	    	fence;
+	    	read: $r5 := finished;  
+            	read: $r3 := sum;
+	    	if $r3 != 2 && $r5 = 1 then
+			CS: write: check := 1
+  	    }
+  }
+  
+process
+registers
+  $r1 = * : [0:3]
+  $r2 = * : [0:3]
+  $r4 = * : [0:3]
+text
+  write: b2 := 1;
+  write: x := 2;
+  read: $r2 := y;
+  if $r2 = 0 then{
+	    write: y := 2;
+	    read: $r1 := x;
+  	    if $r1 = 2 then{
+		  read: $r4 := sum;	  	
+		  write: sum := $r4 + 1;
+	 	  write: y := 0;
+	 	  write: b2 := 0;
+	  	  fence;
+	          write: finished := 1;
+	      	  CS: write: check := 1
+  	     }
+  }

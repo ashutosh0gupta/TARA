@@ -1,0 +1,33 @@
+forbidden
+  CS CS
+
+data
+  x = 0 : [0:1]
+  y = 0 : [0:1]
+  w = 0 : [0:1]
+  z = 0 : [0:1]
+  check = 0 : [0:1]
+
+process
+registers
+  $r1 = * : [0:1]
+text
+  write: x := 1;
+  write: y := 1;
+  write: w := 1;
+  write: z := 1;
+  CS: read: $r1 := check
+
+process
+registers
+  $r1 = * : [0:1]
+  $r2 = * : [0:1]
+  $r3 = * : [0:1]
+  $r4 = * : [0:1]
+text
+  read: $r1 := y;
+  read: $r2 := x;
+  read: $r3 := z;
+  read: $r4 := w;
+  if $r2 = 0 && $r1 = 1 && $r4 = 0 && $r3 = 1 then 
+	CS: write: check := 1

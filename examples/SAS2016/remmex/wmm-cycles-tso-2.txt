@@ -1,0 +1,30 @@
+int x = 0;
+int y = 0;
+int z = 0;
+int w = 0;
+int check = 0;
+
+proctype p1 {
+	  int r1 = 0;
+	  int r2 = 0;
+          store(x,1);
+       	  r1 = loadval(y);	
+	  store(w,1);
+	  r2 = loadval(z);
+	  if
+	  :: (r1 == 0 && r2 == 0 ) -> store(check,2);
+	  fi;
+}
+
+
+proctype p2 {
+		int r3 = 0;
+		int r4 = 0;
+		store(y,1);
+                r3 = loadval(x);	
+		store(z,1);	
+       	        r4 = loadval(w);
+		if
+		:: ( r3 == 0 && r4 == 0 ) -> store(check,2);
+		fi;		
+}

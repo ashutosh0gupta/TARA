@@ -1,0 +1,15 @@
+int x = 0;
+int y = 0;
+
+proctype p1 {
+		int r1;
+		store(x,1);
+		r1 = loadval(y);
+}
+
+
+proctype p2 {
+		int r2;
+		store(y,1);
+		r2 = loadval(x);
+}

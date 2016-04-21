@@ -1,0 +1,41 @@
+int x = 0;
+int y = 0;
+int w = 0;
+int z = 0;
+int finished1 = 0;
+int finished2 = 0;
+int check = 0;
+proctype p1 {
+		int r1;
+		int r2;
+		int r3;	
+		store(x,r3);
+		store(y,1);
+		store(z,r3);
+		store(w,1);
+		if
+		:: (r3 > 0) -> store(check,1);
+		fi;		
+}
+
+
+proctype p2 {
+		int s1;
+		int s2;	
+		int s3;
+		int s4;	
+		s1 = loadval(y);	
+		if
+		:: (s1 == 1) ->
+			s2 = loadval(x);
+		fi;
+		s3 = loadval(w);
+		if
+		::(s3 == 1) -> s4 = loadval(z);
+		fi;
+		
+		if
+		:: (s2 + s4 == 0) -> store(check,1);
+		fi;		
+		
+}

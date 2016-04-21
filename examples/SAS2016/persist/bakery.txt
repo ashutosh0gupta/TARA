@@ -1,0 +1,46 @@
+# check if then else: buggy
+# c1 - 1; c2 - 2; n1 - 3; n2 - 4; sum - 5;
+
+thread t1
+initial q0
+transition q0 q1 write 1 1
+transition q1 q2 read r1 3
+transition q2 q3 read r2 4 
+transition q3 q4 check > r2 r1
+transition q4 q5 local r3 + r2 1
+transition q5 q6 check < r2 r1
+transition q6 q7 local r3 + 1 r1
+transition q7 q8 write r3 3
+transition q8 q9 write 0 1
+transition q9 q10 read r4 2
+transition q10 q11 check == r4 0
+transition q11 q12 read r1 3
+transition q12 q13 read r2 4 
+transition q13 q14 check || == r2 0 ! < r2 r1
+transition q14 q15 read r5 5
+transition q15 q16 write + r5 1 5
+transition q16 q17 write 0 3
+transition q17 q0 noop
+end
+
+thread t2
+initial q0
+transition q0 q1 write 1 2
+transition q1 q2 read r1 3
+transition q2 q3 read r2 4 
+transition q3 q4 check > r2 r1
+transition q4 q5 local r3 + 1 r2
+transition q5 q6 check < r2 r1
+transition q6 q7 local r3 + r1 1
+transition q7 q8 write r3 4
+transition q8 q9 write 0 2
+transition q9 q10 read r4 1
+transition q10 q11 check == r4 0
+transition q11 q12 read r1 3
+transition q12 q13 read r2 4 
+transition q13 q14 check || == r1 0 < r2 r1
+transition q14 q15 read r5 5
+transition q15 q16 write + r5 1 5
+transition q16 q17 write 0 4
+transition q17 q0 noop
+end
