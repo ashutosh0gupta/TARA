@@ -48,6 +48,11 @@ public:
   se_ptr after;
   edge_type type;
   friend bool ValueComp(const se_ptr &,const se_ptr &);
+  
+  bool operator==(const cycle_edge& b)
+  {
+    return b.before == before && b.after == after && b.type == type;
+  }
 };
 
 class cycle
@@ -86,10 +91,13 @@ private:
   std::vector<cycle_edge> edges;
   std::string name;
   bool closed;
+  std::vector<cycle_edge> relaxed_edges;
 
   void remove_suffix( unsigned i );
   void remove_prefix( unsigned i );
 
+  bool has_relaxed( cycle_edge& edge);
+  bool is_dominated_by( cycle& c );
 };
 
 typedef std::shared_ptr<cycle> cycle_ptr;
@@ -130,33 +138,34 @@ private:
   se_ptr root;
 
   void succ( se_ptr e,
-             hb_conj& hbs,
-             std::vector<se_vec>& event_lists,
-             std::set<se_ptr>& filter,
+             const hb_conj& hbs,
+             const std::vector<se_vec>& event_lists,
+             const std::set<se_ptr>& filter,
              std::vector< std::pair< se_ptr, edge_type> >& next_set );
   void find_sccs_rec( se_ptr e,
-                      hb_conj& hbs,
-                      std::vector<se_vec>& event_lists,
-                      std::set<se_ptr>& filter,
+                      const hb_conj& hbs,
+                      const std::vector<se_vec>& event_lists,
+                      const std::set<se_ptr>& filter,
                       std::vector< std::set<se_ptr> >& sccs );
 
-  void find_sccs(  hb_conj& hbs,
-                   std::vector<se_vec>& event_lists,
-                   std::set<se_ptr>& filter,
+  void find_sccs(  const hb_conj& hbs,
+                   const std::vector<se_vec>& event_lists,
+                   const std::set<se_ptr>& filter,
                    std::vector< std::set<se_ptr> >& sccs );
 
   void cycles_unblock( se_ptr e );
 
+  bool is_relaxed_dominated( cycle& c , std::vector<cycle>& cs );
   bool find_true_cycles_rec( se_ptr e,
-                             hb_conj& hbs,
-                             std::vector<se_vec>& event_lists,
-                             std::set<se_ptr>& scc,
+                             const hb_conj& hbs,
+                             const std::vector<se_vec>& event_lists,
+                             const std::set<se_ptr>& scc,
                              std::vector<cycle>& found_cycles );
 
   void find_true_cycles( se_ptr e,
-                         hb_conj& hbs,
-                         std::vector<se_vec>& event_lists,
-                         std::set<se_ptr>& scc,
+                         const hb_conj& hbs,
+                         const std::vector<se_vec>& event_lists,
+                         const std::set<se_ptr>& scc,
                          std::vector<cycle>& found_cycles );
   void find_cycles_internal( hb_conj& hbs,
                              std::vector<se_vec>& event_lists,

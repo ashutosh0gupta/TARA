@@ -94,7 +94,6 @@ namespace cssa {
     variable(std::string name, z3::sort sort) : name(name), sort(sort) {}
     variable(std::string name, z3::context& ctx) : name(name), sort(z3::sort(ctx)) {}
     variable(z3::context& ctx) : sort(z3::sort(ctx)) {}
-    
     friend variable operator+ (const variable& v, const std::string& str) {
       return variable(v.name+str, v.sort);
     }

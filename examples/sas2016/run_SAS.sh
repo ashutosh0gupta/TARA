@@ -1,3 +1,6 @@
+ulimit -t 180
+ulimit -sv 1000000
+
 GLUE=../../../Glue/cbmc-repair/src/cbmc/./cbmc
 MEMORAX=../../../memorax-master/src/./memorax
 TARA=../.././tara

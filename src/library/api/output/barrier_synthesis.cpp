@@ -19,6 +19,7 @@
  */
 
 
+#include "output_exception.h"
 #include "barrier_synthesis.h"
 #include "api/output/output_base_utilities.h"
 #include <chrono>
@@ -39,7 +40,10 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
   bool first = true;
   for( const auto& edge : c.edges ) {
     if(first) {
-      stream << edge.before->name();
+      if( edge.before )
+        stream << edge.before->name();
+      else
+        stream << "null";
       first = false;
     }
     switch( edge.type ) {
@@ -47,7 +51,10 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
     case edge_type::ppo: {stream << "=>";} break;
     case edge_type::rpo: {stream << "~~>";} break;
     }
-    stream << edge.after->name();
+    if( edge.after )
+      stream << edge.after->name();
+    else
+      stream << "null";
   }
   stream << ")";
   return stream;
@@ -76,6 +83,7 @@ bool ValueComp(const se_ptr & before,const se_ptr & after)
 
 cycle::cycle( cycle& _c, unsigned i ) {
   edges = _c.edges;
+  relaxed_edges = _c.relaxed_edges;
   remove_prefix(i);
   assert( first() == last() );
 }
@@ -116,6 +124,11 @@ unsigned cycle::has_cycle() {
 }
 
 void cycle::pop() {
+  auto& edge = edges.back();
+  if( edge.type ==  edge_type::rpo ) {
+    assert( !relaxed_edges.empty() );
+    relaxed_edges.pop_back();
+  }
   edges.pop_back();
 }
 
@@ -134,6 +147,9 @@ bool cycle::add_edge( se_ptr before, se_ptr after, edge_type t ) {
   if( !closed && last() == before ) {
     cycle_edge ed(before, after, t);
     edges.push_back(ed);
+    if( t == edge_type::rpo ) {
+      relaxed_edges.push_back( ed );
+    }
   }else{
     // throw error
     assert(false);
@@ -144,6 +160,21 @@ bool cycle::add_edge( se_ptr before, se_ptr after, edge_type t ) {
 
 bool cycle::add_edge( se_ptr after, edge_type t ) {
   return add_edge( last(), after, t );
+}
+
+bool cycle::has_relaxed( cycle_edge& edge) {
+  auto it = std::find( relaxed_edges.begin(), relaxed_edges.end(), edge);
+  return it != relaxed_edges.end();
+}
+
+//I am dominated
+bool cycle::is_dominated_by( cycle& c ) {
+  for( auto& edge : c.relaxed_edges  ) {
+    if( !has_relaxed( edge ) ) return false;
+  }
+  //all relaxed edges are in c
+  // std::cerr << *this << " is dominated by\n"<< c << "\n";
+  return true;
 }
 
 //----------------------------------------------------------------------------
@@ -224,10 +255,13 @@ void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
   es.insert( it, e);
 }
 
+//----------------------------------------------------------------------------
+// cycle detection
+
 void barrier_synthesis::succ( se_ptr e,
-                              hb_conj& hbs,
-                              vector<se_vec>& event_lists,
-                              set<se_ptr>& filter,
+                              const hb_conj& hbs,
+                              const vector<se_vec>& event_lists,
+                              const set<se_ptr>& filter,
                               vector< pair< se_ptr, edge_type> >& next_set ) {
   for( auto it : hbs ) {
     // auto hb_from_b = *it;
@@ -236,7 +270,7 @@ void barrier_synthesis::succ( se_ptr e,
       next_set.push_back( {it.second,edge_type::hb} );
     }
   }
-  se_vec& es = event_lists[e->tid];
+  const se_vec& es = event_lists.at( e->tid );
   auto it = es.begin();
   for(;it < es.end();it++) {
     if( *it == e ) break;
@@ -256,9 +290,9 @@ void barrier_synthesis::succ( se_ptr e,
 
 
 void barrier_synthesis::find_sccs_rec( se_ptr e,
-                                       hb_conj& hbs,
-                                       vector<se_vec>& event_lists,
-                                       set<se_ptr>& filter,
+                                       const hb_conj& hbs,
+                                       const vector<se_vec>& event_lists,
+                                       const set<se_ptr>& filter,
                                        vector< set<se_ptr> >& sccs ) {
   index_map[e] = scc_index;
   lowlink_map[e] = scc_index;
@@ -290,9 +324,9 @@ void barrier_synthesis::find_sccs_rec( se_ptr e,
   }
 }
 
-void barrier_synthesis::find_sccs(  hb_conj& hbs,
-                                    vector<se_vec>& event_lists,
-                                    set<se_ptr>& filter,
+void barrier_synthesis::find_sccs(  const hb_conj& hbs,
+                                    const vector<se_vec>& event_lists,
+                                    const set<se_ptr>& filter,
                                     vector< set<se_ptr> >& sccs ) {
   index_map.clear();
   lowlink_map.clear();
@@ -301,11 +335,9 @@ void barrier_synthesis::find_sccs(  hb_conj& hbs,
   //assert( hbs.size() > 0 );
   while(1) {
     se_ptr e;
-    for( auto hb : hbs ){
-      se_ptr a = hb.first;
-      if( index_map.find( a ) == index_map.end() ) { e = a; break; }
-      a = hb.second;
-      if( index_map.find( a ) == index_map.end() ) { e = a; break; }
+    for( const auto hb : hbs ){
+      if( index_map.find( hb.first ) == index_map.end() ) { e = hb.first; break; }
+      if( index_map.find( hb.second ) == index_map.end() ) { e = hb.second; break; }
     }
     if( e ) {
       find_sccs_rec( e, hbs, event_lists, filter, sccs );
@@ -336,10 +368,20 @@ void barrier_synthesis::cycles_unblock( se_ptr e ) {
   }
 }
 
+bool barrier_synthesis::is_relaxed_dominated( cycle& c ,
+                                              vector<cycle>& cs ) {
+  for( cycle& cp : cs ) {
+    if( c.is_dominated_by(cp) ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
-                                              hb_conj& hbs,
-                                              vector<se_vec>& event_lists,
-                                              set<se_ptr>& scc,
+                                              const hb_conj& hbs,
+                                              const vector<se_vec>& event_lists,
+                                              const set<se_ptr>& scc,
                                               vector<cycle>& found_cycles ) {
   bool f = false;
   blocked[e] = true;
@@ -348,17 +390,28 @@ bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
   for( auto& ep_pair :  next_set ) {
     se_ptr ep = ep_pair.first;
     if( ep == root ) {
-      // add cycle to found cycles
-      // std::cout << ancestor_stack;
       ancestor_stack.add_edge( ep, ep_pair.second );
-      cycle c( ancestor_stack, ancestor_stack.has_cycle()); // 0 or 1??
-      found_cycles.push_back(c);
+      if( ep_pair.second != edge_type::rpo ||
+          !is_relaxed_dominated( ancestor_stack , found_cycles ) ) {
+        cycle c( ancestor_stack, ancestor_stack.has_cycle()); // 0 or 1??
+        for( auto it = found_cycles.begin(); it != found_cycles.end();) {
+          if( it->is_dominated_by( c ) ) {
+            it = found_cycles.erase( it );
+          }else{
+            it++;
+          }
+        }
+        found_cycles.push_back(c);
+      }
       ancestor_stack.pop();
       f = true;
-    }else if( !blocked[ep]) {
+    }else if( !blocked[ep] ) {
       ancestor_stack.add_edge( ep, ep_pair.second );
-      bool fp = find_true_cycles_rec( ep, hbs, event_lists, scc, found_cycles );
-      if( fp ) f = true;
+      if( ep_pair.second != edge_type::rpo ||
+          !is_relaxed_dominated( ancestor_stack , found_cycles ) ) {
+        bool fp = find_true_cycles_rec( ep, hbs, event_lists, scc, found_cycles );
+        if( fp ) f = true;
+      }
     }
   }
   if( f ) {
@@ -366,6 +419,7 @@ bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
   }else{
     for( auto& ep_pair :  next_set ) {
       se_ptr ep = ep_pair.first;
+      // assert( B_map[ep].empty() )
       B_map[ep].insert(e);
     }
   }
@@ -374,9 +428,9 @@ bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
 }
 
 void barrier_synthesis::find_true_cycles( se_ptr e,
-                                          hb_conj& hbs,
-                                          vector<se_vec>& event_lists,
-                                          set<se_ptr>& scc,
+                                          const hb_conj& hbs,
+                                          const vector<se_vec>& event_lists,
+                                          const set<se_ptr>& scc,
                                           vector<cycle>& found_cycles ) {
   ancestor_stack.clear();
   ancestor_stack.add_edge(e,edge_type::hb);
@@ -395,17 +449,21 @@ void barrier_synthesis::find_cycles_internal( hb_conj& hbs,
                                               set<se_ptr>& all_events,
                                               vector<cycle>& found_cycles ) {
 
-  if(1){
+  if(1){ // New implementation
     vector< set<se_ptr> > sccs;
     find_sccs( hbs, event_lists, all_events, sccs );
+
     while( !sccs.empty() ) {
       auto scc = sccs.back();
       sccs.pop_back();
-      se_ptr e = *scc.begin();
-      find_true_cycles( e, hbs, event_lists, scc, found_cycles );
-      scc.erase(e);
-      find_sccs( hbs, event_lists, scc, sccs );
+      if( scc.size() > 1 ) {
+        se_ptr e = *scc.begin();
+        find_true_cycles( e, hbs, event_lists, scc, found_cycles );
+        scc.erase(e);
+        find_sccs( hbs, event_lists, scc, sccs );
+      }
     }
+
   }else{
   while( !hbs.empty() ) {
       auto hb= hbs[0];
@@ -492,7 +550,7 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
     vector<cycle>& cycles = all_cycles[bad_dnf_num++];
     find_cycles_internal( hbs, event_lists, all_events, cycles);
     if( cycles.size() == 0 ) {
-      runtime_error( "barrier synthesis: a conjunct without any cycles!!" );
+      throw output_exception( "barrier synthesis: a conjunct without any cycles!!");
     }
   }
 }
@@ -561,7 +619,8 @@ void barrier_synthesis::gen_max_sat_problem() {
             found = true;
           }
         }
-        if( !found ) runtime_error( "cycles found without any relaxed program oders!!" );
+        if( !found )
+          throw output_exception( "cycles found without any relaxed program oders!!");
       }
   }
 
@@ -571,7 +630,7 @@ void barrier_synthesis::gen_max_sat_problem() {
     vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
     for(auto e : vec ) {
       z3::expr s = get_fresh_bool();
-      std::cout << s << e->name() << endl;
+      // std::cout << s << e->name() << endl;
       segment_map.insert( {e,s} );
       soft.push_back( !s);
     }
@@ -633,10 +692,11 @@ z3::expr barrier_synthesis:: at_most_one( z3::expr_vector& vars ) {
   z3::expr last_xor = vars[0];
   
   for( unsigned i = 1; i < vars.size(); i++ ) {
-    z3::expr curr_xor = (vars[i] != vars[i-1]);
+    z3::expr curr_xor = (vars[i] != last_xor );
     result = result && (!last_xor || curr_xor);
     last_xor = curr_xor;
   }
+
   return result;
 }
 
@@ -724,7 +784,7 @@ void barrier_synthesis::output(const z3::expr& output) {
     }
 
     if( soft.size() ==  0 ) {
-      runtime_error( "No relaxed edge found in any cycle!!" );
+      throw output_exception( "No relaxed edge found in any cycle!!");
       return;
     }
     z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
