@@ -151,7 +151,9 @@ expr z3interf::parseFormula(string str, const vector< string >& names, const vec
   for (unsigned i=0; i<s; i++) {
     symbols[i] = Z3_mk_string_symbol(c,names[i].c_str());
     decls[i] = declarations[i].decl();
-    Z3_inc_ref(c, reinterpret_cast<Z3_ast>(decls[i]));
+    // todo: the folloing inc causes memory leak. If enabled, the
+    // corresponding dec_ref causes segmentation fault. !!!
+    // Z3_inc_ref(c, reinterpret_cast<Z3_ast>(decls[i]));
   }
   
   str = sanitise_string(str);

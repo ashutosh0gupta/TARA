@@ -433,8 +433,8 @@ void nf::create_dnf(const z3::expr& formula, nf::result_type& result, const hb_e
     row_type _conj;
     for (unsigned j=0; j<conj.size(); j++) {
       auto hb = hb_encoding.get_hb(conj[j], true);
-      assert (hb);
-      _conj.push_back(*hb);
+      //assert (hb); // todo : 
+      if( hb ) _conj.push_back(*hb);
     }
     result.push_back(_conj);
   }

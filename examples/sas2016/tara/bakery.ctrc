@@ -1,6 +1,6 @@
 ###Bakery###
 
-global: c1 c2 n1 n2 cs finished1 finished2
+global: c1 c2 n1 n2 cs finished1 finished2 dummy
 
 pre: (and (= c1 0) (= c2 0) (= cs 0) (= n1 0) (= n2 0) (= finished1 0) (= finished2 0))
 
