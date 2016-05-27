@@ -38,6 +38,7 @@ patch :
 	cd $(BUILDDIR)/z3; $(git) diff > ../../src/z3-patch/z3.patch
 
 build/z3/README.md : 
+	mkdir -p $(BUILDDIR)
 	cd $(BUILDDIR);$(git) clone git@github.com:Z3Prover/z3.git
 	cd $(BUILDDIR)/z3;$(git) checkout b8716b333908273ad8e27e325a8bea9be0596be3
 
