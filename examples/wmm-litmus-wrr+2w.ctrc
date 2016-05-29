@@ -1,0 +1,16 @@
+global: x y
+
+pre: (and (= x 0) (= y 0))
+
+thread P0:
+a1: (= x. 2)
+
+thread P1 {r1 r2}:
+b1: (= r1. x)
+b2: (= r2. y)
+
+thread P2 {r3}:
+c1: (= y. 1)
+w1: (= x. 1)
+
+post: (not (and (= P1.r1 2) (= P1.r2 0) (= x 2) ) )
