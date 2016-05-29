@@ -1,3 +1,9 @@
+# source :
+# L. Maranget, S. Sarkar, P. Sewell
+# A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
+
+#todo: check integrity
+
 global: x y
 
 pre: (and (= x 0) (= y 0))
