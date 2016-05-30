@@ -42,7 +42,7 @@ c2 [23] : assert(= balance (- (+ x y) z))
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ) 
+##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) 
 ##
 #~
 
@@ -54,7 +54,7 @@ c2 [23] : assert(= balance (- (+ x y) z))
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ) 
+##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(R#pi_balance#w1[15],W#balance#d2[9]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) 
 ##
 #~
 
@@ -83,7 +83,6 @@ c2 [23] : assert(= balance (- (+ x y) z))
 ##( hb(R#pi_balance#c2[23],W#balance#w2[17]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) ∨
 ##( hb(R#pi_balance#c2[23],W#balance#d2[9]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) ∨
 ##( hb(R#pi_balance#d1[7],W#balance#w2[17]) ∧ hb(W#balance#w2[17],W#balance#d2[9]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) ∨
-##( hb(R#pi_balance#w1[15],W#balance#d2[9]) ∧ hb(W#balance#d2[9],W#balance#w2[17]) ∧ hb(W#balance#w2[17],R#pi_balance#c2[23]) ) 
+##( hb(R#pi_balance#w1[15],W#balance#d2[9]) ∧ hb(W#balance#d2[9],W#balance#w2[17]) ∧ hb(W#balance#w2[17],R#pi_balance#c2[23]) ∧ hb(W#deposit_done#d3[11],R#pi_deposit_done#c1[22]) ∧ hb(W#withdraw_done#w3[19],R#pi_withdraw_done#c1[22]) ) 
 ##
 #~
-

@@ -2,6 +2,8 @@
 # L. Maranget, S. Sarkar, P. Sewell
 # A Tutorial Introduction to the ARM and POWER Relaxed Memory Models
 
+# check integrity 
+
 global: x y
 
 pre: (and (= x 0) (= y 0))
@@ -18,12 +20,13 @@ d3: (= x. r2)
 
 post: (= P0.r1 P1.r2)
 
+
 ################################################
 #!-r diffvar,unsat_core,remove_implied -M sc
 ################################################
 #~
 ##
-##All traces are bad or infeasable.
+##All traces are good or infeasable.
 #~
 
 
@@ -32,7 +35,7 @@ post: (= P0.r1 P1.r2)
 ################################################
 #~
 ##
-##All traces are bad or infeasable.
+##All traces are good or infeasable.
 #~
 
 
@@ -41,7 +44,7 @@ post: (= P0.r1 P1.r2)
 ################################################
 #~
 ##
-##All traces are bad or infeasable.
+##All traces are good or infeasable.
 #~
 
 
@@ -50,6 +53,6 @@ post: (= P0.r1 P1.r2)
 ################################################
 #~
 ##
-##All traces are bad or infeasable.
+##All traces are good or infeasable.
 #~
 
