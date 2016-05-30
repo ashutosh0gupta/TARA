@@ -290,7 +290,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
       // simplify to summarise solutions
       z3::goal g(z3.c);
       g.add(result);
-      g.add(program->phi_distinct);
       z3::tactic simp(z3.c, "simplify");
       
       z3::tactic ctx_simp(z3.c, "ctx-simplify");
@@ -301,7 +300,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
       
       g = res[0];
       result = z3.c.bool_val(true);
-      for (unsigned i = 0; i<g.size()-1; i++)
+      for (unsigned i = 0; i < g.size(); i++)
         result = result && g[i]; // first thing we put in
         
       if (o.print_output >= 1) {
