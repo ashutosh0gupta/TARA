@@ -19,5 +19,51 @@ thread P2 {r3}:
 c1: (= y. 2)
 c2: (= r3. x)
 
-post: (not (and (= P1.r1 1) (= y 0) (= P2.r3 0) ) )
+post: (not (and (= P1.r1 1) (= y 1) (= P2.r3 0) ) )
 
+################################################
+#!-r diffvar,unsat_core,remove_implied -M sc
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#b1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M tso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#c1,W#y#w1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M pso
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#c1,W#y#w1) ) 
+##
+#~
+
+
+################################################
+#!-r diffvar,unsat_core,remove_implied -M rmo
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#c2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#b1) ∧ hb(W#y#c1,W#y#w1) ) 
+##
+#~
