@@ -33,7 +33,7 @@ remove_implied::remove_implied(const z3interf& z3, const cssa::program& program)
 //start of wmm support
 //--------------------------------------------------------------------------
   if( program.is_mm_declared() ) {
-    if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo()){
+    if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo() || program.is_mm_alpha()){
     }else{
       throw std::runtime_error("remove_implied does not support memory model!");
     }
@@ -59,6 +59,7 @@ bool remove_implied::compare_events( const hb_enc::location_ptr loc1,
   case mm_t::tso: return compare_tso_events( loc1, loc2 ); break;
   case mm_t::pso: return compare_pso_events( loc1, loc2 ); break;
   case mm_t::rmo: return compare_rmo_events( loc1, loc2 ); break;
+  case mm_t::alpha: return compare_alpha_events( loc1, loc2 ); break;
   default:
       throw std::runtime_error("remove_implied does not support memory model!");
   }
@@ -133,7 +134,19 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   return false;
 }
 
+bool remove_implied::compare_alpha_events( const hb_enc::location_ptr loc1,
+					   const hb_enc::location_ptr loc2 ) {
 
+    if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
+    if( !loc1->is_read && loc2->is_read ) return false;
+
+    if( loc1->instr_no < loc2-> instr_no ) return true;
+    if( loc1->instr_no == loc2->instr_no ) {
+	if( loc1->is_read && !loc2->is_read ) return true;
+  }
+
+    return false;
+}
 list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
                                         const z3::model& m )
 {
