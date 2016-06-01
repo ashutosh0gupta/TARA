@@ -249,7 +249,7 @@ bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   if( is_mm_sc() ) {
     return true;
   }else if( is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha() ) {
-    return wr->tid != rd->tid; //only events with diff threds are part of grf
+    return wr->tid != rd->tid; //only events with diff threads are part of grf
   }else{
     unsupported_mm();
     return false;
@@ -285,7 +285,7 @@ bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   assert( wr->tid == threads.size() ||
           rd->tid == threads.size() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() ) {
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( wr->tid == rd->tid && wr->e_v->instr_no >= rd->e_v->instr_no ) {
@@ -316,7 +316,7 @@ bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
 }
 
 bool program::is_rd_rd_coherance_preserved() {
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() ) {
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_alpha()) {
     return true;
   }else if( is_mm_rmo() ){
     return false;
