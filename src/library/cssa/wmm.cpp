@@ -400,6 +400,7 @@ void program::wmm_build_ses() {
     }
 
     // write serialization
+    // todo: what about ws;rf
     auto it1 = wrs.begin();
     for( ; it1 != wrs.end() ; it1++ ) {
       const se_ptr& wr1 = *it1;
@@ -449,6 +450,8 @@ void program::wmm_mk_distinct_events() {
 
 //----------------------------------------------------------------------------
 // build preserved programming order(ppo)
+// todo: deal with double barriers that may cause bugs since they are not 
+//       explicitly ordered
 
 void program::wmm_build_sc_ppo( thread& thread ) {
   unsigned tsize = thread.size();
