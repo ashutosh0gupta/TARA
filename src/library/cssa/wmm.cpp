@@ -604,12 +604,12 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
 	    }
     }else{
 	for( auto rd : thread[j].rds ){
-	    variable v = rd->prog_v;
+	    const variable& v = rd->prog_v;
 	    phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
 	    last_rd[v] = rd;
      }
 	for( auto wr : thread[j].wrs ){
-	    variable v = wr->prog_v;
+	    const variable& v = wr->prog_v;
 	    phi_po = phi_po && wmm_mk_hb( last_wr[v], wr ); //write-write to same loc
             phi_po = phi_po && wmm_mk_hb( last_rd[v], wr ); //read-write to same loc
 	    last_wr[v] = wr;
