@@ -591,6 +591,40 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
+  var_to_se_map last_wr, last_rd;
+  assert( init_loc.size() == 1);
+  se_ptr barr = *init_loc.begin();
+  for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
+
+  for( unsigned j=0; j<thread.size(); j++ ) {
+    if( is_barrier( thread[j].type ) ) {
+      assert( thread[j].barr.size() == 1);
+      barr = *thread[j].barr.begin();
+      for( auto& g : globals ) {
+        phi_po = phi_po && wmm_mk_hbs( last_rd[g], barr );
+        phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
+        last_rd[g] = last_wr[g] = barr;
+      }
+    }else{
+      for( auto rd : thread[j].rds ) {
+        const variable& v = rd->prog_v;
+        phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
+        last_rd[v] = rd;
+      }
+      for( auto wr : thread[j].wrs ){
+        const variable& v = wr->prog_v;
+        phi_po = phi_po && wmm_mk_hb( last_wr[v], wr ); //write-write to same loc
+        phi_po = phi_po && wmm_mk_hb( last_rd[v], wr ); //read-write to same loc
+        last_wr[v] = wr;
+      }
+    }
+  }
+  for( auto& g : globals )
+    phi_po = phi_po && wmm_mk_hbs( last_wr[g], post_loc );
+}
+/**
+// Old implementation of alpha model
+void program::wmm_build_alpha_ppo( thread& thread ) {
   // implemented but doubtful that is correct!!
   unsupported_mm();
   //todo: post to be supported
@@ -626,6 +660,7 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
     }
   }
 }
+**/
 
 void program::wmm_build_power_ppo( thread& thread ) {
   unsupported_mm();
