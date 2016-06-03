@@ -81,6 +81,11 @@ bool program::is_mm_rmo() const
   return mm == mm_t::rmo;
 }
 
+bool program::is_mm_alpha() const
+{
+  return mm == mm_t::alpha;
+}
+
 bool program::is_mm_power() const
 {
   return mm == mm_t::power;

@@ -70,6 +70,7 @@ public:
   bool is_mm_tso() const;
   bool is_mm_pso() const;
   bool is_mm_rmo() const;
+  bool is_mm_alpha() const;
   bool is_mm_power() const;
   void set_mm( mm_t );
   mm_t get_mm() const;

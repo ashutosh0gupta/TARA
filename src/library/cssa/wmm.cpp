@@ -304,7 +304,7 @@ bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
   assert( wr->tid == threads.size() || rd->tid == threads.size() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() ) {
+  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
     if( wr->tid == rd->tid && rd->e_v->instr_no > wr->e_v->instr_no ) {
       return true;
     }
@@ -606,10 +606,23 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
         last_rd[g] = last_wr[g] = barr;
       }
     }else{
+<<<<<<< HEAD
       for( auto rd : thread[j].rds ) {
         const variable& v = rd->prog_v;
         phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
         last_rd[v] = rd;
+=======
+	for( auto rd : thread[j].rds ){
+	    const variable& v = rd->prog_v;
+	    phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
+	    last_rd[v] = rd;
+     }
+	for( auto wr : thread[j].wrs ){
+	    const variable& v = wr->prog_v;
+	    phi_po = phi_po && wmm_mk_hb( last_wr[v], wr ); //write-write to same loc
+            phi_po = phi_po && wmm_mk_hb( last_rd[v], wr ); //read-write to same loc
+	    last_wr[v] = wr;
+>>>>>>> 7c58efad05b6d833b0ea99e6d8f7a6c3a43eb655
       }
       for( auto wr : thread[j].wrs ){
         const variable& v = wr->prog_v;
