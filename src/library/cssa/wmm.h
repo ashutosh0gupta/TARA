@@ -56,12 +56,18 @@ namespace cssa {
                     unsigned _tid, unsigned instr_no,
                     hb_enc::location_ptr _loc, event_kind_t _et );
 
+    symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
+                    unsigned instr_no, unsigned thin_tid,
+                    const variable& _v, const variable& _prog_v,
+                    hb_enc::location_ptr _loc, event_kind_t _et);
+
   public:
     unsigned tid;
     variable v;               // variable with ssa name
     variable prog_v;          // variable name in the program
     hb_enc::location_ptr loc; // location in
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
+    std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
     event_kind_t et;
     z3::expr guard;
     inline std::string name() const {

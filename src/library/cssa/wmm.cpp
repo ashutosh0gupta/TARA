@@ -121,6 +121,35 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   _hb_enc.make_locations(locations);
 }
 
+symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
+                                unsigned instr_no,unsigned _tid,
+                                const variable& _v, const variable& _prog_v,
+                                hb_enc::location_ptr _loc, event_kind_t _et)
+
+  : tid(_tid)
+  , v(_v)
+  , prog_v(_prog_v)
+  , loc(_loc)
+  , et(_et)
+  , guard(ctx)
+
+{
+  if( et != event_kind_t::r &&  event_kind_t::w != et ) {
+    throw cssa_exception("symboic event with wrong parameters!");
+  }
+  // bool special = (event_kind_t::i == et || event_kind_t::f == et);
+  bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
+  std::string et_name = is_read ? "R" : "W";
+  std::string event_name = et_name + "#" + v.name;
+  thin_v = make_shared<hb_enc::location>( ctx, event_name, false);
+  thin_v->thread = _tid;
+  thin_v->instr_no = instr_no;
+  thin_v->is_read = is_read;
+  thin_v->prog_v_name = prog_v.name;
+  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  locations.push_back( thin_v );
+  _hb_enc.make_locations(locations);
+}
 // barrier events
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
@@ -196,6 +225,11 @@ z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
   return _hb_encoding.make_hb( before->e_v, after->e_v );
 }
 
+z3::expr program::wmm_mk_hb_thin(const cssa::se_ptr& before,
+				 const cssa::se_ptr& after) {
+  return _hb_encoding.make_hb( before->thin_v, after->thin_v );
+}
+
 z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
                              const cssa::se_ptr& after) {
   return wmm_mk_hb( before, after );
@@ -235,6 +269,12 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
 z3::expr program::wmm_mk_ghb( const cssa::se_ptr& before,
                               const cssa::se_ptr& after ) {
   return implies( before->guard && after->guard, wmm_mk_hb( before, after ) );
+}
+
+// thin air ghb
+z3::expr program::wmm_mk_ghb_thin( const cssa::se_ptr& before,
+				   const cssa::se_ptr& after ) {
+  return implies( before->guard && after->guard, wmm_mk_hb_thin( before, after ) );
 }
 
 //----------------------------------------------------------------------------
@@ -370,10 +410,13 @@ void program::wmm_build_ses() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
-        z3::expr new_rf = implies( b, wmm_mk_ghb( wr, rd ) );
+        z3::expr new_rf = (implies( b, wmm_mk_ghb( wr, rd ) ) && implies( b, wmm_mk_ghb_thin( wr, rd ) ));
         rf = rf && new_rf;
         //global read from
         if( in_grf( wr, rd ) ) grf = grf && new_rf;
+	//dependency
+	for( auto rd : dependency_relation[wr] )
+        dp = dp && wmm_mk_hb_thin( rd, wr );
         // from read
         for( const se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
@@ -606,23 +649,10 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
         last_rd[g] = last_wr[g] = barr;
       }
     }else{
-<<<<<<< HEAD
       for( auto rd : thread[j].rds ) {
         const variable& v = rd->prog_v;
         phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
         last_rd[v] = rd;
-=======
-	for( auto rd : thread[j].rds ){
-	    const variable& v = rd->prog_v;
-	    phi_po = phi_po && wmm_mk_hb( last_rd[v], rd ); //read-read to same loc
-	    last_rd[v] = rd;
-     }
-	for( auto wr : thread[j].wrs ){
-	    const variable& v = wr->prog_v;
-	    phi_po = phi_po && wmm_mk_hb( last_wr[v], wr ); //write-write to same loc
-            phi_po = phi_po && wmm_mk_hb( last_rd[v], wr ); //read-write to same loc
-	    last_wr[v] = wr;
->>>>>>> 7c58efad05b6d833b0ea99e6d8f7a6c3a43eb655
       }
       for( auto wr : thread[j].wrs ){
         const variable& v = wr->prog_v;

@@ -115,6 +115,8 @@ private:
   z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, se_ptr );
   z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
 
+  z3::expr wmm_mk_hb_thin(const cssa::se_ptr& before, const cssa::se_ptr& after);
+  z3::expr wmm_mk_ghb_thin( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hb ( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
   z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
@@ -165,6 +167,7 @@ public:
   z3::expr rf      = _z3.c.bool_val(true);
   z3::expr grf     = _z3.c.bool_val(true);
   z3::expr ws      = _z3.c.bool_val(true);
+  z3::expr dp 	   = _z3.c.bool_val(true);
 
   z3::expr fr      = _z3.c.bool_val(true);
   z3::expr rf_some = _z3.c.bool_val(true);
