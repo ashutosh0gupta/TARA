@@ -474,11 +474,6 @@ void program::wmm_build_ses() {
       tid_rds.insert( rd );
     }
 
-    //dependency
-    for( const se_ptr& wr : wrs )
-      for( auto& rd : dependency_relation[wr] )
-        thin = thin && wmm_mk_hb_thin( rd, wr ); //todo : should it be guarded??
-
     // write serialization
     // todo: what about ws;rf
     auto it1 = wrs.begin();
@@ -495,6 +490,12 @@ void program::wmm_build_ses() {
         }
       }
     }
+
+    //dependency
+    for( const se_ptr& wr : wrs )
+      for( auto& rd : dependency_relation[wr] )
+        thin = thin && wmm_mk_hb_thin( rd, wr ); //todo : should it be guarded??
+
   }
 
 }

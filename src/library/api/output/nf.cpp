@@ -291,7 +291,7 @@ void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad
   if (bad_dnf) {
     if (print_header) stream << "Bad DNF" << endl;
     print_one(stream, machine_readable, get_result(true, true), true);
-    if(Show_Cycle) get_cycles(get_result(true,true),*program,false,true);
+    // if(Show_Cycle) get_cycles(get_result(true,true),*program,false,true);
     if (verify) verify_result(stream, true, get_result_expr(true, true));
     if (print_header) stream << endl;
   }
