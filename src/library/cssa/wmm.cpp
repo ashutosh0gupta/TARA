@@ -93,6 +93,27 @@ mm_t program::get_mm() const
 //----------------------------------------------------------------------------
 // utilities for symbolic events
 
+
+std::shared_ptr<tara::hb_enc::location>
+symbolic_event::create_internal_event( z3::context& ctx,
+                                      hb_enc::encoding& _hb_enc,
+                                      std::string& event_name,
+                                      unsigned tid,
+                                      unsigned instr_no,
+                                      bool is_read,
+                                      std::string& prog_v_name)
+{
+  auto e_v = make_shared<hb_enc::location>( ctx, event_name, false);
+  e_v->thread = tid;
+  e_v->instr_no = instr_no;
+  e_v->is_read = is_read;
+  e_v->prog_v_name = prog_v_name;
+  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  locations.push_back( e_v );
+  _hb_enc.make_locations(locations);
+  return e_v;
+}
+
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
                                 const variable& _v, const variable& _prog_v,
@@ -111,45 +132,52 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
-  e_v = make_shared<hb_enc::location>( ctx, event_name, false);
-  e_v->thread = _tid;
-  e_v->instr_no = instr_no;
-  e_v->is_read = is_read;
-  e_v->prog_v_name = prog_v.name;
-  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
-  locations.push_back( e_v );
-  _hb_enc.make_locations(locations);
+  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid,instr_no, is_read,
+                               prog_v.name );
+  std::string thin_name = "__thin__" + event_name;
+  thin_v = create_internal_event( ctx, _hb_enc, thin_name, _tid, instr_no,
+                                  is_read, prog_v.name );
+  // e_v = make_shared<hb_enc::location>( ctx, event_name, false);
+  // e_v->thread = _tid;
+  // e_v->instr_no = instr_no;
+  // e_v->is_read = is_read;
+  // e_v->prog_v_name = prog_v.name;
+  // std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  // locations.push_back( e_v );
+  // _hb_enc.make_locations(locations);
 }
 
-symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
-                                unsigned instr_no,unsigned _tid,
-                                const variable& _v, const variable& _prog_v,
-                                hb_enc::location_ptr _loc, event_kind_t _et)
+// symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
+//                                 unsigned instr_no,unsigned _tid,
+//                                 const variable& _v, const variable& _prog_v,
+//                                 hb_enc::location_ptr _loc, event_kind_t _et)
 
-  : tid(_tid)
-  , v(_v)
-  , prog_v(_prog_v)
-  , loc(_loc)
-  , et(_et)
-  , guard(ctx)
+//   : tid(_tid)
+//   , v(_v)
+//   , prog_v(_prog_v)
+//   , loc(_loc)
+//   , et(_et)
+//   , guard(ctx)
 
-{
-  if( et != event_kind_t::r &&  event_kind_t::w != et ) {
-    throw cssa_exception("symboic event with wrong parameters!");
-  }
-  // bool special = (event_kind_t::i == et || event_kind_t::f == et);
-  bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
-  std::string et_name = is_read ? "R" : "W";
-  std::string event_name = et_name + "#" + v.name;
-  thin_v = make_shared<hb_enc::location>( ctx, event_name, false);
-  thin_v->thread = _tid;
-  thin_v->instr_no = instr_no;
-  thin_v->is_read = is_read;
-  thin_v->prog_v_name = prog_v.name;
-  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
-  locations.push_back( thin_v );
-  _hb_enc.make_locations(locations);
-}
+// {
+//   if( et != event_kind_t::r &&  event_kind_t::w != et ) {
+//     throw cssa_exception("symboic event with wrong parameters!");
+//   }
+//   // bool special = (event_kind_t::i == et || event_kind_t::f == et);
+//   bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
+//   std::string et_name = is_read ? "R" : "W";
+//   std::string event_name = et_name + "#" + v.name;
+//   thin_v = make_shared<hb_enc::location>( ctx, event_name, false);
+//   thin_v->thread = _tid;
+//   thin_v->instr_no = instr_no;
+//   thin_v->is_read = is_read;
+//   thin_v->prog_v_name = prog_v.name;
+//   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+//   locations.push_back( thin_v );
+//   _hb_enc.make_locations(locations);
+// }
+
+
 // barrier events
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
@@ -169,14 +197,19 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   default: cssa_exception("unreachable code!!");
   }
   event_name = loc->name+event_name;
-  e_v = make_shared<hb_enc::location>( ctx, event_name, true);
-  e_v->thread = _tid;
-  e_v->instr_no = instr_no;
-  e_v->is_read = (event_kind_t::post == et);
-  e_v->prog_v_name = prog_v.name;
-  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
-  locations.push_back( e_v );
-  _hb_enc.make_locations(locations);
+  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no,
+                               (event_kind_t::post == et), prog_v.name );
+  std::string thin_name = "__thin__" + event_name;
+  thin_v = create_internal_event( ctx, _hb_enc, thin_name, tid, instr_no,
+                                  (event_kind_t::post == et), prog_v.name );
+  // e_v = make_shared<hb_enc::location>( ctx, event_name, true);
+  // e_v->thread = _tid;
+  // e_v->instr_no = instr_no;
+  // e_v->is_read = (event_kind_t::post == et);
+  // e_v->prog_v_name = prog_v.name;
+  // std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  // locations.push_back( e_v );
+  // _hb_enc.make_locations(locations);
 }
 
 z3::expr symbolic_event::get_var_expr( const variable& g ) {
@@ -410,13 +443,12 @@ void program::wmm_build_ses() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
-        z3::expr new_rf = (implies( b, wmm_mk_ghb( wr, rd ) ) && implies( b, wmm_mk_ghb_thin( wr, rd ) ));
+        z3::expr new_rf = implies( b, wmm_mk_ghb( wr, rd ) );
         rf = rf && new_rf;
+        z3::expr new_thin = implies( b, wmm_mk_ghb_thin( wr, rd ) );
+        thin = thin && new_thin;
         //global read from
         if( in_grf( wr, rd ) ) grf = grf && new_rf;
-	//dependency
-	for( auto rd : dependency_relation[wr] )
-        dp = dp && wmm_mk_hb_thin( rd, wr );
         // from read
         for( const se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
@@ -441,6 +473,11 @@ void program::wmm_build_ses() {
       wf = wf && implies( rd->guard, some_rfs );
       tid_rds.insert( rd );
     }
+
+    //dependency
+    for( const se_ptr& wr : wrs )
+      for( auto& rd : dependency_relation[wr] )
+        thin = thin && wmm_mk_hb_thin( rd, wr ); //todo : should it be guarded??
 
     // write serialization
     // todo: what about ws;rf

@@ -167,7 +167,7 @@ public:
   z3::expr rf      = _z3.c.bool_val(true);
   z3::expr grf     = _z3.c.bool_val(true);
   z3::expr ws      = _z3.c.bool_val(true);
-  z3::expr dp 	   = _z3.c.bool_val(true);
+  z3::expr thin    = _z3.c.bool_val(true);
 
   z3::expr fr      = _z3.c.bool_val(true);
   z3::expr rf_some = _z3.c.bool_val(true);

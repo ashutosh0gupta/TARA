@@ -46,6 +46,12 @@ namespace cssa {
 //
   class symbolic_event
   {
+  private:
+    std::shared_ptr<tara::hb_enc::location>
+    create_internal_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
+                           std::string& event_name, unsigned tid,
+                           unsigned instr_no, bool is_read,
+                           std::string& prog_v_name);
   public:
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
                     unsigned _tid, unsigned i,
@@ -56,10 +62,10 @@ namespace cssa {
                     unsigned _tid, unsigned instr_no,
                     hb_enc::location_ptr _loc, event_kind_t _et );
 
-    symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
-                    unsigned instr_no, unsigned thin_tid,
-                    const variable& _v, const variable& _prog_v,
-                    hb_enc::location_ptr _loc, event_kind_t _et);
+    // symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
+    //                 unsigned instr_no, unsigned thin_tid,
+    //                 const variable& _v, const variable& _prog_v,
+    //                 hb_enc::location_ptr _loc, event_kind_t _et);
 
   public:
     unsigned tid;

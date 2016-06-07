@@ -87,6 +87,7 @@ void trace_analysis::input(input::program& input_program)
       _options.out() <<"grf: \n" << program->grf<<"\n";
       _options.out() <<"fr : \n" << program->fr <<"\n";
       _options.out() <<"ws : \n" << program->ws <<"\n";
+      _options.out() <<"thin : \n" << program->thin <<"\n";
       _options.out() << ")" << endl;
     }else{
   //--------------------------------------------------------------------------
@@ -132,6 +133,7 @@ void trace_analysis::connect_read_writes( z3::solver& result )
     result.add( program->grf    );
     result.add( program->fr     );
     result.add( program->ws     );
+    result.add( program->thin   );
   }else{
     result.add( program->phi_po );
     result.add( program->phi_pi );
