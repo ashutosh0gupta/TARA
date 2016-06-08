@@ -96,14 +96,15 @@ mm_t program::get_mm() const
 
 std::shared_ptr<tara::hb_enc::location>
 symbolic_event::create_internal_event( z3::context& ctx,
-                                      hb_enc::encoding& _hb_enc,
-                                      std::string& event_name,
-                                      unsigned tid,
-                                      unsigned instr_no,
-                                      bool is_read,
-                                      std::string& prog_v_name)
+                                       hb_enc::encoding& _hb_enc,
+                                       std::string& event_name,
+                                       unsigned tid,
+                                       unsigned instr_no,
+                                       bool special,
+                                       bool is_read,
+                                       std::string& prog_v_name )
 {
-  auto e_v = make_shared<hb_enc::location>( ctx, event_name, false);
+  auto e_v = make_shared<hb_enc::location>( ctx, event_name, special );
   e_v->thread = tid;
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
@@ -132,10 +133,10 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
-  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid,instr_no, is_read,
-                               prog_v.name );
+  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid,instr_no, false,
+                               is_read, prog_v.name );
   std::string thin_name = "__thin__" + event_name;
-  thin_v = create_internal_event( ctx, _hb_enc, thin_name, _tid, instr_no,
+  thin_v = create_internal_event( ctx, _hb_enc, thin_name, _tid, instr_no, false,
                                   is_read, prog_v.name );
   // e_v = make_shared<hb_enc::location>( ctx, event_name, false);
   // e_v->thread = _tid;
@@ -197,10 +198,10 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   default: cssa_exception("unreachable code!!");
   }
   event_name = loc->name+event_name;
-  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no,
+  e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
                                (event_kind_t::post == et), prog_v.name );
   std::string thin_name = "__thin__" + event_name;
-  thin_v = create_internal_event( ctx, _hb_enc, thin_name, tid, instr_no,
+  thin_v = create_internal_event( ctx, _hb_enc, thin_name, tid, instr_no, true,
                                   (event_kind_t::post == et), prog_v.name );
   // e_v = make_shared<hb_enc::location>( ctx, event_name, true);
   // e_v->thread = _tid;

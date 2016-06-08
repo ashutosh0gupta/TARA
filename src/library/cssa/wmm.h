@@ -50,7 +50,7 @@ namespace cssa {
     std::shared_ptr<tara::hb_enc::location>
     create_internal_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                            std::string& event_name, unsigned tid,
-                           unsigned instr_no, bool is_read,
+                           unsigned instr_no, bool special, bool is_read,
                            std::string& prog_v_name);
   public:
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,

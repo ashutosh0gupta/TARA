@@ -56,8 +56,8 @@ post: (or (not (= P2.r1 2)) (not (= P2.r2 1)) (not (= P3.r1 1)) (not (= P3.r2 2)
 ##
 ##Final result
 ##Bad DNF
-##( hb(R#pi_x#c1,W#x#a1) ∧ hb(R#pi_x#d2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#c2) ∧ hb(W#x#a1,R#pi_x#d1) ∧ hb(W#x#b1,R#pi_x#d2) ∧ hb(W#x#b1,R#pi_x#c1) ) ∨
-##( hb(R#pi_x#c2,W#x#b1) ∧ hb(R#pi_x#d1,W#x#b1) ∧ hb(W#x#a1,R#pi_x#d1) ∧ hb(W#x#a1,R#pi_x#c2) ∧ hb(W#x#b1,R#pi_x#c1) ∧ hb(W#x#b1,R#pi_x#d2) ) 
+##( hb(R#pi_x#c1,W#x#a1) ∧ hb(R#pi_x#d2,W#x#a1) ∧ hb(W#x#a1,R#pi_x#c2) ∧ hb(W#x#a1,R#pi_x#d1) ∧ hb(W#x#b1,R#pi_x#c1) ∧ hb(W#x#b1,R#pi_x#d2) ) ∨
+##( hb(R#pi_x#c2,W#x#b1) ∧ hb(R#pi_x#d1,W#x#b1) ∧ hb(W#x#a1,R#pi_x#c2) ∧ hb(W#x#a1,R#pi_x#d1) ∧ hb(W#x#b1,R#pi_x#c1) ∧ hb(W#x#b1,R#pi_x#d2) ) 
 ##
 #~
 
