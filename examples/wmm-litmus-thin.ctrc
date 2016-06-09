@@ -1,3 +1,5 @@
+# add options
+
 global: x y z
 
 pre: (and (= x 0) (= y 0) (= z 0))

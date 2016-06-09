@@ -1,0 +1,16 @@
+# add options
+
+global: x y z
+
+pre: (and (= x 0) (= y 0))
+
+thread P0 {t}:
+a1: (= x. 1)
+a2: (= t. x)
+a3: (= y. 1)
+
+thread P1 {r s}:
+b1: (= r. y)
+b2: (= x. 2)
+
+post: (not (and (= x 1) (= P0.t 1) (= P1.r 1) ) )
