@@ -23,6 +23,7 @@
 #include "prune/data_flow.h"
 #include "prune/remove_implied.h"
 #include "prune/unsat_core.h"
+#include "prune/remove_thin.h"
 #include "helpers/helpers.h"
 #include "api/options.h"
 
@@ -84,8 +85,10 @@ namespace prune {
         prune = unique_ptr<prune::prune_base>(new unsat_core(z3, program, sol_good));
       else if (p=="diffvar")
         prune = unique_ptr<prune::prune_base>(new diffvar(z3, program));
+      else if (p=="remove_thin")
+	prune = unique_ptr<prune::prune_base>(new remove_thin(z3, program));
       else {
-        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\"." << endl;
+        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\",\"remove_thin\"." << endl;
         return false;
       }
       prune_chain.push_back(std::move(prune));

@@ -18,25 +18,21 @@
  *
  */
 
-#include "prune_base.h"
-#include "api/options.h"
+#ifndef TARA_PRUNE_REMOVE_THIN_H
+#define TARA_PRUNE_REMOVE_THIN_H
 
-#include "prune/data_flow.h"
-#include "prune/remove_implied.h"
-#include "prune/unsat_core.h"
-#include "prune/remove_thin.h"
+#include "prune/prune_base.h"
 
 namespace tara {
 namespace prune {
-  
-prune_base::prune_base(const helpers::z3interf& z3, const cssa::program& program) : z3(z3), program(program), hb_enc(program.hb_encoding())
+class remove_thin : public prune::prune_base
 {
-
-}
-
-prune_base::~prune_base()
-{}
-
-
-
+public:
+  remove_thin(const helpers::z3interf& z3, const cssa::program& program);
+  virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
+  virtual std::string name();
+private:
+};
 }}
+
+#endif // PRUNE_REMOVE_THIN_H

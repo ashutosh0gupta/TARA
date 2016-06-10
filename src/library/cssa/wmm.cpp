@@ -109,6 +109,7 @@ symbolic_event::create_internal_event( z3::context& ctx,
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
   e_v->prog_v_name = prog_v_name;
+  e_v->event_name = event_name;
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
   _hb_enc.make_locations(locations);
@@ -135,8 +136,8 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   std::string event_name = et_name + "#" + v.name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid,instr_no, false,
                                is_read, prog_v.name );
-  std::string thin_name = "__thin__" + event_name;
-  thin_v = create_internal_event( ctx, _hb_enc, thin_name, _tid, instr_no, false,
+  event_name = "__thin__" + event_name;
+  thin_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, false,
                                   is_read, prog_v.name );
   // e_v = make_shared<hb_enc::location>( ctx, event_name, false);
   // e_v->thread = _tid;
