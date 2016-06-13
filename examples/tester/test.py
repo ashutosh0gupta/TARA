@@ -56,7 +56,9 @@ known_files=[ '../locks.ctrc',
 	      '../wmm-litmus-wrw+wr.ctrc',
 	      '../wmm-litmus-wrw+2w.ctrc',
 	      '../wmm-litmus-wrr+2w.ctrc',
-	      '../wmm-litmus-irwiw.ctrc'
+	      '../wmm-litmus-irwiw.ctrc',
+	      '../wmm-litmus-rfi-pso.ctrc',
+	      '../wmm-litmus-thin.ctrc'
             ]
 
 #wmm-litmus-sb-self-read.ctrc
@@ -146,6 +148,7 @@ class example:
 # parsing cmd options
 
 parser = argparse.ArgumentParser(description='Auto testing for TARA')
+parser.add_argument("-v","--verbose", nargs=0, help = "verbose", type = str)
 parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
 parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
 args = parser.parse_args()
