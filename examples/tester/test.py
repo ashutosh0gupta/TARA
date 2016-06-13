@@ -94,6 +94,7 @@ def process_diff( expected, observed ):
 #------------------------------------------------------------------
 
 bin_name = "../../tara"
+
 def execute_example(fname,o):
     ops =o.split(' ')
     ops = [o for o in ops if o != '']
@@ -102,18 +103,12 @@ def execute_example(fname,o):
 
 
 class example:
-    def execute_example(self,o):
-        ops =o.split(' ')
-        ops = [o for o in ops if o != '']
-        ops.append(self.filename)
-        return check_output([bin_name]+ops)
-
     def populate_runs( self, options, output ):
         for o in options:
             self.count = self.count + 1
             printf( "[%d..", self.count )
             sys.stdout.flush()
-            result = self.execute_example(o)
+            result = execute_example(self.filename, o)
             if result == output:
                 printf( "pass] " )
             else:
@@ -154,11 +149,6 @@ parser = argparse.ArgumentParser(description='Auto testing for TARA')
 parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
 parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
 args = parser.parse_args()
-if args.compare != None:
-    for model in args.compare:
-        printf( "%s\n", model )
-for model in args.files:
-    printf( "file: %s\n", model )
 
 if len(args.files) > 0:
     files = args.files
@@ -171,16 +161,137 @@ else:
 if args.compare != None:
     m1 = args.compare[0]
     m2 = args.compare[1]
-    # for model in args.compare:
-    #     printf( "%s\n", model )
+    printf( "Comparing %s %s:\n", m1, m2)
+    for filename in files:
+        # example_object = example(filename)
+	# print (m1,m2,filename)
+	out1 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m1)
+	out2 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m2)
+	if out1 == out2:
+            pass
+	    # print ("Same output")
+	else:
+	    printf( "Different output %s", filename)
+	    printf( "%s",out1)
+	    printf( "%s",out2)
 else:
     for f in files:
         printf( "%s\n", f )
         benchmakr = example(f)
 
-# exit(0)
-# if len(sys.argv) > 1:
-#     files=sys.argv[1:]
-# else:
-#     files=known_files
+#----------------------------------------------------------------
+# code added by Barke
 
+# all.py
+
+# def memory_model(filename,model):
+#     n = 0
+#     list = []
+#     with open(filename, 'r') as f:
+# 	lines = f.readlines()
+# 	for line in lines:
+# 	    n = n + 1
+# 	    if "#!-r diffvar,unsat_core,remove_implied -M " + model + "\n" in line:
+# 	        'print (line,n)'
+# 	    	num = n
+# 		'print num'
+# 		break
+# 	for line in islice(lines,num,num+100):
+# 	    'print (line)'
+# 	    if "#!" not in line:
+# 		list.append(line.strip())
+# 	    else:
+# 		break
+#     return list
+
+# def compare(filename,model1,model2):
+#     list1 = memory_model(filename,model1)
+#     list2 = memory_model(filename,model2)
+#     'print list1'
+#     'print list2'
+#     'return set(list1) == set(list2) and len(list1) == len(list2)'
+#     if list1 == list2:
+# 	print("Same Output\n")
+#     else:
+# 	print("Different output\n")
+
+# models = ["sc","tso","pso","rmo"]
+# lists=[]
+# for files in known_files:
+#     for model1 in models:
+# 	for model2 in models:
+# 	    print (files,model1,model2)
+# 	    if model1 != model2:
+# 	    	compare(files,model1,model2)
+# 		'lists.append(compare(files,model1,model2))'
+
+
+#compare.py
+
+# parser = argparse.ArgumentParser(description='Compare 2 memory models')
+# parser.add_argument("-c1","--compare1", choices=["sc","tso","pso","alpha","rmo"],help = "compare two memory models",type = str)
+# parser.add_argument("-c2","--compare2", choices=["sc","tso","pso","alpha","rmo"],help = "compare two memory models",type = str)
+# parser.add_argument("-file","--file", help = "filename",type = str)
+# args = parser.parse_args()
+# first_model = args.compare1
+# second_model = args.compare2
+# filename = args.file
+# print (first_model)
+# print (second_model)
+# print (filename)
+
+# def memory_model(filename,model):
+#     n = 0
+#     list = []
+#     with open(filename, 'r') as f:
+# 	lines = f.readlines()
+# 	for line in lines:
+# 	    n = n + 1
+# 	    if "#!-r diffvar,unsat_core,remove_implied -M " + model + "\n" in line:
+# 	        'print (line,n)'
+# 	    	num = n
+# 		'print num'
+# 		break
+# 	for line in islice(lines,num,num+100):
+# 	    'print (line)'
+# 	    if "#!" not in line:
+# 		list.append(line.strip())
+# 	    else:
+# 		break
+#     return list
+	    
+# def compare(filename,model1,model2):
+#     list1 = memory_model(filename,model1)
+#     list2 = memory_model(filename,model2)
+#     'print list1'
+#     'print list2'
+#     if list1 == list2:
+# 	print("Same Output")
+#     else:
+# 	print("Different output")
+
+# compare(filename,first_model,second_model)
+
+
+
+# new.py
+
+# def execute_example(o,filename):
+#     ops =o.split(' ')
+#     ops = [o for o in ops if o != '']
+#     ops.append(filename)
+#     return check_output([bin_name]+ops)
+
+# def compare(o1,o2,filename):
+#     rmo = execute_example(o1,filename)
+#     'print rmo'
+#     alpha = execute_example(o2,filename)
+#     'print alpha'
+#     print filename
+#     if rmo == alpha:
+# 	print "Same"
+#     else:
+# 	print "Different"
+
+# for files in known_files:
+#     compare('-r diffvar,unsat_core,remove_implied -M rmo','-r diffvar,unsat_core,remove_implied -M alpha',files)
