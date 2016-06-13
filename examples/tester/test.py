@@ -94,6 +94,12 @@ def process_diff( expected, observed ):
 #------------------------------------------------------------------
 
 bin_name = "../../tara"
+def execute_example(fname,o):
+    ops =o.split(' ')
+    ops = [o for o in ops if o != '']
+    ops.append(fname)
+    return check_output([bin_name]+ops)
+
 
 class example:
     def execute_example(self,o):
