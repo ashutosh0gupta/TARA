@@ -161,10 +161,28 @@ else:
 
 
 #------------------------------------------------------------------
+'''
+def execute_example(o,filename):
+    ops =o.split(' ')
+    ops = [o for o in ops if o != '']
+    ops.append(filename)
+    return (check_output([bin_name]+ops))
+'''
 
 if args.compare != None:
     m1 = args.compare[0]
     m2 = args.compare[1]
+    for filename in files:
+        example_object = example(filename)
+	print (m1,m2,filename)
+	model1 = example_object.execute_example('-r diffvar,unsat_core,remove_implied -M' + m1)
+	model2 = example_object.execute_example('-r diffvar,unsat_core,remove_implied -M' + m2)
+	if model1 == model2:
+	    print ("Same output")
+	else:
+	    print ("Different output")
+	    printf ("%s",model1)
+	    printf("%s",model2)
     # for model in args.compare:
     #     printf( "%s\n", model )
 else:
