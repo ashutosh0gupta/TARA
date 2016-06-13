@@ -16,7 +16,7 @@ import os.path
 import sys
 import io
 import difflib
-
+import argparse
 
 known_files=[ '../locks.ctrc',
               '../wmm-simple.ctrc',
@@ -141,12 +141,40 @@ class example:
         self.count = 0
         self.load_running_cases()
 
+#------------------------------------------------------------------
+# parsing cmd options
 
-if len(sys.argv) > 1:
-    files=sys.argv[1:]
+parser = argparse.ArgumentParser(description='Auto testing for TARA')
+parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
+parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
+args = parser.parse_args()
+if args.compare != None:
+    for model in args.compare:
+        printf( "%s\n", model )
+for model in args.files:
+    printf( "file: %s\n", model )
+
+if len(args.files) > 0:
+    files = args.files
 else:
     files=known_files
 
-for f in files:
+
+#------------------------------------------------------------------
+
+if args.compare != None:
+    m1 = args.compare[0]
+    m2 = args.compare[1]
+    # for model in args.compare:
+    #     printf( "%s\n", model )
+else:
+    for f in files:
         printf( "%s\n", f )
         benchmakr = example(f)
+
+# exit(0)
+# if len(sys.argv) > 1:
+#     files=sys.argv[1:]
+# else:
+#     files=known_files
+

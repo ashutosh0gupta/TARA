@@ -55,7 +55,6 @@ public:
 //start of wmm support
 //--------------------------------------------------------------------------
   std::string prog_v_name;
-  std::string event_name;
   //std::shared_ptr<cssa::variable> vari;
   bool is_read;
   

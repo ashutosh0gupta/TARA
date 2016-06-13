@@ -109,7 +109,6 @@ symbolic_event::create_internal_event( z3::context& ctx,
   e_v->instr_no = instr_no;
   e_v->is_read = is_read;
   e_v->prog_v_name = prog_v_name;
-  e_v->event_name = event_name;
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
   locations.push_back( e_v );
   _hb_enc.make_locations(locations);
