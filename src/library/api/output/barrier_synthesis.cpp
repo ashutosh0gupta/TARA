@@ -229,7 +229,7 @@ edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
     if( after->is_rd() ) return edge_type::rpo;
     if( before->prog_v == after->prog_v ) return edge_type::ppo;
     if( before->is_wr() ) return edge_type::rpo;
-    auto& deps = program->dependency_relation.at(after);
+    auto& deps = program->data_dependency.at(after);
     if( deps.find(before) != deps.end() ) return edge_type::ppo;
     return edge_type::rpo;
   }else{

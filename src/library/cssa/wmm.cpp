@@ -494,7 +494,7 @@ void program::wmm_build_ses() {
 
     //dependency
     for( const se_ptr& wr : wrs )
-      for( auto& rd : dependency_relation[wr] )
+      for( auto& rd : data_dependency[wr] )
         thin = thin && wmm_mk_hb_thin( rd, wr ); //todo : should it be guarded??
 
   }
@@ -651,7 +651,7 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
-	for( auto read : ctrl_dependency_relation[rd])
+	for( auto read : ctrl_dependency[rd])
             phi_po = phi_po && wmm_mk_hb( read, rd );
       }
 
@@ -662,9 +662,9 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hb( last_rd[v], wr );
         collected_rds.erase( last_rd[v] );// optimization??
 
-        for( auto rd : dependency_relation[wr] )
+        for( auto rd : data_dependency[wr] )
           phi_po = phi_po && wmm_mk_hb( rd, wr );
-	for( auto rd : ctrl_dependency_relation[wr])
+	for( auto rd : ctrl_dependency[wr])
             phi_po = phi_po && wmm_mk_hb( rd, wr );
 
         last_wr[v] = wr;
@@ -995,7 +995,7 @@ z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
         found_wrs.erase( it );
         before_found = true;
       }
-      for( auto rd : dependency_relation[wr] ) {
+      for( auto rd : data_dependency[wr] ) {
         collected_rds.insert( rd );
       }
     }
@@ -1029,7 +1029,7 @@ z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
       const variable& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end()
-          // && dependency_relation[wr].empty() // todo: optimization
+          // && data_dependency[wr].empty() // todo: optimization
           ) {
         hbs = hbs && wmm_mk_hb( new_barr, wr );
         found_wrs.erase( it );
@@ -1089,11 +1089,12 @@ void program::wmm_build_ssa( const input::program& input ) {
     thread& thread = *threads[t];
 
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
+      se_set ctrl_thread_ses;
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
         se_set dep_ses;
-	se_set ctrl_ses;
+        se_set ctrl_ses;
         // Construct ssa/symbolic events for all the read variables
         for( const variable& v1: instr->variables() ) {
           if( !is_primed(v1) ) {
@@ -1110,15 +1111,16 @@ void program::wmm_build_ssa( const input::program& input ) {
               dep_ses.insert( rd );
 	      if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
 	        ctrl_ses.insert( rd );
-	        ctrl_dependency_relation[rd].insert( ctrl_ses.begin(), ctrl_ses.end() );
 	      }
+              ctrl_dependency[rd].insert( ctrl_thread_ses.begin(),
+                                                   ctrl_thread_ses.end()  );
             }else{
               v = thread.name + "." + v;
               nname = v + "#" + thread_vars[v];
               // check if we are reading an initial value
               if (thread_vars[v] == "pre") { initial_variables.insert(nname); }
               dep_ses.insert( dep_events[v].begin(), dep_events[v].end());
-	      ctrl_ses.insert( ctrl_events[v].begin(), ctrl_events[v].end());
+	      // ctrl_ses.insert( ctrl_events[v].begin(), ctrl_events[v].end());
             }
             // the following variable is read by this instruction
             thread[i].variables_read.insert(nname);
@@ -1126,6 +1128,8 @@ void program::wmm_build_ssa( const input::program& input ) {
             dst.push_back(nname);
           }
         }
+        // something gets added only if the instruction is asssume or assert
+        ctrl_thread_ses.insert( ctrl_ses.begin(), ctrl_ses.end() );
 
         // Construct ssa/symbolic events for all the write variables
         for( const variable& v: instr->variables() ) {
@@ -1141,8 +1145,9 @@ void program::wmm_build_ssa( const input::program& input ) {
                                      thread[i].loc, event_kind_t::w,se_store);
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
-              dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
-	      ctrl_dependency_relation[wr].insert( ctrl_ses.begin(),ctrl_ses.end() );
+              data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
+	      ctrl_dependency[wr].insert( ctrl_thread_ses.begin(),
+                                                   ctrl_thread_ses.end() );
             }else{
               v1 = thread.name + "." + v1;
               nname = v1 + "#" + thread[i].loc->name;
@@ -1171,8 +1176,8 @@ void program::wmm_build_ssa( const input::program& input ) {
                                    thread[i].loc,event_kind_t::w, se_store);
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
-            dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
-            // ctrl_dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
+            data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
+            // ctrl_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
           }else{
             v1 = thread.name + "." + v1;
             nname = v1 + "#" + thread[i].loc->name;

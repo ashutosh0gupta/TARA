@@ -79,8 +79,8 @@ private:
 
 public:
   name_to_ses_map se_store;
-  se_to_ses_map dependency_relation;
-  se_to_ses_map ctrl_dependency_relation;
+  se_to_ses_map data_dependency;
+  se_to_ses_map ctrl_dependency;
   se_set init_loc;
   se_set post_loc;
   var_to_ses_map wr_events;
