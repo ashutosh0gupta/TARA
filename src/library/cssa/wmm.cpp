@@ -651,8 +651,8 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
-	// for( auto read : ctrl_dependency_relation[rd])
-        //     phi_po = phi_po && wmm_mk_hbs( read, rd );
+	for( auto read : ctrl_dependency_relation[rd])
+            phi_po = phi_po && wmm_mk_hb( read, rd );
       }
 
       for( auto wr : thread[j].wrs ) {
@@ -664,6 +664,8 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
 
         for( auto rd : dependency_relation[wr] )
           phi_po = phi_po && wmm_mk_hb( rd, wr );
+	for( auto rd : ctrl_dependency_relation[wr])
+            phi_po = phi_po && wmm_mk_hb( rd, wr );
 
         last_wr[v] = wr;
       }
@@ -1067,6 +1069,7 @@ void program::wmm_build_ssa( const input::program& input ) {
   wmm_build_pre( input );
 
   var_to_ses_map dep_events;
+  var_to_ses_map ctrl_events;
   z3::context& c = _z3.c;
 
   unordered_map<string, string> thread_vars;
@@ -1090,7 +1093,7 @@ void program::wmm_build_ssa( const input::program& input ) {
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
         se_set dep_ses;
-
+	se_set ctrl_ses;
         // Construct ssa/symbolic events for all the read variables
         for( const variable& v1: instr->variables() ) {
           if( !is_primed(v1) ) {
@@ -1105,14 +1108,17 @@ void program::wmm_build_ssa( const input::program& input ) {
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( rd );
-              // dependency_relation[rd].insert( dep_ses.begin(),dep_ses.end() );
-              // ctrl_dependency_relation[rd].insert( dep_ses.begin(),dep_ses.end() );
+	      if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
+	        ctrl_ses.insert( rd );
+	        ctrl_dependency_relation[rd].insert( ctrl_ses.begin(), ctrl_ses.end() );
+	      }
             }else{
               v = thread.name + "." + v;
               nname = v + "#" + thread_vars[v];
               // check if we are reading an initial value
               if (thread_vars[v] == "pre") { initial_variables.insert(nname); }
               dep_ses.insert( dep_events[v].begin(), dep_events[v].end());
+	      ctrl_ses.insert( ctrl_events[v].begin(), ctrl_events[v].end());
             }
             // the following variable is read by this instruction
             thread[i].variables_read.insert(nname);
@@ -1136,7 +1142,7 @@ void program::wmm_build_ssa( const input::program& input ) {
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
               dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
-              // ctrl_dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
+	      ctrl_dependency_relation[wr].insert( ctrl_ses.begin(),ctrl_ses.end() );
             }else{
               v1 = thread.name + "." + v1;
               nname = v1 + "#" + thread[i].loc->name;
