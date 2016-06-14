@@ -651,6 +651,8 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
         phi_po = phi_po && wmm_mk_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
+	for( auto read : ctrl_dependency_relation[rd])
+            phi_po = phi_po && wmm_mk_hbs( read, rd );
       }
 
       for( auto wr : thread[j].wrs ) {
@@ -1103,6 +1105,8 @@ void program::wmm_build_ssa( const input::program& input ) {
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( rd );
+              dependency_relation[rd].insert( dep_ses.begin(),dep_ses.end() );
+              ctrl_dependency_relation[rd].insert( dep_ses.begin(),dep_ses.end() );
             }else{
               v = thread.name + "." + v;
               nname = v + "#" + thread_vars[v];
@@ -1132,6 +1136,7 @@ void program::wmm_build_ssa( const input::program& input ) {
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
               dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
+              ctrl_dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
             }else{
               v1 = thread.name + "." + v1;
               nname = v1 + "#" + thread[i].loc->name;
@@ -1161,6 +1166,7 @@ void program::wmm_build_ssa( const input::program& input ) {
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
             dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
+            ctrl_dependency_relation[wr].insert( dep_ses.begin(),dep_ses.end() );
           }else{
             v1 = thread.name + "." + v1;
             nname = v1 + "#" + thread[i].loc->name;
