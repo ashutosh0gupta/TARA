@@ -71,4 +71,3 @@ d3: assert((or (= r 1) (= x 1) ))
 ##( hb(R#pi_y#w2,W#y#d1) ∧ hb(W#x#w3,R#pi_x#d2) ) 
 ##
 #~
-

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #-------------------------------------------------------------------------------
 #todo:
-# - add option parsing (-v option)
+# - make update fully automated
 # - add more example
 # - report if unexpected input in example files
 # - annotate more files and add them here
@@ -17,6 +17,7 @@ import sys
 import io
 import difflib
 import argparse
+
 
 known_files=[ '../locks.ctrc',
               '../wmm-simple.ctrc',
@@ -62,8 +63,28 @@ known_files=[ '../locks.ctrc',
             ]
 
 #wmm-litmus-sb-self-read.ctrc
-        
 
+#------------------------------------------------------------------
+# parsing cmd options
+
+parser = argparse.ArgumentParser(description='Auto testing for TARA')
+parser.add_argument("-v","--verbose", action='store_true', help = "verbose")
+parser.add_argument("-u","--update", action='store_true', help = "update")
+parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
+parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
+args = parser.parse_args()
+
+if( args.update and len(args.files) == 0 ):
+    raise ValueError('update needs list of files!!')
+
+#------------------------------------------------------------------
+# choosing list of files
+
+if len(args.files) > 0:
+    files = args.files
+else:
+    files=known_files
+        
 #------------------------------------------------------------------
 # General utilities
 
@@ -116,7 +137,8 @@ class example:
             else:
                 printf( "fail]\n" )
                 printf( "call: %s %s %s\n", bin_name, o, self.filename)
-                # process_diff( output, result )
+                if( args.verbose ):
+                    process_diff( output, result )
                 
     def load_running_cases(self):
         with open(self.filename, 'r') as f:
@@ -144,35 +166,35 @@ class example:
         self.count = 0
         self.load_running_cases()
 
-#------------------------------------------------------------------
-# parsing cmd options
-
-parser = argparse.ArgumentParser(description='Auto testing for TARA')
-parser.add_argument("-v","--verbose", nargs=0, help = "verbose", type = str)
-parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
-parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
-args = parser.parse_args()
-
-if len(args.files) > 0:
-    files = args.files
-else:
-    files=known_files
-
 
 #------------------------------------------------------------------
 
-if args.compare != None:
+if args.update:
+    for filename in files:
+        options = []
+        with open(filename, 'r') as f:
+            for line in f:
+                if line[:2] == '#!':
+                    options.append( line[2:-1] )
+    
+        with open( filename, "a") as myfile:
+            myfile.write( "\n######## ERASE TESTS ABOVE #######\n" )
+
+        for o in options:
+            printf( "%s\n", o )
+            ops =o.split(' ')
+            ops = [o for o in ops if o != '']
+            ops.append(filename)
+            check_output(['./gen.py']+ops)
+elif args.compare != None:
     m1 = args.compare[0]
     m2 = args.compare[1]
     printf( "Comparing %s %s:\n", m1, m2)
     for filename in files:
-        # example_object = example(filename)
-	# print (m1,m2,filename)
 	out1 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m1)
 	out2 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m2)
 	if out1 == out2:
             pass
-	    # print ("Same output")
 	else:
 	    printf( "Different output %s", filename)
 	    printf( "%s",out1)

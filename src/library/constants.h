@@ -25,7 +25,7 @@
 
 namespace tara {
 enum class instruction_type {
-  regular,
+  regular,//todo: extend it for rmw instructions
   assume,
   assert,
   //--------------------------------------------------------------------------
