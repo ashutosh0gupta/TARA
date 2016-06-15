@@ -1,0 +1,22 @@
+global: x y
+
+pre: (and (= x 0) (= y 0))
+
+thread P0{r1 r2}:
+a: (= r1. x)
+dp1: assume(= r1 1)
+b: (= r2. y)
+
+thread P1{r1 r2}:
+c: (= r2. y)
+dp2: assume(= r2 2)
+d: (= r1. x)
+
+thread P2:
+e: (= x. 1)
+
+thread P3 {r3}:
+f: (= y. 2)
+
+
+post: (not (and (= P0.r1 1) (= P0.r2 0) (= P1.r1 0) (= P1.r2 2)) )
