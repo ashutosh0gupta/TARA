@@ -885,8 +885,9 @@ void program::wmm_build_post(const input::program& input,
     }
     // replace variables in expr
     phi_post = instr->instr.substitute(src,dst);
-    phi_prp = phi_prp && phi_post;
-  } else {
+    phi_prp = phi_prp && implies( phi_fea, phi_post );
+    // todo : check the above implies is consistent with rest of the code
+   } else {
     throw cssa_exception("Instruction must be Z3");
   }
 }

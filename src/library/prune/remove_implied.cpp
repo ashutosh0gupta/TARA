@@ -116,6 +116,7 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   if ( loc1->is_read ) {
     // loc1 read - loc2 write
     // todo: check if dep relation contains intr internal relations
+    // todo: add control dep also
     for( auto it1=program.data_dependency.begin();
          it1!=program.data_dependency.end();it1++ ) {
       if( (it1->first)->loc == loc2 ) {
