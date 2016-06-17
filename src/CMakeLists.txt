@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(TARA)
 
+find_package(LLVM REQUIRED CONFIG)
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
 IF(WIN32)
     SET(Boost_USE_STATIC_LIBS    ON)
     SET(Boost_USE_STATIC_RUNTIME ON)
@@ -43,10 +47,13 @@ include_directories (${CMAKE_CURRENT_BINARY_DIR} "${PROJECT_SOURCE_DIR}" "${PROJ
 include_directories(${Boost_INCLUDE_DIRS}) 
 LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
+add_definitions(${LLVM_DEFINITIONS})
+include_directories(${LLVM_INCLUDE_DIRS})
+
 add_subdirectory("library")
 
 add_executable(tara main.cpp options_cmd.cpp)
 
 SET(LIBZ3 z3)
 
-target_link_libraries (tara tarastatic ${LIBZ3} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries (tara tarastatic ${LIBZ3} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${llvm_libs})
