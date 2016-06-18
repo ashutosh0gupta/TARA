@@ -1089,8 +1089,8 @@ void program::wmm_build_ssa( const input::program& input ) {
     variable_set path_constraint_variables;
     thread& thread = *threads[t];
 
+    se_set ctrl_thread_ses;
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
-      se_set ctrl_thread_ses;
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
@@ -1110,9 +1110,9 @@ void program::wmm_build_ssa( const input::program& input ) {
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( rd );
-	      if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
-	        ctrl_ses.insert( rd );
-	      }
+	      // if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
+	      //   ctrl_ses.insert( rd );
+	      // }
               ctrl_dependency[rd].insert( ctrl_thread_ses.begin(),
                                                    ctrl_thread_ses.end()  );
             }else{
@@ -1130,8 +1130,10 @@ void program::wmm_build_ssa( const input::program& input ) {
           }
         }
         // something gets added only if the instruction is asssume or assert
-        ctrl_thread_ses.insert( ctrl_ses.begin(), ctrl_ses.end() );
-
+        // ctrl_thread_ses.insert( ctrl_ses.begin(), ctrl_ses.end() );
+        if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
+          ctrl_thread_ses.insert( dep_ses.begin(), dep_ses.end() );
+        }
         // Construct ssa/symbolic events for all the write variables
         for( const variable& v: instr->variables() ) {
           if( is_primed(v) ) {
@@ -1165,7 +1167,7 @@ void program::wmm_build_ssa( const input::program& input ) {
 
         // thread havoced variables the same
         for( const variable& v: instr->havok_vars ) {
-          assert(false); // untested code
+          assert(false); // untested code //todo: havoc ctrl dependency?
           assert( dep_ses.empty() ); // there must be nothing in dep_ses
           src.push_back(v);
           variable nname(c);

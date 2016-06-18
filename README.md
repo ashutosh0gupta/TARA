@@ -14,6 +14,8 @@ In a minimal debian install also the following tools are needed
 
 	sudo apt-get -y install unzip python
 
+- install llvm-3.6-dev and clang-3.6-dev (package name may not be exact)
+
 Other *nix platforms
 --------------------
 
@@ -81,7 +83,6 @@ To run `tara.exe` you will need to copy the following DLL to the directory where
 - `boost_program_options-vc120-mt-1_56.dll` from `C:\local\boost_1_56_0\lib`
 - `boost_regex-vc120-mt-1_56.dll` from `C:\local\boost_1_56_0\lib`
 - `boost_system-vc120-mt-1_56.dll` from `C:\local\boost_1_56_0\lib`
-
     
 Command line options
 ====================
