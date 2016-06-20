@@ -61,7 +61,6 @@ using namespace tara::helpers;
 
 #include "llvm/ADT/StringMap.h"
 
-
 #pragma GCC diagnostic pop
 
 
@@ -89,5 +88,6 @@ program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile ) {
   }
 
   program* p = new program(z3_);
+  
   return p;
 }

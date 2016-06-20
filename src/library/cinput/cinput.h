@@ -24,11 +24,25 @@
 
 namespace tara {
 namespace cinput {
+  class loc{
+  public:
+    unsigned line;
+    unsigned col;
+    std::string file;
+  };
+
   class program {
   public:
     program(helpers::z3interf& z3_): z3(z3_) {}
     helpers::z3interf& z3;
     z3::expr phi_ssa = z3.c.bool_val(true);
+    std::map< unsigned, loc> inst_to_loc;
+    std::map< unsigned, std::string> id_to_thr_name;
+    unsigned thread_num = 0;
+    unsigned add_thread( std::string str) {
+      id_to_thr_name[thread_num++] = str;
+      return thread_num-1;
+    };
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile );
