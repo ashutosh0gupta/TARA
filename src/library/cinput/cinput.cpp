@@ -91,11 +91,28 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   if( module.get() == 0 ) {
     // give err msg
   }
+  program* p = new program(z3_);
+
+    // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
+
+    // for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
+    //      iter_glb != end_glb; ++iter_glb ) {
+    //   llvm::GlobalVariable* glb = iter_glb;
+    //   if( glb->getType() != iptr ) {
+    //     cfrontend_error((std::string)(glb->getName()) << " is not int32 type!");
+    //   }
+    //   std::string gvar = (std::string)(glb->getName());
+    //   std::string gvarp = gvar + "__p";
+    //   typename ExprHandler::expr v  = eHandler->mkVar( gvar  );
+    //   typename ExprHandler::expr vp = eHandler->mkVar( gvarp );
+    //   program->addGlobal( v, vp );
+    //   eHandler->addGlobalVar( glb, v, vp ); // for efficient access
+    // }
+
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
-  program* p = new program(z3_);
   
   return p;
 }

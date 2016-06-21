@@ -108,27 +108,27 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   // assert(b);
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
-  // for( llvm::Instruction& Iobj : b->getInstList() ) {
-  //   llvm::Instruction* I = &(Iobj);
+  for( llvm::Instruction& Iobj : b->getInstList() ) {
+    llvm::Instruction* I = &(Iobj);
   //   assert( I );
   //   typename EHandler::expr term = eHandler->mkEmptyExpr();
   //   bool recognized = false, record = false;
-  //   if( const llvm::StoreInst* str = llvm::dyn_cast<llvm::StoreInst>(I) ) {
-  //     llvm::Value* v = str->getOperand(0);
-  //     llvm::Value* g = str->getOperand(1);
+    if( const llvm::StoreInst* str = llvm::dyn_cast<llvm::StoreInst>(I) ) {
+      llvm::Value* v = str->getOperand(0);
+      llvm::Value* g = str->getOperand(1);
   //     term = getTerm( v, m );
   //     typename EHandler::expr gp     = eHandler->getGlobalVarNext( g );
   //     typename EHandler::expr assign = eHandler->mkEq( gp, term );
   //     blockTerms.push_back( assign );
   //     assert( !recognized );recognized = true;
-  //   }
-  //   if( const llvm::BinaryOperator* bop =
-  //       llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
-  //     llvm::Value* op0 = bop->getOperand( 0 );
-  //     llvm::Value* op1 = bop->getOperand( 1 );
+    }
+    if( const llvm::BinaryOperator* bop =
+        llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
+      llvm::Value* op0 = bop->getOperand( 0 );
+      llvm::Value* op1 = bop->getOperand( 1 );
   //     typename EHandler::expr o0 = getTerm( op0, m );
   //     typename EHandler::expr o1 = getTerm( op1, m );
-  //     unsigned op = bop->getOpcode();
+      unsigned op = bop->getOpcode();
   //     switch( op ) {
   //     case llvm::Instruction::Add : term = eHandler->mkPlus ( o0, o1 ); break;
   //     case llvm::Instruction::Sub : term = eHandler->mkMinus( o0, o1 ); break;
@@ -143,9 +143,9 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //     }
   //     record = true;
   //     assert( !recognized );recognized = true;
-  //   }
-  //   if( const llvm::UnaryInstruction* str =
-  //       llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
+    }
+    if( const llvm::UnaryInstruction* str =
+        llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
   //     if( const llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
   //       llvm::Value* g = load->getOperand(0);
   //       term = eHandler->getGlobalVar(g);
@@ -156,8 +156,8 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //       cfrontend_warning( "I am uniary instruction!!" );
   //       assert( !recognized );recognized = true;
   //     }
-  //   }
-  //   if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
+    }
+    if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
   //     llvm::Value* lhs = cmp->getOperand( 0 );
   //     llvm::Value* rhs = cmp->getOperand( 1 );
   //     typename EHandler::expr l = getTerm( lhs, m );
@@ -181,7 +181,7 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //     }
   //     record = true;
   //     assert( !recognized );recognized = true;
-  //   }
+    }
   //   if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
   //     term = getPhiMap( phi, m);
   //     record = 1;
@@ -208,7 +208,7 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //   UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
   //   // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
-  //   if( const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
+    if( const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
   //     if( br->isConditional() ) {
   //       llvm::Value* c = br->getCondition();
   //       typename EHandler::expr cond = getTerm( c, m);
@@ -220,11 +220,11 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //       }
   //     }else{cfrontend_warning( "I am unconditional branch!!" );}
   //     assert( !recognized );recognized = true;
-  //   }
-  //   if( const llvm::SwitchInst* t = llvm::dyn_cast<llvm::SwitchInst>(I) ) {
+    }
+    if( const llvm::SwitchInst* t = llvm::dyn_cast<llvm::SwitchInst>(I) ) {
   //     cfrontend_warning( "I am switch!!" );
   //     assert( !recognized );recognized = true;
-  //   }
+    }
   //   if( const llvm::CallInst* str = llvm::dyn_cast<llvm::CallInst>(I) ) {
   //     if( const llvm::DbgValueInst* dVal =
   //         llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
@@ -244,7 +244,7 @@ z3::expr build_program::translateBlock( llvm::BasicBlock* b,
   //     }
   //   }
   //   if( !recognized ) cfrontend_error( "----- failed to recognize!!" );
-  // }
+  }
   // // print_double_line( std::cout );
   // //iterate over instructions and build
   return z3.c.bool_val(true); //eHandler->mkAnd( blockTerms );
@@ -298,29 +298,41 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     if( o.print_input > 0 ) src->print( llvm::outs() );
-    z3::expr b =  z3.c.bool_val(false);
-    auto PI = llvm::pred_begin(src);
-    split_history h;
-    if( PI != pred_end(src) ) {
-      // llvm::BasicBlock *prev = *PI++;
-      const split_history& h1 = block_to_split_stack[*PI++];
-      // PI++;
-      if( PI != pred_end(src) ) {// two predecessor
-        const split_history& h2 = block_to_split_stack[*PI++];
-        //join_histories( h1, h2, h );
-        if(  PI != pred_end(src) ) tara_error( "cinput : more than two preds!" );
-      }else{ // one predecessor
-        h = h1;
+    // z3::expr b =  z3.c.bool_val(false);
+    // auto PI = llvm::pred_begin(src);
+    // split_history h;
+    // if( PI != pred_end(src) ) {
+    //   llvm::BasicBlock *prev = *PI++;
+    //   const split_history& h1 = block_to_split_stack[prev];
+    //   // PI++;
+    //   if( PI != pred_end(src) ) {// two predecessor
+    //     const split_history& h2 = block_to_split_stack[*PI++];
+    //     // join_histories( h1, h2, h );
+    //     if(  PI != pred_end(src) ) tara_error( "cinput : more than two preds!" );
+    //   }else{ // one predecessor
+    //     h = h1;
+    //   }
+    // }
+
+    std::vector< split_history > histories;
+    for( auto PI = llvm::pred_begin(src), E = llvm::pred_end(src);PI != E;++PI){
+      llvm::BasicBlock *prev = *PI;
+      split_history h = block_to_split_stack[prev];
+      if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
+        z3::expr& b = block_to_exit_bit.at(prev); // todo: it may not exist
+        llvm::TerminatorInst *term= prev->getTerminator();
+        unsigned succ_num = PI.getOperandNo();
+        if( succ_num == 1 ) b = !b;
+        // h.push_back( prev, block_to_id[prev], succ_num, b);
       }
+      histories.push_back(h);
+    }
+    if( histories.size() == 0 ) {
+      
+    }else{
+
     }
 
-    for( auto PI = llvm::pred_begin(src), E = llvm::pred_end(src);PI != E;++PI) {
-      llvm::BasicBlock *prev = *PI;
-      split_history& a = block_to_split_stack[prev];
-      
-      // z3::expr b = get_exit_bit( prev );
-      // ...
-    }
   //   unsigned srcLoc = getBlockCount( src );
   //   llvm::TerminatorInst* c= (*it).getTerminator();
   //   unsigned num = c->getNumSuccessors();

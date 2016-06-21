@@ -42,11 +42,11 @@ namespace cinput {
                 unsigned block_id_,
                 unsigned succ_num_,
                 z3::expr e_):
-      b(b_), block_id(block_id_), succ_num(succ_num_), e(e_) {}
+      b(b_), block_id(block_id_), succ_num(succ_num_), bit(e_) {}
     llvm::BasicBlock* b;
     unsigned block_id;
     unsigned succ_num;
-    z3::expr e;
+    z3::expr bit;
   };
 
   typedef std::vector<split_step> split_history;
