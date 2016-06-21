@@ -49,14 +49,15 @@ LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
+llvm_map_components_to_libnames(llvm_libs aarch64 aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis arm armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core cppbackend cppbackendcodegen cppbackendinfo debuginfo executionengine hexagon hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipa ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mips mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430 msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptx nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpc powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata r600 r600asmparser r600asmprinter r600codegen r600desc r600info runtimedyld scalaropts selectiondag sparc sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+# engine 
+
+LINK_DIRECTORIES(${LLVM_LIBRARY_DIRS})
 
 add_subdirectory("library")
 
 add_executable(tara main.cpp options_cmd.cpp)
 
 SET(LIBZ3 z3)
-
-llvm_map_components_to_libnames(llvm_libs support core irreader)
-MESSAGE( STATUS "llvm_libs:         " ${llvm_libs} )
 
 target_link_libraries (tara tarastatic ${LIBZ3} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} ${llvm_libs})

@@ -53,18 +53,21 @@ void trace_analysis::input(string input_file)
 
 void trace_analysis::input(string input_file, mm_t mm)
 {
-  input::program pa = input::parse::parseFile(input_file.c_str());
-//----------------------------------------------------------------------------
-// start of wmm support
-//----------------------------------------------------------------------------
-  if( mm != mm_t::none ) {
-    pa.set_mm( mm );
+  if( input_file.find(".c") != std::string::npos ) {
+    cinput::program* p = cinput::parse_cpp_file( z3, input_file );
+  }else{
+    input::program pa = input::parse::parseFile(input_file.c_str());
+    //----------------------------------------------------------------------------
+    // start of wmm support
+    //----------------------------------------------------------------------------
+    if( mm != mm_t::none ) {
+      pa.set_mm( mm );
+    }
+    //----------------------------------------------------------------------------
+    // end of wmm support
+    //----------------------------------------------------------------------------
+    input(pa);
   }
-//----------------------------------------------------------------------------
-// end of wmm support
-//----------------------------------------------------------------------------
-  cinput::program* p = cinput::parse_cpp_file( z3, input_file );
-  input(pa);
 }
 
 void trace_analysis::input(input::program& input_program)
