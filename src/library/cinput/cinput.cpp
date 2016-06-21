@@ -36,14 +36,16 @@ using namespace tara::helpers;
 #include "llvm/Pass.h"
 #include "llvm/PassManager.h"
 #include "llvm/IR/DebugInfo.h"
-
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
-
+#include "llvm/IR/IRPrintingPasses.h"
 // #include "llvm/IR/InstrTypes.h"
 // #include "llvm/IR/BasicBlock.h"
+#include "llvm/IR/Function.h"
+
 
 #include "llvm/IRReader/IRReader.h"
 // #include "llvm/Support/Debug.h"
@@ -76,10 +78,13 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
   llvm::LLVMContext& context = llvm::getGlobalContext();
-
+  llvm::PassManager passMan;
+  llvm::PassRegistry& reg = *llvm::PassRegistry::getPassRegistry();
+  llvm::initializeAnalysis(reg);
   std::string bc_file = cfile+".bc";
 
   c2bc( cfile, bc_file);
+
   //todo: get rid of clang call
   // why are we parsing IR file.. why not directly .cpp??
   module = llvm::parseIRFile( bc_file, err, context);
@@ -87,6 +92,9 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
     // give err msg
   }
 
+  passMan.add( llvm::createPromoteMemoryToRegisterPass() );
+  passMan.add( llvm::createCFGPrinterPass() );
+  passMan.run( *module.get() );
   program* p = new program(z3_);
   
   return p;

@@ -53,7 +53,7 @@ void trace_analysis::input(string input_file)
 
 void trace_analysis::input(string input_file, mm_t mm)
 {
-  if( input_file.find(".c") != std::string::npos ) {
+  if( has_suffix(input_file, ".c" )) {
     cinput::program* p = cinput::parse_cpp_file( z3, input_file );
   }else{
     input::program pa = input::parse::parseFile(input_file.c_str());
