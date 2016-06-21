@@ -20,6 +20,7 @@
 #ifndef TARA_CINPUT_PROGRAM_H
 #define TARA_CINPUT_PROGRAM_H
 
+#include "helpers/helpers.h"
 #include "helpers/z3interf.h"
 
 namespace tara {
@@ -46,6 +47,12 @@ namespace cinput {
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile );
+
+  // class cinput_exception : public std::runtime_error{
+  // public:
+  //   input_exception(const char* what) : runtime_error(what) {};
+  //   input_exception(const std::string& what) : runtime_error(what) {};
+  // };
 
 }}
 #endif // TARA_CINPUT_PROGRAM_H

@@ -40,6 +40,7 @@ public:
   hb_types hb_type = hb_types::integer;
   
   // verbosity options
+  int print_input = 0;
   int print_pruning = 0;
   int print_phi = 0;
   int print_rounds = 0;

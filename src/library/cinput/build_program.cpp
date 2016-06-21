@@ -24,7 +24,6 @@ using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
 
-
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -43,6 +42,7 @@ using namespace tara::helpers;
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
+#include "llvm/IR/CFG.h"
 
 // #include "llvm/IR/InstrTypes.h"
 // #include "llvm/IR/BasicBlock.h"
@@ -66,12 +66,37 @@ using namespace tara::helpers;
 #pragma GCC diagnostic pop
 
 
+//----------------------------------------------------------------------------
+// LLVM utils
+
+void initBlockCount( llvm::Function &f,
+                     std::map<llvm::BasicBlock*, unsigned>& block_to_id) {
+  unsigned l = 0;
+  block_to_id.clear();
+  for( auto it  = f.begin(), end = f.end(); it != end; it++ ) {
+    llvm::BasicBlock* b = &(*it);
+    // auto new_l = program->createFreshLocation(threadId);
+    block_to_id[b] = l++;
+    // if( b->getName() == "err" ) {
+    //   program->setErrorLocation( threadId, new_l );
+    // }
+  }
+    // llvm::BasicBlock& b  = f.getEntryBlock();
+    // unsigned entryLoc = getBlockCount( &b );
+    // program->setStartLocation( threadId, entryLoc );
+    // auto finalLoc = program->createFreshLocation(threadId);
+    // program->setFinalLocation( threadId, finalLoc );
+}
+
+//----------------------------------------------------------------------------
+// code for input object generation
+
 build_program::build_program( helpers::z3interf& z3_,
-                              // Cfrontend::Config& config_,
+                              api::options& o_,
                               program* program_ )
   : llvm::FunctionPass(ID)
   , z3(z3_)
-    // , config(config_)
+  , o(o_)
   , p( program_ )
   , thread_count( 0 )
 {}
@@ -230,7 +255,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   std::string name = (std::string)f.getName();
   unsigned threadId = p->add_thread( name );
 
-  // initBlockCount( f, threadId );
+  initBlockCount( f, block_to_id );
 
   // collect local variables
 
@@ -272,7 +297,30 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
-  //   if( config.verbose("mkthread") ) src->print( llvm::outs() );
+    if( o.print_input > 0 ) src->print( llvm::outs() );
+    z3::expr b =  z3.c.bool_val(false);
+    auto PI = llvm::pred_begin(src);
+    split_history h;
+    if( PI != pred_end(src) ) {
+      // llvm::BasicBlock *prev = *PI++;
+      const split_history& h1 = block_to_split_stack[*PI++];
+      // PI++;
+      if( PI != pred_end(src) ) {// two predecessor
+        const split_history& h2 = block_to_split_stack[*PI++];
+        //join_histories( h1, h2, h );
+        if(  PI != pred_end(src) ) tara_error( "cinput : more than two preds!" );
+      }else{ // one predecessor
+        h = h1;
+      }
+    }
+
+    for( auto PI = llvm::pred_begin(src), E = llvm::pred_end(src);PI != E;++PI) {
+      llvm::BasicBlock *prev = *PI;
+      split_history& a = block_to_split_stack[prev];
+      
+      // z3::expr b = get_exit_bit( prev );
+      // ...
+    }
   //   unsigned srcLoc = getBlockCount( src );
   //   llvm::TerminatorInst* c= (*it).getTerminator();
   //   unsigned num = c->getNumSuccessors();

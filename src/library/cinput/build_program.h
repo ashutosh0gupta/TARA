@@ -23,6 +23,7 @@
 #include <map>
 #include "cinput/cinput.h"
 #include "helpers/z3interf.h"
+#include "api/options.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -35,6 +36,21 @@
 namespace tara {
 namespace cinput {
 
+  class split_step {
+  public:
+    split_step( llvm::BasicBlock* b_,
+                unsigned block_id_,
+                unsigned succ_num_,
+                z3::expr e_):
+      b(b_), block_id(block_id_), succ_num(succ_num_), e(e_) {}
+    llvm::BasicBlock* b;
+    unsigned block_id;
+    unsigned succ_num;
+    z3::expr e;
+  };
+
+  typedef std::vector<split_step> split_history;
+
   class build_program : public llvm::FunctionPass {
 
   public:
@@ -46,13 +62,20 @@ namespace cinput {
 
   private:
     helpers::z3interf& z3;
+    api::options& o;
     // Cfrontend::Config& config;
     program* p;
     unsigned inst_counter = 0;
     unsigned thread_count = 0;
+    std::map<llvm::BasicBlock*, unsigned> block_to_id;
+    std::map< llvm::BasicBlock*, split_history > block_to_split_stack;
+    std::map< llvm::BasicBlock*, z3::expr > block_to_exit_bit;
+    // 
+    std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
 
   public:
     build_program( helpers::z3interf& z3_,
+                   api::options& o_,
                    // Cfrontend::Config& config_,
                    program* program_ );
 

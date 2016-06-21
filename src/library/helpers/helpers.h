@@ -30,6 +30,27 @@
 #include <boost/concept_check.hpp>
 #include <z3++.h>
 #include <ctype.h>
+#include <stdexcept>
+#include <cassert>
+
+#ifdef EXTERNAL_VERSION
+#define triggered_at ""
+#else
+#define triggered_at " (triggered at " <<  __FILE__ << ", " << __LINE__ << ")"
+#endif
+
+#ifdef DEBUG
+#define issue_error  assert( false );
+#else
+#define issue_error  std::exit( 1 );
+#endif
+
+#define tara_error( S ) { std::cerr << "# tara Error: " << S \
+                                    << triggered_at << std::endl; \
+                               issue_error }
+#define tara_warning( S ) { std::cerr << "# tara Warning: " << S \
+                                      << std::endl; }
+
 namespace std {
   template <>
   struct hash<z3::expr>
