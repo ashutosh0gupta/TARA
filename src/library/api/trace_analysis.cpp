@@ -31,6 +31,7 @@
 #include "prune/unsat_core.h"
 #include "prune/data_flow.h"
 #include "prune/remove_implied.h"
+#include "cinput/cinput.h"
 #include <stdexcept>
 #include <vector>
 #include <chrono>
@@ -62,6 +63,7 @@ void trace_analysis::input(string input_file, mm_t mm)
 //----------------------------------------------------------------------------
 // end of wmm support
 //----------------------------------------------------------------------------
+  cinput::program* p = cinput::parse_cpp_file( z3, input_file );
   input(pa);
 }
 
