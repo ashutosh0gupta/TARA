@@ -307,7 +307,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       // PI++;
       if( PI != pred_end(src) ) {// two predecessor
         const split_history& h2 = block_to_split_stack[*PI++];
-        //join_histories( h1, h2, h );
+        join_histories( h1, h2, h );
         if(  PI != pred_end(src) ) tara_error( "cinput : more than two preds!" );
       }else{ // one predecessor
         h = h1;

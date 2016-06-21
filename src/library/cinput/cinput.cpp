@@ -72,7 +72,7 @@ void c2bc( std::string& filename, std::string& outname ) {
 }
 
 //todo: add unique_ptr support
-program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile ) {
+program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfile ) {
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
   llvm::LLVMContext& context = llvm::getGlobalContext();
