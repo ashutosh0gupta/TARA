@@ -50,6 +50,8 @@ namespace cinput {
   };
 
   typedef std::vector<split_step> split_history;
+  std::vector<z3::expr> global;
+
 
   class build_program : public llvm::FunctionPass {
 
@@ -144,7 +146,9 @@ namespace cinput {
     //   }
     //   return true;
     // }
-
+    z3::expr mkPlus ( z3::expr& a, z3::expr& b ) { return a + b;  }
+    z3::expr mkMinus( z3::expr& a, z3::expr& b ) { return a - b;  }
+    z3::expr mkMul  ( z3::expr& a, z3::expr& b ) { return a * b;  }
   };
 
 }}

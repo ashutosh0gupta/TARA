@@ -18,6 +18,10 @@
  */
 
 #include "cinput.h"
+#include "build_program.h"
+#include "helpers/helpers.h"
+#include <utility>
+#include <algorithm>
 
 using namespace tara;
 using namespace tara::cinput;
@@ -65,7 +69,6 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-
 void c2bc( std::string& filename, std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
@@ -93,16 +96,16 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   }
   program* p = new program(z3_);
 
-    // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
+  llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 
-    // for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
-    //      iter_glb != end_glb; ++iter_glb ) {
-    //   llvm::GlobalVariable* glb = iter_glb;
-    //   if( glb->getType() != iptr ) {
-    //     cfrontend_error((std::string)(glb->getName()) << " is not int32 type!");
-    //   }
-    //   std::string gvar = (std::string)(glb->getName());
-    //   std::string gvarp = gvar + "__p";
+  for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
+    iter_glb != end_glb; ++iter_glb ) {
+    llvm::GlobalVariable* glb = iter_glb;
+    if( glb->getType() != iptr )
+      std::cerr << (std::string)(glb->getName()) << " is not int32 type!";
+    const std::string gvar = (std::string)(glb->getName());
+    std::string gvarp = gvar + "__p";
+  }
     //   typename ExprHandler::expr v  = eHandler->mkVar( gvar  );
     //   typename ExprHandler::expr vp = eHandler->mkVar( gvarp );
     //   program->addGlobal( v, vp );
@@ -116,3 +119,9 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   
   return p;
 }
+
+  void addGlobal (z3::expr& e, z3::expr& ep) {
+    assert( e != ep );
+    assert( !exists( global, e ) && !exists( global, ep ) );
+    //global.push_back(std::make_pair(e,ep));
+  }

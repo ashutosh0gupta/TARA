@@ -32,6 +32,11 @@
 #include <ctype.h>
 #include <stdexcept>
 #include <cassert>
+#include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
 
 #ifdef EXTERNAL_VERSION
 #define triggered_at ""
@@ -180,6 +185,7 @@ inline std::string get_unprimed(const std::string& variable) {
   }
 }
 
+
 inline bool has_suffix(const std::string &str, const std::string &suffix)
 {
     return str.size() >= suffix.size() &&
@@ -323,6 +329,12 @@ bool list_contains(const std::list<content>& v, const content& element) {
     if (c==element) return true;
   return false;
 }
+
+template <class T>
+inline bool exists( std::vector<T>& vec, T item ) {
+  return std::find( vec.begin(), vec.end(), item ) != vec.end();
+}
+
 
 }}
 
