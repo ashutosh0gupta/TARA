@@ -133,25 +133,25 @@ namespace cinput {
 
     z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
     if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-    //z3::expr i = ctx.int_val(0);
-    //     return eHandler->mkIntVal( i );
+      int i = readInt(c);
+      return z3.c.int_val(i);
     }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
     // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
-    //     return eHandler->mkIntVal( 0 );
+      return z3.c.int_val(0);
     }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
-    //     cfrontend_error( "un recognized constant!" );
+      std::cerr << "un recognized constant!";
     //     // int i = readInt(c);
     //     // return eHandler->mkIntVal( i );
     }else if( isLocalVar( op ) ) {
       return getLocalVar( op );
-    //   }else{
-    //     auto it = m.find( op );
-    //     if( it == m.end() ) {
-    //       op->print( llvm::outs() ); //llvm::outs() << "\n";
-    //       cfrontend_error( "local term not found!" );
-    //     }
-    //     return it->second;
-      }
+      }else{
+	 auto it = m.find( op );
+         if( it == m.end() ) {
+           llvm::outs() << "\n";
+	   std::cerr << "local term not found!";
+	 }
+         return it->second;
+	}
     }
 
     // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {
@@ -175,6 +175,13 @@ namespace cinput {
         std::cerr << "a local variable not found!";
       return it->second;
     }
+    int readInt( const llvm::ConstantInt* c ) {
+      const llvm::APInt& n = c->getUniqueInteger();
+      unsigned len = n.getNumWords();
+      if( len > 1 ) std::cerr << "long integers not supported!!";
+      const uint64_t *v = n.getRawData();
+      return *v;
+   }
   };
 
 }}

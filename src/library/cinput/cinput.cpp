@@ -74,8 +74,6 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-std::map< const llvm::GlobalVariable*, cssa::variable > glbVars;
-
 void c2bc( std::string& filename, std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
