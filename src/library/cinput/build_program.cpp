@@ -319,18 +319,21 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
-        z3::expr& b = block_to_exit_bit.at(prev); // todo: it may not exist
+        z3::expr& b = block_to_exit_bit.at(prev);
         llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
         if( succ_num == 1 ) b = !b;
-        // h.push_back( prev, block_to_id[prev], succ_num, b);
+        split_step ss(prev, block_to_id[prev], succ_num, b);
+        h.push_back(ss);
       }
       histories.push_back(h);
     }
-    if( histories.size() == 0 ) {
-      
+    unsigned hsize  = histories.size();
+    if( hsize == 0 ) {
+      split_history h;
+      block_to_split_stack[prev] = h;
     }else{
-
+      
     }
 
   //   unsigned srcLoc = getBlockCount( src );
