@@ -54,12 +54,21 @@ namespace cinput {
   };
 
   typedef std::vector<split_step> split_history;
-  std::map< const llvm::Value*, cssa::variable > localVars;
+
+  class SplitAtAssumePass : public llvm::FunctionPass {
+  public:
+    static char ID;
+    SplitAtAssumePass() : llvm::FunctionPass(ID) {}
+    virtual bool runOnFunction( llvm::Function &f );
+    virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const;
+  };
+
 
   class build_program : public llvm::FunctionPass {
 
   public:
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
+    std::map< const llvm::Value*, cssa::variable > localVars;
     static char ID;
 
     //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
@@ -81,8 +90,13 @@ namespace cinput {
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
-                   // Cfrontend::Config& config_,
-                   program* program_ );
+                   program* program_ )
+    : llvm::FunctionPass(ID)
+    , z3(z3_)
+    , o(o_)
+    , p( program_ )
+    , thread_count( 0 )
+{}
 
     virtual bool runOnFunction( llvm::Function & );
 

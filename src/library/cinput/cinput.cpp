@@ -121,6 +121,7 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
 
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
+  passMan.add( new SplitAtAssumePass() );
   passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
   
