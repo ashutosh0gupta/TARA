@@ -24,11 +24,14 @@
 #include "cinput/cinput.h"
 #include "helpers/z3interf.h"
 #include "api/options.h"
+#include "helpers/helpers.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/Pass.h"
 #include "llvm/IR/Value.h"
+#include "llvm/IR/Constants.h"
+#include "llvm/Support/raw_ostream.h"
 // #include "llvm/IR/Constants.h"
 // #include "llvm/Support/raw_ostream.h"
 #pragma GCC diagnostic pop
@@ -47,11 +50,11 @@ namespace cinput {
     unsigned block_id;
     unsigned succ_num;
     z3::expr bit;
+
   };
 
   typedef std::vector<split_step> split_history;
-  std::vector<z3::expr> global;
-
+  std::map< const llvm::Value*, cssa::variable > localVars;
 
   class build_program : public llvm::FunctionPass {
 
@@ -114,19 +117,19 @@ namespace cinput {
     // void addPendingInsertEdge( unsigned, unsigned, z3:expr);
     // void applyPendingInsertEdges( unsigned );
 
-    // z3:expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
-    //   if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-    //     int i = readInt( c );
+    z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
+    if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
+    //z3::expr i = ctx.int_val(0);
     //     return eHandler->mkIntVal( i );
-    //   }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
-    //   // }else if( LLCAST( ConstantPointerNull, c, op) ) {
+    }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
+    // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
     //     return eHandler->mkIntVal( 0 );
-    //   }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
+    }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
     //     cfrontend_error( "un recognized constant!" );
     //     // int i = readInt(c);
     //     // return eHandler->mkIntVal( i );
-    //   }else if( eHandler->isLocalVar( op ) ) {
-    //     return eHandler->getLocalVar( op );
+    }else if( isLocalVar( op ) ) {
+      return getLocalVar( op );
     //   }else{
     //     auto it = m.find( op );
     //     if( it == m.end() ) {
@@ -134,8 +137,8 @@ namespace cinput {
     //       cfrontend_error( "local term not found!" );
     //     }
     //     return it->second;
-    //   }
-    // }
+      }
+    }
 
     // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {
     //   if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
@@ -146,9 +149,18 @@ namespace cinput {
     //   }
     //   return true;
     // }
-    z3::expr mkPlus ( z3::expr& a, z3::expr& b ) { return a + b;  }
-    z3::expr mkMinus( z3::expr& a, z3::expr& b ) { return a - b;  }
-    z3::expr mkMul  ( z3::expr& a, z3::expr& b ) { return a * b;  }
+     bool isLocalVar( const llvm::Value* g  ) {
+      auto it = localVars.find( g );
+      if( it == localVars.end() ) return false;
+      return true;
+    }
+
+    cssa::variable getLocalVar( const llvm::Value* g  ) {
+      auto it = localVars.find( g );
+      if( it == localVars.end() )
+        std::cerr << "a local variable not found!";
+      return it->second;
+    }
   };
 
 }}

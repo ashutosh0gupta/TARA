@@ -36,6 +36,7 @@ namespace cinput {
   public:
     program(helpers::z3interf& z3_): z3(z3_) {}
     helpers::z3interf& z3;
+    cssa::variable_set global;
     z3::expr phi_ssa = z3.c.bool_val(true);
     std::map< unsigned, loc> inst_to_loc;
     std::map< unsigned, std::string> id_to_thr_name;

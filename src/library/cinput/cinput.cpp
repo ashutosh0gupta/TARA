@@ -18,11 +18,16 @@
  */
 
 #include "cinput.h"
+#include <iostream>
 #include "build_program.h"
 #include "helpers/helpers.h"
 #include <utility>
 #include <algorithm>
-
+#include "cssa/cssa_exception.h"
+#include "helpers/helpers.h"
+#include <vector>
+using namespace tara::cssa;
+using namespace std;
 using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
@@ -68,6 +73,8 @@ using namespace tara::helpers;
 #include "llvm/ADT/StringMap.h"
 
 #pragma GCC diagnostic pop
+
+std::map< const llvm::GlobalVariable*, cssa::variable > glbVars;
 
 void c2bc( std::string& filename, std::string& outname ) {
   // make a system call
@@ -120,8 +127,8 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   return p;
 }
 
-  void addGlobal (z3::expr& e, z3::expr& ep) {
+  void addGlobal (cssa::variable& e, cssa::variable& ep) {
     assert( e != ep );
-    assert( !exists( global, e ) && !exists( global, ep ) );
+    //assert( !exists( global, e ) && !exists( global, ep ) );
     //global.push_back(std::make_pair(e,ep));
   }

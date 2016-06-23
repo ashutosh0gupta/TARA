@@ -330,12 +330,6 @@ bool list_contains(const std::list<content>& v, const content& element) {
   return false;
 }
 
-template <class T>
-inline bool exists( std::vector<T>& vec, T item ) {
-  return std::find( vec.begin(), vec.end(), item ) != vec.end();
-}
-
-
 }}
 
 #endif // HELPERS_H
