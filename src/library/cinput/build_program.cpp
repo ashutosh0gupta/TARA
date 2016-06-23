@@ -88,18 +88,117 @@ void initBlockCount( llvm::Function &f,
     // program->setFinalLocation( threadId, finalLoc );
 }
 
+void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
+    if( branch->isUnconditional() ) return;
+    llvm::Value* cond = branch->getCondition();
+    if( llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(cond) ) {
+      llvm::BasicBlock* phiBlock = branch->getParent();
+      llvm::BasicBlock* phiDstTrue = branch->getSuccessor(0);
+      llvm::BasicBlock* phiDstFalse = branch->getSuccessor(1);
+      if( phiBlock->size() == 2 && cond == (phiBlock->getInstList()).begin() &&
+          phi->getNumIncomingValues() == 2 ) {
+        llvm::Value* val0      = phi->getIncomingValue(0);
+        llvm::BasicBlock* src0 = phi->getIncomingBlock(0);
+        llvm::BranchInst* br0  = (llvm::BranchInst*)(src0->getTerminator());
+        unsigned br0_branch_idx = ( br0->getSuccessor(0) ==  phiBlock ) ? 0 : 1;
+        if( llvm::ConstantInt* b = llvm::dyn_cast<llvm::ConstantInt>(val0) ) {
+          assert( b->getType()->isIntegerTy(1) );
+          llvm::BasicBlock* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
+          br0->setSuccessor( br0_branch_idx, newDst );
+        }else{std::cerr << "unseen case, not known how to handle!";}
+        llvm::Value*      val1 = phi->getIncomingValue(1);
+        llvm::BasicBlock* src1 = phi->getIncomingBlock(1);
+        llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
+        llvm::Instruction* cmp1 = llvm::dyn_cast<llvm::Instruction>(val1);
+        assert( cmp1 );
+        assert( br1->isUnconditional() );
+        if( cmp1 != NULL && br1->isUnconditional() ) {
+          llvm::BranchInst *newBr =
+            llvm::BranchInst::Create( phiDstTrue, phiDstFalse, cmp1);
+          llvm::ReplaceInstWithInst( br1, newBr );
+          // TODO: memory leaked here? what happend to br1 was it deleted??
+          llvm::DeleteDeadBlock( phiBlock );
+          removeBranchingOnPHINode( newBr );
+        }else{std::cerr << "unseen case, not known how to handle!";}
+      }else{std::cerr << "unseen case, not known how to handle!";}
+    }
+  }
+
+
+//----------------------------------------------------------------------------
+// Splitting for assume pass
+  char SplitAtAssumePass::ID = 0;
+  bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
+    llvm::LLVMContext &C = f.getContext();
+    llvm::BasicBlock *dum = llvm::BasicBlock::Create( C, "dummy", &f, f.end());
+    new llvm::UnreachableInst(C, dum);
+    llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, f.end() );
+    new llvm::UnreachableInst(C, err);
+
+    std::vector<llvm::BasicBlock*> splitBBs;
+    std::vector<llvm::CallInst*> calls;
+    std::vector<llvm::Value*> args;
+    std::vector<llvm::Instruction*> splitIs;
+    std::vector<bool> isAssume;
+
+     //collect calls to assume statements
+    auto bit = f.begin(), end = f.end();
+    for( ; bit != end; ++bit ) {
+      llvm::BasicBlock* bb = bit;
+      auto iit = bb->begin(), iend = bb->end();
+      size_t bb_sz = bb->size();
+      for( unsigned i = 1; iit != iend; ++iit ) {
+	i++;
+        llvm::Instruction* I = iit;
+        if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
+          llvm::Function* fp = call->getCalledFunction();
+	  if( fp != NULL &&
+              ( fp->getName() == "_Z6assumeb" ||
+                fp->getName() == "_Z6assertb" ) &&
+              i < bb_sz ) {
+	    splitBBs.push_back( bb );
+            auto arg_iit = iit;
+	    llvm::Instruction* arg = --arg_iit;
+            llvm::Value * arg0 = call->getArgOperand(0);
+	    if( arg != arg0 ) std::cerr << "last out not passed!!";
+            calls.push_back( call );
+            args.push_back( arg0 );
+	    auto local_iit = iit;
+            splitIs.push_back( ++local_iit );
+            isAssume.push_back( (fp->getName() == "_Z6assumeb") );
+	  }
+        }
+      }
+    }
+    // Reverse order splitting for the case if there are more than
+    // one assumes in one basic block
+    for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
+      llvm::BasicBlock* head = splitBBs[i];
+      llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
+      llvm::Instruction* cmp;
+      if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
+        cmp = c;
+      }else{ std::cerr << "instruction expected here!!"; }
+      llvm::BasicBlock* elseBlock = isAssume[i] ? dum : err;
+      llvm::BranchInst *branch =llvm::BranchInst::Create( tail, elseBlock, cmp);
+      llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+      calls[i]->eraseFromParent();
+      if( llvm::isa<llvm::PHINode>(cmp) ) {
+	removeBranchingOnPHINode( branch );
+      }
+    }
+    return false;
+  }
+
+  void SplitAtAssumePass::getAnalysisUsage(llvm::AnalysisUsage &au) const {
+    // it modifies blocks therefore may not preserve anything
+    // au.setPreservesAll();
+    //TODO: ...
+    // au.addRequired<llvm::Analysis>();
+  }
 //----------------------------------------------------------------------------
 // code for input object generation
 
-build_program::build_program( helpers::z3interf& z3_,
-                              api::options& o_,
-                              program* program_ )
-  : llvm::FunctionPass(ID)
-  , z3(z3_)
-  , o(o_)
-  , p( program_ )
-  , thread_count( 0 )
-{}
 
 
 z3::expr build_program::translateBlock( llvm::BasicBlock* b,
@@ -331,7 +430,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     unsigned hsize  = histories.size();
     if( hsize == 0 ) {
       split_history h;
-      block_to_split_stack[prev] = h;
+      // block_to_split_stack[prev] = h;
     }else{
       
     }

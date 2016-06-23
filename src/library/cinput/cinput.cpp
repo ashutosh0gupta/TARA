@@ -74,8 +74,6 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-std::map< const llvm::GlobalVariable*, cssa::variable > glbVars;
-
 void c2bc( std::string& filename, std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
@@ -121,6 +119,7 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
 
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
+  passMan.add( new SplitAtAssumePass() );
   passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
   
