@@ -3,8 +3,8 @@
 
 int x = 0, y=0;
 
-void assume( int );
-void assert( int );
+void assume( bool );
+void assert( bool );
 
 void* p0(void *) {
   // *((int *)a_ptr) = 2;

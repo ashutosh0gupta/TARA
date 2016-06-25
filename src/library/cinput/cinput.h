@@ -37,7 +37,7 @@ namespace cinput {
     program(helpers::z3interf& z3_): z3(z3_) {}
     helpers::z3interf& z3;
     cssa::variable_set global;
-    z3::expr phi_ssa = z3.c.bool_val(true);
+    z3::expr phi_ssa = z3.mk_true();
     std::map< unsigned, loc> inst_to_loc;
     std::map< unsigned, std::string> id_to_thr_name;
     unsigned thread_num = 0;
@@ -45,6 +45,9 @@ namespace cinput {
       id_to_thr_name[thread_num++] = str;
       return thread_num-1;
     };
+    void append_ssa( z3::expr e) {
+      phi_ssa = phi_ssa && e;
+    }
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile );

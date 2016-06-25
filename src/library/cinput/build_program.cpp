@@ -24,6 +24,8 @@ using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
 
+#include <stdexcept>
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -124,7 +126,6 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
     }
   }
 
-
 //----------------------------------------------------------------------------
 // Splitting for assume pass
   char SplitAtAssumePass::ID = 0;
@@ -147,7 +148,7 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
       llvm::BasicBlock* bb = bit;
       auto iit = bb->begin(), iend = bb->end();
       size_t bb_sz = bb->size();
-      for( unsigned i = 1; iit != iend; ++iit ) {
+      for( unsigned i = 0; iit != iend; ++iit ) {
 	i++;
         llvm::Instruction* I = iit;
         if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
@@ -199,11 +200,63 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
 //----------------------------------------------------------------------------
 // code for input object generation
 
+void
+build_program::join_histories( const std::vector<llvm::BasicBlock*> preds,
+                               const std::vector<split_history>& hs,
+                               split_history& h,
+                               std::map<llvm::BasicBlock*,z3::expr>& conds) {
+  h.clear();
+  if(hs.size() == 0 ) return;
+  if(hs.size() == 1 ) {
+    h = hs[0];
+    return;
+  }
+  auto sz = hs[0].size();
+  for( auto& old_h: hs ) sz = std::min(sz, old_h.size());
+  // unsigned sz = min( h1.size(), h2.size() );
+  unsigned i=0;
+  for( ; i < sz; i++ ) {
+    const split_step& s = hs[0][i];
+    bool diff_found = false;
+    for( auto& old_h: hs ) {
+      if( !( z3::eq( s.cond, old_h[i].cond ) ) ) {
+        diff_found = true;
+        break;
+      }
+    }
+    if( diff_found ) break;
+    h.push_back( s );
+  }
+  if( i == sz ) {
+    bool longer_found = false;
+    for( auto& old_h: hs ) if( sz != old_h.size() ) longer_found = true;
+    if( longer_found ) {
+      throw std::runtime_error( "histories can not be subset of each other!!" );
+    }
+  }else{
+    z3::expr c = z3.mk_false();
+    unsigned j = 0;
+    for( auto& old_h: hs ) {
+      unsigned i1 = i;
+      z3::expr c1 = z3.mk_true();
+      for(;i1 < old_h.size();i1++) {
+        c1 = c1 && old_h[i1].cond;
+      }
+      auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[j++], c1 );
+      conds.insert( pr );
+      c = c || c1;
+    }
+    c = c.simplify();
+    if( z3::eq( c, z3.mk_true() ) )
+      return;
+    split_step ss( NULL, 0, 0, c);// todo: can store meaningful information
+    h.push_back(ss);
+  }
+}
 
-
-z3::expr build_program::translateBlock( llvm::BasicBlock* b,
-                                         z3::expr path_cons,
-                                         ValueExprMap& m ) {
+z3::expr
+build_program::translateBlock( llvm::BasicBlock* b,
+                               std::map<llvm::BasicBlock*,z3::expr> conds) {
   // assert(b);
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
@@ -356,84 +409,35 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   initBlockCount( f, block_to_id );
 
-  // collect local variables
-
-  //iterate over debug instructions
-
-  // // TODO: remove nameExprMap from to avoid ugliness of accessing
-  // // maps with z3 expressions
-  // std::map< std::string, typename EHandler::expr> nameExprMap;
-  // std::map< std::string, typename EHandler::expr> nameNextExprMap;
-  // std::map<const llvm::Value*, std::string> localNameMap;
-  // localNameMap.clear();
-  // buildLocalNameMap( f, localNameMap );
-  // eHandler->resetLocalVars();
-  // for(auto it=localNameMap.begin(), end = localNameMap.end(); it!=end;++it) {
-  //   const llvm::Value* v = it->first;
-  //   std::string name = it->second;
-  //   std::string nameNext = name + "__p";
-  //   if( config.verbose("mkthread") ) {
-  //     std::cout << "local variable discovered: "<< name << "\n";
-  //   }
-  //   if( nameExprMap.find(name) == nameExprMap.end() ) {
-  //     typename EHandler::expr lv  = eHandler->mkVar( name  );
-  //     typename EHandler::expr lvp = eHandler->mkVar( nameNext );
-  //     program->addLocal( threadId, lv, lvp );
-  //     // TODO: why the following code does not work with z3 expr
-  //     auto p = std::pair<std::string,typename EHandler::expr>( name, lv );
-  //     nameExprMap.insert(p); // nameExprMap[name] = lv;
-  //     auto n = std::pair<std::string,typename EHandler::expr>(nameNext,lvp);
-  //     nameNextExprMap.insert(n); // nameNextExprMap[nameNext] = lvNext;
-  //   }
-  //   auto curr_it = nameExprMap.find(name);
-  //   auto next_it = nameNextExprMap.find(nameNext);
-  //   eHandler->addLocalVar( v, curr_it->second, next_it->second );
-  // }
-
-  // ValueExprMap exprMap;
-
-  // resetPendingInsertEdge();
-
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     if( o.print_input > 0 ) src->print( llvm::outs() );
-    // z3::expr b =  z3.c.bool_val(false);
-    // auto PI = llvm::pred_begin(src);
-    // split_history h;
-    // if( PI != pred_end(src) ) {
-    //   llvm::BasicBlock *prev = *PI++;
-    //   const split_history& h1 = block_to_split_stack[prev];
-    //   // PI++;
-    //   if( PI != pred_end(src) ) {// two predecessor
-    //     const split_history& h2 = block_to_split_stack[*PI++];
-    //     // join_histories( h1, h2, h );
-    //     if(  PI != pred_end(src) ) tara_error( "cinput : more than two preds!" );
-    //   }else{ // one predecessor
-    //     h = h1;
-    //   }
-    // }
 
-    std::vector< split_history > histories;
-    for( auto PI = llvm::pred_begin(src), E = llvm::pred_end(src);PI != E;++PI){
+    std::vector< split_history > histories; // needs to be ref
+    std::vector<llvm::BasicBlock*> preds;
+    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
         z3::expr& b = block_to_exit_bit.at(prev);
-        llvm::TerminatorInst *term= prev->getTerminator();
+        // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
         if( succ_num == 1 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);
       }
       histories.push_back(h);
+      preds.push_back( prev );
     }
-    unsigned hsize  = histories.size();
-    if( hsize == 0 ) {
-      split_history h;
-      // block_to_split_stack[prev] = h;
-    }else{
-      
-    }
+    split_history h;
+    std::map<llvm::BasicBlock*, z3::expr> conds;
+    join_histories( preds, histories, h, conds);
+    block_to_split_stack[src] = h;
+
+    z3::expr ssa = translateBlock( src, conds);
+    p->append_ssa( ssa );
+
+  //     typename EHandler::expr e = translateBlock( src, 0, exprMap );
 
   //   unsigned srcLoc = getBlockCount( src );
   //   llvm::TerminatorInst* c= (*it).getTerminator();

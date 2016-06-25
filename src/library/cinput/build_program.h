@@ -45,12 +45,12 @@ namespace cinput {
                 unsigned block_id_,
                 unsigned succ_num_,
                 z3::expr e_):
-      b(b_), block_id(block_id_), succ_num(succ_num_), bit(e_) {}
+      b(b_), block_id(block_id_), succ_num(succ_num_), cond(e_) {}
     llvm::BasicBlock* b;
     unsigned block_id;
     unsigned succ_num;
-    z3::expr bit;
-
+    z3::expr cond;
+    // friend bool operator==(const split_step& step1, const split_step& step2);
   };
 
   typedef std::vector<split_step> split_history;
@@ -81,12 +81,18 @@ namespace cinput {
     program* p;
     unsigned inst_counter = 0;
     unsigned thread_count = 0;
+    ValueExprMap valMap;
     std::map<llvm::BasicBlock*, unsigned> block_to_id;
     std::map< llvm::BasicBlock*, split_history > block_to_split_stack;
     std::map< llvm::BasicBlock*, z3::expr > block_to_exit_bit;
-    // 
+    //
     std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
 
+    void join_histories( const std::vector<llvm::BasicBlock*> preds,
+                         const std::vector<split_history>& hs,
+                         split_history& h,
+                         std::map<llvm::BasicBlock*,z3::expr>& conds
+                         );
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
@@ -123,7 +129,8 @@ namespace cinput {
     // z3:expr
     // getPhiMap( const llvm::PHINode* p, ValueExprMap& m );
 
-    z3::expr translateBlock( llvm::BasicBlock*, z3::expr , ValueExprMap& );
+    z3::expr translateBlock( llvm::BasicBlock*,
+                             std::map<llvm::BasicBlock*,z3::expr> );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
 

@@ -1,3 +1,6 @@
+void assume( bool );
+void assert( bool );
+
 int m;
 int x, y, z, balance;
 int deposit_done=0, withdraw_done=0;
