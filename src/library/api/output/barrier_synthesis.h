@@ -22,7 +22,7 @@
 #define TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
 
 #include "cssa/program.h"
-#include "cssa/wmm.h"
+#include "cssa/symbolic_event.h"
 #include "api/output/nf.h"
 #include <boost/bimap.hpp>
 #include <z3++.h>

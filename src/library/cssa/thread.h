@@ -25,7 +25,8 @@
 #include "hb_enc/encoding.h"
 #include <unordered_map>
 #include "constants.h"
-#include "cssa/wmm.h"
+// #include "cssa/wmm.h"
+#include "cssa/symbolic_event.h"
 
 namespace tara {
 namespace cssa {
