@@ -125,9 +125,3 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_, std::string& cfil
   
   return p;
 }
-
-  void addGlobal (cssa::variable& e, cssa::variable& ep) {
-    assert( e != ep );
-    //assert( !exists( global, e ) && !exists( global, ep ) );
-    //global.push_back(std::make_pair(e,ep));
-  }

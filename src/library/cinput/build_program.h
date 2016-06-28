@@ -68,6 +68,7 @@ namespace cinput {
 
   public:
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
+    ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
     static char ID;
 
@@ -169,8 +170,6 @@ namespace cinput {
       const llvm::StructType* n = c->getType();
     }else if( auto c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
       const llvm::VectorType* n = c->getType();
-    }else if( isLocalVar( op ) ) {
-      return getLocalVar( op );
       }else{
 	 auto it = m.find( op );
          if( it == m.end() ) {
@@ -196,12 +195,6 @@ namespace cinput {
       return true;
     }
 
-    cssa::variable getLocalVar( const llvm::Value* g  ) {
-      auto it = localVars.find( g );
-      if( it == localVars.end() )
-        std::cerr << "a local variable not found!";
-      return it->second;
-    }
     int readInt( const llvm::ConstantInt* c ) {
       const llvm::APInt& n = c->getUniqueInteger();
       unsigned len = n.getNumWords();
