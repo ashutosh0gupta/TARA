@@ -68,6 +68,7 @@ namespace cinput {
 
   public:
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
+    ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
     static char ID;
 
@@ -140,8 +141,15 @@ namespace cinput {
 
     z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
     if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-      int i = readInt(c);
-      return z3.c.int_val(i);
+      unsigned bw = c->getBitWidth();
+      if(bw > 1) {
+        int i = readInt(c);
+        return z3.c.int_val(i);
+      }else if(bw == 1) {
+        bool i = c->getType();
+	return z3.c.bool_val(i);
+      }else
+	std::cerr << "unrecognized constant!";
     }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
     // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
       return z3.c.int_val(0);
@@ -149,21 +157,19 @@ namespace cinput {
       std::cerr << "un recognized constant!";
     //     // int i = readInt(c);
     //     // return eHandler->mkIntVal( i );
-    }else if( const llvm::ConstantFP* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
+    }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
       const llvm::APFloat& n = c->getValueAPF();
       double v = n.convertToDouble();
       //return z3.c.real_val(v);
-    }else if( const llvm::ConstantExpr* c = llvm::dyn_cast<llvm::ConstantExpr>(op) ) {
-    }else if( const llvm::ConstantArray* c = llvm::dyn_cast<llvm::ConstantArray>(op) ) {
+    }else if( auto c = llvm::dyn_cast<llvm::ConstantExpr>(op) ) {
+    }else if( auto c = llvm::dyn_cast<llvm::ConstantArray>(op) ) {
       const llvm::ArrayType* n = c->getType();
       unsigned len = n->getNumElements();
       //return z3.c.arraysort();
-    }else if( const llvm::ConstantStruct* c = llvm::dyn_cast<llvm::ConstantStruct>(op) ) {
+    }else if( auto c = llvm::dyn_cast<llvm::ConstantStruct>(op) ) {
       const llvm::StructType* n = c->getType();
-    }else if( const llvm::ConstantVector* c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
+    }else if( auto c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
       const llvm::VectorType* n = c->getType();
-    }else if( isLocalVar( op ) ) {
-      return getLocalVar( op );
       }else{
 	 auto it = m.find( op );
          if( it == m.end() ) {
@@ -189,12 +195,6 @@ namespace cinput {
       return true;
     }
 
-    cssa::variable getLocalVar( const llvm::Value* g  ) {
-      auto it = localVars.find( g );
-      if( it == localVars.end() )
-        std::cerr << "a local variable not found!";
-      return it->second;
-    }
     int readInt( const llvm::ConstantInt* c ) {
       const llvm::APInt& n = c->getUniqueInteger();
       unsigned len = n.getNumWords();

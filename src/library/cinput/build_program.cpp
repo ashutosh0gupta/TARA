@@ -19,7 +19,8 @@
 
 
 #include "build_program.h"
-
+#include "helpers/z3interf.h"
+#include <z3.h>
 using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
@@ -257,19 +258,18 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
 z3::expr
 build_program::translateBlock( llvm::BasicBlock* b,
                                std::map<llvm::BasicBlock*,z3::expr> conds) {
-  // assert(b);
+  assert(b);
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( llvm::Instruction& Iobj : b->getInstList() ) {
     llvm::Instruction* I = &(Iobj);
-  //   assert( I );
-  //   typename EHandler::expr term = eHandler->mkEmptyExpr();
-  //   bool recognized = false, record = false;
+    assert( I );
+    Z3_ast term = z3.mk_emptyexpr();
+    bool recognized = false, record = false;
     if( const llvm::StoreInst* str = llvm::dyn_cast<llvm::StoreInst>(I) ) {
       llvm::Value* v = str->getOperand(0);
       llvm::Value* g = str->getOperand(1);
-  //     term = getTerm( v, m );
-  //     typename EHandler::expr gp     = eHandler->getGlobalVarNext( g );
+      term = getTerm( v, m );
   //     typename EHandler::expr assign = eHandler->mkEq( gp, term );
   //     blockTerms.push_back( assign );
   //     assert( !recognized );recognized = true;
@@ -278,23 +278,25 @@ build_program::translateBlock( llvm::BasicBlock* b,
         llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
-  //     typename EHandler::expr o0 = getTerm( op0, m );
-  //     typename EHandler::expr o1 = getTerm( op1, m );
+      z3::expr a = z3.mk_emptyexpr();
+      z3::expr b = z3.mk_emptyexpr();
+      a = getTerm( op0, m );
+      b = getTerm( op1, m );
+      Z3_ast args[2] = {a, b};
       unsigned op = bop->getOpcode();
-  //     switch( op ) {
-  //     case llvm::Instruction::Add : term = eHandler->mkPlus ( o0, o1 ); break;
-  //     case llvm::Instruction::Sub : term = eHandler->mkMinus( o0, o1 ); break;
-  //     case llvm::Instruction::Mul : term = eHandler->mkMul  ( o0, o1 ); break;
-  //     case llvm::Instruction::Xor : term = eHandler->mkXor  ( o0, o1 ); break;
-  //       // case llvm::Instruction::SDiv: term = eHandler->mkSDiv ( o0, o1 ); break;
-  //     default: {
-  //       const char* opName = bop->getOpcodeName();
-  //       cfrontend_error( "unsupported instruction " << opName
-  //                        << " occurred!!"  );
-  //     }
-  //     }
-  //     record = true;
-  //     assert( !recognized );recognized = true;
+      switch( op ) {
+        case llvm::Instruction::Add : term = Z3_mk_add ( a.ctx(), 2, args ); break;
+        case llvm::Instruction::Sub : term = Z3_mk_sub ( a.ctx(), 2, args ); break;
+        case llvm::Instruction::Mul : term = Z3_mk_mul ( a.ctx(), 2, args ); break;
+        case llvm::Instruction::Xor : term = Z3_mk_xor ( a.ctx(), a, b ); break;
+        case llvm::Instruction::SDiv: term = Z3_mk_div ( a.ctx(), a, b ); break;
+      default: {
+        const char* opName = bop->getOpcodeName();
+        std::cerr << "unsupported instruction " << opName << " occurred!!";
+      }
+    }
+	record = true;
+	assert( !recognized );recognized = true;
     }
     if( const llvm::UnaryInstruction* str =
         llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {

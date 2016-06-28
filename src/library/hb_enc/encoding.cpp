@@ -19,6 +19,7 @@
  */
 
 #include "encoding.h"
+#include "symbolic_event.h"
 #include <boost/iterator/iterator_concepts.hpp>
 
 using namespace std;
@@ -188,7 +189,7 @@ ostream& operator<< (std::ostream& stream, const as& as) {
  * encoding
  *************************/
 
-encoding::encoding()
+encoding::encoding(z3::context& _ctx) :ctx(_ctx)
 {}
 
 encoding::~encoding()
@@ -209,5 +210,38 @@ void encoding::save_locations(const vector< shared_ptr< location > >& locations)
     location_map.insert(make_pair(loc->name, loc));
   }
 }
+
+hb encoding::make_hbs(const se_ptr& before, const se_ptr& after) {
+  return make_hb( before->e_v, after->e_v );
+}
+
+z3::expr encoding::make_hbs( const se_set& before, const se_ptr& after) {
+  z3::expr hbs = ctx.bool_val(true);
+  for( auto& bf : before ) {
+      hbs = hbs && make_hbs( bf, after );
+  }
+  return hbs;
+}
+
+z3::expr encoding::make_hbs(const se_ptr& before, const se_set& after) {
+  z3::expr hbs = ctx.bool_val(true);
+  for( auto& af : after ) {
+      hbs = hbs && make_hbs( before, af );
+  }
+  return hbs;
+}
+
+
+z3::expr encoding::make_hbs(const se_set& before, const se_set& after) {
+  z3::expr hbs = ctx.bool_val(true);
+  for( auto& bf : before ) {
+    for( auto& af : after ) {
+      hbs = hbs && make_hbs( bf, af );
+    }
+  }
+  return hbs;
+}
+
+
 
 }}

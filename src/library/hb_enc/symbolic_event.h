@@ -22,7 +22,6 @@
 
 #include "constants.h"
 #include "helpers/z3interf.h"
-#include "hb_enc/encoding.h"
 #include <vector>
 #include <list>
 #include <unordered_map>
@@ -31,6 +30,8 @@
 
 namespace tara{
 namespace hb_enc {
+
+  class location;
 
   enum class event_kind_t {
       pre,  // initialization event

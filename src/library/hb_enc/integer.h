@@ -42,7 +42,7 @@ namespace hb_enc {
     typedef std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>>::const_iterator mapit;
     std::pair<mapit,mapit> get_locs(const z3::expr& hb, bool& possibly_equal) const;
     
-    z3::context& ctx;
+    // z3::context& ctx;
   };
 }}
 

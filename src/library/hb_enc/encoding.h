@@ -25,12 +25,17 @@
 #include <memory>
 #include <z3++.h>
 #include <unordered_map>
+#include <set>
 #include "../helpers/helpers.h"
 
 namespace tara {
 namespace hb_enc {
   class integer;
-  
+
+  class symbolic_event;
+  typedef std::shared_ptr<symbolic_event> se_ptr;
+  typedef std::set<se_ptr> se_set;
+
 struct location {
 private:
   z3::expr expr; // ensure this one is not visible from the outside
@@ -139,16 +144,27 @@ private:
 class encoding
 {
 public:
-  encoding();
+  encoding(z3::context& ctx);
   virtual ~encoding();
   
   virtual void make_locations(std::vector<std::shared_ptr<hb_enc::location>> locations) = 0;
   virtual location_ptr get_location(const std::string& name) const; // make one location from a name
   virtual hb make_hb(location_ptr loc1, location_ptr loc2) const = 0;
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  hb make_hbs(const se_ptr& loc1, const se_ptr& loc2);
+  z3::expr make_hbs(const se_set& loc1, const se_ptr& loc2);
+  z3::expr make_hbs(const se_ptr& loc1, const se_set& loc2);
+  z3::expr make_hbs(const se_set& loc1, const se_set& loc2);
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
   virtual as make_as(location_ptr loc1, location_ptr loc2) const = 0;
   virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const = 0;
   virtual std::unique_ptr<hb> get_hb(const z3::expr& hb, bool allow_equal = false) const = 0;
   virtual std::vector<hb_enc::location_ptr> get_trace(const z3::model& m) const = 0;
+  z3::context& ctx;
 protected:
   std::unordered_map<std::string, location_ptr> location_map;
   void save_locations(const std::vector<std::shared_ptr<hb_enc::location>>& locations);

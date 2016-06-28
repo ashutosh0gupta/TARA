@@ -18,6 +18,7 @@
  */
 
 #include "hb_enc/symbolic_event.h"
+#include "hb_enc/encoding.h"
 #include "hb_enc/hb_enc_exception.h"
 
 using namespace tara;

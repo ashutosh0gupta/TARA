@@ -28,7 +28,7 @@ using namespace tara;
 
 using namespace std;
 
-integer::integer(z3::context& ctx) : ctx(ctx)
+integer::integer(z3::context& ctx) : encoding(ctx) //, ctx(ctx)
 {}
 
 void integer::make_locations(vector< std::shared_ptr< location > > locations)
