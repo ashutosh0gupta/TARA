@@ -78,13 +78,13 @@ private:
   //--------------------------------------------------------------------------
 
 public:
-  name_to_ses_map se_store;
-  se_to_ses_map data_dependency;
-  se_to_ses_map ctrl_dependency;
-  se_set init_loc;
-  se_set post_loc;
-  var_to_ses_map wr_events;
-  var_to_se_vec_map rd_events;
+  hb_enc::name_to_ses_map se_store;
+  hb_enc::se_to_ses_map data_dependency;
+  hb_enc::se_to_ses_map ctrl_dependency;
+  hb_enc::se_set init_loc;
+  hb_enc::se_set post_loc;
+  hb_enc::var_to_ses_map wr_events;
+  hb_enc::var_to_se_vec_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
   // class isEq{
   // public:
@@ -96,7 +96,7 @@ public:
   //   }
   // };
   // std::map<z3::expr, std::pair<se_ptr,se_ptr>, isEq > reading_map;
-  std::set< std::tuple<std::string,se_ptr,se_ptr> > reading_map;
+  std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
 private:
   void wmm_build_cssa_thread( const input::program& input );
   void wmm_build_ssa( const input::program& input );
@@ -111,24 +111,24 @@ private:
   void wmm_build_barrier();
   void wmm_add_barrier(int tid, int instr);
 
-  z3::expr wmm_insert_tso_barrier( thread & thread, unsigned instr, se_ptr );
-  z3::expr wmm_insert_pso_barrier( thread & thread, unsigned instr, se_ptr );
-  z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, se_ptr );
+  z3::expr wmm_insert_tso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
+  z3::expr wmm_insert_pso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
+  z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
   z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
 
-  z3::expr wmm_mk_hb_thin(const cssa::se_ptr& before, const cssa::se_ptr& after);
-  z3::expr wmm_mk_ghb_thin( const cssa::se_ptr& before, const cssa::se_ptr& after );
-  z3::expr wmm_mk_hb ( const cssa::se_ptr& before, const cssa::se_ptr& after );
-  z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_ptr& after );
-  z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_set& after );
-  z3::expr wmm_mk_hbs( const cssa::se_set& before, const cssa::se_ptr& after );
-  z3::expr wmm_mk_hbs( const cssa::se_ptr& before, const cssa::se_set& after );
-  z3::expr wmm_mk_ghb( const cssa::se_ptr& before, const cssa::se_ptr& after );
+  z3::expr wmm_mk_hb_thin(const hb_enc::se_ptr& before, const hb_enc::se_ptr& after);
+  z3::expr wmm_mk_ghb_thin( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
+  z3::expr wmm_mk_hb ( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
+  z3::expr wmm_mk_hbs( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
+  z3::expr wmm_mk_hbs( const hb_enc::se_set& before, const hb_enc::se_set& after );
+  z3::expr wmm_mk_hbs( const hb_enc::se_set& before, const hb_enc::se_ptr& after );
+  z3::expr wmm_mk_hbs( const hb_enc::se_ptr& before, const hb_enc::se_set& after );
+  z3::expr wmm_mk_ghb( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
 
   bool hb_eval( const z3::model& model,
-                const cssa::se_ptr& before, const cssa::se_ptr& after ) const;
+                const hb_enc::se_ptr& before, const hb_enc::se_ptr& after ) const;
 
-  z3::expr get_rf_bvar( const variable& v1, se_ptr wr, se_ptr rd,
+  z3::expr get_rf_bvar( const variable& v1, hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                         bool record=true );
 
   void wmm_build_sc_ppo   ( thread& thread );
@@ -143,9 +143,9 @@ private:
   void wmm_print_dot( z3::model m ) const;
   void wmm_test_ppo(); // TODO: remove when confident
 
-  bool in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
-  bool anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd );
-  bool anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr );
+  bool in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+  bool anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+  bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
   bool is_rd_rd_coherance_preserved();
 private:
   mm_t mm = mm_t::none;

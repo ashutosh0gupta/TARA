@@ -90,39 +90,31 @@ mm_t program::get_mm() const
 }
 
 
-
-void tara::cssa::debug_print_se_set(const se_set& set, std::ostream& out) {
-  for (se_ptr c : set) {
-    out << *c << " ";
-    }
-  out << std::endl;
-}
-
 //----------------------------------------------------------------------------
 // hb utilities
 
 bool program::hb_eval( const z3::model& m,
-                       const cssa::se_ptr& before, const cssa::se_ptr& after ) const{
+                       const hb_enc::se_ptr& before, const hb_enc::se_ptr& after ) const{
   return _hb_encoding.eval_hb( m, before->e_v, after->e_v );
 }
 
-z3::expr program::wmm_mk_hb(const cssa::se_ptr& before,
-                             const cssa::se_ptr& after) {
+z3::expr program::wmm_mk_hb(const hb_enc::se_ptr& before,
+                             const hb_enc::se_ptr& after) {
   return _hb_encoding.make_hb( before->e_v, after->e_v );
 }
 
-z3::expr program::wmm_mk_hb_thin(const cssa::se_ptr& before,
-				 const cssa::se_ptr& after) {
+z3::expr program::wmm_mk_hb_thin(const hb_enc::se_ptr& before,
+				 const hb_enc::se_ptr& after) {
   return _hb_encoding.make_hb( before->thin_v, after->thin_v );
 }
 
-z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
-                             const cssa::se_ptr& after) {
+z3::expr program::wmm_mk_hbs(const hb_enc::se_ptr& before,
+                             const hb_enc::se_ptr& after) {
   return wmm_mk_hb( before, after );
 }
 
-z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
-                             const cssa::se_ptr& after) {
+z3::expr program::wmm_mk_hbs(const hb_enc::se_set& before,
+                             const hb_enc::se_ptr& after) {
   z3::expr hbs = _z3.c.bool_val(true);
   for( auto& bf : before ) {
       hbs = hbs && wmm_mk_hb( bf, after );
@@ -130,8 +122,8 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
   return hbs;
 }
 
-z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
-                             const cssa::se_set& after) {
+z3::expr program::wmm_mk_hbs(const hb_enc::se_ptr& before,
+                             const hb_enc::se_set& after) {
   z3::expr hbs = _z3.c.bool_val(true);
   for( auto& af : after ) {
       hbs = hbs && wmm_mk_hb( before, af );
@@ -140,8 +132,8 @@ z3::expr program::wmm_mk_hbs(const cssa::se_ptr& before,
 }
 
 
-z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
-                             const cssa::se_set& after) {
+z3::expr program::wmm_mk_hbs(const hb_enc::se_set& before,
+                             const hb_enc::se_set& after) {
   z3::expr hbs = _z3.c.bool_val(true);
   for( auto& bf : before ) {
     for( auto& af : after ) {
@@ -152,14 +144,14 @@ z3::expr program::wmm_mk_hbs(const cssa::se_set& before,
 }
 
 // ghb = guarded hb
-z3::expr program::wmm_mk_ghb( const cssa::se_ptr& before,
-                              const cssa::se_ptr& after ) {
+z3::expr program::wmm_mk_ghb( const hb_enc::se_ptr& before,
+                              const hb_enc::se_ptr& after ) {
   return implies( before->guard && after->guard, wmm_mk_hb( before, after ) );
 }
 
 // thin air ghb
-z3::expr program::wmm_mk_ghb_thin( const cssa::se_ptr& before,
-				   const cssa::se_ptr& after ) {
+z3::expr program::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
+				   const hb_enc::se_ptr& after ) {
   return implies( before->guard && after->guard, wmm_mk_hb_thin( before, after ) );
 }
 
@@ -171,7 +163,7 @@ void program::unsupported_mm() const {
   throw cssa_exception( msg.c_str() );
 }
 
-bool program::in_grf( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
+bool program::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
   if( is_mm_sc() ) {
     return true;
   }else if( is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha() ) {
@@ -205,7 +197,7 @@ bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
 
-bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
+bool program::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
   assert( wr->tid == threads.size() ||
@@ -224,7 +216,7 @@ bool program::anti_ppo_read( const cssa::se_ptr& wr, const cssa::se_ptr& rd ) {
   return false;
 }
 
-bool program::anti_po_loc_fr( const cssa::se_ptr& rd, const cssa::se_ptr& wr ) {
+bool program::anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr ) {
   // preventing coherence violation - fr;
   // (if rf is local then may not visible to global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
@@ -257,7 +249,7 @@ bool program::is_rd_rd_coherance_preserved() {
 // In original implementation this part of constraints are
 // referred as pi constraints
 
-z3::expr program::get_rf_bvar( const variable& v1, se_ptr wr, se_ptr rd,
+z3::expr program::get_rf_bvar( const variable& v1,hb_enc::se_ptr wr,hb_enc::se_ptr rd,
                                bool record ) {
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
   z3::expr b = _z3.c.bool_const(  bname.c_str() );
@@ -279,15 +271,15 @@ void program::wmm_build_ses() {
     const auto& rds = rd_events[v1];
     const auto& wrs = wr_events[v1];
     unsigned c_tid = 0;
-    se_set tid_rds;
-    for( const se_ptr& rd : rds ) {
+    hb_enc::se_set tid_rds;
+    for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = _z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
       if( rd->tid != c_tid ) {
         tid_rds.clear();
         c_tid = rd->tid;
       }
-      for( const se_ptr& wr : wrs ) {
+      for( const hb_enc::se_ptr& wr : wrs ) {
         if( anti_ppo_read( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
@@ -303,7 +295,7 @@ void program::wmm_build_ses() {
         //global read from
         if( in_grf( wr, rd ) ) grf = grf && new_rf;
         // from read
-        for( const se_ptr& after_wr : wrs ) {
+        for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && wmm_mk_ghb(wr, after_wr) && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
@@ -331,11 +323,11 @@ void program::wmm_build_ses() {
     // todo: what about ws;rf
     auto it1 = wrs.begin();
     for( ; it1 != wrs.end() ; it1++ ) {
-      const se_ptr& wr1 = *it1;
+      const hb_enc::se_ptr& wr1 = *it1;
       auto it2 = it1;
       it2++;
       for( ; it2 != wrs.end() ; it2++ ) {
-        const se_ptr& wr2 = *it2;
+        const hb_enc::se_ptr& wr2 = *it2;
         if( wr1->tid != wr2->tid && // Why this condition?
             !wr1->is_init() && !wr2->is_init() // no initializations
             ) {
@@ -345,7 +337,7 @@ void program::wmm_build_ses() {
     }
 
     //dependency
-    for( const se_ptr& wr : wrs )
+    for( const hb_enc::se_ptr& wr : wrs )
       for( auto& rd : data_dependency[wr] )
         thin = thin && wmm_mk_hb_thin( rd, wr ); //todo : should it be guarded??
 
@@ -389,7 +381,7 @@ void program::wmm_mk_distinct_events() {
 
 void program::wmm_build_sc_ppo( thread& thread ) {
   unsigned tsize = thread.size();
-  se_set last = init_loc;
+  hb_enc::se_set last = init_loc;
 
   for( unsigned j = 0; j < tsize; j++ ) {
     auto& rds = thread[j].rds, wrs = thread[j].wrs;
@@ -402,9 +394,9 @@ void program::wmm_build_sc_ppo( thread& thread ) {
 }
 
 void program::wmm_build_tso_ppo( thread& thread ) {
-  se_set last_rds = init_loc, last_wrs = init_loc;
+  hb_enc::se_set last_rds = init_loc, last_wrs = init_loc;
   bool rd_occured = false;
-  se_set barr_events = init_loc;
+  hb_enc::se_set barr_events = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
       phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
@@ -433,20 +425,20 @@ void program::wmm_build_tso_ppo( thread& thread ) {
 }
 
 void program::wmm_build_pso_ppo( thread& thread ) {
-  var_to_se_map last_wr;
+  hb_enc::var_to_se_map last_wr;
   assert( init_loc.size() == 1);
-  se_ptr init_l = *init_loc.begin();
+  hb_enc::se_ptr init_l = *init_loc.begin();
   for( auto& g : globals ) last_wr[g] = init_l;
 
   bool no_rd_occurred = true;
-  se_set last_rds = init_loc;
+  hb_enc::se_set last_rds = init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier(thread[j].type) ) {
       phi_po = phi_po && wmm_mk_hbs( last_rds, thread[j].barr );
       last_rds = thread[j].barr;
       no_rd_occurred = true;
       assert( thread[j].barr.size() == 1 );
-      se_ptr barr = *thread[j].barr.begin();
+      hb_enc::se_ptr barr = *thread[j].barr.begin();
       for( auto& g : globals ) {
         phi_po = phi_po && wmm_mk_hbs( last_wr[g], barr );
         last_wr[g] = barr;
@@ -478,18 +470,18 @@ void program::wmm_build_pso_ppo( thread& thread ) {
 }
 
 void program::wmm_build_rmo_ppo( thread& thread ) {
-  var_to_se_map last_rd, last_wr;
-  se_set collected_rds;
+  hb_enc::var_to_se_map last_rd, last_wr;
+  hb_enc::se_set collected_rds;
 
   assert( init_loc.size() == 1);
-  se_ptr barr = *init_loc.begin();
+  hb_enc::se_ptr barr = *init_loc.begin();
   for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
       assert( thread[j].barr.size() == 1);
       barr = *thread[j].barr.begin();
-      for( se_ptr rd : collected_rds) {
+      for( hb_enc::se_ptr rd : collected_rds) {
         phi_po = phi_po && wmm_mk_hbs( rd, barr );
       }
       collected_rds.clear();
@@ -529,9 +521,9 @@ void program::wmm_build_rmo_ppo( thread& thread ) {
 }
 
 void program::wmm_build_alpha_ppo( thread& thread ) {
-  var_to_se_map last_wr, last_rd;
+  hb_enc::var_to_se_map last_wr, last_rd;
   assert( init_loc.size() == 1);
-  se_ptr barr = *init_loc.begin();
+  hb_enc::se_ptr barr = *init_loc.begin();
   for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {
@@ -573,7 +565,7 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
     auto& rds = thread[j].rds;
     auto& wrs = thread[j].wrs;
     for( const variable& v : globals ) {
-      se_ptr rd, wr;
+      hb_enc::se_ptr rd, wr;
       for( auto rd1 : rds ) { if( v == rd1->prog_v ) { rd = rd1; break; } }
       for( auto wr1 : wrs ) { if( v == wr1->prog_v ) { wr = wr1; break; } }
       if( rd ) {
@@ -668,8 +660,8 @@ void program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
-  se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
-                         _init_l, event_kind_t::pre, se_store );
+  hb_enc::se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
+                                 _init_l, hb_enc::event_kind_t::pre, se_store );
   wr->guard = _z3.c.bool_val(true);
   init_loc.insert(wr);
   for( const variable& v : globals ) {
@@ -709,8 +701,8 @@ void program::wmm_build_post(const input::program& input,
     if( eq( instr->instr, tru ) ) return;
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
-    se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
-                           _end_l, event_kind_t::post, se_store );
+    hb_enc::se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
+                           _end_l, hb_enc::event_kind_t::post, se_store );
     rd->guard = _z3.c.bool_val(true);
 
     for( const variable& v : globals ) {
@@ -747,7 +739,7 @@ void program::wmm_build_post(const input::program& input,
 //----------------------------------------------------------------------------
 
 z3::expr program::wmm_insert_tso_barrier( thread & thread, unsigned instr,
-                                      se_ptr new_barr ) {
+                                          hb_enc::se_ptr new_barr ) {
   z3::expr hbs = _z3.c.bool_val(true);
 
   bool before_found = false;
@@ -782,7 +774,7 @@ z3::expr program::wmm_insert_tso_barrier( thread & thread, unsigned instr,
 }
 
 z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
-                                      se_ptr new_barr ) {
+                                      hb_enc::se_ptr new_barr ) {
   //todo stop at barriers
   z3::expr hbs = _z3.c.bool_val(true);
 
@@ -831,12 +823,12 @@ z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
 }
 
 z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
-                                      se_ptr new_barr ) {
+                                      hb_enc::se_ptr new_barr ) {
   z3::expr hbs = _z3.c.bool_val(true);
 
   bool before_found = false;
   unsigned j = instr;
-  se_set collected_rds;
+  hb_enc::se_set collected_rds;
   variable_set found_wrs = globals;
   while( j != 0 )  {
     j--;
@@ -902,8 +894,8 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
   assert( instr < thread.size() );
 
   //todo : prepage contraints for barrier
-  se_ptr new_barr = mk_se_ptr( _z3.c, _hb_encoding, tid, instr, thread[instr].loc,
-                               event_kind_t::barr, se_store );
+  hb_enc::se_ptr new_barr = mk_se_ptr( _z3.c, _hb_encoding, tid, instr, thread[instr].loc,
+                               hb_enc::event_kind_t::barr, se_store );
   z3::expr new_ord(_z3.c);
   if(is_mm_tso()) {
     new_ord = wmm_insert_tso_barrier( thread, instr, new_barr );
@@ -921,8 +913,8 @@ void program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
 
-  var_to_ses_map dep_events;
-  var_to_ses_map ctrl_events;
+  hb_enc::var_to_ses_map dep_events;
+  hb_enc::var_to_ses_map ctrl_events;
   z3::context& c = _z3.c;
 
   unordered_map<string, string> thread_vars;
@@ -941,13 +933,13 @@ void program::wmm_build_ssa( const input::program& input ) {
     variable_set path_constraint_variables;
     thread& thread = *threads[t];
 
-    se_set ctrl_thread_ses;
+    hb_enc::se_set ctrl_thread_ses;
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
-        se_set dep_ses;
-        se_set ctrl_ses;
+        hb_enc::se_set dep_ses;
+        hb_enc::se_set ctrl_ses;
         // Construct ssa/symbolic events for all the read variables
         for( const variable& v1: instr->variables() ) {
           if( !is_primed(v1) ) {
@@ -957,8 +949,8 @@ void program::wmm_build_ssa( const input::program& input ) {
             //unprimmed case
             if ( is_global(v) ) {
               nname =  "pi_"+ v + "#" + thread[i].loc->name;
-              se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
-                                     thread[i].loc, event_kind_t::r,se_store);
+              hb_enc::se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
+                                     thread[i].loc, hb_enc::event_kind_t::r,se_store);
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( rd );
@@ -996,8 +988,8 @@ void program::wmm_build_ssa( const input::program& input ) {
             if( is_global(v1) ) {
               nname = v1 + "#" + thread[i].loc->name;
               //insert write symbolic event
-              se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
-                                     thread[i].loc, event_kind_t::w,se_store);
+              hb_enc::se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
+                                     thread[i].loc, hb_enc::event_kind_t::w,se_store);
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
               data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
@@ -1027,8 +1019,8 @@ void program::wmm_build_ssa( const input::program& input ) {
           thread[i].havok_vars.insert(v1);
           if( is_global(v1) ) {
             nname = v1 + "#" + thread[i].loc->name;
-            se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
-                                   thread[i].loc,event_kind_t::w, se_store);
+            hb_enc::se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
+                                   thread[i].loc,hb_enc::event_kind_t::w, se_store);
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
             data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
@@ -1048,7 +1040,7 @@ void program::wmm_build_ssa( const input::program& input ) {
           initial_variables.insert(nname);
         }
 
-        for( se_ptr rd : thread[i].rds ) {
+        for( hb_enc::se_ptr rd : thread[i].rds ) {
           rd->guard = path_constraint;
         }
 
@@ -1074,12 +1066,12 @@ void program::wmm_build_ssa( const input::program& input ) {
         }
         if( is_barrier( instr->type) ) {
           //todo : prepage contraints for barrier
-          se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
-                                   thread[i].loc, event_kind_t::barr,se_store);
+          hb_enc::se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
+                                   thread[i].loc, hb_enc::event_kind_t::barr,se_store);
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i}); // for shikhar code
         }
-        for( se_ptr wr : thread[i].wrs ) {
+        for( hb_enc::se_ptr wr : thread[i].wrs ) {
           wr->guard = path_constraint;
         }
 

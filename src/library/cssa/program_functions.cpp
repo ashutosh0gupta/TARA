@@ -195,8 +195,8 @@ void program::wmm_print_dot( ostream& stream, z3::model m ) const {
     z3::expr b = _z3.c.bool_const(  bname.c_str() );
     z3::expr bv = m.eval( b );
     if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
-      se_ptr wr = std::get<1>(it);
-      se_ptr rd = std::get<2>(it);
+      hb_enc::se_ptr wr = std::get<1>(it);
+      hb_enc::se_ptr rd = std::get<2>(it);
       unsigned wr_tid      = wr->e_v->thread;
       std::string wr_name;
       if( wr_tid == threads.size() ) {
@@ -218,7 +218,7 @@ void program::wmm_print_dot( ostream& stream, z3::model m ) const {
       stream << "\"" << wr_name  << "\" -> \"" << rd_name << "\""
              << "[color=blue]"<< endl;
       //fr
-      std::set< se_ptr > fr_wrs;
+      std::set< hb_enc::se_ptr > fr_wrs;
       auto it = wr_events.find(rd->prog_v);
       if( it != wr_events.end() ) { // fails for dummy variable
         for( const auto& after_wr : it->second ) {
@@ -240,16 +240,16 @@ void program::wmm_print_dot( ostream& stream, z3::model m ) const {
   }
 
   for(const variable& v1 : globals ) {
-    std::set< se_ptr > wrs;
+    std::set< hb_enc::se_ptr > wrs;
     auto it = wr_events.find( v1 );
     for( const auto& wr : it->second ) {
       z3::expr v = m.eval( wr->guard );
       if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE)
         wrs.insert( wr );
     }
-    se_vec ord_wrs;
+    hb_enc::se_vec ord_wrs;
     while( !wrs.empty() ) {
-      se_ptr min;
+      hb_enc::se_ptr min;
       for ( auto wr : wrs ) {
         if( min ) {
           if( hb_eval( m, wr, min ) ) {

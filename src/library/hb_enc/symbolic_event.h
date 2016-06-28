@@ -30,7 +30,7 @@
 #include <boost/concept_check.hpp>
 
 namespace tara{
-namespace cssa {
+namespace hb_enc {
 
   enum class event_kind_t {
       pre,  // initialization event
@@ -39,6 +39,11 @@ namespace cssa {
       barr, // barrier events
       post  // final event
       };
+
+  class symbolic_event;
+  typedef std::shared_ptr<symbolic_event> se_ptr;
+  typedef std::set<se_ptr> se_set;
+  typedef std::vector<se_ptr> se_vec;
 
 //
 // symbolic event
@@ -54,7 +59,7 @@ namespace cssa {
   public:
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
                     unsigned _tid, unsigned i,
-                    const variable& _v, const variable& _prog_v,
+                    const cssa::variable& _v, const cssa::variable& _prog_v,
                     hb_enc::location_ptr loc, event_kind_t _et );
 
     symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
@@ -63,17 +68,19 @@ namespace cssa {
 
     // symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
     //                 unsigned instr_no, unsigned thin_tid,
-    //                 const variable& _v, const variable& _prog_v,
+    //                 const cssa::variable& _v, const cssa::variable& _prog_v,
     //                 hb_enc::location_ptr _loc, event_kind_t _et);
 
   public:
     unsigned tid;
-    variable v;               // variable with ssa name
-    variable prog_v;          // variable name in the program
+    cssa::variable v;               // variable with ssa name
+    cssa::variable prog_v;          // variable name in the program
     hb_enc::location_ptr loc; // location in
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
     event_kind_t et;
+    se_set prev_events; // in straight line programs it will be singleton
+                        // we need to remove access to  pointer
     z3::expr guard;
     inline std::string name() const {
       return e_v->name;
@@ -105,15 +112,14 @@ namespace cssa {
       return stream;
     }
     void debug_print(std::ostream& stream );
-    z3::expr get_var_expr(const variable&);
+    z3::expr get_var_expr(const cssa::variable&);
   };
 
-  typedef std::shared_ptr<symbolic_event> se_ptr;
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
                            unsigned _tid, unsigned _instr_no,
-                           const variable& _v, const variable& _prog_v,
+                           const cssa::variable& _v, const cssa::variable& _prog_v,
                            hb_enc::location_ptr _loc, event_kind_t _et,
                            name_to_ses_map& se_store ) {
     se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
@@ -145,14 +151,13 @@ namespace cssa {
     }
   };
 
-  typedef std::unordered_set<se_ptr, se_hash, se_equal> se_set;
-  typedef std::vector<se_ptr> se_vec;
+  // typedef std::unordered_set<se_ptr, se_hash, se_equal> se_set;
 
-  typedef std::unordered_map<variable, se_ptr, variable_hash, variable_equal> var_to_se_map;
+  typedef std::unordered_map<cssa::variable, se_ptr, cssa::variable_hash, cssa::variable_equal> var_to_se_map;
 
-  typedef std::unordered_map<variable, se_set, variable_hash, variable_equal> var_to_ses_map;
+  typedef std::unordered_map<cssa::variable, se_set, cssa::variable_hash, cssa::variable_equal> var_to_ses_map;
 
-  typedef std::unordered_map<variable, se_vec, variable_hash, variable_equal> var_to_se_vec_map;
+  typedef std::unordered_map<cssa::variable, se_vec, cssa::variable_hash, cssa::variable_equal> var_to_se_vec_map;
 
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 

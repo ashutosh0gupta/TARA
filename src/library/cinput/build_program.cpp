@@ -201,10 +201,10 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
 // code for input object generation
 
 void
-build_program::join_histories( const std::vector<llvm::BasicBlock*> preds,
-                               const std::vector<split_history>& hs,
+build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
+                               const std::vector< split_history >& hs,
                                split_history& h,
-                               std::map<llvm::BasicBlock*,z3::expr>& conds) {
+                               std::map< llvm::BasicBlock*, z3::expr >& conds) {
   h.clear();
   if(hs.size() == 0 ) return;
   if(hs.size() == 1 ) {

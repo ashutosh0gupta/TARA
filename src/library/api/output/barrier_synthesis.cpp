@@ -73,10 +73,10 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
 
 }}}
 
-cycle_edge::cycle_edge( se_ptr _before, se_ptr _after, edge_type _type )
+cycle_edge::cycle_edge( hb_enc::se_ptr _before, hb_enc::se_ptr _after, edge_type _type )
     :before(_before),after(_after),type(_type) {}
 
-bool ValueComp(const se_ptr & before,const se_ptr & after)
+bool ValueComp(const hb_enc::se_ptr & before,const hb_enc::se_ptr & after)
 {
 	return before->e_v->instr_no < after->e_v->instr_no;
 }
@@ -98,7 +98,7 @@ void cycle::remove_suffix( unsigned i ) {
   edges.erase( edges.end()-i, edges.end() );
 }
 
-void cycle::remove_prefix( se_ptr e ) {
+void cycle::remove_prefix( hb_enc::se_ptr e ) {
   unsigned i = 0;
   for(; i < edges.size(); i++ ) {
     if( edges[i].before == e ) break;
@@ -106,7 +106,7 @@ void cycle::remove_prefix( se_ptr e ) {
   remove_prefix(i);
 }
 
-void cycle::remove_suffix( se_ptr e ) {
+void cycle::remove_suffix( hb_enc::se_ptr e ) {
   unsigned i = 0;
   for(; i < edges.size(); i++ ) {
     if( edges[i].after == e ) break;
@@ -116,7 +116,7 @@ void cycle::remove_suffix( se_ptr e ) {
 
 unsigned cycle::has_cycle() {
   unsigned i = 0;
-  se_ptr e = last();
+  hb_enc::se_ptr e = last();
   for(; i < edges.size(); i++ ) {
     if( edges[i].before == e ) break;
   }
@@ -138,12 +138,12 @@ void cycle::clear() {
 }
 
 void cycle::close() {
-  se_ptr l = last();
+  hb_enc::se_ptr l = last();
   remove_prefix( l );
   if( first() == l ) closed = true;
 }
 
-bool cycle::add_edge( se_ptr before, se_ptr after, edge_type t ) {
+bool cycle::add_edge( hb_enc::se_ptr before, hb_enc::se_ptr after, edge_type t ) {
   if( !closed && last() == before ) {
     cycle_edge ed(before, after, t);
     edges.push_back(ed);
@@ -158,7 +158,7 @@ bool cycle::add_edge( se_ptr before, se_ptr after, edge_type t ) {
   return closed;
 }
 
-bool cycle::add_edge( se_ptr after, edge_type t ) {
+bool cycle::add_edge( hb_enc::se_ptr after, edge_type t ) {
   return add_edge( last(), after, t );
 }
 
@@ -195,7 +195,7 @@ void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
 }
 
 
-edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
+edge_type barrier_synthesis::is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after) {
 
   assert( before );
   assert( after );
@@ -238,14 +238,14 @@ edge_type barrier_synthesis::is_ppo(se_ptr before, se_ptr after) {
   return edge_type::ppo;
 }
 
-void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
-                                      se_ptr e ) {
+void barrier_synthesis::insert_event( vector<hb_enc::se_vec>& event_lists,
+                                      hb_enc::se_ptr e ) {
   unsigned i_no = e->get_instr_no();
 
-  se_vec& es = event_lists[e->tid];
+  hb_enc::se_vec& es = event_lists[e->tid];
   auto it = es.begin();
   for(; it < es.end() ;it++) {
-    se_ptr& e1 = *it;
+    hb_enc::se_ptr& e1 = *it;
     if( e1 == e ) return;
     if( e1->get_instr_no() > i_no ||
         ( e1->get_instr_no() == i_no && e1->is_wr() && e->is_rd() ) ) {
@@ -258,11 +258,11 @@ void barrier_synthesis::insert_event( vector<se_vec>& event_lists,
 //----------------------------------------------------------------------------
 // cycle detection
 
-void barrier_synthesis::succ( se_ptr e,
+void barrier_synthesis::succ( hb_enc::se_ptr e,
                               const hb_conj& hbs,
-                              const vector<se_vec>& event_lists,
-                              const set<se_ptr>& filter,
-                              vector< pair< se_ptr, edge_type> >& next_set ) {
+                              const vector<hb_enc::se_vec>& event_lists,
+                              const set<hb_enc::se_ptr>& filter,
+                              vector< pair< hb_enc::se_ptr, edge_type> >& next_set ) {
   for( auto it : hbs ) {
     // auto hb_from_b = *it;
     if( it.first == e ) {
@@ -270,18 +270,18 @@ void barrier_synthesis::succ( se_ptr e,
       next_set.push_back( {it.second,edge_type::hb} );
     }
   }
-  const se_vec& es = event_lists.at( e->tid );
+  const hb_enc::se_vec& es = event_lists.at( e->tid );
   auto it = es.begin();
   for(;it < es.end();it++) {
     if( *it == e ) break;
   }
   for(;it < es.end();it++) {
-    se_ptr a = *it;
+    hb_enc::se_ptr a = *it;
     if( a->get_instr_no() != e->get_instr_no() ) break;
     if( a->is_wr() && e->is_rd() ) break;
   }
   for(;it < es.end();it++) {
-    se_ptr a = *it;
+    hb_enc::se_ptr a = *it;
       if( filter.find( a ) == filter.end() ) continue;
     next_set.push_back( {a, is_ppo(e, a) });
     // break; // todo <- do we miss anything
@@ -289,20 +289,20 @@ void barrier_synthesis::succ( se_ptr e,
 }
 
 
-void barrier_synthesis::find_sccs_rec( se_ptr e,
+void barrier_synthesis::find_sccs_rec( hb_enc::se_ptr e,
                                        const hb_conj& hbs,
-                                       const vector<se_vec>& event_lists,
-                                       const set<se_ptr>& filter,
-                                       vector< set<se_ptr> >& sccs ) {
+                                       const vector<hb_enc::se_vec>& event_lists,
+                                       const set<hb_enc::se_ptr>& filter,
+                                       vector< set<hb_enc::se_ptr> >& sccs ) {
   index_map[e] = scc_index;
   lowlink_map[e] = scc_index;
   on_stack[e] = true;
   scc_index = scc_index + 1;
   scc_stack.push_back(e);
-  vector< pair< se_ptr, edge_type> > next_set;
+  vector< pair< hb_enc::se_ptr, edge_type> > next_set;
   succ( e, hbs, event_lists, filter, next_set );
   for( auto& ep_pair :  next_set ) {
-    se_ptr ep = ep_pair.first;
+    hb_enc::se_ptr ep = ep_pair.first;
     if( index_map.find(ep) == index_map.end() ) {
       find_sccs_rec( ep, hbs, event_lists, filter, sccs );
       lowlink_map[e] = std::min( lowlink_map.at(e), lowlink_map.at(ep) );
@@ -312,8 +312,8 @@ void barrier_synthesis::find_sccs_rec( se_ptr e,
   }
   if( lowlink_map.at(e) == index_map.at(e) ) {
     // pop to collect its members
-    set<se_ptr> scc;
-    se_ptr ep;
+    set<hb_enc::se_ptr> scc;
+    hb_enc::se_ptr ep;
     do{
       ep = scc_stack.back();
       scc_stack.pop_back();
@@ -325,16 +325,16 @@ void barrier_synthesis::find_sccs_rec( se_ptr e,
 }
 
 void barrier_synthesis::find_sccs(  const hb_conj& hbs,
-                                    const vector<se_vec>& event_lists,
-                                    const set<se_ptr>& filter,
-                                    vector< set<se_ptr> >& sccs ) {
+                                    const vector<hb_enc::se_vec>& event_lists,
+                                    const set<hb_enc::se_ptr>& filter,
+                                    vector< set<hb_enc::se_ptr> >& sccs ) {
   index_map.clear();
   lowlink_map.clear();
   on_stack.clear();
   scc_index = 0;
   //assert( hbs.size() > 0 );
   while(1) {
-    se_ptr e;
+    hb_enc::se_ptr e;
     for( const auto hb : hbs ){
       if( index_map.find( hb.first ) == index_map.end() ) { e = hb.first; break; }
       if( index_map.find( hb.second ) == index_map.end() ) { e = hb.second; break; }
@@ -358,11 +358,11 @@ void barrier_synthesis::find_sccs(  const hb_conj& hbs,
 }
 
 
-void barrier_synthesis::cycles_unblock( se_ptr e ) {
+void barrier_synthesis::cycles_unblock( hb_enc::se_ptr e ) {
   blocked[e] = false;
-  se_set e_set = B_map.at(e);
+  hb_enc::se_set e_set = B_map.at(e);
   B_map.at(e).clear();
-  for( se_ptr ep : e_set ) {
+  for( hb_enc::se_ptr ep : e_set ) {
     if( blocked.at( ep) )
       cycles_unblock(ep);
   }
@@ -378,17 +378,17 @@ bool barrier_synthesis::is_relaxed_dominated( cycle& c ,
   return false;
 }
 
-bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
+bool barrier_synthesis::find_true_cycles_rec( hb_enc::se_ptr e,
                                               const hb_conj& hbs,
-                                              const vector<se_vec>& event_lists,
-                                              const set<se_ptr>& scc,
+                                              const vector<hb_enc::se_vec>& event_lists,
+                                              const set<hb_enc::se_ptr>& scc,
                                               vector<cycle>& found_cycles ) {
   bool f = false;
   blocked[e] = true;
-  vector< pair< se_ptr, edge_type> > next_set;
+  vector< pair< hb_enc::se_ptr, edge_type> > next_set;
   succ( e, hbs, event_lists, scc, next_set );
   for( auto& ep_pair :  next_set ) {
-    se_ptr ep = ep_pair.first;
+    hb_enc::se_ptr ep = ep_pair.first;
     if( ep == root ) {
       ancestor_stack.add_edge( ep, ep_pair.second );
       if( ep_pair.second != edge_type::rpo ||
@@ -418,7 +418,7 @@ bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
     cycles_unblock( e );
   }else{
     for( auto& ep_pair :  next_set ) {
-      se_ptr ep = ep_pair.first;
+      hb_enc::se_ptr ep = ep_pair.first;
       // assert( B_map[ep].empty() )
       B_map[ep].insert(e);
     }
@@ -427,17 +427,17 @@ bool barrier_synthesis::find_true_cycles_rec( se_ptr e,
   return f;
 }
 
-void barrier_synthesis::find_true_cycles( se_ptr e,
+void barrier_synthesis::find_true_cycles( hb_enc::se_ptr e,
                                           const hb_conj& hbs,
-                                          const vector<se_vec>& event_lists,
-                                          const set<se_ptr>& scc,
+                                          const vector<hb_enc::se_vec>& event_lists,
+                                          const set<hb_enc::se_ptr>& scc,
                                           vector<cycle>& found_cycles ) {
   ancestor_stack.clear();
   ancestor_stack.add_edge(e,edge_type::hb);
   root = e;
   B_map.clear();
   blocked.clear();
-  for( se_ptr ep : scc ) {
+  for( hb_enc::se_ptr ep : scc ) {
     B_map[ep].clear();
     blocked[ep] = false;
   }
@@ -445,19 +445,19 @@ void barrier_synthesis::find_true_cycles( se_ptr e,
 }
 
 void barrier_synthesis::find_cycles_internal( hb_conj& hbs,
-                                              vector<se_vec>& event_lists,
-                                              set<se_ptr>& all_events,
+                                              vector<hb_enc::se_vec>& event_lists,
+                                              set<hb_enc::se_ptr>& all_events,
                                               vector<cycle>& found_cycles ) {
 
   if(1){ // New implementation
-    vector< set<se_ptr> > sccs;
+    vector< set<hb_enc::se_ptr> > sccs;
     find_sccs( hbs, event_lists, all_events, sccs );
 
     while( !sccs.empty() ) {
       auto scc = sccs.back();
       sccs.pop_back();
       if( scc.size() > 1 ) {
-        se_ptr e = *scc.begin();
+        hb_enc::se_ptr e = *scc.begin();
         find_true_cycles( e, hbs, event_lists, scc, found_cycles );
         scc.erase(e);
         find_sccs( hbs, event_lists, scc, sccs );
@@ -467,15 +467,15 @@ void barrier_synthesis::find_cycles_internal( hb_conj& hbs,
   }else{
   while( !hbs.empty() ) {
       auto hb= hbs[0];
-      se_ptr b = hb.first;
-      // se_ptr a = hb->second;
-      set<se_ptr> explored;
+      hb_enc::se_ptr b = hb.first;
+      // hb_enc::se_ptr a = hb->second;
+      set<hb_enc::se_ptr> explored;
       cycle ancestor; // current candidate cycle
-      std::vector< pair<se_ptr,edge_type> > stack;
+      std::vector< pair<hb_enc::se_ptr,edge_type> > stack;
       stack.push_back({b,edge_type::hb});
       while( !stack.empty() ) {
-        pair<se_ptr,edge_type> pair = stack.back();
-        se_ptr b = pair.first;
+        pair<hb_enc::se_ptr,edge_type> pair = stack.back();
+        hb_enc::se_ptr b = pair.first;
         edge_type type = pair.second;
         if( explored.find(b) != explored.end() ) {
           stack.pop_back();
@@ -497,25 +497,25 @@ void barrier_synthesis::find_cycles_internal( hb_conj& hbs,
             for( auto it = hbs.begin(); it != hbs.end(); ) {
               auto hb_from_b = *it;
               if( hb_from_b.first == b ) {
-                se_ptr a = hb_from_b.second;
+                hb_enc::se_ptr a = hb_from_b.second;
                 stack.push_back( {a,edge_type::hb} );
                 it = hbs.erase(it);
               }else{
                 it++;
               }
             }
-            se_vec& es = event_lists[b->tid];
+            hb_enc::se_vec& es = event_lists[b->tid];
             auto it = es.begin();
             for(;it < es.end();it++) {
               if( *it == b ) break;
             }
             for(;it < es.end();it++) {
-              se_ptr a = *it;
+              hb_enc::se_ptr a = *it;
               if( a->get_instr_no() != b->get_instr_no() ) break;
               if( a->is_wr() && b->is_rd() ) break;
             }
             for(;it < es.end();it++) {
-              se_ptr a = *it;
+              hb_enc::se_ptr a = *it;
               stack.push_back( {a, is_ppo(b, a) });
             }
           }
@@ -533,13 +533,13 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
   unsigned bad_dnf_num = 0;
   for( auto c : bad_dnf ) {
     hb_conj hbs;
-    vector<se_vec> event_lists;
-    set<se_ptr> all_events;
+    vector<hb_enc::se_vec> event_lists;
+    set<hb_enc::se_ptr> all_events;
     event_lists.resize( program->no_of_threads() );
 
     for( tara::hb_enc::hb& h : c ) {
-      se_ptr b = program->se_store.at( h.loc1->name );
-      se_ptr a = program->se_store.at( h.loc2->name );
+      hb_enc::se_ptr b = program->se_store.at( h.loc1->name );
+      hb_enc::se_ptr a = program->se_store.at( h.loc2->name );
       hbs.push_back({b,a});
       insert_event( event_lists, b);
       insert_event( event_lists, a);
@@ -602,7 +602,7 @@ z3::expr barrier_synthesis::get_fresh_bool() {
   return b;
 }
 
-bool cmp (se_ptr a,se_ptr b) { return (a->get_instr_no() <b->get_instr_no()); }
+bool cmp (hb_enc::se_ptr a,hb_enc::se_ptr b) { return (a->get_instr_no() <b->get_instr_no()); }
 
 void barrier_synthesis::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();
@@ -625,7 +625,7 @@ void barrier_synthesis::gen_max_sat_problem() {
   }
 
   for( auto it = tid_to_se_ptr.begin();  it != tid_to_se_ptr.end(); it++ ) {
-    std::vector<se_ptr>& vec = it->second;
+    hb_enc::se_vec& vec = it->second;
     std::sort( vec.begin(), vec.end(), cmp );
     vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
     for(auto e : vec ) {
@@ -789,7 +789,7 @@ void barrier_synthesis::output(const z3::expr& output) {
     }
     z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
     for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
-      se_ptr e = it->first;
+      hb_enc::se_ptr e = it->first;
       z3::expr b = it->second;
       if( m.eval(b).get_bool() )
         barrier_where.push_back( e );

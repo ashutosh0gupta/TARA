@@ -17,11 +17,11 @@
  * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "cssa/symbolic_event.h"
-#include "cssa/cssa_exception.h"
+#include "hb_enc/symbolic_event.h"
+#include "hb_enc/hb_enc_exception.h"
 
 using namespace tara;
-using namespace tara::cssa;
+using namespace tara::hb_enc;
 using namespace tara::helpers;
 
 using namespace std;
@@ -53,7 +53,7 @@ symbolic_event::create_internal_event( z3::context& ctx,
 
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
-                                const variable& _v, const variable& _prog_v,
+                                const cssa::variable& _v, const cssa::variable& _prog_v,
                                 hb_enc::location_ptr _loc, event_kind_t _et )
   : tid(_tid)
   , v(_v)
@@ -63,7 +63,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , guard(ctx)
 {
   if( et != event_kind_t::r &&  event_kind_t::w != et ) {
-    throw cssa_exception("symboic event with wrong parameters!");
+    throw hb_enc_exception("symboic event with wrong parameters!");
   }
   // bool special = (event_kind_t::i == et || event_kind_t::f == et);
   bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
@@ -93,7 +93,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   case event_kind_t::barr: { event_name = "#barr";  break; }
   case event_kind_t::pre : { event_name = "#pre" ;  break; }
   case event_kind_t::post: { event_name = "#post";  break; }
-  default: cssa_exception("unreachable code!!");
+  default: hb_enc_exception("unreachable code!!");
   }
   event_name = loc->name+event_name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
@@ -103,18 +103,18 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                   (event_kind_t::post == et), prog_v.name );
 }
 
-z3::expr symbolic_event::get_var_expr( const variable& g ) {
+z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
   assert( et != event_kind_t::barr);
   if( et == event_kind_t::r || et == event_kind_t::w) {
     z3::expr v_expr = (z3::expr)(v);
     return v_expr;
   }
-  variable tmp_v(g.sort.ctx());
+  cssa::variable tmp_v(g.sort.ctx());
   switch( et ) {
   // case event_kind_t::barr: { tmp_v = g+"#barr";  break; }
   case event_kind_t::pre : { tmp_v = g+"#pre" ;  break; }
   case event_kind_t::post: { tmp_v = g+"#post";  break; }
-  default: cssa_exception("unreachable code!!");
+  default: hb_enc_exception("unreachable code!!");
   }
   return (z3::expr)(tmp_v);
 }
@@ -128,3 +128,14 @@ void symbolic_event::debug_print(std::ostream& stream ) {
     stream << "guard: " << guard << "\n";
   }
 }
+
+
+
+void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
+                                 std::ostream& out ) {
+  for (auto c : set) {
+    out << *c << " ";
+    }
+  out << std::endl;
+}
+

@@ -23,10 +23,10 @@
 #include <vector>
 #include "helpers/z3interf.h"
 #include "hb_enc/encoding.h"
+#include "hb_enc/symbolic_event.h"
 #include <unordered_map>
 #include "constants.h"
 // #include "cssa/wmm.h"
-#include "cssa/symbolic_event.h"
 
 namespace tara {
 namespace cssa {
@@ -53,9 +53,9 @@ struct instruction {
   // WMM support
   //--------------------------------------------------------------------------
 
-  se_set rds;
-  se_set wrs;
-  se_set barr; //the event created for barrier if the instruction is barrier type
+  hb_enc::se_set rds;
+  hb_enc::se_set wrs;
+  hb_enc::se_set barr; //the event created for barrier if the instruction is barrier type
 public:
   //--------------------------------------------------------------------------
   // End WMM support

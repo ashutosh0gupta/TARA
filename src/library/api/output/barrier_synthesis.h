@@ -22,7 +22,7 @@
 #define TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
 
 #include "cssa/program.h"
-#include "cssa/symbolic_event.h"
+#include "hb_enc/symbolic_event.h"
 #include "api/output/nf.h"
 #include <boost/bimap.hpp>
 #include <z3++.h>
@@ -32,7 +32,7 @@ namespace tara {
 namespace api {
 namespace output {
 
-  typedef  std::vector< std::pair<se_ptr,se_ptr> > hb_conj;
+  typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
 
 enum class edge_type {
   hb,  // hbs appear in the formula
@@ -43,11 +43,11 @@ enum class edge_type {
 class cycle_edge
 {
 public:
-  cycle_edge( se_ptr _before, se_ptr _after, edge_type _type );
-  se_ptr before;
-  se_ptr after;
+  cycle_edge( hb_enc::se_ptr _before, hb_enc::se_ptr _after, edge_type _type );
+  hb_enc::se_ptr before;
+  hb_enc::se_ptr after;
   edge_type type;
-  friend bool ValueComp(const se_ptr &,const se_ptr &);
+  friend bool ValueComp(const hb_enc::se_ptr &,const hb_enc::se_ptr &);
   
   bool operator==(const cycle_edge& b)
   {
@@ -64,21 +64,21 @@ public:
   // check if there is a shorter cycle
   // if yes then .... ??
   bool is_closed(){return closed;};
-  bool add_edge( se_ptr _before, se_ptr _after, edge_type t );
-  bool add_edge( se_ptr after, edge_type t );
+  bool add_edge( hb_enc::se_ptr _before, hb_enc::se_ptr _after, edge_type t );
+  bool add_edge( hb_enc::se_ptr after, edge_type t );
   void close();
-  void remove_prefix( se_ptr e );
-  void remove_suffix( se_ptr e );
+  void remove_prefix( hb_enc::se_ptr e );
+  void remove_suffix( hb_enc::se_ptr e );
   void pop();
   void clear();
   unsigned has_cycle();
   unsigned size() { return edges.size(); };
-  inline se_ptr first() {if( edges.size() > 0 )
+  inline hb_enc::se_ptr first() {if( edges.size() > 0 )
       return edges[0].before;
     else
       return nullptr;
   };
-  inline se_ptr last() {
+  inline hb_enc::se_ptr last() {
     if( edges.size() > 0 )
       return edges.back().after;
     else
@@ -86,7 +86,7 @@ public:
   };
   friend class barrier_synthesis;
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
-  // std::unordered_map<unsigned,std::vector<se_ptr>>tid_to_se_ptr;
+  // std::unordered_map<unsigned,std::vector<hb_enc::se_ptr>>tid_to_se_ptr;
 private:
   std::vector<cycle_edge> edges;
   std::string name;
@@ -126,68 +126,68 @@ private:
   //-------------------------------------------------------------
   // new cycle detection
 
-  std::map< se_ptr, int> index_map;
-  std::map< se_ptr, int> lowlink_map;
-  std::map< se_ptr, bool> on_stack;
-  se_vec scc_stack;
+  std::map< hb_enc::se_ptr, int> index_map;
+  std::map< hb_enc::se_ptr, int> lowlink_map;
+  std::map< hb_enc::se_ptr, bool> on_stack;
+  hb_enc::se_vec scc_stack;
   int scc_index;
 
-  std::map< se_ptr, se_set > B_map;
-  std::map< se_ptr, bool > blocked;
+  std::map< hb_enc::se_ptr, hb_enc::se_set > B_map;
+  std::map< hb_enc::se_ptr, bool > blocked;
   cycle ancestor_stack;
-  se_ptr root;
+  hb_enc::se_ptr root;
 
-  void succ( se_ptr e,
+  void succ( hb_enc::se_ptr e,
              const hb_conj& hbs,
-             const std::vector<se_vec>& event_lists,
-             const std::set<se_ptr>& filter,
-             std::vector< std::pair< se_ptr, edge_type> >& next_set );
-  void find_sccs_rec( se_ptr e,
+             const std::vector<hb_enc::se_vec>& event_lists,
+             const std::set<hb_enc::se_ptr>& filter,
+             std::vector< std::pair< hb_enc::se_ptr, edge_type> >& next_set );
+  void find_sccs_rec( hb_enc::se_ptr e,
                       const hb_conj& hbs,
-                      const std::vector<se_vec>& event_lists,
-                      const std::set<se_ptr>& filter,
-                      std::vector< std::set<se_ptr> >& sccs );
+                      const std::vector<hb_enc::se_vec>& event_lists,
+                      const std::set<hb_enc::se_ptr>& filter,
+                      std::vector< std::set<hb_enc::se_ptr> >& sccs );
 
   void find_sccs(  const hb_conj& hbs,
-                   const std::vector<se_vec>& event_lists,
-                   const std::set<se_ptr>& filter,
-                   std::vector< std::set<se_ptr> >& sccs );
+                   const std::vector<hb_enc::se_vec>& event_lists,
+                   const std::set<hb_enc::se_ptr>& filter,
+                   std::vector< std::set<hb_enc::se_ptr> >& sccs );
 
-  void cycles_unblock( se_ptr e );
+  void cycles_unblock( hb_enc::se_ptr e );
 
   bool is_relaxed_dominated( cycle& c , std::vector<cycle>& cs );
-  bool find_true_cycles_rec( se_ptr e,
+  bool find_true_cycles_rec( hb_enc::se_ptr e,
                              const hb_conj& hbs,
-                             const std::vector<se_vec>& event_lists,
-                             const std::set<se_ptr>& scc,
+                             const std::vector<hb_enc::se_vec>& event_lists,
+                             const std::set<hb_enc::se_ptr>& scc,
                              std::vector<cycle>& found_cycles );
 
-  void find_true_cycles( se_ptr e,
+  void find_true_cycles( hb_enc::se_ptr e,
                          const hb_conj& hbs,
-                         const std::vector<se_vec>& event_lists,
-                         const std::set<se_ptr>& scc,
+                         const std::vector<hb_enc::se_vec>& event_lists,
+                         const std::set<hb_enc::se_ptr>& scc,
                          std::vector<cycle>& found_cycles );
   void find_cycles_internal( hb_conj& hbs,
-                             std::vector<se_vec>& event_lists,
-                             std::set<se_ptr>& all_events,
+                             std::vector<hb_enc::se_vec>& event_lists,
+                             std::set<hb_enc::se_ptr>& all_events,
                              std::vector<cycle>& cycles);
   void find_cycles(nf::result_type& bad_dnf);
-  edge_type is_ppo(se_ptr before, se_ptr after);
-  void insert_event( std::vector<se_vec>& event_lists, se_ptr e );
+  edge_type is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after);
+  void insert_event( std::vector<hb_enc::se_vec>& event_lists, hb_enc::se_ptr e );
 
   //-------------------------------------------------------------
 
   std::vector<z3::expr> cut;
   std::vector<z3::expr> soft;
   boost::bimap<z3::expr, cycle* >z3_to_cycle;
-  std::unordered_map< unsigned, std::vector<se_ptr> > tid_to_se_ptr;
-  std::unordered_map<se_ptr,z3::expr> segment_map;
-  // std::map<std::string, se_ptr> rev_segment_map;
+  std::unordered_map< unsigned, std::vector<hb_enc::se_ptr> > tid_to_se_ptr;
+  std::unordered_map<hb_enc::se_ptr,z3::expr> segment_map;
+  // std::map<std::string, hb_enc::se_ptr> rev_segment_map;
   void gen_max_sat_problem();
 
   void print_all_cycles( std::ostream& stream ) const;
 
-  std::vector<se_ptr>barrier_where;
+  std::vector<hb_enc::se_ptr>barrier_where;
   z3::expr get_fresh_bool();
   void assert_hard_constraints( z3::solver &s,std::vector<z3::expr>& cnstrs);
   void assert_soft_constraints( z3::solver&s ,z3::context& ctx,std::vector<z3::expr>& cnstrs, std::vector<z3::expr>& aux_vars );
