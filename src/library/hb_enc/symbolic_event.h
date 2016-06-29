@@ -163,6 +163,7 @@ namespace hb_enc {
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 
 
+  inline bool is_po(const se_ptr& x, const se_ptr& y);
   void debug_print_se_set(const se_set& set, std::ostream& out);
 
 }}

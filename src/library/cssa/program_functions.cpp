@@ -224,7 +224,7 @@ void program::wmm_print_dot( ostream& stream, z3::model m ) const {
         for( const auto& after_wr : it->second ) {
           z3::expr v = m.eval( after_wr->guard );
           if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
-            if( hb_eval( m, wr, after_wr ) ) {
+            if( _hb_encoding.eval_hb( m, wr, after_wr ) ) {
               unsigned after_wr_tid      = after_wr->e_v->thread;
               const thread& after_wr_thread = *threads[after_wr_tid];
               unsigned after_wr_instr_no = after_wr->e_v->instr_no;
@@ -252,7 +252,7 @@ void program::wmm_print_dot( ostream& stream, z3::model m ) const {
       hb_enc::se_ptr min;
       for ( auto wr : wrs ) {
         if( min ) {
-          if( hb_eval( m, wr, min ) ) {
+          if( _hb_encoding.eval_hb( m, wr, min ) ) {
             min = wr;
           }
         }else{

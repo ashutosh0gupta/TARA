@@ -116,13 +116,7 @@ private:
   z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
   z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
 
-  z3::expr wmm_mk_hb_thin(const hb_enc::se_ptr& before, const hb_enc::se_ptr& after);
   z3::expr wmm_mk_ghb_thin( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
-  z3::expr wmm_mk_hb ( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
-  z3::expr wmm_mk_hbs( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
-  z3::expr wmm_mk_hbs( const hb_enc::se_set& before, const hb_enc::se_set& after );
-  z3::expr wmm_mk_hbs( const hb_enc::se_set& before, const hb_enc::se_ptr& after );
-  z3::expr wmm_mk_hbs( const hb_enc::se_ptr& before, const hb_enc::se_set& after );
   z3::expr wmm_mk_ghb( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
 
   bool hb_eval( const z3::model& model,

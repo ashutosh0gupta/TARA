@@ -242,6 +242,14 @@ z3::expr encoding::make_hbs(const se_set& before, const se_set& after) {
   return hbs;
 }
 
+hb encoding::make_hb_thin(const se_ptr& before, const se_ptr& after) {
+  return make_hb( before->thin_v, after->thin_v );
+}
+
+bool encoding::eval_hb( const z3::model& m,
+                        const se_ptr& before, const se_ptr& after ) const{
+  return eval_hb( m, before->e_v, after->e_v );
+}
 
 
 }}

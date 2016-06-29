@@ -17,22 +17,18 @@
  * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TARA_CSSA_WMM_H
-#define TARA_CSSA_WMM_H
+#ifndef TARA_HB_ENC_EXCEPTION_H
+#define TARA_HB_ENC_EXCEPTION_H
 
-#include "constants.h"
-#include "input/program.h"
-#include "helpers/z3interf.h"
-#include <vector>
-#include <list>
-#include "cssa/thread.h"
-#include <unordered_map>
-#include <unordered_set>
-#include <boost/concept_check.hpp>
+#include <stdexcept>
 
-namespace tara{
-namespace cssa {
-  //todo - remove this file
+namespace tara {
+namespace hb_enc {
+class hb_enc_exception : public std::runtime_error
+{
+public:
+  hb_enc_exception(const char* what) : runtime_error(what) {}
+};
 }}
 
-#endif // TARA_CSSA_WMM_H
+#endif // TARA_CSSA_EXCEPTION_H

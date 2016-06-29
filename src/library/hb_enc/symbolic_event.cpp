@@ -131,7 +131,6 @@ void symbolic_event::debug_print(std::ostream& stream ) {
 }
 
 
-
 void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
                                  std::ostream& out ) {
   for (auto c : set) {
