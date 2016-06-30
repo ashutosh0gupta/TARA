@@ -268,10 +268,11 @@ build_program::translateBlock( const llvm::BasicBlock* b,
     assert( I );
     Z3_ast term = z3.mk_emptyexpr();
     bool recognized = false, record = false;
-    if( const llvm::StoreInst* str = llvm::dyn_cast<llvm::StoreInst>(I) ) {
-      llvm::Value* v = str->getOperand(0);
-      llvm::Value* g = str->getOperand(1);
+    if( auto wr = llvm::dyn_cast<llvm::StoreInst>(I) ) {
+      llvm::Value* v = wr->getOperand(0);
+      llvm::Value* g = wr->getOperand(1);
       term = getTerm( v, m );
+      
   //     typename EHandler::expr assign = eHandler->mkEq( gp, term );
   //     blockTerms.push_back( assign );
   //     assert( !recognized );recognized = true;

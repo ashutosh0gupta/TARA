@@ -111,13 +111,9 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     if( glb->getType() != iptr )
       std::cerr << (std::string)(glb->getName()) << " is not int32 type!";
     const std::string gvar = (std::string)(glb->getName());
-    std::string gvarp = gvar + "__p";
+    // std::string gvarp = gvar + "__p";
+    p->add_global( gvar );
   }
-    //   typename ExprHandler::expr v  = eHandler->mkVar( gvar  );
-    //   typename ExprHandler::expr vp = eHandler->mkVar( gvarp );
-    //   program->addGlobal( v, vp );
-    //   eHandler->addGlobalVar( glb, v, vp ); // for efficient access
-    // }
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );

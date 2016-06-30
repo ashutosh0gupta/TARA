@@ -48,7 +48,7 @@ namespace cinput {
   public:
     program(helpers::z3interf& z3_): z3(z3_) {}
     helpers::z3interf& z3;
-    cssa::variable_set global;
+    cssa::variable_set globals;
     z3::expr phi_ssa = z3.mk_true();
     std::map< unsigned, loc> inst_to_loc;
     // std::map< unsigned, std::string> id_to_thr_name;
@@ -66,6 +66,12 @@ namespace cinput {
     void add_event( unsigned i, hb_enc::se_ptr e ) {
       threads[i].add_event( e );
     }
+    void add_global( std::string g ) {
+      globals.insert( cssa::variable(g, z3.c) );
+    }
+    // void get_global( str::string g ) {
+    //todo:
+    // }
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_,
