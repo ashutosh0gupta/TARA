@@ -288,11 +288,11 @@ build_program::translateBlock( const llvm::BasicBlock* b,
       unsigned op = bop->getOpcode();
       switch( op ) {
       case llvm::Instruction::Add : insert_term_map( I, a+b, m); // term = Z3_mk_add ( a.ctx(), 2, args );
-        break;
-        case llvm::Instruction::Sub : term = Z3_mk_sub ( a.ctx(), 2, args ); break;
-        case llvm::Instruction::Mul : term = Z3_mk_mul ( a.ctx(), 2, args ); break;
-        case llvm::Instruction::Xor : term = Z3_mk_xor ( a.ctx(), a, b ); break;
-        case llvm::Instruction::SDiv: term = Z3_mk_div ( a.ctx(), a, b ); break;
+      break;
+        case llvm::Instruction::Sub : insert_term_map( I, a-b, m); break;
+        case llvm::Instruction::Mul : insert_term_map( I, a*b, m); break;
+        case llvm::Instruction::Xor : insert_term_map( I, a xor b, m); break;
+        case llvm::Instruction::SDiv: insert_term_map( I, a/b, m); break;
       default: {
         const char* opName = bop->getOpcodeName();
         std::cerr << "unsupported instruction " << opName << " occurred!!";
@@ -322,22 +322,22 @@ build_program::translateBlock( const llvm::BasicBlock* b,
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
 
       switch( pred ) {
-  //    case llvm::CmpInst::ICMP_EQ  : Z3_probe term = Z3_probe_eq( l.ctx(), l, r ); break;
-  //     case llvm::CmpInst::ICMP_NE  : term = eHandler->mkNEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_UGT : term = eHandler->mkGT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_UGE : term = eHandler->mkGEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_ULT : term = eHandler->mkLT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_ULE : term = eHandler->mkLEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SGT : term = eHandler->mkGT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SGE : term = eHandler->mkGEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SLT : term = eHandler->mkLT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SLE : term = eHandler->mkLEq( l, r ); break;
+        case llvm::CmpInst::ICMP_EQ : insert_term_map( I, l==r, m ); break;
+        case llvm::CmpInst::ICMP_NE : insert_term_map( I, l!=r, m ); break;
+        case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l>r, m ); break;
+        case llvm::CmpInst::ICMP_UGE : insert_term_map( I, l>=r, m ); break;
+        case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l<r, m ); break;
+        case llvm::CmpInst::ICMP_ULE : insert_term_map( I, l<=r, m ); break;
+        case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l>r, m ); break;
+        case llvm::CmpInst::ICMP_SGE : insert_term_map( I, l>=r, m ); break;
+        case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l<r, m ); break;
+        case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
       default: {
         std::cerr << "unsupported predicate in compare instruction" << pred << "!!";
       }
      }
-  //     record = true;
-  //     assert( !recognized );recognized = true;
+         record = true;
+         assert( !recognized );recognized = true;
     }
   //   if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
   //     term = getPhiMap( phi, m);
