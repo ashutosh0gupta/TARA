@@ -114,6 +114,8 @@ namespace hb_enc {
       return tid;
     }
 
+    void set_pre_events( se_set& );
+
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
       stream << var.name();

@@ -119,7 +119,8 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
     // todo: add control dep also
     for( auto it1=program.data_dependency.begin();
          it1!=program.data_dependency.end();it1++ ) {
-      if( (it1->first)->e_v == loc2 ) { //todo: check this change
+      if( (it1->first)->e_v == loc2 ) {
+        //todo: check this change from loc to e_v
         for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
           if((*it2)->e_v==loc1) {
             return true;

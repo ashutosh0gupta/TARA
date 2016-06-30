@@ -18,6 +18,7 @@
  */
 
 
+#include <string> 
 #include "build_program.h"
 #include "helpers/z3interf.h"
 #include <z3.h>
@@ -75,8 +76,10 @@ using namespace tara::helpers;
 
 std::string getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
+  unsigned line = d.getLine();
+  unsigned col  = d.getCol();
 
-  return "yet";
+  return "_l"+std::to_string(line)+"_c"+std::to_string(col);
 }
 
 void initBlockCount( llvm::Function &f,
@@ -266,7 +269,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
 z3::expr
 build_program::translateBlock( unsigned thr_id,
                                const llvm::BasicBlock* b,
-                               const hb_enc::se_set& prev_events,
+                               hb_enc::se_set& prev_events,
                                std::map<llvm::BasicBlock*,z3::expr>& conds) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
@@ -285,11 +288,12 @@ build_program::translateBlock( unsigned thr_id,
       cssa::variable ssa_var = gv + "#" + loc_name;
       auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
                              loc_name, hb_enc::event_kind_t::w );
+      wr_e->set_pre_ses( prev_events );
+      prev_events.clear() prev_events.insert( wr_e );
       block_ssa = block_ssa && ( ssa_var == getTerm( v, m ));
       p->add_event( thr_id, wr_e );
     }
-    if( const llvm::BinaryOperator* bop =
-        llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
+    if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
       z3::expr a = getTerm( op0, m );
@@ -311,16 +315,25 @@ build_program::translateBlock( unsigned thr_id,
     }
     if( const llvm::UnaryInstruction* str =
         llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
-  //     if( const llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
-  //       llvm::Value* g = load->getOperand(0);
-  //       term = eHandler->getGlobalVar(g);
+      if( const llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
+        llvm::GlobalVariable* g = load->getOperand(0);
+        const llvm::Value* v = I;
+        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        std::string loc_name = getInstructionLocationName( I );
+        cssa::variable ssa_var = gv + "#" + loc_name;
+        auto rd_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
+                               loc_name, hb_enc::event_kind_t::r );
+        rd_e->set_pre_ses( prev_events );
+        prev_events.clear() prev_events.insert( rd_e );
+        z3::expr l_v = getTerm( I, m);
+        block_ssa = block_ssa && ( ssa_var == l_v);
   //       record = true;
   //       assert( !recognized );recognized = true;
-  //     }else{
-  //       assert( false );
+      }else{
+        assert( false );
   //       cfrontend_warning( "I am uniary instruction!!" );
   //       assert( !recognized );recognized = true;
-  //     }
+      }
     }
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 );
@@ -344,8 +357,8 @@ build_program::translateBlock( unsigned thr_id,
         std::cerr << "unsupported predicate in compare instruction" << pred << "!!";
       }
      }
-         record = true;
-         assert( !recognized );recognized = true;
+      record = true;
+      assert( !recognized );recognized = true;
     }
   //   if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
   //     term = getPhiMap( phi, m);
@@ -374,29 +387,30 @@ build_program::translateBlock( unsigned thr_id,
   //   // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
     if( const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
-  //     if( br->isConditional() ) {
-  //       llvm::Value* c = br->getCondition();
-  //       typename EHandler::expr cond = getTerm( c, m);
-  //       if( succ == 0 ) {
-  //         blockTerms.push_back( cond );
-  //       }else{
-  //         typename EHandler::expr notCond = eHandler->mkNot( cond );
-  //         blockTerms.push_back( notCond );
-  //       }
-  //     }else{cfrontend_warning( "I am unconditional branch!!" );}
+      if(  br->isConditional() ) {
+        llvm::Value* c = br->getCondition();
+        z3::expr bit = getTerm( c, m);
+        block_to_exit_bit[b] = bit;
+      }else{
+        z3::expr b = get_fresh_bool();
+        block_to_exit_bit[b] = bit;
+      }
   //     assert( !recognized );recognized = true;
     }
     if( const llvm::SwitchInst* t = llvm::dyn_cast<llvm::SwitchInst>(I) ) {
   //     cfrontend_warning( "I am switch!!" );
   //     assert( !recognized );recognized = true;
     }
-  //   if( const llvm::CallInst* str = llvm::dyn_cast<llvm::CallInst>(I) ) {
-  //     if( const llvm::DbgValueInst* dVal =
-  //         llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
-  //       // Ignore debug instructions
-  //     }else{ cfrontend_warning( "I am caller!!" ); }
-  //     assert( !recognized );recognized = true;
-  //   }
+    if( const llvm::CallInst* str = llvm::dyn_cast<llvm::CallInst>(I) ) {
+      if( const llvm::DbgValueInst* dVal =
+          llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
+        // Ignore debug instructions
+      }else{
+        // todo... deal with callers
+        // cfrontend_warning( "I am caller!!" );
+      }
+      assert( !recognized );recognized = true;
+    }
   //   // Store in term map the result of current instruction
   //   if( record ) {
   //     if( eHandler->isLocalVar( I ) ) {
@@ -407,7 +421,7 @@ build_program::translateBlock( unsigned thr_id,
   //       const llvm::Value* v = I;
   //       eHandler->insertMap( v, term, m);
   //     }
-  //   }
+    }
   //   if( !recognized ) cfrontend_error( "----- failed to recognize!!" );
   }
   // // print_double_line( std::cout );

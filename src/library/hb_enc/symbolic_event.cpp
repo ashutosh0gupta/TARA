@@ -122,6 +122,11 @@ z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
   return (z3::expr)(tmp_v);
 }
 
+
+void symbolic_event::set_pre_events( se_set& pre_events_) {
+  prev_events = prev_events_;
+}
+
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
   if( et == event_kind_t::r || et == event_kind_t::w ) {
