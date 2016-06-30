@@ -76,10 +76,6 @@ ostream& operator<<( ostream& stream, const cycle& c ) {
 cycle_edge::cycle_edge( hb_enc::se_ptr _before, hb_enc::se_ptr _after, edge_type _type )
     :before(_before),after(_after),type(_type) {}
 
-bool ValueComp(const hb_enc::se_ptr & before,const hb_enc::se_ptr & after)
-{
-	return before->e_v->instr_no < after->e_v->instr_no;
-}
 
 cycle::cycle( cycle& _c, unsigned i ) {
   edges = _c.edges;

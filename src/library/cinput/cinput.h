@@ -22,6 +22,7 @@
 
 #include "helpers/helpers.h"
 #include "helpers/z3interf.h"
+#include "api/options.h"
 
 namespace tara {
 namespace cinput {
@@ -50,7 +51,9 @@ namespace cinput {
     }
   };
 
-  program* parse_cpp_file( helpers::z3interf& z3_, std::string& cfile );
+  program* parse_cpp_file( helpers::z3interf& z3_,
+                           api::options& o_,
+                           std::string& cfile );
 
   // class cinput_exception : public std::runtime_error{
   // public:

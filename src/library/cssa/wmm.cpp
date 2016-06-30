@@ -163,7 +163,7 @@ bool program::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd 
   if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
-    if( wr->tid == rd->tid && wr->e_v->instr_no >= rd->e_v->instr_no ) {
+    if( is_po( rd, wr ) ) {
       return true;
     }
     //
@@ -175,12 +175,12 @@ bool program::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd 
 
 bool program::anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr ) {
   // preventing coherence violation - fr;
-  // (if rf is local then may not visible to global ordering)
+  // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
   assert( wr->tid == threads.size() || rd->tid == threads.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
-    if( wr->tid == rd->tid && rd->e_v->instr_no > wr->e_v->instr_no ) {
+    if( is_po( wr, rd ) ) {
       return true;
     }
     //
@@ -311,7 +311,7 @@ void program::wmm_mk_distinct_events() {
   z3::expr_vector loc_vars(_z3.c);
 
   for( auto& init_se : init_loc ) {
-    loc_vars.push_back( *(init_se->e_v) );
+    loc_vars.push_back( init_se->get_solver_symbol() );
   }
 
   for( unsigned t=0; t < threads.size(); t++ ) {
@@ -319,10 +319,10 @@ void program::wmm_mk_distinct_events() {
     assert( thread.size() > 0 );
     for( unsigned j=0; j < thread.size(); j++ ) {
       for( auto& rd : thread[j].rds ) {
-        loc_vars.push_back( *(rd->e_v) );
+        loc_vars.push_back( rd->get_solver_symbol() );
       }
       for( auto& wr : thread[j].wrs ) {
-        loc_vars.push_back( *(wr->e_v) );
+        loc_vars.push_back( wr->get_solver_symbol() );
       }
     }
   }
