@@ -201,6 +201,7 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
 //----------------------------------------------------------------------------
 // code for input object generation
 
+char build_program::ID = 0;
 void
 build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
                                const std::vector< split_history >& hs,
@@ -256,13 +257,14 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
 }
 
 z3::expr
-build_program::translateBlock( llvm::BasicBlock* b,
-                               std::map<llvm::BasicBlock*,z3::expr> conds) {
+build_program::translateBlock( const llvm::BasicBlock* b,
+                               const hb_enc::se_set& prev_events,
+                               std::map<llvm::BasicBlock*,z3::expr>& conds) {
   assert(b);
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
-  for( llvm::Instruction& Iobj : b->getInstList() ) {
-    llvm::Instruction* I = &(Iobj);
+  for( const llvm::Instruction& Iobj : b->getInstList() ) {
+    const llvm::Instruction* I = &(Iobj);
     assert( I );
     Z3_ast term = z3.mk_emptyexpr();
     bool recognized = false, record = false;
@@ -411,12 +413,14 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   initBlockCount( f, block_to_id );
 
+
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     if( o.print_input > 0 ) src->print( llvm::outs() );
 
     std::vector< split_history > histories; // needs to be ref
     std::vector<llvm::BasicBlock*> preds;
+    hb_enc::se_set prev_events;
     for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
@@ -429,6 +433,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         h.push_back(ss);
       }
       histories.push_back(h);
+      hb_enc::se_set& prev_trail = block_to_trailing_events.at(prev);
+      prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
     split_history h;
@@ -436,7 +442,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     join_histories( preds, histories, h, conds);
     block_to_split_stack[src] = h;
 
-    z3::expr ssa = translateBlock( src, conds);
+    z3::expr ssa = translateBlock( src, prev_events, conds);
     p->append_ssa( ssa );
 
   //     typename EHandler::expr e = translateBlock( src, 0, exprMap );

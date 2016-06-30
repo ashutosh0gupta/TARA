@@ -103,6 +103,10 @@ namespace hb_enc {
       return e_v->instr_no;
     }
 
+    inline z3::expr get_solver_symbol() const {
+      return *e_v;
+    }
+
     inline unsigned get_tid() const {
       return tid;
     }
@@ -163,7 +167,15 @@ namespace hb_enc {
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 
 
-  inline bool is_po(const se_ptr& x, const se_ptr& y);
+  inline bool is_po( const se_ptr& x, const se_ptr& y ) {
+    if( x == y ) return true;
+    if( x->tid != y->tid ) return false;
+    if( x->e_v->instr_no < y->e_v->instr_no ) return true;
+    if( x->e_v->instr_no == y->e_v->instr_no && x->is_rd() && y->is_wr() )
+      return true;
+    return false;
+  }
+
   void debug_print_se_set(const se_set& set, std::ostream& out);
 
 }}
