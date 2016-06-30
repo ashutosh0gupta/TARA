@@ -123,7 +123,7 @@ z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
 }
 
 
-void symbolic_event::set_pre_events( se_set& pre_events_) {
+void symbolic_event::set_pre_events( se_set& prev_events_) {
   prev_events = prev_events_;
 }
 

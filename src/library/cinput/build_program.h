@@ -86,7 +86,7 @@ namespace cinput {
     ValueExprMap valMap;
     std::map< llvm::BasicBlock*, unsigned> block_to_id;
     std::map< llvm::BasicBlock*, split_history > block_to_split_stack;
-    std::map< llvm::BasicBlock*, z3::expr > block_to_exit_bit;
+    std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
     std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
 
     //
@@ -137,7 +137,7 @@ namespace cinput {
 
     z3::expr translateBlock( unsigned,
                              const llvm::BasicBlock*,
-                             const hb_enc::se_set& prev_events,
+                             hb_enc::se_set& prev_events,
                              std::map<llvm::BasicBlock*,z3::expr>& );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );

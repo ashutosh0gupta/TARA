@@ -288,8 +288,8 @@ build_program::translateBlock( unsigned thr_id,
       cssa::variable ssa_var = gv + "#" + loc_name;
       auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
                              loc_name, hb_enc::event_kind_t::w );
-      wr_e->set_pre_ses( prev_events );
-      prev_events.clear() prev_events.insert( wr_e );
+      wr_e->set_pre_events( prev_events );
+      prev_events.clear(); prev_events.insert( wr_e );
       block_ssa = block_ssa && ( ssa_var == getTerm( v, m ));
       p->add_event( thr_id, wr_e );
     }
@@ -316,15 +316,15 @@ build_program::translateBlock( unsigned thr_id,
     if( const llvm::UnaryInstruction* str =
         llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
       if( const llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
-        llvm::GlobalVariable* g = load->getOperand(0);
+        llvm::GlobalVariable* g = (llvm::GlobalVariable*)load->getOperand(0);
         const llvm::Value* v = I;
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         std::string loc_name = getInstructionLocationName( I );
         cssa::variable ssa_var = gv + "#" + loc_name;
         auto rd_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
                                loc_name, hb_enc::event_kind_t::r );
-        rd_e->set_pre_ses( prev_events );
-        prev_events.clear() prev_events.insert( rd_e );
+        rd_e->set_pre_events( prev_events );
+        prev_events.clear(); prev_events.insert( rd_e );
         z3::expr l_v = getTerm( I, m);
         block_ssa = block_ssa && ( ssa_var == l_v);
   //       record = true;
@@ -390,10 +390,11 @@ build_program::translateBlock( unsigned thr_id,
       if(  br->isConditional() ) {
         llvm::Value* c = br->getCondition();
         z3::expr bit = getTerm( c, m);
-        block_to_exit_bit[b] = bit;
+        
+        // block_to_exit_bit[b] = bit;
       }else{
-        z3::expr b = get_fresh_bool();
-        block_to_exit_bit[b] = bit;
+        // z3::expr b = get_fresh_bool();
+        // block_to_exit_bit[b] = bit;
       }
   //     assert( !recognized );recognized = true;
     }
@@ -421,7 +422,7 @@ build_program::translateBlock( unsigned thr_id,
   //       const llvm::Value* v = I;
   //       eHandler->insertMap( v, term, m);
   //     }
-    }
+    // }
   //   if( !recognized ) cfrontend_error( "----- failed to recognize!!" );
   }
   // // print_double_line( std::cout );
