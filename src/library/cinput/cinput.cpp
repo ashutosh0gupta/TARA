@@ -84,6 +84,7 @@ void c2bc( std::string& filename, std::string& outname ) {
 //todo: add unique_ptr support
 program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
                                        api::options& o,
+                                       hb_enc::encoding& hb_encoding,
                                        std::string& cfile ) {
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
@@ -117,7 +118,7 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );
-  passMan.add( new build_program( z3_, o, p ) );
+  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
   // passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
   

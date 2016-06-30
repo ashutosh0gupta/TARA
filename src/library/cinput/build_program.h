@@ -78,6 +78,7 @@ namespace cinput {
   private:
     helpers::z3interf& z3;
     api::options& o;
+    hb_enc::encoding& hb_encoding;
     // Cfrontend::Config& config;
     program* p;
     unsigned inst_counter = 0;
@@ -99,10 +100,12 @@ namespace cinput {
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
+                   hb_enc::encoding& hb_encoding_,
                    program* program_ )
     : llvm::FunctionPass(ID)
     , z3(z3_)
     , o(o_)
+    , hb_encoding( hb_encoding_ )
     , p( program_ )
     , thread_count( 0 )
 {}
@@ -132,7 +135,8 @@ namespace cinput {
     // z3:expr
     // getPhiMap( const llvm::PHINode* p, ValueExprMap& m );
 
-    z3::expr translateBlock( const llvm::BasicBlock*,
+    z3::expr translateBlock( unsigned,
+                             const llvm::BasicBlock*,
                              const hb_enc::se_set& prev_events,
                              std::map<llvm::BasicBlock*,z3::expr>& );
 

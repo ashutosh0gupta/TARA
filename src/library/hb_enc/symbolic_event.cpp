@@ -55,11 +55,12 @@ symbolic_event::create_internal_event( z3::context& ctx,
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
                                 const cssa::variable& _v, const cssa::variable& _prog_v,
-                                hb_enc::location_ptr _loc, event_kind_t _et )
+                                std::string _loc, event_kind_t _et )
   : tid(_tid)
   , v(_v)
   , prog_v( _prog_v )
-  , loc(_loc)
+  , loc_name(_loc)
+  // , loc(_loc)
   , et( _et )
   , guard(ctx)
 {
@@ -81,11 +82,12 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 // barrier events
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
-                                hb_enc::location_ptr _loc, event_kind_t _et )
+                                std::string _loc, event_kind_t _et )
   : tid(_tid)
   , v("dummy",ctx)
   , prog_v( "dummy",ctx)
-  , loc(_loc)
+  , loc_name(_loc)
+  // , loc(_loc)
   , et( _et )
   , guard(ctx)
 {
@@ -96,7 +98,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   case event_kind_t::post: { event_name = "#post";  break; }
   default: hb_enc_exception("unreachable code!!");
   }
-  event_name = loc->name+event_name;
+  event_name = loc_name+event_name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
                                (event_kind_t::post == et), prog_v.name );
   std::string thin_name = "__thin__" + event_name;
@@ -125,7 +127,7 @@ void symbolic_event::debug_print(std::ostream& stream ) {
   if( et == event_kind_t::r || et == event_kind_t::w ) {
     std::string s = et == event_kind_t::r ? "Read" : "Write";
     stream << s << " var: " << v << ", orig_var : " <<prog_v
-           << ", loc :" << loc << "\n";
+           << ", loc :" << loc_name << "\n";
     stream << "guard: " << guard << "\n";
   }
 }

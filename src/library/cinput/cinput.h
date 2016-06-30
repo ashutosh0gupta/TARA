@@ -53,6 +53,7 @@ namespace cinput {
     std::map< unsigned, loc> inst_to_loc;
     // std::map< unsigned, std::string> id_to_thr_name;
     std::vector<thread> threads;
+    hb_enc::name_to_ses_map se_store;
     unsigned thread_num = 0;
     unsigned add_thread( std::string str) {
       // id_to_thr_name[thread_num++] = str;
@@ -69,13 +70,18 @@ namespace cinput {
     void add_global( std::string g ) {
       globals.insert( cssa::variable(g, z3.c) );
     }
-    // void get_global( str::string g ) {
-    //todo:
-    // }
+
+    cssa::variable get_global( std::string gname ) {
+      for( auto& g : globals ) {
+        if( gname == g.name )
+          return g;
+      }
+    }
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_,
                            api::options& o_,
+                           hb_enc::encoding& hb_encoding,
                            std::string& cfile );
 
   // class cinput_exception : public std::runtime_error{

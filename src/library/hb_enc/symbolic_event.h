@@ -61,11 +61,11 @@ namespace hb_enc {
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
                     unsigned _tid, unsigned i,
                     const cssa::variable& _v, const cssa::variable& _prog_v,
-                    hb_enc::location_ptr loc, event_kind_t _et );
+                    std::string loc, event_kind_t _et );
 
     symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                     unsigned _tid, unsigned instr_no,
-                    hb_enc::location_ptr _loc, event_kind_t _et );
+                    std::string _loc, event_kind_t _et );
 
     // symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
     //                 unsigned instr_no, unsigned thin_tid,
@@ -76,7 +76,10 @@ namespace hb_enc {
     unsigned tid;
     cssa::variable v;               // variable with ssa name
     cssa::variable prog_v;          // variable name in the program
-    hb_enc::location_ptr loc; // location in
+    std::string loc_name;
+  // private:
+  //   hb_enc::location_ptr loc; // location in
+  public:
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
     event_kind_t et;
@@ -128,8 +131,18 @@ namespace hb_enc {
                            hb_enc::location_ptr _loc, event_kind_t _et,
                            name_to_ses_map& se_store ) {
     se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                            _v, _prog_v, _loc, _et);
+                                            _v, _prog_v, _loc->name, _et);
     se_store[e->name()] = e;
+    return e;
+  }
+
+  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+                           unsigned _tid, unsigned _instr_no,
+                           const cssa::variable& _v,
+                           const cssa::variable& _prog_v,
+                           std::string _loc, event_kind_t _et ) {
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                                                _v, _prog_v, _loc, _et);
     return e;
   }
 
@@ -138,8 +151,16 @@ namespace hb_enc {
                            hb_enc::location_ptr _loc, event_kind_t _et,
                            name_to_ses_map& se_store ) {
     se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                            _loc, _et);
+                                            _loc->name, _et);
     se_store[e->name()] = e;
+    return e;
+  }
+
+  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+                           unsigned _tid, unsigned _instr_no,
+                           std::string _loc, event_kind_t _et ) {
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
+                                            _loc, _et);
     return e;
   }
 

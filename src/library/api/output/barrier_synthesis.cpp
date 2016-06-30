@@ -574,7 +574,7 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
   stream <<"Barriers must be inserted after the following instructions:- \n";
   for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
     stream << "thread " << barrier_where[i]->get_tid() << ",instr "
-           <<  barrier_where[i]->loc->name << endl;
+           <<  barrier_where[i]->loc_name << endl;
   }
 
   stream << endl;

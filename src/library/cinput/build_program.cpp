@@ -72,6 +72,13 @@ using namespace tara::helpers;
 //----------------------------------------------------------------------------
 // LLVM utils
 
+
+std::string getInstructionLocationName(const llvm::Instruction* I ) {
+  const llvm::DebugLoc d = I->getDebugLoc();
+
+  return "yet";
+}
+
 void initBlockCount( llvm::Function &f,
                      std::map<llvm::BasicBlock*, unsigned>& block_to_id) {
   unsigned l = 0;
@@ -257,10 +264,12 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
 }
 
 z3::expr
-build_program::translateBlock( const llvm::BasicBlock* b,
+build_program::translateBlock( unsigned thr_id,
+                               const llvm::BasicBlock* b,
                                const hb_enc::se_set& prev_events,
                                std::map<llvm::BasicBlock*,z3::expr>& conds) {
   assert(b);
+  z3::expr block_ssa = z3.mk_true();
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
@@ -270,30 +279,28 @@ build_program::translateBlock( const llvm::BasicBlock* b,
     bool recognized = false, record = false;
     if( auto wr = llvm::dyn_cast<llvm::StoreInst>(I) ) {
       llvm::Value* v = wr->getOperand(0);
-      llvm::Value* g = wr->getOperand(1);
-      term = getTerm( v, m );
-      
-  //     typename EHandler::expr assign = eHandler->mkEq( gp, term );
-  //     blockTerms.push_back( assign );
-  //     assert( !recognized );recognized = true;
+      llvm::GlobalVariable* g = (llvm::GlobalVariable*)wr->getOperand(1);
+      cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+      std::string loc_name = getInstructionLocationName( I );
+      cssa::variable ssa_var = gv + "#" + loc_name;
+      auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
+                             loc_name, hb_enc::event_kind_t::w );
+      block_ssa = block_ssa && ( ssa_var == getTerm( v, m ));
+      p->add_event( thr_id, wr_e );
     }
     if( const llvm::BinaryOperator* bop =
         llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
-      z3::expr a = z3.mk_emptyexpr();
-      z3::expr b = z3.mk_emptyexpr();
-      a = getTerm( op0, m );
-      b = getTerm( op1, m );
-      Z3_ast args[2] = {a, b};
+      z3::expr a = getTerm( op0, m );
+      z3::expr b = getTerm( op1, m );
       unsigned op = bop->getOpcode();
       switch( op ) {
-      case llvm::Instruction::Add : insert_term_map( I, a+b, m); // term = Z3_mk_add ( a.ctx(), 2, args );
-        break;
-        case llvm::Instruction::Sub : term = Z3_mk_sub ( a.ctx(), 2, args ); break;
-        case llvm::Instruction::Mul : term = Z3_mk_mul ( a.ctx(), 2, args ); break;
-        case llvm::Instruction::Xor : term = Z3_mk_xor ( a.ctx(), a, b ); break;
-        case llvm::Instruction::SDiv: term = Z3_mk_div ( a.ctx(), a, b ); break;
+      case llvm::Instruction::Add : insert_term_map( I, a+b, m); break;
+      case llvm::Instruction::Sub : insert_term_map( I, a-b, m); break;
+      case llvm::Instruction::Mul : insert_term_map( I, a*b, m); break;
+      case llvm::Instruction::Xor : insert_term_map( I, a xor b, m); break;
+      case llvm::Instruction::SDiv: insert_term_map( I, a/b, m); break;
       default: {
         const char* opName = bop->getOpcodeName();
         std::cerr << "unsupported instruction " << opName << " occurred!!";
@@ -323,22 +330,22 @@ build_program::translateBlock( const llvm::BasicBlock* b,
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
 
       switch( pred ) {
-  //    case llvm::CmpInst::ICMP_EQ  : Z3_probe term = Z3_probe_eq( l.ctx(), l, r ); break;
-  //     case llvm::CmpInst::ICMP_NE  : term = eHandler->mkNEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_UGT : term = eHandler->mkGT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_UGE : term = eHandler->mkGEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_ULT : term = eHandler->mkLT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_ULE : term = eHandler->mkLEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SGT : term = eHandler->mkGT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SGE : term = eHandler->mkGEq( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SLT : term = eHandler->mkLT ( l, r ); break;
-  //     case llvm::CmpInst::ICMP_SLE : term = eHandler->mkLEq( l, r ); break;
+      case llvm::CmpInst::ICMP_EQ : insert_term_map( I, l==r, m ); break;
+      case llvm::CmpInst::ICMP_NE : insert_term_map( I, l!=r, m ); break;
+      case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l>r, m ); break;
+      case llvm::CmpInst::ICMP_UGE : insert_term_map( I, l>=r, m ); break;
+      case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l<r, m ); break;
+      case llvm::CmpInst::ICMP_ULE : insert_term_map( I, l<=r, m ); break;
+      case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l>r, m ); break;
+      case llvm::CmpInst::ICMP_SGE : insert_term_map( I, l>=r, m ); break;
+      case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l<r, m ); break;
+      case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
       default: {
         std::cerr << "unsupported predicate in compare instruction" << pred << "!!";
       }
      }
-  //     record = true;
-  //     assert( !recognized );recognized = true;
+         record = true;
+         assert( !recognized );recognized = true;
     }
   //   if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
   //     term = getPhiMap( phi, m);
@@ -405,7 +412,7 @@ build_program::translateBlock( const llvm::BasicBlock* b,
   }
   // // print_double_line( std::cout );
   // //iterate over instructions and build
-  return z3.c.bool_val(true); //eHandler->mkAnd( blockTerms );
+  return block_ssa;
 }
 
 bool build_program::runOnFunction( llvm::Function &f ) {
@@ -444,7 +451,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     join_histories( preds, histories, h, conds);
     block_to_split_stack[src] = h;
 
-    z3::expr ssa = translateBlock( src, prev_events, conds);
+    z3::expr ssa = translateBlock( thread_count, src, prev_events, conds);
     p->append_ssa( ssa );
 
   //     typename EHandler::expr e = translateBlock( src, 0, exprMap );
