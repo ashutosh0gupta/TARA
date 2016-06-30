@@ -312,13 +312,14 @@ build_program::translateBlock( llvm::BasicBlock* b,
   //     }
     }
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
-  //     llvm::Value* lhs = cmp->getOperand( 0 );
-  //     llvm::Value* rhs = cmp->getOperand( 1 );
-  //     typename EHandler::expr l = getTerm( lhs, m );
-  //     typename EHandler::expr r = getTerm( rhs, m );
-  //     llvm::CmpInst::Predicate pred = cmp->getPredicate();
-  //     switch( pred ) {
-  //     case llvm::CmpInst::ICMP_EQ  : term = eHandler->mkEq ( l, r ); break;
+      llvm::Value* lhs = cmp->getOperand( 0 );
+      llvm::Value* rhs = cmp->getOperand( 1 );
+      z3::expr l = getTerm( lhs, m );
+      z3::expr r = getTerm( rhs, m );
+      llvm::CmpInst::Predicate pred = cmp->getPredicate();
+
+      switch( pred ) {
+  //    case llvm::CmpInst::ICMP_EQ  : Z3_probe term = Z3_probe_eq( l.ctx(), l, r ); break;
   //     case llvm::CmpInst::ICMP_NE  : term = eHandler->mkNEq( l, r ); break;
   //     case llvm::CmpInst::ICMP_UGT : term = eHandler->mkGT ( l, r ); break;
   //     case llvm::CmpInst::ICMP_UGE : term = eHandler->mkGEq( l, r ); break;
@@ -328,11 +329,10 @@ build_program::translateBlock( llvm::BasicBlock* b,
   //     case llvm::CmpInst::ICMP_SGE : term = eHandler->mkGEq( l, r ); break;
   //     case llvm::CmpInst::ICMP_SLT : term = eHandler->mkLT ( l, r ); break;
   //     case llvm::CmpInst::ICMP_SLE : term = eHandler->mkLEq( l, r ); break;
-  //     default: {
-  //       cfrontend_error( "unsupported predicate in compare instruction"
-  //                        << pred << "!!"  );
-  //     }
-  //     }
+      default: {
+        std::cerr << "unsupported predicate in compare instruction" << pred << "!!";
+      }
+     }
   //     record = true;
   //     assert( !recognized );recognized = true;
     }
