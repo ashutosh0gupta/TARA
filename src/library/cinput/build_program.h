@@ -183,6 +183,9 @@ namespace cinput {
 	}
     }
 
+    void insert_term_map( const llvm::Value* op , z3::expr , ValueExprMap& m ) {
+      // implement this
+    }
     // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {
     //   if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
     //   }else if( !eHandler->isLocalVar( op ) ) {

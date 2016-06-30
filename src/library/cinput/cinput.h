@@ -23,6 +23,7 @@
 #include "helpers/helpers.h"
 #include "helpers/z3interf.h"
 #include "api/options.h"
+#include "hb_enc/symbolic_event.h"
 
 namespace tara {
 namespace cinput {
@@ -33,6 +34,16 @@ namespace cinput {
     std::string file;
   };
 
+  class thread {
+  public:
+    thread(helpers::z3interf& z3_, std::string name_):
+      z3(z3_), name(name_) {}
+    helpers::z3interf& z3;
+    std::string name;
+    hb_enc::se_vec events; // topologically sorted events
+    void add_event( hb_enc::se_ptr e ) { events.push_back( e ); }
+  };
+
   class program {
   public:
     program(helpers::z3interf& z3_): z3(z3_) {}
@@ -40,14 +51,20 @@ namespace cinput {
     cssa::variable_set global;
     z3::expr phi_ssa = z3.mk_true();
     std::map< unsigned, loc> inst_to_loc;
-    std::map< unsigned, std::string> id_to_thr_name;
+    // std::map< unsigned, std::string> id_to_thr_name;
+    std::vector<thread> threads;
     unsigned thread_num = 0;
     unsigned add_thread( std::string str) {
-      id_to_thr_name[thread_num++] = str;
+      // id_to_thr_name[thread_num++] = str;
+      thread thr( z3, str );
+      threads.push_back( thr );
       return thread_num-1;
     };
     void append_ssa( z3::expr e) {
       phi_ssa = phi_ssa && e;
+    }
+    void add_event( unsigned i, hb_enc::se_ptr e ) {
+      threads[i].add_event( e );
     }
   };
 

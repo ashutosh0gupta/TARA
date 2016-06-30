@@ -287,7 +287,8 @@ build_program::translateBlock( const llvm::BasicBlock* b,
       Z3_ast args[2] = {a, b};
       unsigned op = bop->getOpcode();
       switch( op ) {
-        case llvm::Instruction::Add : term = Z3_mk_add ( a.ctx(), 2, args ); break;
+      case llvm::Instruction::Add : insert_term_map( I, a+b, m); // term = Z3_mk_add ( a.ctx(), 2, args );
+        break;
         case llvm::Instruction::Sub : term = Z3_mk_sub ( a.ctx(), 2, args ); break;
         case llvm::Instruction::Mul : term = Z3_mk_mul ( a.ctx(), 2, args ); break;
         case llvm::Instruction::Xor : term = Z3_mk_xor ( a.ctx(), a, b ); break;
