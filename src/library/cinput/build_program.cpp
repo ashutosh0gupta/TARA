@@ -266,8 +266,22 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
   }
 }
 
-z3::expr
-build_program::translateBlock( unsigned thr_id,
+z3::expr build_program::fresh_int() {
+  static count = 0;
+  count++;
+  std::string loc_name = "i_" + std::to_string(count);
+  z3::expr loc_expr = z3.c.int_const(loc_name.c_str());
+  return loc_expr;
+}
+z3::expr build_program::fresh_bool() {
+  static count = 0;
+  count++;
+  std::string loc_name = "b_" + std::to_string(count);
+  z3::expr loc_expr = z3.c.bool_const(loc_name.c_str());
+  return loc_expr;
+}
+
+z3::expr build_program::translateBlock( unsigned thr_id,
                                const llvm::BasicBlock* b,
                                hb_enc::se_set& prev_events,
                                std::map<llvm::BasicBlock*,z3::expr>& conds) {
