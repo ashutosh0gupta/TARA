@@ -71,7 +71,7 @@ namespace cinput {
     ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
     static char ID;
-
+    std::string name;
     //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
     // SimpleMultiThreadedProgram<z3:expr>::thread_id_type thread_id_t;
 
@@ -96,6 +96,8 @@ namespace cinput {
                          split_history& h,
                          std::map<llvm::BasicBlock*,z3::expr>& conds
                          );
+   z3::expr fresh_int();
+   z3::expr fresh_bool();
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
@@ -148,11 +150,9 @@ namespace cinput {
     if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
       unsigned bw = c->getBitWidth();
       if(bw > 1) {
-        int i = readInt(c);
-        return z3.c.int_val(i);
+        fresh_int();
       }else if(bw == 1) {
-        bool i = c->getType();
-	return z3.c.bool_val(i);
+        fresh_bool();
       }else
 	std::cerr << "unrecognized constant!";
     }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {

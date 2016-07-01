@@ -266,8 +266,23 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
   }
 }
 
-z3::expr
-build_program::translateBlock( unsigned thr_id,
+z3::expr build_program::fresh_int() {
+  static unsigned count = 0;
+  count++;
+  std::string loc_name = "i_" + std::to_string(count);
+  z3::expr loc_expr = z3.c.int_const(loc_name.c_str());
+  return loc_expr;
+}
+
+z3::expr build_program::fresh_bool() {
+  static unsigned count = 0;
+  count++;
+  std::string loc_name = "b_" + std::to_string(count);
+  z3::expr loc_expr = z3.c.bool_const(loc_name.c_str());
+  return loc_expr;
+}
+
+z3::expr build_program::translateBlock( unsigned thr_id,
                                const llvm::BasicBlock* b,
                                hb_enc::se_set& prev_events,
                                std::map<llvm::BasicBlock*,z3::expr>& conds) {
@@ -357,11 +372,13 @@ build_program::translateBlock( unsigned thr_id,
       record = true;
       assert( !recognized );recognized = true;
     }
-  //   if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
-  //     term = getPhiMap( phi, m);
-  //     record = 1;
-  //     assert( !recognized );recognized = true;
-  //   }
+    if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
+      
+      // term = getPhiMap( phi, m);
+      // record = 1;
+      // assert( !recognized );recognized = true;
+    }
+
   //   if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
   //     llvm::Value* v = ret->getReturnValue();
   //     if( v ) {
@@ -387,10 +404,9 @@ build_program::translateBlock( unsigned thr_id,
       if(  br->isConditional() ) {
         llvm::Value* c = br->getCondition();
         z3::expr bit = getTerm( c, m);
-        
         // block_to_exit_bit[b] = bit;
       }else{
-        // z3::expr b = get_fresh_bool();
+        z3::expr bit = fresh_bool();
         // block_to_exit_bit[b] = bit;
       }
   //     assert( !recognized );recognized = true;
