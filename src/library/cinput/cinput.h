@@ -59,6 +59,7 @@ namespace cinput {
       // id_to_thr_name[thread_num++] = str;
       thread thr( z3, str );
       threads.push_back( thr );
+      thread_num++;
       return thread_num-1;
     };
     void append_ssa( z3::expr e) {
@@ -79,6 +80,8 @@ namespace cinput {
         if( gname == g.name )
           return g;
       }
+      cssa::variable g(z3.c); // dummy code to suppress warning
+      return g;
     }
   };
 

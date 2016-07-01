@@ -278,7 +278,6 @@ build_program::translateBlock( unsigned thr_id,
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
     const llvm::Instruction* I = &(Iobj);
     assert( I );
-    Z3_ast term = z3.mk_emptyexpr();
     bool recognized = false, record = false;
     if( auto wr = llvm::dyn_cast<llvm::StoreInst>(I) ) {
       llvm::Value* v = wr->getOperand(0);
@@ -309,15 +308,13 @@ build_program::translateBlock( unsigned thr_id,
         const char* opName = bop->getOpcodeName();
         std::cerr << "unsupported instruction " << opName << " occurred!!";
       }
+      }
+      record = true;
+      assert( !recognized );recognized = true;
     }
-	record = true;
-	assert( !recognized );recognized = true;
-    }
-    if( const llvm::UnaryInstruction* str =
-        llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
-      if( const llvm::LoadInst* load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
+    if( auto str = llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
+      if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
         llvm::GlobalVariable* g = (llvm::GlobalVariable*)load->getOperand(0);
-        const llvm::Value* v = I;
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         std::string loc_name = getInstructionLocationName( I );
         cssa::variable ssa_var = gv + "#" + loc_name;
@@ -402,9 +399,8 @@ build_program::translateBlock( unsigned thr_id,
   //     cfrontend_warning( "I am switch!!" );
   //     assert( !recognized );recognized = true;
     }
-    if( const llvm::CallInst* str = llvm::dyn_cast<llvm::CallInst>(I) ) {
-      if( const llvm::DbgValueInst* dVal =
-          llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
+    if( auto str = llvm::dyn_cast<llvm::CallInst>(I) ) {
+      if( auto dVal = llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
         // Ignore debug instructions
       }else{
         // todo... deal with callers
@@ -431,9 +427,8 @@ build_program::translateBlock( unsigned thr_id,
 }
 
 bool build_program::runOnFunction( llvm::Function &f ) {
-  thread_count++;
   std::string name = (std::string)f.getName();
-  unsigned threadId = p->add_thread( name );
+  unsigned thread_id = p->add_thread( name );
 
   initBlockCount( f, block_to_id );
 
@@ -466,7 +461,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     join_histories( preds, histories, h, conds);
     block_to_split_stack[src] = h;
 
-    z3::expr ssa = translateBlock( thread_count, src, prev_events, conds);
+    z3::expr ssa = translateBlock( thread_id, src, prev_events, conds);
+    block_to_trailing_events[src] = prev_events;
     p->append_ssa( ssa );
 
   //     typename EHandler::expr e = translateBlock( src, 0, exprMap );

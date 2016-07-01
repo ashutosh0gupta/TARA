@@ -82,7 +82,6 @@ namespace cinput {
     // Cfrontend::Config& config;
     program* p;
     unsigned inst_counter = 0;
-    unsigned thread_count = 0;
     ValueExprMap valMap;
     std::map< llvm::BasicBlock*, unsigned> block_to_id;
     std::map< llvm::BasicBlock*, split_history > block_to_split_stack;
@@ -107,7 +106,6 @@ namespace cinput {
     , o(o_)
     , hb_encoding( hb_encoding_ )
     , p( program_ )
-    , thread_count( 0 )
 {}
 
     virtual bool runOnFunction( llvm::Function & );
