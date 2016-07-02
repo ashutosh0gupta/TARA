@@ -20,6 +20,7 @@
 
 #include <string> 
 #include "build_program.h"
+#include "cinput_exception.h"
 #include "helpers/z3interf.h"
 #include <z3.h>
 using namespace tara;
@@ -73,6 +74,11 @@ using namespace tara::helpers;
 //----------------------------------------------------------------------------
 // LLVM utils
 
+#define UNSUPPORTED_INSTRUCTIONS( InstTYPE, Inst )                       \
+  if(llvm::isa<llvm::InstTYPE>(Inst) ) {                                 \
+     cinput_error( "Unsupported instruction!!");                         \
+  }
+
 
 std::string getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
@@ -118,7 +124,7 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           assert( b->getType()->isIntegerTy(1) );
           llvm::BasicBlock* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
           br0->setSuccessor( br0_branch_idx, newDst );
-        }else{std::cerr << "unseen case, not known how to handle!";}
+        }else{throw cinput_exception("unseen case!");}
         llvm::Value*      val1 = phi->getIncomingValue(1);
         llvm::BasicBlock* src1 = phi->getIncomingBlock(1);
         llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
@@ -132,8 +138,8 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           // TODO: memory leaked here? what happend to br1 was it deleted??
           llvm::DeleteDeadBlock( phiBlock );
           removeBranchingOnPHINode( newBr );
-        }else{std::cerr << "unseen case, not known how to handle!";}
-      }else{std::cerr << "unseen case, not known how to handle!";}
+        }else{throw cinput_exception("unseen case, not known how to handle!");}
+      }else{throw cinput_exception("unseen case, not known how to handle!");}
     }
   }
 
@@ -243,7 +249,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
     bool longer_found = false;
     for( auto& old_h: hs ) if( sz != old_h.size() ) longer_found = true;
     if( longer_found ) {
-      throw std::runtime_error( "histories can not be subset of each other!!" );
+      throw cinput_exception( "histories can not be subset of each other!!" );
     }
   }else{
     z3::expr c = z3.mk_false();
@@ -283,8 +289,8 @@ z3::expr build_program::fresh_bool() {
 }
 
 z3::expr build_program::translateBlock( unsigned thr_id,
-                               const llvm::BasicBlock* b,
-                               hb_enc::se_set& prev_events,
+                                        const llvm::BasicBlock* b,
+                                        hb_enc::se_set& prev_events,
                                std::map<llvm::BasicBlock*,z3::expr>& conds) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
@@ -293,16 +299,15 @@ z3::expr build_program::translateBlock( unsigned thr_id,
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
     const llvm::Instruction* I = &(Iobj);
     assert( I );
-    bool recognized = false, record = false;
+    bool recognized = false;
     if( auto wr = llvm::dyn_cast<llvm::StoreInst>(I) ) {
       llvm::Value* v = wr->getOperand(0);
       llvm::GlobalVariable* g = (llvm::GlobalVariable*)wr->getOperand(1);
       cssa::variable gv = p->get_global( (std::string)(g->getName()) );
       std::string loc_name = getInstructionLocationName( I );
       cssa::variable ssa_var = gv + "#" + loc_name;
-      auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
-                             loc_name, hb_enc::event_kind_t::w );
-      wr_e->set_pre_events( prev_events );
+      auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+                             ssa_var, gv, loc_name, hb_enc::event_kind_t::w );
       prev_events.clear(); prev_events.insert( wr_e );
       block_ssa = block_ssa && ( ssa_var == getTerm( v, m ));
       p->add_event( thr_id, wr_e );
@@ -321,30 +326,25 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       case llvm::Instruction::SDiv: insert_term_map( I, a/b, m); break;
       default: {
         const char* opName = bop->getOpcodeName();
-        std::cerr << "unsupported instruction " << opName << " occurred!!";
+        cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-      record = true;
       assert( !recognized );recognized = true;
     }
-    if( auto str = llvm::dyn_cast<llvm::UnaryInstruction>(I) ) {
+    if( llvm::isa<llvm::UnaryInstruction>(I) ) {
       if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
         llvm::GlobalVariable* g = (llvm::GlobalVariable*)load->getOperand(0);
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         std::string loc_name = getInstructionLocationName( I );
         cssa::variable ssa_var = gv + "#" + loc_name;
-        auto rd_e = mk_se_ptr( z3.c, hb_encoding, thr_id, 0, ssa_var, gv,
-                               loc_name, hb_enc::event_kind_t::r );
-        rd_e->set_pre_events( prev_events );
+        auto rd_e = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+                               ssa_var, gv, loc_name, hb_enc::event_kind_t::r );
         prev_events.clear(); prev_events.insert( rd_e );
         z3::expr l_v = getTerm( I, m);
         block_ssa = block_ssa && ( ssa_var == l_v);
-  //       record = true;
-  //       assert( !recognized );recognized = true;
+        assert( !recognized );recognized = true;
       }else{
-        assert( false );
-  //       cfrontend_warning( "I am uniary instruction!!" );
-  //       assert( !recognized );recognized = true;
+        cinput_error("unsupported uniary instruction!!" << "\n");
       }
     }
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
@@ -366,16 +366,14 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l<r, m ); break;
       case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
       default: {
-        std::cerr << "unsupported predicate in compare instruction" << pred << "!!";
+        cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
      }
-      record = true;
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       
       // term = getPhiMap( phi, m);
-      // record = 1;
       // assert( !recognized );recognized = true;
     }
 
@@ -395,50 +393,42 @@ z3::expr build_program::translateBlock( unsigned thr_id,
   //     assert( !recognized );recognized = true;
   //   }
 
-  //   // UNSUPPORTED_INSTRUCTIONS( ReturnInst,      I );
-  //   UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
-  //   UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
-  //   // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
+    // UNSUPPORTED_INSTRUCTIONS( ReturnInst,      I );
+    UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
+    UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
+    // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
-    if( const llvm::BranchInst* br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
+    if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
       if(  br->isConditional() ) {
-        llvm::Value* c = br->getCondition();
-        z3::expr bit = getTerm( c, m);
-        // block_to_exit_bit[b] = bit;
+        block_to_exit_bit.at(b) = getTerm( br->getCondition(), m);
       }else{
-        z3::expr bit = fresh_bool();
-        // block_to_exit_bit[b] = bit;
-      }
-  //     assert( !recognized );recognized = true;
-    }
-    if( const llvm::SwitchInst* t = llvm::dyn_cast<llvm::SwitchInst>(I) ) {
-  //     cfrontend_warning( "I am switch!!" );
-  //     assert( !recognized );recognized = true;
-    }
-    if( auto str = llvm::dyn_cast<llvm::CallInst>(I) ) {
-      if( auto dVal = llvm::dyn_cast<llvm::DbgValueInst>(I) ) {
-        // Ignore debug instructions
-      }else{
-        // todo... deal with callers
-        // cfrontend_warning( "I am caller!!" );
+        block_to_exit_bit.at(b) = fresh_bool();
       }
       assert( !recognized );recognized = true;
     }
-  //   // Store in term map the result of current instruction
-  //   if( record ) {
-  //     if( eHandler->isLocalVar( I ) ) {
-  //       typename EHandler::expr lp     = eHandler->getLocalVarNext( I );
-  //       typename EHandler::expr assign = eHandler->mkEq( lp, term );
-  //       blockTerms.push_back( assign );
-  //     }else{
-  //       const llvm::Value* v = I;
-  //       eHandler->insertMap( v, term, m);
-  //     }
-    // }
-  //   if( !recognized ) cfrontend_error( "----- failed to recognize!!" );
+    if( llvm::isa<llvm::SwitchInst>(I) ) {
+      if( o.print_input > 0 ) std::cerr << "switch statement found";
+      assert( !recognized );recognized = true;
+    }
+    if( auto call = llvm::dyn_cast<llvm::CallInst>(I) ) {
+      if( llvm::isa<llvm::DbgValueInst>(I) ) {
+        // Ignore debug instructions
+      }else{
+        llvm::Function* fp = call->getCalledFunction();
+        if( fp != NULL && ( fp->getName() == "_Z6fence" ) ) {
+          std::string loc_name = "fence__" + getInstructionLocationName( I );
+          auto barr = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+                                 loc_name, hb_enc::event_kind_t::barr );
+          p->add_event( thr_id, barr );
+          prev_events.clear(); prev_events.insert( barr );
+        }else{
+          if( o.print_input > 0 ) std::cerr << "Unknown caller";
+        }
+      }
+      assert( !recognized );recognized = true;
+    }
+    if( !recognized ) std::cerr << "----- failed to recognize!!";
   }
-  // // print_double_line( std::cout );
-  // //iterate over instructions and build
   return block_ssa;
 }
 

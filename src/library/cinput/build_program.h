@@ -135,10 +135,10 @@ namespace cinput {
     // z3:expr
     // getPhiMap( const llvm::PHINode* p, ValueExprMap& m );
 
-    z3::expr translateBlock( unsigned,
+    z3::expr translateBlock( unsigned thr_id,
                              const llvm::BasicBlock*,
                              hb_enc::se_set& prev_events,
-                             std::map<llvm::BasicBlock*,z3::expr>& );
+                             std::map<llvm::BasicBlock*,z3::expr>& conds );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
 

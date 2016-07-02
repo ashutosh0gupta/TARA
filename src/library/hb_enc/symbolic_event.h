@@ -138,15 +138,6 @@ namespace hb_enc {
     return e;
   }
 
-  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
-                           unsigned _tid, unsigned _instr_no,
-                           const cssa::variable& _v,
-                           const cssa::variable& _prog_v,
-                           std::string _loc, event_kind_t _et ) {
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                                _v, _prog_v, _loc, _et);
-    return e;
-  }
 
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
                            unsigned _tid, unsigned _instr_no,
@@ -158,13 +149,37 @@ namespace hb_enc {
     return e;
   }
 
+  //--------------------------------------------------------------------------
+  // new calls
+  // todo: streamline se allocation
+
   inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
-                           unsigned _tid, unsigned _instr_no,
-                           std::string _loc, event_kind_t _et ) {
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                            _loc, _et);
+                           unsigned _tid, se_set prev_events,
+                           const cssa::variable& _v,
+                           const cssa::variable& _prog_v,
+                           std::string _loc,
+                           event_kind_t _et ) {
+    unsigned max = 0;
+    for( const se_ptr e : prev_events)
+      if( max < e->get_instr_no()) max = e->get_instr_no();
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, max+1,
+                                                _v, _prog_v, _loc, _et);
+    e->set_pre_events( prev_events );
     return e;
   }
+
+  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+                           unsigned _tid, se_set prev_events,
+                           std::string _loc, event_kind_t _et ) {
+    unsigned max = 0;
+    for( const se_ptr e : prev_events)
+      if( max < e->get_instr_no() ) max = e->get_instr_no();
+    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, max+1,
+                                            _loc, _et);
+    e->set_pre_events( prev_events );
+    return e;
+  }
+  //--------------------------------------------------------------------------
 
   struct se_hash {
     size_t operator () (const se_ptr &v) const {
