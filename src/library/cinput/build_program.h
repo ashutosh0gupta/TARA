@@ -169,12 +169,12 @@ namespace cinput {
       auto it = localVars.find( g );
       if( it == localVars.end() ) return false;
       return true;
-    }
+     }
 
     int readInt( const llvm::ConstantInt* c ) {
       const llvm::APInt& n = c->getUniqueInteger();
       unsigned len = n.getNumWords();
-      if( len > 1 ) std::cerr << "long integers not supported!!";
+      if( len > 1 ) cinput_error( "long integers not supported!!" );
       const uint64_t *v = n.getRawData();
       return *v;
    }

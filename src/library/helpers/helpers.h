@@ -37,6 +37,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <stdexcept>
 
 #ifdef EXTERNAL_VERSION
 #define triggered_at ""
@@ -44,15 +45,26 @@
 #define triggered_at " (triggered at " <<  __FILE__ << ", " << __LINE__ << ")"
 #endif
 
-#ifdef DEBUG
-#define issue_error  assert( false );
-#else
-#define issue_error  std::exit( 1 );
-#endif
+// #ifdef DEBUG
+// #define issue_error  assert( false );
+// #else
+// #define issue_error  std::exit( 1 );
+// #endif
 
-#define tara_error( S ) { std::cerr << "# tara Error: " << S \
-                                    << triggered_at << std::endl; \
-                               issue_error }
+namespace tara {
+class tara_exception : public std::runtime_error
+{
+public:
+  tara_exception(const char* what) : runtime_error(what) {}
+  tara_exception(const std::string what) : runtime_error(what.c_str()) {}
+};
+}
+
+#define tara_error( M, S ) { std::stringstream ss;                   \
+                             ss << "# tara" << M << "Error: " << S   \
+                                << triggered_at << std::endl;        \
+                             throw tara::tara_exception( ss.str() ); }
+
 #define tara_warning( S ) { std::cerr << "# tara Warning: " << S \
                                       << std::endl; }
 

@@ -80,13 +80,13 @@ using namespace tara::helpers;
   }
 
 
-int readInt( const llvm::ConstantInt* c ) {
-  const llvm::APInt& n = c->getUniqueInteger();
-  unsigned len = n.getNumWords();
-  if( len > 1 ) cinput_error( "long integers not supported!!" );
-  const uint64_t *v = n.getRawData();
-  return *v;
-}
+// int readInt( const llvm::ConstantInt* c ) {
+//   const llvm::APInt& n = c->getUniqueInteger();
+//   unsigned len = n.getNumWords();
+//   if( len > 1 ) cinput_error( "long integers not supported!!" );
+//   const uint64_t *v = n.getRawData();
+//   return *v;
+// }
 
 
 std::string getInstructionLocationName(const llvm::Instruction* I ) {
@@ -258,7 +258,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
     bool longer_found = false;
     for( auto& old_h: hs ) if( sz != old_h.size() ) longer_found = true;
     if( longer_found ) {
-      throw cinput_exception( "histories can not be subset of each other!!" );
+      cinput_error( "histories can not be subset of each other!!" );
     }
   }else{
     z3::expr c = z3.mk_false();
@@ -302,19 +302,33 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
         unsigned bw = c->getBitWidth();
         if(bw > 1) {
-          fresh_int();
+          int i = readInt( c );
+          return z3.c.int_val(i);
         }else if(bw == 1) {
-          fresh_bool();
+          int i = readInt( c );
+          assert( i == 0 || i == 1 );
+          if( i == 1 ) z3.mk_true(); else z3.mk_false();
         }else
-          std::cerr << "unrecognized constant!";
+          cinput_error( "unrecognized constant!" );
+        // unsigned bw = c->getBitWidth();
+        // if(bw > 1) {
+        //   int i = readInt( c );
+        //   return z3.c.int_val(i);
+        //   fresh_int();
+        // }else if(bw == 1) {
+        //   return eHandler->mkIntVal( i );
+        //   fresh_bool();
+        // }else
+        //   std::cerr << "unrecognized constant!";
       }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
         // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
         return z3.c.int_val(0);
       }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
+        cinput_error( "non int constants are not implemented!!" );
         std::cerr << "un recognized constant!";
         //     // int i = readInt(c);
         //     // return eHandler->mkIntVal( i );
-      }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
+      }else if( llvm::isa<llvm::ConstantFP>(op) ) {
         // const llvm::APFloat& n = c->getValueAPF();
         // double v = n.convertToDouble();
         //return z3.c.real_val(v);
@@ -329,8 +343,8 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
         // const llvm::StructType* n = c->getType();
         cinput_error( "case for constant not implemented!!" );
-      }else if( auto c = llvm::isa<llvm::ConstantVector>(op) ) {
-        const llvm::VectorType* n = c->getType();
+      }else if( llvm::isa<llvm::ConstantVector>(op) ) {
+        // const llvm::VectorType* n = c->getType();
         cinput_error( "vector constant not implemented!!" );
       }else{
         auto it = m.find( op );
@@ -431,13 +445,15 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       // assert( !recognized );recognized = true;
       //block_ssa = block_ssa && ( ssa_var = getphiMap( phi, m ) );
       unsigned num = phi->getNumIncomingValues();
+      z3::expr phi_cons = z3.mk_false();
+      z3::expr ov = getTerm(I,m);
       for ( unsigned i = 0 ; i < num ; i++ ) {
         const llvm::BasicBlock* b = phi->getIncomingBlock(i);
         const llvm::Value* v_ = phi->getIncomingValue(i);
-	z3::expr v = getTerm (v_, m );
-	conds.at(b) && getTerm(I,m) == v;
+        z3::expr v = getTerm (v_, m );
+        z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
       }
-
+      block_ssa = block_ssa && phi_cons;
     }
 
     if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {

@@ -23,20 +23,16 @@
 #include <stdexcept>
 #include <helpers/helpers.h>
 
-namespace tara {
-namespace cinput {
-class cinput_exception : public std::runtime_error
-{
-public:
-  cinput_exception(const char* what) : runtime_error(what) {}
-  cinput_exception(const std::string what) : runtime_error(what.c_str()) {}
-};
-}}
+// namespace tara {
+// namespace cinput {
+// class cinput_exception : public std::runtime_error
+// {
+// public:
+//   cinput_exception(const char* what) : runtime_error(what) {}
+//   cinput_exception(const std::string what) : runtime_error(what.c_str()) {}
+// };
+// }}
 
-#define cinput_error( S ) {   std::stringstream ss;\
-                              ss << "# tara Error: " << S  \
-                                 << triggered_at << std::endl; \
-                              throw cinput_exception( ss.str() ); }
-
+#define cinput_error( S ) tara_error( "::cinput", S )
 
 #endif // TARA_CINPUT_EXCEPTION_H
