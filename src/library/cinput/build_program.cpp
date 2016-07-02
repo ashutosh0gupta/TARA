@@ -310,16 +310,6 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
           if( i == 1 ) z3.mk_true(); else z3.mk_false();
         }else
           cinput_error( "unrecognized constant!" );
-        // unsigned bw = c->getBitWidth();
-        // if(bw > 1) {
-        //   int i = readInt( c );
-        //   return z3.c.int_val(i);
-        //   fresh_int();
-        // }else if(bw == 1) {
-        //   return eHandler->mkIntVal( i );
-        //   fresh_bool();
-        // }else
-        //   std::cerr << "unrecognized constant!";
       }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
         // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
         return z3.c.int_val(0);
@@ -349,6 +339,17 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       }else{
         auto it = m.find( op );
         if( it == m.end() ) {
+          llvm::Type* ty = op->getType();
+          unsigned bw = op->getBitWidth();
+          if(bw > 1) {
+            int i = readInt( c );
+            return z3.c.int_val(i);
+            fresh_int();
+          }else if(bw == 1) {
+            return eHandler->mkIntVal( i );
+            fresh_bool();
+          }else
+            std::cerr << "unrecognized constant!";
           llvm::outs() << "\n";
           std::cerr << "local term not found!";
         }
