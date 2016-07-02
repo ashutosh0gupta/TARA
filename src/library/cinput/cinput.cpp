@@ -118,8 +118,8 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );
-  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
-  // passMan.add( llvm::createCFGPrinterPass() );
+  // passMan.add( new build_program( z3_, o, hb_encoding, p ) );
+  passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
   
   return p;

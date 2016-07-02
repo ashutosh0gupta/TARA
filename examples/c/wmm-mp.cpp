@@ -5,12 +5,18 @@ int x = 0, y=0;
 
 void assume( bool );
 void assert( bool );
+void fence();
 
 void* p0(void *) {
   // *((int *)a_ptr) = 2;
   assume( x > 0 );
+  // int a[5];
+  // int * b;
+  // b = a + 2;
+  // fence();
   x = 1;
   y = 1;
+  // *b = 2;
   return NULL;
 }
 

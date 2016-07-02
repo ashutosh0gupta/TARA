@@ -124,7 +124,7 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           assert( b->getType()->isIntegerTy(1) );
           llvm::BasicBlock* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
           br0->setSuccessor( br0_branch_idx, newDst );
-        }else{throw cinput_exception("unseen case!");}
+        }else{ cinput_error("unseen case!");}
         llvm::Value*      val1 = phi->getIncomingValue(1);
         llvm::BasicBlock* src1 = phi->getIncomingBlock(1);
         llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
@@ -138,8 +138,8 @@ void removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           // TODO: memory leaked here? what happend to br1 was it deleted??
           llvm::DeleteDeadBlock( phiBlock );
           removeBranchingOnPHINode( newBr );
-        }else{throw cinput_exception("unseen case, not known how to handle!");}
-      }else{throw cinput_exception("unseen case, not known how to handle!");}
+        }else{ cinput_error("unseen case, not known how to handle!"); }
+      }else{ cinput_error("unseen case, not known how to handle!"); }
     }
   }
 
@@ -377,21 +377,19 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       // assert( !recognized );recognized = true;
     }
 
-  //   if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
-  //     llvm::Value* v = ret->getReturnValue();
-  //     if( v ) {
+    if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
+      llvm::Value* v = ret->getReturnValue();
+      if( v ) {
   //       typename EHandler::expr retTerm = getTerm( v, m );
   //       //todo: use retTerm somewhere
-  //     }
-  //     if( config.verbose("mkthread") )
-  //       cfrontend_warning( "return value ignored!!" );
-  //     assert( !recognized );recognized = true;
-  //   }
-  //   if( auto unreach = llvm::dyn_cast<llvm::UnreachableInst>(I) ) {
-  //     if( config.verbose("mkthread") )
-  //       cfrontend_warning( "unreachable instruction ignored!!" );
-  //     assert( !recognized );recognized = true;
-  //   }
+      }
+      if( o.print_input > 0 ) std::cerr << "return value ignored!!";
+      assert( !recognized );recognized = true;
+    }
+    if( llvm::isa<llvm::UnreachableInst>(I) ) {
+      if( o.print_input > 0 ) std::cerr << "unreachable instruction ignored!!";
+      assert( !recognized );recognized = true;
+    }
 
     // UNSUPPORTED_INSTRUCTIONS( ReturnInst,      I );
     UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
@@ -406,28 +404,30 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       }
       assert( !recognized );recognized = true;
     }
-    if( llvm::isa<llvm::SwitchInst>(I) ) {
-      if( o.print_input > 0 ) std::cerr << "switch statement found";
-      assert( !recognized );recognized = true;
-    }
+    UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
+    // if( llvm::isa<llvm::SwitchInst>(I) ) {
+    //   cinput_error( "switch statement not supported yet!!");
+    //   assert( !recognized );recognized = true;
+    // }
     if( auto call = llvm::dyn_cast<llvm::CallInst>(I) ) {
       if( llvm::isa<llvm::DbgValueInst>(I) ) {
         // Ignore debug instructions
       }else{
         llvm::Function* fp = call->getCalledFunction();
-        if( fp != NULL && ( fp->getName() == "_Z6fence" ) ) {
+        if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
           std::string loc_name = "fence__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr );
           p->add_event( thr_id, barr );
           prev_events.clear(); prev_events.insert( barr );
         }else{
-          if( o.print_input > 0 ) std::cerr << "Unknown caller";
+          cinput_error( "Unknown function called");
+          if( o.print_input > 0 ) std::cerr << "Unknown function called";
         }
       }
       assert( !recognized );recognized = true;
     }
-    if( !recognized ) std::cerr << "----- failed to recognize!!";
+    if( !recognized ) cinput_error( "----- failed to recognize!!");
   }
   return block_ssa;
 }
