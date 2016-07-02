@@ -90,14 +90,17 @@ namespace cinput {
 
     //
     std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
+    z3::expr phi_instr = z3.mk_true();
+    z3::expr phi_cond = z3.mk_true();
 
     void join_histories( const std::vector<llvm::BasicBlock*> preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
-                         std::map<llvm::BasicBlock*,z3::expr>& conds
+                         std::map<const llvm::BasicBlock*,z3::expr>& conds
                          );
    z3::expr fresh_int();
    z3::expr fresh_bool();
+   z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
@@ -138,7 +141,7 @@ namespace cinput {
     z3::expr translateBlock( unsigned thr_id,
                              const llvm::BasicBlock*,
                              hb_enc::se_set& prev_events,
-                             std::map<llvm::BasicBlock*,z3::expr>& conds );
+                             std::map<const llvm::BasicBlock*,z3::expr>& conds );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
 

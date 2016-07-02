@@ -222,7 +222,7 @@ void
 build_program::join_histories( const std::vector< llvm::BasicBlock* > preds,
                                const std::vector< split_history >& hs,
                                split_history& h,
-                               std::map< llvm::BasicBlock*, z3::expr >& conds) {
+                               std::map< const llvm::BasicBlock*, z3::expr >& conds) {
   h.clear();
   if(hs.size() == 0 ) return;
   if(hs.size() == 1 ) {
@@ -291,7 +291,7 @@ z3::expr build_program::fresh_bool() {
 z3::expr build_program::translateBlock( unsigned thr_id,
                                         const llvm::BasicBlock* b,
                                         hb_enc::se_set& prev_events,
-                               std::map<llvm::BasicBlock*,z3::expr>& conds) {
+                               std::map<const llvm::BasicBlock*,z3::expr>& conds) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   // std::vector<typename EHandler::expr> blockTerms;
@@ -375,6 +375,15 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       
       // term = getPhiMap( phi, m);
       // assert( !recognized );recognized = true;
+      //block_ssa = block_ssa && ( ssa_var = getphiMap( phi, m ) );
+      unsigned num = phi->getNumIncomingValues();
+      for ( unsigned i = 0 ; i < num ; i++ ) {
+        const llvm::BasicBlock* b = phi->getIncomingBlock(i);
+        const llvm::Value* v_ = phi->getIncomingValue(i);
+	z3::expr v = getTerm (v_, m );
+	conds.at(b) && getTerm(I,m) == v;
+      }
+
     }
 
   //   if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
@@ -463,7 +472,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       preds.push_back( prev );
     }
     split_history h;
-    std::map<llvm::BasicBlock*, z3::expr> conds;
+    std::map<const llvm::BasicBlock*, z3::expr> conds;
     join_histories( preds, histories, h, conds);
     block_to_split_stack[src] = h;
 
