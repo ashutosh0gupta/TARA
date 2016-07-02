@@ -90,14 +90,17 @@ namespace cinput {
 
     //
     std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
+    z3::expr phi_instr = z3.mk_true();
+    z3::expr phi_cond = z3.mk_true();
 
     void join_histories( const std::vector<llvm::BasicBlock*> preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
-                         std::map<llvm::BasicBlock*,z3::expr>& conds
+                         std::map<const llvm::BasicBlock*,z3::expr>& conds
                          );
    z3::expr fresh_int();
    z3::expr fresh_bool();
+   z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
@@ -138,7 +141,7 @@ namespace cinput {
     z3::expr translateBlock( unsigned thr_id,
                              const llvm::BasicBlock*,
                              hb_enc::se_set& prev_events,
-                             std::map<llvm::BasicBlock*,z3::expr>& conds );
+                             std::map<const llvm::BasicBlock*,z3::expr>& conds );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
 
@@ -147,45 +150,46 @@ namespace cinput {
     // void applyPendingInsertEdges( unsigned );
 
     z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
-    if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-      unsigned bw = c->getBitWidth();
-      if(bw > 1) {
-        fresh_int();
-      }else if(bw == 1) {
-        fresh_bool();
-      }else
-	std::cerr << "unrecognized constant!";
-    }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
-    // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
-      return z3.c.int_val(0);
-    }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
-      std::cerr << "un recognized constant!";
-    //     // int i = readInt(c);
-    //     // return eHandler->mkIntVal( i );
-    }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
-      const llvm::APFloat& n = c->getValueAPF();
-      double v = n.convertToDouble();
-      //return z3.c.real_val(v);
-    }else if( auto c = llvm::dyn_cast<llvm::ConstantExpr>(op) ) {
-    }else if( auto c = llvm::dyn_cast<llvm::ConstantArray>(op) ) {
-      const llvm::ArrayType* n = c->getType();
-      unsigned len = n->getNumElements();
-      //return z3.c.arraysort();
-    }else if( auto c = llvm::dyn_cast<llvm::ConstantStruct>(op) ) {
-      const llvm::StructType* n = c->getType();
-    }else if( auto c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
-      const llvm::VectorType* n = c->getType();
+      if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
+        unsigned bw = c->getBitWidth();
+        if(bw > 1) {
+          fresh_int();
+        }else if(bw == 1) {
+          fresh_bool();
+        }else
+          std::cerr << "unrecognized constant!";
+      }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
+        // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
+        return z3.c.int_val(0);
+      }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
+        std::cerr << "un recognized constant!";
+        //     // int i = readInt(c);
+        //     // return eHandler->mkIntVal( i );
+      }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
+        const llvm::APFloat& n = c->getValueAPF();
+        double v = n.convertToDouble();
+        //return z3.c.real_val(v);
+      }else if( auto c = llvm::dyn_cast<llvm::ConstantExpr>(op) ) {
+      }else if( auto c = llvm::dyn_cast<llvm::ConstantArray>(op) ) {
+        const llvm::ArrayType* n = c->getType();
+        unsigned len = n->getNumElements();
+        //return z3.c.arraysort();
+      }else if( auto c = llvm::dyn_cast<llvm::ConstantStruct>(op) ) {
+        const llvm::StructType* n = c->getType();
+      }else if( auto c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
+        const llvm::VectorType* n = c->getType();
       }else{
-	 auto it = m.find( op );
-         if( it == m.end() ) {
-           llvm::outs() << "\n";
-	   std::cerr << "local term not found!";
-	 }
-         return it->second;
-	}
+        auto it = m.find( op );
+        if( it == m.end() ) {
+          llvm::outs() << "\n";
+          std::cerr << "local term not found!";
+        }
+        return it->second;
+      }
     }
 
-    void insert_term_map( const llvm::Value* op , z3::expr , ValueExprMap& m ) {
+    void insert_term_map( const llvm::Value* op , z3::expr e,ValueExprMap& m ) {
+      m.at(op) = e;
       // implement this
     }
     // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {
