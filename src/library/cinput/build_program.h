@@ -150,49 +150,7 @@ namespace cinput {
     // void addPendingInsertEdge( unsigned, unsigned, z3:expr);
     // void applyPendingInsertEdges( unsigned );
 
-    z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
-      if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-        unsigned bw = c->getBitWidth();
-        if(bw > 1) {
-          fresh_int();
-        }else if(bw == 1) {
-          fresh_bool();
-        }else
-          std::cerr << "unrecognized constant!";
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
-        // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
-        return z3.c.int_val(0);
-      }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
-        std::cerr << "un recognized constant!";
-        //     // int i = readInt(c);
-        //     // return eHandler->mkIntVal( i );
-      }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
-        // const llvm::APFloat& n = c->getValueAPF();
-        // double v = n.convertToDouble();
-        //return z3.c.real_val(v);
-        cinput_error( "Floating point constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantExpr>(op) ) {
-        cinput_error( "case for constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantArray>(op) ) {
-        // const llvm::ArrayType* n = c->getType();
-        // unsigned len = n->getNumElements();
-        //return z3.c.arraysort();
-        cinput_error( "case for constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
-        // const llvm::StructType* n = c->getType();
-        cinput_error( "case for constant not implemented!!" );
-      }else if( auto c = llvm::isa<llvm::ConstantVector>(op) ) {
-        const llvm::VectorType* n = c->getType();
-        cinput_error( "vector constant not implemented!!" );
-      }else{
-        auto it = m.find( op );
-        if( it == m.end() ) {
-          llvm::outs() << "\n";
-          std::cerr << "local term not found!";
-        }
-        return it->second;
-      }
-    }
+    z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m );
 
     void insert_term_map( const llvm::Value* op , z3::expr e,ValueExprMap& m ) {
       m.at(op) = e;
