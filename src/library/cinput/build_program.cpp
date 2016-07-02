@@ -299,62 +299,65 @@ z3::expr build_program::fresh_bool() {
 
 
 z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
-      if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
-        unsigned bw = c->getBitWidth();
+  if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
+    unsigned bw = c->getBitWidth();
+    if(bw > 1) {
+      int i = readInt( c );
+      return z3.c.int_val(i);
+    }else if(bw == 1) {
+      int i = readInt( c );
+      assert( i == 0 || i == 1 );
+      if( i == 1 ) z3.mk_true(); else z3.mk_false();
+    }else
+      cinput_error( "unrecognized constant!" );
+  }else if( llvm::isa<llvm::ConstantPointerNull>(op) ) {
+    cinput_error( "Constant pointer are not implemented!!" );
+    // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
+    return z3.c.int_val(0);
+  }else if( llvm::isa<llvm::Constant>(op) ) {
+    cinput_error( "non int constants are not implemented!!" );
+    std::cerr << "un recognized constant!";
+    //     // int i = readInt(c);
+    //     // return eHandler->mkIntVal( i );
+  }else if( llvm::isa<llvm::ConstantFP>(op) ) {
+    // const llvm::APFloat& n = c->getValueAPF();
+    // double v = n.convertToDouble();
+    //return z3.c.real_val(v);
+    cinput_error( "Floating point constant not implemented!!" );
+  }else if( llvm::isa<llvm::ConstantExpr>(op) ) {
+    cinput_error( "case for constant not implemented!!" );
+  }else if( llvm::isa<llvm::ConstantArray>(op) ) {
+    // const llvm::ArrayType* n = c->getType();
+    // unsigned len = n->getNumElements();
+    //return z3.c.arraysort();
+    cinput_error( "case for constant not implemented!!" );
+  }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
+    // const llvm::StructType* n = c->getType();
+    cinput_error( "case for constant not implemented!!" );
+  }else if( llvm::isa<llvm::ConstantVector>(op) ) {
+    // const llvm::VectorType* n = c->getType();
+    cinput_error( "vector constant not implemented!!" );
+  }else{
+    auto it = m.find( op );
+    if( it == m.end() ) {
+      llvm::Type* ty = op->getType();
+      if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
+        int bw = i_ty->getBitWidth();
         if(bw > 1) {
-          int i = readInt( c );
-          return z3.c.int_val(i);
+          z3::expr i =  fresh_int();
+          m.at(op) = i;
+          return i;
         }else if(bw == 1) {
-          int i = readInt( c );
-          assert( i == 0 || i == 1 );
-          if( i == 1 ) z3.mk_true(); else z3.mk_false();
-        }else
-          cinput_error( "unrecognized constant!" );
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantPointerNull>(op) ) {
-        // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
-        return z3.c.int_val(0);
-      }else if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
-        cinput_error( "non int constants are not implemented!!" );
-        std::cerr << "un recognized constant!";
-        //     // int i = readInt(c);
-        //     // return eHandler->mkIntVal( i );
-      }else if( llvm::isa<llvm::ConstantFP>(op) ) {
-        // const llvm::APFloat& n = c->getValueAPF();
-        // double v = n.convertToDouble();
-        //return z3.c.real_val(v);
-        cinput_error( "Floating point constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantExpr>(op) ) {
-        cinput_error( "case for constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantArray>(op) ) {
-        // const llvm::ArrayType* n = c->getType();
-        // unsigned len = n->getNumElements();
-        //return z3.c.arraysort();
-        cinput_error( "case for constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
-        // const llvm::StructType* n = c->getType();
-        cinput_error( "case for constant not implemented!!" );
-      }else if( llvm::isa<llvm::ConstantVector>(op) ) {
-        // const llvm::VectorType* n = c->getType();
-        cinput_error( "vector constant not implemented!!" );
-      }else{
-        auto it = m.find( op );
-        if( it == m.end() ) {
-          llvm::Type* ty = op->getType();
-          unsigned bw = op->getBitWidth();
-          if(bw > 1) {
-            int i = readInt( c );
-            return z3.c.int_val(i);
-            fresh_int();
-          }else if(bw == 1) {
-            return eHandler->mkIntVal( i );
-            fresh_bool();
-          }else
-            std::cerr << "unrecognized constant!";
-          llvm::outs() << "\n";
-          std::cerr << "local term not found!";
+          z3::expr bit =  fresh_bool();
+          m.at(op) = bit;
+          return bit;
         }
-        return it->second;
       }
+      cinput_error("unsupported type!!");
+    }
+    return it->second;
+  }
+  return z3.mk_true(); // dummy return to avoid warning
 }
 
 z3::expr build_program::translateBlock( unsigned thr_id,
@@ -550,6 +553,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     z3::expr ssa = translateBlock( thread_id, src, prev_events, conds);
     block_to_trailing_events[src] = prev_events;
     p->append_ssa( ssa );
+    if( o.print_input > 0 ) helpers::debug_print(ssa );
 
   //     typename EHandler::expr e = translateBlock( src, 0, exprMap );
 
