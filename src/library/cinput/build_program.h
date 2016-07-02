@@ -22,6 +22,7 @@
 
 #include <map>
 #include "cinput/cinput.h"
+#include "cinput/cinput_exception.h"
 #include "helpers/z3interf.h"
 #include "api/options.h"
 #include "helpers/helpers.h"
@@ -166,18 +167,23 @@ namespace cinput {
         //     // int i = readInt(c);
         //     // return eHandler->mkIntVal( i );
       }else if( auto* c = llvm::dyn_cast<llvm::ConstantFP>(op) ) {
-        const llvm::APFloat& n = c->getValueAPF();
-        double v = n.convertToDouble();
+        // const llvm::APFloat& n = c->getValueAPF();
+        // double v = n.convertToDouble();
         //return z3.c.real_val(v);
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantExpr>(op) ) {
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantArray>(op) ) {
-        const llvm::ArrayType* n = c->getType();
-        unsigned len = n->getNumElements();
+        cinput_error( "Floating point constant not implemented!!" );
+      }else if( llvm::isa<llvm::ConstantExpr>(op) ) {
+        cinput_error( "case for constant not implemented!!" );
+      }else if( llvm::isa<llvm::ConstantArray>(op) ) {
+        // const llvm::ArrayType* n = c->getType();
+        // unsigned len = n->getNumElements();
         //return z3.c.arraysort();
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantStruct>(op) ) {
-        const llvm::StructType* n = c->getType();
-      }else if( auto c = llvm::dyn_cast<llvm::ConstantVector>(op) ) {
+        cinput_error( "case for constant not implemented!!" );
+      }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
+        // const llvm::StructType* n = c->getType();
+        cinput_error( "case for constant not implemented!!" );
+      }else if( auto c = llvm::isa<llvm::ConstantVector>(op) ) {
         const llvm::VectorType* n = c->getType();
+        cinput_error( "vector constant not implemented!!" );
       }else{
         auto it = m.find( op );
         if( it == m.end() ) {
