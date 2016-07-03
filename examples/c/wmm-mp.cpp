@@ -2,6 +2,8 @@
 #include <stdio.h>
 
 int x = 0, y=0;
+bool z = 0;
+char w = 0;
 
 void assume( bool );
 void assert( bool );

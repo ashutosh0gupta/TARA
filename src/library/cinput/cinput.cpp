@@ -81,6 +81,23 @@ void c2bc( std::string& filename, std::string& outname ) {
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 
+z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
+  if( t->isIntegerTy() ) {
+    llvm::IntegerType* ity = (llvm::IntegerType*)t;
+    t->print( llvm::outs() );
+    llvm::outs() << " " << ity->getBitMask() << "\n";
+    if( t->isIntegerTy( 32 ) ) return c.int_sort();
+    if( t->isIntegerTy( 8 ) ) return c.bool_sort();
+  }
+  cinput_error( "only int and bool sorts are supported");
+  // return c.bv_sort(32); // needs to be added
+  // return c.bv_sort(16);
+  // return c.bv_sort(64);
+  // return c.bool_sort();
+  // return c.real_sort();
+  return c.int_sort(); // dummy return
+}
+
 //todo: add unique_ptr support
 program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
                                        api::options& o,
@@ -104,22 +121,24 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   }
   program* p = new program(z3_);
 
-  llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
+  // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 
   for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
     iter_glb != end_glb; ++iter_glb ) {
     llvm::GlobalVariable* glb = iter_glb;
-    if( glb->getType() != iptr )
-      std::cerr << (std::string)(glb->getName()) << " is not int32 type!";
     const std::string gvar = (std::string)(glb->getName());
-    // std::string gvarp = gvar + "__p";
-    p->add_global( gvar );
+    llvm::Type* ty = glb->getType();
+    if( auto pty = llvm::dyn_cast<llvm::PointerType>(ty) ) {
+      z3::sort sort = llvm_to_z3_sort( z3_.c, pty->getElementType() );
+      p->add_global( gvar, sort );
+    }else
+      cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );
-  // passMan.add( new build_program( z3_, o, hb_encoding, p ) );
-  passMan.add( llvm::createCFGPrinterPass() );
+  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
+  // passMan.add( llvm::createCFGPrinterPass() );
   passMan.run( *module.get() );
   
   return p;

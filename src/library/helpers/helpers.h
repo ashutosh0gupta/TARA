@@ -45,11 +45,6 @@
 #define triggered_at " (triggered at " <<  __FILE__ << ", " << __LINE__ << ")"
 #endif
 
-// #ifdef DEBUG
-// #define issue_error  assert( false );
-// #else
-// #define issue_error  std::exit( 1 );
-// #endif
 
 namespace tara {
 class tara_exception : public std::runtime_error
@@ -60,10 +55,16 @@ public:
 };
 }
 
+#ifndef NDEBUG
+#define issue_error( ss )  { std::cerr << ss << "\n"; assert( false );}
+#else
+#define issue_error( ss )  { throw tara::tara_exception( ss.str() ); }
+#endif
+
 #define tara_error( M, S ) { std::stringstream ss;                   \
-                             ss << "# tara" << M << "Error: " << S   \
+                             ss << "# tara" << M << " Error - " << S   \
                                 << triggered_at << std::endl;        \
-                             throw tara::tara_exception( ss.str() ); }
+                             issue_error( ss ); }
 
 #define tara_warning( S ) { std::cerr << "# tara Warning: " << S \
                                       << std::endl; }

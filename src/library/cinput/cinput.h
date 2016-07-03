@@ -24,6 +24,7 @@
 #include "helpers/z3interf.h"
 #include "api/options.h"
 #include "hb_enc/symbolic_event.h"
+#include "cinput/cinput_exception.h"
 
 namespace tara {
 namespace cinput {
@@ -71,8 +72,8 @@ namespace cinput {
       se_store[e->name()] = e;
     }
 
-    void add_global( std::string g ) {
-      globals.insert( cssa::variable(g, z3.c) );
+    void add_global( std::string g, z3::sort sort ) {
+      globals.insert( cssa::variable(g, sort) );
     }
 
     cssa::variable get_global( std::string gname ) {
@@ -80,6 +81,7 @@ namespace cinput {
         if( gname == g.name )
           return g;
       }
+      cinput_error( "global variable " << gname << " not found!" );
       cssa::variable g(z3.c); // dummy code to suppress warning
       return g;
     }

@@ -153,7 +153,9 @@ namespace cinput {
     z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m );
 
     void insert_term_map( const llvm::Value* op , z3::expr e,ValueExprMap& m ) {
-      m.at(op) = e;
+      auto pair = std::make_pair( op, e );
+      m.insert( pair );
+      // m.at(op) = e;
       // implement this
     }
     // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {

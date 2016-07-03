@@ -85,8 +85,10 @@ void options::interpret_options(po::variables_map& vm) {
           print_rounds++;
         else if (p=="output")
           print_output++;
+        else if (p=="input")
+          print_output++;
         else {
-          throw arg_exception("Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\".");
+          throw arg_exception("Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\",\"input\".");
         }
       }
     }

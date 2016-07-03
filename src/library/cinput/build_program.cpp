@@ -301,7 +301,7 @@ z3::expr build_program::fresh_bool() {
 z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
   if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
     unsigned bw = c->getBitWidth();
-    if(bw > 1) {
+    if( bw == 32 ) {
       int i = readInt( c );
       return z3.c.int_val(i);
     }else if(bw == 1) {
@@ -343,13 +343,15 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       llvm::Type* ty = op->getType();
       if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
         int bw = i_ty->getBitWidth();
-        if(bw > 1) {
+        if(bw == 32 ) {
           z3::expr i =  fresh_int();
-          m.at(op) = i;
+          insert_term_map( op, i, m );
+          // m.at(op) = i;
           return i;
         }else if(bw == 1) {
           z3::expr bit =  fresh_bool();
-          m.at(op) = bit;
+          insert_term_map( op, bit, m );
+          // m.at(op) = bit;
           return bit;
         }
       }
@@ -480,11 +482,8 @@ z3::expr build_program::translateBlock( unsigned thr_id,
     // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
     if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
-      if(  br->isConditional() ) {
-        block_to_exit_bit.at(b) = getTerm( br->getCondition(), m);
-      }else{
-        block_to_exit_bit.at(b) = fresh_bool();
-      }
+      z3::expr bit = getTerm( br->getCondition(), m);
+      block_to_exit_bit.insert( std::make_pair(b,bit) );
       assert( !recognized );recognized = true;
     }
     UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
