@@ -31,4 +31,7 @@ public:
 };
 }}
 
+#define hb_enc_error( S ) tara_error( "::hb_enc", S )
+
+
 #endif // TARA_CSSA_EXCEPTION_H

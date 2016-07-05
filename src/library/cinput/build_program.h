@@ -33,12 +33,17 @@
 #include "llvm/IR/Value.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/Support/raw_ostream.h"
-// #include "llvm/IR/Constants.h"
-// #include "llvm/Support/raw_ostream.h"
+#include "llvm/IR/Instructions.h"
+#include "llvm/IR/IntrinsicInst.h"
 #pragma GCC diagnostic pop
 
 namespace tara {
 namespace cinput {
+
+  std::string getInstructionLocationName(const llvm::Instruction* I );
+  void initBlockCount( llvm::Function &f,
+                       std::map<llvm::BasicBlock*, unsigned>& block_to_id);
+  void removeBranchingOnPHINode( llvm::BranchInst *branch );
 
   class split_step {
   public:
@@ -94,7 +99,7 @@ namespace cinput {
     z3::expr phi_instr = z3.mk_true();
     z3::expr phi_cond = z3.mk_true();
 
-    void join_histories( const std::vector<llvm::BasicBlock*> preds,
+    void join_histories( const std::vector<llvm::BasicBlock*>& preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
                          std::map<const llvm::BasicBlock*,z3::expr>& conds
@@ -167,11 +172,11 @@ namespace cinput {
     //   }
     //   return true;
     // }
-     bool isLocalVar( const llvm::Value* g  ) {
+    bool isLocalVar( const llvm::Value* g  ) {
       auto it = localVars.find( g );
       if( it == localVars.end() ) return false;
       return true;
-     }
+    }
 
     int readInt( const llvm::ConstantInt* c ) {
       const llvm::APInt& n = c->getUniqueInteger();
@@ -179,7 +184,7 @@ namespace cinput {
       if( len > 1 ) cinput_error( "long integers not supported!!" );
       const uint64_t *v = n.getRawData();
       return *v;
-   }
+    }
   };
 
 }}

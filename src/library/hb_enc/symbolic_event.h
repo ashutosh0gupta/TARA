@@ -34,10 +34,12 @@ namespace hb_enc {
   class location;
 
   enum class event_kind_t {
-      pre,  // initialization event
+    pre,  // initialization event
       r,    // read events
       w,    // write events
       barr, // barrier events
+      barr_b, // only order before events
+      barr_a, // only order after events
       post  // final event
       };
 

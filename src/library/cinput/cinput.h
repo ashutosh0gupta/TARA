@@ -39,10 +39,22 @@ namespace cinput {
   public:
     thread(helpers::z3interf& z3_, std::string name_):
       z3(z3_), name(name_) {}
+    hb_enc::se_ptr start_event, final_event;
     helpers::z3interf& z3;
     std::string name;
     hb_enc::se_vec events; // topologically sorted events
+    z3::expr phi_ssa = z3.mk_true();
+    z3::expr phi_prp = z3.mk_false();
     void add_event( hb_enc::se_ptr e ) { events.push_back( e ); }
+    void set_start_event( hb_enc::se_ptr e ) { start_event = e; }
+    void set_final_event( hb_enc::se_ptr e ) { final_event = e; }
+    void append_ssa( z3::expr e) {
+      phi_ssa = phi_ssa && e;
+    }
+
+    void append_property( z3::expr prp) {
+      phi_prp = phi_prp || prp;
+    }
   };
 
   class program {
@@ -50,26 +62,53 @@ namespace cinput {
     program(helpers::z3interf& z3_): z3(z3_) { add_thread("caller"); }
     helpers::z3interf& z3;
     cssa::variable_set globals;
-    z3::expr phi_ssa = z3.mk_true();
     std::map< unsigned, loc> inst_to_loc;
-    // std::map< unsigned, std::string> id_to_thr_name;
+    std::map< std::string, hb_enc::se_ptr> create_map, join_map;
     std::vector<thread> threads;
     hb_enc::name_to_ses_map se_store;
     unsigned thread_num = 0;
+
     unsigned add_thread( std::string str) {
-      // id_to_thr_name[thread_num++] = str;
       thread thr( z3, str );
       threads.push_back( thr );
       thread_num++;
       return thread_num-1;
-    };
-    void append_ssa( z3::expr e) {
-      phi_ssa = phi_ssa && e;
     }
+
+    void append_ssa( unsigned thread_id, z3::expr e) {
+      threads[thread_id].append_ssa( e );
+    }
+
+    void append_property( unsigned thread_id, z3::expr prp) {
+      threads[thread_id].append_property( prp );
+    }
+
 
     void add_event( unsigned i, hb_enc::se_ptr e ) {
       threads[i].add_event( e );
       se_store[e->name()] = e;
+    }
+
+    void set_start_event( unsigned i, hb_enc::se_ptr e ) {
+      threads[i].set_start_event( e );
+    }
+
+    void set_final_event( unsigned i, hb_enc::se_ptr e ) {
+      threads[i].set_final_event( e );
+    }
+
+    void add_create( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {
+      add_event( thr_id, e );
+      if( create_map.find( fname) != create_map.end() )
+        cinput_error( "function launch multiple times not supported!" );
+      create_map[ fname ] = e;
+    }
+
+    void add_join( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {
+      add_event( thr_id, e );
+      if( join_map.find( fname) != create_map.end() )
+        cinput_error( "function launch multiple times not supported!" );
+      join_map[ fname ] = e;
     }
 
     void add_global( std::string g, z3::sort sort ) {

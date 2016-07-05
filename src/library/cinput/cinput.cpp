@@ -83,9 +83,6 @@ void c2bc( std::string& filename, std::string& outname ) {
 
 z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
   if( t->isIntegerTy() ) {
-    llvm::IntegerType* ity = (llvm::IntegerType*)t;
-    t->print( llvm::outs() );
-    llvm::outs() << " " << ity->getBitMask() << "\n";
     if( t->isIntegerTy( 32 ) ) return c.int_sort();
     if( t->isIntegerTy( 8 ) ) return c.bool_sort();
   }
@@ -128,6 +125,12 @@ program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     llvm::GlobalVariable* glb = iter_glb;
     const std::string gvar = (std::string)(glb->getName());
     llvm::Type* ty = glb->getType();
+    if( o.print_input  > 0 ) {
+      llvm::outs() << "Global : " ;
+      glb->print( llvm::outs() );
+      llvm::outs() << "\n";
+      //ty->print( llvm::outs() ); llvm::outs() << " "
+    }
     if( auto pty = llvm::dyn_cast<llvm::PointerType>(ty) ) {
       z3::sort sort = llvm_to_z3_sort( z3_.c, pty->getElementType() );
       p->add_global( gvar, sort );

@@ -86,7 +86,7 @@ void options::interpret_options(po::variables_map& vm) {
         else if (p=="output")
           print_output++;
         else if (p=="input")
-          print_output++;
+          print_input++;
         else {
           throw arg_exception("Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\",\"input\".");
         }

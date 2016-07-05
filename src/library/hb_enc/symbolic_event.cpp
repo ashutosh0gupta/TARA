@@ -93,9 +93,11 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 {
   std::string event_name;
   switch( et ) {
-  case event_kind_t::barr: { event_name = "#barr";  break; }
-  case event_kind_t::pre : { event_name = "#pre" ;  break; }
-  case event_kind_t::post: { event_name = "#post";  break; }
+  case event_kind_t::barr: { event_name = "#barr";    break; }
+  case event_kind_t::barr_b: { event_name = "#barr_b";  break; }
+  case event_kind_t::barr_a: { event_name = "#barr_a";  break; }
+  case event_kind_t::pre : { event_name = "#pre" ;    break; }
+  case event_kind_t::post: { event_name = "#post";    break; }
   default: hb_enc_exception("unreachable code!!");
   }
   event_name = loc_name+event_name;
@@ -140,7 +142,7 @@ void symbolic_event::debug_print(std::ostream& stream ) {
 
 
 void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
-                                 std::ostream& out ) {
+                                       std::ostream& out ) {
   for (auto c : set) {
     out << *c << " ";
     }
