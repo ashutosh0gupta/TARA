@@ -81,19 +81,6 @@ void c2bc( std::string& filename, std::string& outname ) {
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 
-z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
-  if( t->isIntegerTy() ) {
-    if( t->isIntegerTy( 32 ) ) return c.int_sort();
-    if( t->isIntegerTy( 8 ) ) return c.bool_sort();
-  }
-  cinput_error( "only int and bool sorts are supported");
-  // return c.bv_sort(32); // needs to be added
-  // return c.bv_sort(16);
-  // return c.bv_sort(64);
-  // return c.bool_sort();
-  // return c.real_sort();
-  return c.int_sort(); // dummy return
-}
 
 //todo: add unique_ptr support
 program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,

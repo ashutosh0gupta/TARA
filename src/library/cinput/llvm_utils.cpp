@@ -67,6 +67,20 @@ using namespace tara::helpers;
 //----------------------------------------------------------------------------
 // LLVM utils
 
+z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
+  if( t->isIntegerTy() ) {
+    if( t->isIntegerTy( 32 ) ) return c.int_sort();
+    if( t->isIntegerTy( 8 ) ) return c.bool_sort();
+  }
+  cinput_error( "only int and bool sorts are supported");
+  // return c.bv_sort(32); // needs to be added
+  // return c.bv_sort(16);
+  // return c.bv_sort(64);
+  // return c.bool_sort();
+  // return c.real_sort();
+  return c.int_sort(); // dummy return
+}
+
 std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
   unsigned line = d.getLine();

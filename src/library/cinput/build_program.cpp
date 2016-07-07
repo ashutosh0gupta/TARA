@@ -252,7 +252,7 @@ translateBlock( unsigned thr_id,
         for( std::pair< z3::expr, cssa::variable > a_pair : p_set ) {
           z3::expr c = a_pair.first;
           cssa::variable gv = a_pair.second;
-          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond,
+          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond && c,
                                gv, loc_name, hb_enc::event_kind_t::w );
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
@@ -287,7 +287,8 @@ translateBlock( unsigned thr_id,
           for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ){
             z3::expr c = a_pair.first;
             cssa::variable gv = a_pair.second;
-            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events,
+                                 path_cond && c,
                                  gv, loc_name, hb_enc::event_kind_t::r );
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
@@ -302,15 +303,18 @@ translateBlock( unsigned thr_id,
         prev_events = new_events;
         assert( !recognized );recognized = true;
       }else if( auto alloc = llvm::dyn_cast<llvm::AllocaInst>(I) ) {
-        
-        // allocation on stack; pointer addrees may be passed to
-        // other pointers
-        if( alloc->hasName() ) {
-          auto str = (std::string)alloc->getName();
-          // does name matter??
-          std::cerr << str << "\n";
+        if( alloc->isArrayAllocation() ||
+            !alloc->getType()->getElementType()->isIntegerTy() ) {
+          cinput_error( "only pointers to intergers is allowed!" );
         }
-        cinput_error("unsupported alloc instruction!!" << "\n");
+        std::string alloc_name = "alloc__" + getInstructionLocationName( I );
+        z3::sort sort = llvm_to_z3_sort( z3.c,
+                                         alloc->getType()->getElementType() );
+        p->add_allocated( alloc_name, sort );
+        cssa::variable v = p->get_allocated( alloc_name );
+        points_set_t p_set = { std::make_pair( z3.mk_true(), v ) };
+        pointing pointing_( p_set );
+        points_to.insert( std::make_pair(alloc,pointing_) );//todo: remove ugly
       }else{
         cinput_error("unsupported uniary instruction!!" << "\n");
       }
@@ -420,17 +424,27 @@ translateBlock( unsigned thr_id,
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
                   argnum == 4 ) {
+          llvm::Value* thr_ptr = call->getArgOperand(0);
+          llvm::Value* v = call->getArgOperand(2);
+          if( !v->hasName() ) {
+            v->getType()->print( llvm::outs() ); llvm::outs() << "\n";
+            cinput_error( "unnamed call to function pointers is not supported!!");
+          }
           std::string loc_name = "create__" + getInstructionLocationName( I );
-          std::string fun_name = "pick the third argument";
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr_b );
-          p->add_create( thr_id, barr, fun_name );
+          std::string fname = (std::string)v->getName();
+          ptr_to_create[thr_ptr] = fname;
+          p->add_create( thr_id, barr, fname );
           prev_events.clear(); prev_events.insert( barr );
           // create
         }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
           // join
+          llvm::Value* val = call->getArgOperand(0);
+          auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
+          auto fname = ptr_to_create.at(thr_ptr);
+          ptr_to_create.erase( thr_ptr );
           std::string loc_name = "join__" + getInstructionLocationName( I );
-          std::string fname = "match the second argument";
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr_a );
           p->add_join( thr_id, barr, fname);

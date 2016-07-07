@@ -62,6 +62,7 @@ namespace cinput {
     program(helpers::z3interf& z3_): z3(z3_) { add_thread("caller"); }
     helpers::z3interf& z3;
     cssa::variable_set globals;
+    cssa::variable_set allocated; // temp allocations
     std::map< unsigned, loc> inst_to_loc;
     std::map< std::string, hb_enc::se_ptr> create_map, join_map;
     std::vector<thread> threads;
@@ -130,6 +131,21 @@ namespace cinput {
       cssa::variable g(z3.c); // dummy code to suppress warning
       return g;
     }
+
+    void add_allocated( std::string g, z3::sort sort ) {
+      allocated.insert( cssa::variable(g, sort) );
+    }
+
+    cssa::variable get_allocated( std::string gname ) {
+      for( auto& g : allocated ) {
+        if( gname == g.name )
+          return g;
+      }
+      cinput_error( "allocated name " << gname << " not found!" );
+      cssa::variable g(z3.c); // dummy code to suppress warning
+      return g;
+    }
+
   };
 
   program* parse_cpp_file( helpers::z3interf& z3_,

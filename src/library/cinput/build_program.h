@@ -40,10 +40,14 @@
 namespace tara {
 namespace cinput {
 
+  //----------------------------------
+  // should be moved to its own file
+  z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t );
   std::string getInstructionLocationName(const llvm::Instruction* I );
   void initBlockCount( llvm::Function &f,
                        std::map<llvm::BasicBlock*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
+  //-------------------------------------------------------
 
   class split_step {
   public:
@@ -70,7 +74,7 @@ namespace cinput {
   };
 
   // conditional pointing; conditions may overlap due to non-determinism
-  typedef std::set< std::pair< z3::expr, cssa::variable > > points_set_t;
+  typedef std::vector< std::pair< z3::expr, cssa::variable > > points_set_t;
 
   class build_program : public llvm::FunctionPass {
 
@@ -97,10 +101,10 @@ namespace cinput {
     std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
 
     class pointing {
+    public:
       pointing( points_set_t p_set_, z3::expr null_cond_ )
         : p_set(p_set_) { null_cond.insert( null_cond_ ); }
       pointing( points_set_t p_set_ ) : p_set(p_set_) {}
-    public:
       points_set_t p_set;
       std::set<z3::expr> null_cond;
       bool has_null() { return !null_cond.empty(); }
@@ -109,7 +113,10 @@ namespace cinput {
         return *null_cond.begin();
       }
     };
-    std::map< llvm::Value*, pointing > points_to;
+    std::map< const llvm::Value*, pointing > points_to;
+
+    //thread creation map
+    std::map< const llvm::Value*, std::string > ptr_to_create;
 
     //
     std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
