@@ -89,6 +89,12 @@ namespace cinput {
       se_store[e->name()] = e;
     }
 
+    void add_event( unsigned i, hb_enc::se_set es ) {
+      for( auto e : es ) {
+        add_event( i, e );
+      }
+    }
+
     void set_start_event( unsigned i, hb_enc::se_ptr e ) {
       threads[i].set_start_event( e );
     }

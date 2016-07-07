@@ -85,6 +85,7 @@ void
 build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
                                const std::vector< split_history >& hs,
                                split_history& h,
+                               z3::expr& path_cond,
                                std::map< const llvm::BasicBlock*, z3::expr >& conds) {
   h.clear();
   if(hs.size() == 0 ) return;
@@ -133,6 +134,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
     split_step ss( NULL, 0, 0, c);// todo: can store meaningful information
     h.push_back(ss);
   }
+  for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
 }
 
 z3::expr build_program::fresh_int() {
@@ -216,10 +218,13 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
   return z3.mk_true(); // dummy return to avoid warning
 }
 
-z3::expr build_program::translateBlock( unsigned thr_id,
-                                        const llvm::BasicBlock* b,
-                                        hb_enc::se_set& prev_events,
-                               std::map<const llvm::BasicBlock*,z3::expr>& conds) {
+z3::expr
+build_program::
+translateBlock( unsigned thr_id,
+                const llvm::BasicBlock* b,
+                hb_enc::se_set& prev_events,
+                z3::expr path_cond,
+                std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   // std::vector<typename EHandler::expr> blockTerms;
@@ -228,19 +233,89 @@ z3::expr build_program::translateBlock( unsigned thr_id,
     const llvm::Instruction* I = &(Iobj);
     assert( I );
     bool recognized = false;
-    if( auto wr = llvm::dyn_cast<llvm::StoreInst>(I) ) {
-      llvm::Value* v = wr->getOperand(0);
-      llvm::GlobalVariable* g = (llvm::GlobalVariable*)wr->getOperand(1);
-      cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+    if( auto store = llvm::dyn_cast<llvm::StoreInst>(I) ) {
+      llvm::Value* addr = store->getOperand(1);
       std::string loc_name = getInstructionLocationName( I );
-      cssa::variable ssa_var = gv + "#" + loc_name;
-      auto wr_e = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
-                             ssa_var, gv, loc_name, hb_enc::event_kind_t::w );
-      prev_events.clear(); prev_events.insert( wr_e );
-      block_ssa = block_ssa && ( ssa_var == getTerm( v, m ));
-      p->add_event( thr_id, wr_e );
+      z3::expr val = getTerm( store->getOperand(0), m );
+      hb_enc::se_set new_events;
+      if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
+        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                             gv, loc_name, hb_enc::event_kind_t::w );
+        new_events.insert( wr );
+        block_ssa = block_ssa && ( wr->v == val );
+      }else{
+        if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
+          cinput_error( "non pointer dereferenced!" );
+        // How to deal with null??
+        auto& p_set = points_to.at(addr).p_set;
+        for( std::pair< z3::expr, cssa::variable > a_pair : p_set ) {
+          z3::expr c = a_pair.first;
+          cssa::variable gv = a_pair.second;
+          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond,
+                               gv, loc_name, hb_enc::event_kind_t::w );
+          block_ssa = block_ssa && implies( c , ( wr->v == val ) );
+          new_events.insert( wr);
+        }
+        if( points_to.at(addr).has_null() ) {
+          z3::expr null_cond = points_to.at(addr).get_null_cond();
+          // assert that this can not happen;
+          cinput_error( "potentially null access in not supported yet!" );
+        }
+      }
+      p->add_event( thr_id, new_events );
+      prev_events = new_events;
       assert( !recognized );recognized = true;
     }
+
+    if( llvm::isa<llvm::UnaryInstruction>(I) ) {
+      if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
+        llvm::Value* addr = load->getOperand(0);
+        std::string loc_name = getInstructionLocationName( I );
+        z3::expr l_v = getTerm( I, m);
+        hb_enc::se_set new_events;
+        if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
+          cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+          auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                               gv, loc_name, hb_enc::event_kind_t::r );
+          new_events.insert( rd );
+          block_ssa = block_ssa && ( rd->v == l_v);
+        }else{
+          if( !llvm::isa<llvm::PointerType>(addr->getType()) )
+            cinput_error( "non pointer dereferenced!" );
+          auto& potinted_set = points_to.at(addr).p_set;
+          for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ){
+            z3::expr c = a_pair.first;
+            cssa::variable gv = a_pair.second;
+            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                                 gv, loc_name, hb_enc::event_kind_t::r );
+            block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
+            new_events.insert( rd );
+          }
+          if( points_to.at(addr).has_null() ) {
+            z3::expr null_cond = points_to.at(addr).get_null_cond();
+            // assert that this can not happen;
+            cinput_error( "potentially null access in not supported yet!" );
+          }
+        }
+        p->add_event( thr_id, new_events );
+        prev_events = new_events;
+        assert( !recognized );recognized = true;
+      }else if( auto alloc = llvm::dyn_cast<llvm::AllocaInst>(I) ) {
+        
+        // allocation on stack; pointer addrees may be passed to
+        // other pointers
+        if( alloc->hasName() ) {
+          auto str = (std::string)alloc->getName();
+          // does name matter??
+          std::cerr << str << "\n";
+        }
+        cinput_error("unsupported alloc instruction!!" << "\n");
+      }else{
+        cinput_error("unsupported uniary instruction!!" << "\n");
+      }
+    }
+
     if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
@@ -260,22 +335,7 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       }
       assert( !recognized );recognized = true;
     }
-    if( llvm::isa<llvm::UnaryInstruction>(I) ) {
-      if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
-        llvm::GlobalVariable* g = (llvm::GlobalVariable*)load->getOperand(0);
-        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
-        std::string loc_name = getInstructionLocationName( I );
-        cssa::variable ssa_var = gv + "#" + loc_name;
-        auto rd_e = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
-                               ssa_var, gv, loc_name, hb_enc::event_kind_t::r );
-        prev_events.clear(); prev_events.insert( rd_e );
-        z3::expr l_v = getTerm( I, m);
-        block_ssa = block_ssa && ( ssa_var == l_v);
-        assert( !recognized );recognized = true;
-      }else{
-        cinput_error("unsupported uniary instruction!!" << "\n");
-      }
-    }
+
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 );
       llvm::Value* rhs = cmp->getOperand( 1 );
@@ -284,37 +344,38 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
 
       switch( pred ) {
-      case llvm::CmpInst::ICMP_EQ : insert_term_map( I, l==r, m ); break;
-      case llvm::CmpInst::ICMP_NE : insert_term_map( I, l!=r, m ); break;
-      case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l>r, m ); break;
+      case llvm::CmpInst::ICMP_EQ  : insert_term_map( I, l==r, m ); break;
+      case llvm::CmpInst::ICMP_NE  : insert_term_map( I, l!=r, m ); break;
+      case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l> r, m ); break;
       case llvm::CmpInst::ICMP_UGE : insert_term_map( I, l>=r, m ); break;
-      case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l<r, m ); break;
+      case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l< r, m ); break;
       case llvm::CmpInst::ICMP_ULE : insert_term_map( I, l<=r, m ); break;
-      case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l>r, m ); break;
+      case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l> r, m ); break;
       case llvm::CmpInst::ICMP_SGE : insert_term_map( I, l>=r, m ); break;
-      case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l<r, m ); break;
+      case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l< r, m ); break;
       case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
       default: {
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
-     }
+      }
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
-      
-      // term = getPhiMap( phi, m);
-      // assert( !recognized );recognized = true;
-      //block_ssa = block_ssa && ( ssa_var = getphiMap( phi, m ) );
       unsigned num = phi->getNumIncomingValues();
-      z3::expr phi_cons = z3.mk_false();
-      z3::expr ov = getTerm(I,m);
-      for ( unsigned i = 0 ; i < num ; i++ ) {
-        const llvm::BasicBlock* b = phi->getIncomingBlock(i);
-        const llvm::Value* v_ = phi->getIncomingValue(i);
-        z3::expr v = getTerm (v_, m );
-        z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
+      if( phi->getType()->isIntegerTy() ) {
+        z3::expr phi_cons = z3.mk_false();
+        z3::expr ov = getTerm(I,m);
+        for ( unsigned i = 0 ; i < num ; i++ ) {
+          const llvm::BasicBlock* b = phi->getIncomingBlock(i);
+          const llvm::Value* v_ = phi->getIncomingValue(i);
+          z3::expr v = getTerm (v_, m );
+          z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
+        }
+        block_ssa = block_ssa && phi_cons;
+        assert( !recognized );recognized = true;
+      }else{
+        cinput_error("phi nodes with non integers not supported !!");
       }
-      block_ssa = block_ssa && phi_cons;
     }
 
     if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
@@ -331,7 +392,6 @@ z3::expr build_program::translateBlock( unsigned thr_id,
       // assert( !recognized );recognized = true;
     }
 
-    // UNSUPPORTED_INSTRUCTIONS( ReturnInst,      I );
     UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
     UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
     // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
@@ -354,7 +414,7 @@ z3::expr build_program::translateBlock( unsigned thr_id,
         unsigned argnum = call->getNumArgOperands();
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
           std::string loc_name = "fence__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr );
           p->add_event( thr_id, barr );
           prev_events.clear(); prev_events.insert( barr );
@@ -362,16 +422,16 @@ z3::expr build_program::translateBlock( unsigned thr_id,
                   argnum == 4 ) {
           std::string loc_name = "create__" + getInstructionLocationName( I );
           std::string fun_name = "pick the third argument";
-          auto barr = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr_b );
           p->add_create( thr_id, barr, fun_name );
           prev_events.clear(); prev_events.insert( barr );
           // create
         }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
           // join
-          std::string loc_name = "create__" + getInstructionLocationName( I );
+          std::string loc_name = "join__" + getInstructionLocationName( I );
           std::string fname = "match the second argument";
-          auto barr = mk_se_ptr( z3.c, hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  loc_name, hb_enc::event_kind_t::barr_a );
           p->add_join( thr_id, barr, fname);
           prev_events.clear(); prev_events.insert( barr );
@@ -396,7 +456,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   initBlockCount( f, block_to_id );
 
-  auto start = mk_se_ptr( z3.c, hb_encoding, thread_id, prev_events,
+  auto start = mk_se_ptr( hb_encoding, thread_id, prev_events,
                           name, hb_enc::event_kind_t::barr );
   p->set_start_event( thread_id, start);
   prev_events.insert( start );
@@ -425,14 +485,15 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     }
     split_history h;
     std::map<const llvm::BasicBlock*, z3::expr> conds;
-    join_histories( preds, histories, h, conds);
+    z3::expr path_cond = z3.mk_true();
+    join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
 
     if( src->hasName() && (src->getName() == "err") ) {
       for( auto pair_ : conds ) p->append_property( thread_id, pair_.second );
       continue;
     }
-    z3::expr ssa = translateBlock( thread_id, src, prev_events, conds);
+    z3::expr ssa = translateBlock(thread_id, src, prev_events,path_cond,conds);
     block_to_trailing_events[src] = prev_events;
     if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
       final_prev_events.insert( prev_events.begin(), prev_events.end() );
@@ -442,7 +503,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     if( o.print_input > 0 ) helpers::debug_print(ssa );
   }
 
-  auto final = mk_se_ptr( z3.c, hb_encoding, thread_id, final_prev_events,
+  auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events,
                           name+"_final", hb_enc::event_kind_t::barr );
   p->set_final_event( thread_id, final);
 

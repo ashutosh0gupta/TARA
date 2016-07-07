@@ -155,29 +155,33 @@ namespace hb_enc {
   // new calls
   // todo: streamline se allocation
 
-  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+  inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
                            unsigned _tid, se_set prev_events,
-                           const cssa::variable& _v,
+                           z3::expr cond,
+                           // const cssa::variable& _v,
                            const cssa::variable& _prog_v,
                            std::string _loc,
                            event_kind_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_instr_no()) max = e->get_instr_no();
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, max+1,
-                                                _v, _prog_v, _loc, _et);
+    cssa::variable ssa_var = _prog_v + "#" + _loc;
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, max+1,
+                                                 ssa_var, _prog_v, _loc, _et);
+    e->guard = cond;
     e->set_pre_events( prev_events );
     return e;
   }
 
-  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+  inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
                            unsigned _tid, se_set prev_events,
                            std::string _loc, event_kind_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_instr_no() ) max = e->get_instr_no();
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, max+1,
-                                            _loc, _et);
+    se_ptr e = std::make_shared<symbolic_event>(_hb_enc.ctx, _hb_enc, _tid,
+                                                max+1,
+                                                _loc, _et);
     e->set_pre_events( prev_events );
     return e;
   }

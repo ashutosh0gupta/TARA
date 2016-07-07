@@ -69,6 +69,8 @@ namespace cinput {
     virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const;
   };
 
+  // conditional pointing; conditions may overlap due to non-determinism
+  typedef std::set< std::pair< z3::expr, cssa::variable > > points_set_t;
 
   class build_program : public llvm::FunctionPass {
 
@@ -94,6 +96,21 @@ namespace cinput {
     std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
     std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
 
+    class pointing {
+      pointing( points_set_t p_set_, z3::expr null_cond_ )
+        : p_set(p_set_) { null_cond.insert( null_cond_ ); }
+      pointing( points_set_t p_set_ ) : p_set(p_set_) {}
+    public:
+      points_set_t p_set;
+      std::set<z3::expr> null_cond;
+      bool has_null() { return !null_cond.empty(); }
+      z3::expr get_null_cond() {
+        assert( null_cond.size() == 1 );
+        return *null_cond.begin();
+      }
+    };
+    std::map< llvm::Value*, pointing > points_to;
+
     //
     std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
     z3::expr phi_instr = z3.mk_true();
@@ -102,6 +119,7 @@ namespace cinput {
     void join_histories( const std::vector<llvm::BasicBlock*>& preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
+                         z3::expr& path_cond,
                          std::map<const llvm::BasicBlock*,z3::expr>& conds
                          );
    z3::expr fresh_int();
@@ -147,6 +165,7 @@ namespace cinput {
     z3::expr translateBlock( unsigned thr_id,
                              const llvm::BasicBlock*,
                              hb_enc::se_set& prev_events,
+                             z3::expr path_cond,
                              std::map<const llvm::BasicBlock*,z3::expr>& conds );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
