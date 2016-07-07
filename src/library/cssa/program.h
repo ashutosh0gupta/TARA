@@ -86,30 +86,19 @@ public:
   hb_enc::var_to_ses_map wr_events;
   hb_enc::var_to_se_vec_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
-  // class isEq{
-  // public:
-  //   inline bool operator( )( const z3::expr& a, const z3::expr&b ) {
-  //     // return z3::eq(a,b);
-  //     const Z3_ast ap = a;
-  //     const Z3_ast bp = b;
-  //     return ap == bp;
-  //   }
-  // };
-  // std::map<z3::expr, std::pair<se_ptr,se_ptr>, isEq > reading_map;
   std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
 private:
   void wmm_build_cssa_thread( const input::program& input );
   void wmm_build_ssa( const input::program& input );
-  void wmm_mk_distinct_events();
-  void wmm_build_threads( const input::program& input );
-  void wmm_build_hb( const input::program& input ); // should be removed
   void wmm_build_pre( const input::program& input );
   void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
-  void wmm_build_pis(std::vector<pi_needed>& pis, const input::program& input);
   void wmm(const input::program& input);
+
+  void wmm_event_cons();
+  void wmm_mk_distinct_events();
   void wmm_build_ses();
   void wmm_build_barrier();
-  void wmm_add_barrier(int tid, int instr);
+  // void wmm_add_barrier(int tid, int instr);
 
   z3::expr wmm_insert_tso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
   z3::expr wmm_insert_pso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
@@ -158,18 +147,18 @@ public:
   void unsupported_mm() const;
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
-  z3::expr wf      = _z3.c.bool_val(true);
-  z3::expr rf      = _z3.c.bool_val(true);
-  z3::expr grf     = _z3.c.bool_val(true);
-  z3::expr ws      = _z3.c.bool_val(true);
-  z3::expr thin    = _z3.c.bool_val(true);
+  z3::expr wf      = _z3.mk_true();
+  z3::expr rf      = _z3.mk_true();
+  z3::expr grf     = _z3.mk_true();
+  z3::expr ws      = _z3.mk_true();
+  z3::expr thin    = _z3.mk_true();
 
-  z3::expr fr      = _z3.c.bool_val(true);
-  z3::expr rf_some = _z3.c.bool_val(true);
-  z3::expr rf_ws   = _z3.c.bool_val(true);
-  z3::expr rf_grf  = _z3.c.bool_val(true);
-  z3::expr rf_val  = _z3.c.bool_val(true);
-  z3::expr phi_post = _z3.c.bool_val(true);
+  z3::expr fr      = _z3.mk_true();
+  z3::expr rf_some = _z3.mk_true();
+  z3::expr rf_ws   = _z3.mk_true();
+  z3::expr rf_grf  = _z3.mk_true();
+  z3::expr rf_val  = _z3.mk_true();
+  z3::expr phi_post = _z3.mk_true();
 
   //--------------------------------------------------------------------------
   //end of wmm support

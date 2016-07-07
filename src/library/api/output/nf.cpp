@@ -83,9 +83,6 @@ void nf::prune_simple(nf::result_type& result, const z3::expr& po)
   z3interf::remove_implied<row_type>(po, result, translator);
 }
 
-//--------------------------------------------------------------------------
-//start of wmm support
-//--------------------------------------------------------------------------
 void nf::sort_result( nf::result_type& result ) {
   for(list<row_type>::iterator it = result.begin(); it != result.end(); it++) {
     row_type& conj = *it;
@@ -94,196 +91,7 @@ void nf::sort_result( nf::result_type& result ) {
   result.sort();
 }
 
-void nf::get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const
-{
-	unsigned index1=0,index2=0,obj_count,curr=0,row=0,col=0,cycle=0,count;
-	std::vector< std::vector < bool > > Adjacency_Matrix;
-	Adjacency_Matrix=prog.build_po();
-	unsigned size_of_matrix=Adjacency_Matrix.size();
-	int trav_next_index=0;
-	//std::unordered_map<unsigned,std::string>index_to_instr_name;
-
-	graph_vertices obj[size_of_matrix];
-	std::stack<graph_vertices*> Adj_Mat;
-	std::stack<graph_vertices> Copy;
-
-	if(result.size()<1)
-		cout<<"Less than 1";
-	for(list<row_type>::const_iterator conj = result.begin(); conj != result.end(); conj++)
-	{
-		if (!machine_readable && conj->size()>1)
-		{
-			for (auto hb = conj->begin(); hb != conj->end(); hb++)
-			{
-				index1=0,index2=0;
-				auto hb1 = *hb;
-				if (!machine_readable)
-				{
-					for(int i = 0; i < hb1.loc1->thread; i++)
-					{
-						index1+=prog.no_of_instructions(i);
-					}
-					index1+=hb1.loc1->instr_no;
-
-					for(int i = 0; i < hb1.loc2->thread; i++)
-					{
-						index2+=prog.no_of_instructions(i);
-					}
-					index2+=hb1.loc2->instr_no;
-					Adjacency_Matrix[index1][index2]=true;
-					obj[index1].type=2;
-				}
-			}
-		}
-	}
-
-	obj_count=0;
-	index1=0;
-	count=0;
-	for (row=0; row < size_of_matrix; ++row)
-	{
-		if(count < prog.no_of_instructions(index1))
-		{
-			obj[row].name=prog.instr_name(index1,count);
-		}
-		else
-		{
-			index2=index1;
-			while(count >= prog.no_of_instructions(index2))
-			{
-				count-=prog.no_of_instructions(index2);
-				index2++;
-			}
-			index1++;
-			if(count < prog.no_of_instructions(index1))
-			{
-				obj[row].name=prog.instr_name(index1,count);
-			}
-		}
-		obj[obj_count].index=row;
-		obj[obj_count].is_traversed=false;
-		if(detect_multiple_ones(Adjacency_Matrix[row]))
-		{
-			obj[obj_count].multiple=true;
-		}
-		else
-			obj[obj_count].multiple=false;
-		obj[obj_count].next_index=detect_next_one(Adjacency_Matrix[row],-1);
-		obj_count++;
-		count++;
-	}
-
-
-	for(row=0;row<size_of_matrix;row++)
-	{
-		for(col=0;col<size_of_matrix;col++)
-		{
-			cout<<Adjacency_Matrix[row][col]<<"\t";
-		}
-		cout<<"\n";
-	}
-
-
-	trav_next_index=0,index1=0,obj_count=0;
-
-
-	while(graph_vertices::index_count!=size_of_matrix)		//we want to travel every vertex and every edge
-	{
-		do
-		{
-			if(trav_next_index==-1)
-			{
-				if(Adj_Mat.empty())
-					break;
-				Adj_Mat.top()->next_index=detect_next_one(Adjacency_Matrix[Adj_Mat.top()->index],-1);
-				Adj_Mat.pop();
-				Copy.pop();
-				if(Adj_Mat.empty())
-					break;
-				curr=Adj_Mat.top()->index;
-				trav_next_index=Adj_Mat.top()->next_index;
-				if(Adj_Mat.top()->is_traversed==true)
-				{
-					continue;
-				}
-			}
-			curr=trav_next_index;
-			trav_next_index=obj[curr].next_index;
-			Adj_Mat.push(&obj[curr]);
-			Copy.push(obj[curr]);
-			obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
-
-			if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
-			{
-				obj[curr].is_traversed=true;
-				graph_vertices::index_count++;
-			}
-
-			while(trav_next_index==-1)			//if there is an edge then add the (destination) vertex to the stack
-			{
-				if(Adj_Mat.empty())
-					break;
-				Adj_Mat.top()->next_index=detect_next_one(Adjacency_Matrix[Adj_Mat.top()->index],-1);
-				Adj_Mat.pop();
-				Copy.pop();
-				if(Adj_Mat.empty())
-					break;
-				curr=Adj_Mat.top()->index;
-				if(Adj_Mat.top()->multiple)
-				{
-					trav_next_index=Adj_Mat.top()->next_index;
-					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
-					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
-					{
-						obj[curr].is_traversed=true;
-						graph_vertices::index_count++;
-					}
-				}
-				else
-					trav_next_index=-1;
-			}
-			if(Adj_Mat.empty())
-				break;
-			cycle=cycles_detected(Copy,obj[trav_next_index]);
-			//todo: improve the while condition obj[trav_next_index] will crash if trav_next_index==-1
-			while(cycle && trav_next_index!=-1) //Detect cycles
-			{
-				if(cycle==2)
-				{
-					search_cycles(Copy,obj[trav_next_index],trav_next_index);
-					trav_next_index=obj[curr].next_index;
-					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
-					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
-					{
-						obj[curr].is_traversed=true;
-						graph_vertices::index_count++;
-					}
-				}
-				else
-				{
-					trav_next_index=obj[curr].next_index;
-					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
-					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
-					{
-						obj[curr].is_traversed=true;
-						graph_vertices::index_count++;
-					}
-					break;
-				}
-			}
-		}while(!Adj_Mat.empty());
-		obj_count=0;
-		while(obj[obj_count].is_traversed==true)
-			obj_count++;
-		trav_next_index=obj[obj_count].index;
-		}
-}
-
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
-
-void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify) const
+void nf::print(ostream& stream, bool machine_readable, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify) const
 {
   ready_or_throw();
 
@@ -291,7 +99,6 @@ void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad
   if (bad_dnf) {
     if (print_header) stream << "Bad DNF" << endl;
     print_one(stream, machine_readable, get_result(true, true), true);
-    // if(Show_Cycle) get_cycles(get_result(true,true),*program,false,true);
     if (verify) verify_result(stream, true, get_result_expr(true, true));
     if (print_header) stream << endl;
   }
@@ -318,8 +125,7 @@ void nf::print(ostream& stream, bool machine_readable, bool Show_Cycle, bool bad
 
 void nf::print(ostream& stream, bool machine_readable) const
 {
-  print(stream, machine_readable,false,bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
-	//print(stream, machine_readable,false,false, true, good_dnf,good_cnf , verify);
+  print(stream, machine_readable, bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
 }
 
 void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type& result, bool dnf_not_cnf)
@@ -501,3 +307,191 @@ void nf::gather_statistics(api::metric& metric) const
     metric.sum_hbs_after += row.size();
   }
 }
+
+//----------------------------------------------------------------------------
+// To be deleted
+
+// void nf::get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const
+// {
+// 	unsigned index1=0,index2=0,obj_count,curr=0,row=0,col=0,cycle=0,count;
+// 	std::vector< std::vector < bool > > Adjacency_Matrix;
+// 	Adjacency_Matrix=prog.build_po();
+// 	unsigned size_of_matrix=Adjacency_Matrix.size();
+// 	int trav_next_index=0;
+// 	//std::unordered_map<unsigned,std::string>index_to_instr_name;
+
+// 	graph_vertices obj[size_of_matrix];
+// 	std::stack<graph_vertices*> Adj_Mat;
+// 	std::stack<graph_vertices> Copy;
+
+// 	if(result.size()<1)
+// 		cout<<"Less than 1";
+// 	for(list<row_type>::const_iterator conj = result.begin(); conj != result.end(); conj++)
+// 	{
+// 		if (!machine_readable && conj->size()>1)
+// 		{
+// 			for (auto hb = conj->begin(); hb != conj->end(); hb++)
+// 			{
+// 				index1=0,index2=0;
+// 				auto hb1 = *hb;
+// 				if (!machine_readable)
+// 				{
+// 					for(int i = 0; i < hb1.loc1->thread; i++)
+// 					{
+// 						index1+=prog.no_of_instructions(i);
+// 					}
+// 					index1+=hb1.loc1->instr_no;
+
+// 					for(int i = 0; i < hb1.loc2->thread; i++)
+// 					{
+// 						index2+=prog.no_of_instructions(i);
+// 					}
+// 					index2+=hb1.loc2->instr_no;
+// 					Adjacency_Matrix[index1][index2]=true;
+// 					obj[index1].type=2;
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	obj_count=0;
+// 	index1=0;
+// 	count=0;
+// 	for (row=0; row < size_of_matrix; ++row)
+// 	{
+// 		if(count < prog.no_of_instructions(index1))
+// 		{
+// 			obj[row].name=prog.instr_name(index1,count);
+// 		}
+// 		else
+// 		{
+// 			index2=index1;
+// 			while(count >= prog.no_of_instructions(index2))
+// 			{
+// 				count-=prog.no_of_instructions(index2);
+// 				index2++;
+// 			}
+// 			index1++;
+// 			if(count < prog.no_of_instructions(index1))
+// 			{
+// 				obj[row].name=prog.instr_name(index1,count);
+// 			}
+// 		}
+// 		obj[obj_count].index=row;
+// 		obj[obj_count].is_traversed=false;
+// 		if(detect_multiple_ones(Adjacency_Matrix[row]))
+// 		{
+// 			obj[obj_count].multiple=true;
+// 		}
+// 		else
+// 			obj[obj_count].multiple=false;
+// 		obj[obj_count].next_index=detect_next_one(Adjacency_Matrix[row],-1);
+// 		obj_count++;
+// 		count++;
+// 	}
+
+
+// 	for(row=0;row<size_of_matrix;row++)
+// 	{
+// 		for(col=0;col<size_of_matrix;col++)
+// 		{
+// 			cout<<Adjacency_Matrix[row][col]<<"\t";
+// 		}
+// 		cout<<"\n";
+// 	}
+
+
+// 	trav_next_index=0,index1=0,obj_count=0;
+
+
+// 	while(graph_vertices::index_count!=size_of_matrix)		//we want to travel every vertex and every edge
+// 	{
+// 		do
+// 		{
+// 			if(trav_next_index==-1)
+// 			{
+// 				if(Adj_Mat.empty())
+// 					break;
+// 				Adj_Mat.top()->next_index=detect_next_one(Adjacency_Matrix[Adj_Mat.top()->index],-1);
+// 				Adj_Mat.pop();
+// 				Copy.pop();
+// 				if(Adj_Mat.empty())
+// 					break;
+// 				curr=Adj_Mat.top()->index;
+// 				trav_next_index=Adj_Mat.top()->next_index;
+// 				if(Adj_Mat.top()->is_traversed==true)
+// 				{
+// 					continue;
+// 				}
+// 			}
+// 			curr=trav_next_index;
+// 			trav_next_index=obj[curr].next_index;
+// 			Adj_Mat.push(&obj[curr]);
+// 			Copy.push(obj[curr]);
+// 			obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
+
+// 			if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
+// 			{
+// 				obj[curr].is_traversed=true;
+// 				graph_vertices::index_count++;
+// 			}
+
+// 			while(trav_next_index==-1)			//if there is an edge then add the (destination) vertex to the stack
+// 			{
+// 				if(Adj_Mat.empty())
+// 					break;
+// 				Adj_Mat.top()->next_index=detect_next_one(Adjacency_Matrix[Adj_Mat.top()->index],-1);
+// 				Adj_Mat.pop();
+// 				Copy.pop();
+// 				if(Adj_Mat.empty())
+// 					break;
+// 				curr=Adj_Mat.top()->index;
+// 				if(Adj_Mat.top()->multiple)
+// 				{
+// 					trav_next_index=Adj_Mat.top()->next_index;
+// 					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
+// 					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
+// 					{
+// 						obj[curr].is_traversed=true;
+// 						graph_vertices::index_count++;
+// 					}
+// 				}
+// 				else
+// 					trav_next_index=-1;
+// 			}
+// 			if(Adj_Mat.empty())
+// 				break;
+// 			cycle=cycles_detected(Copy,obj[trav_next_index]);
+// 			//todo: improve the while condition obj[trav_next_index] will crash if trav_next_index==-1
+// 			while(cycle && trav_next_index!=-1) //Detect cycles
+// 			{
+// 				if(cycle==2)
+// 				{
+// 					search_cycles(Copy,obj[trav_next_index],trav_next_index);
+// 					trav_next_index=obj[curr].next_index;
+// 					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
+// 					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
+// 					{
+// 						obj[curr].is_traversed=true;
+// 						graph_vertices::index_count++;
+// 					}
+// 				}
+// 				else
+// 				{
+// 					trav_next_index=obj[curr].next_index;
+// 					obj[curr].next_index=detect_next_one(Adjacency_Matrix[curr],trav_next_index);
+// 					if(obj[curr].next_index==-1 && obj[curr].is_traversed==false)
+// 					{
+// 						obj[curr].is_traversed=true;
+// 						graph_vertices::index_count++;
+// 					}
+// 					break;
+// 				}
+// 			}
+// 		}while(!Adj_Mat.empty());
+// 		obj_count=0;
+// 		while(obj[obj_count].is_traversed==true)
+// 			obj_count++;
+// 		trav_next_index=obj[obj_count].index;
+// 		}
+// }

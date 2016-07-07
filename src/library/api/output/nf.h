@@ -55,7 +55,7 @@ public:
   const result_type& get_result(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   z3::expr get_result_expr(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   virtual void print(std::ostream& stream, bool machine_readable) const override;
-  void print(std::ostream& stream, bool machine_readable, bool Show_Cycle, bool bad, bool good, bool dnf, bool cnf, bool verify = false) const;
+  void print(std::ostream& stream, bool machine_readable, bool bad, bool good, bool dnf, bool cnf, bool verify = false) const;
   //virtual z3::expr output() const;
   
   virtual void gather_statistics(metric& metric) const override;

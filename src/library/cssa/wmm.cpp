@@ -509,45 +509,6 @@ void program::wmm_build_alpha_ppo( thread& thread ) {
   for( auto& g : globals )
     phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], post_loc );
 }
-/**
-// Old implementation of alpha model
-void program::wmm_build_alpha_ppo( thread& thread ) {
-  // implemented but doubtful that is correct!!
-  unsupported_mm();
-  //todo: post to be supported
-
-  var_to_se_map last_wr, last_rd;
-
-  for( unsigned j=0; j<thread.size(); j++ ) {
-    auto& rds = thread[j].rds;
-    auto& wrs = thread[j].wrs;
-    for( const variable& v : globals ) {
-      hb_enc::se_ptr rd, wr;
-      for( auto rd1 : rds ) { if( v == rd1->prog_v ) { rd = rd1; break; } }
-      for( auto wr1 : wrs ) { if( v == wr1->prog_v ) { wr = wr1; break; } }
-      if( rd ) {
-        if( last_rd[v] ) {
-          phi_po = phi_po && _hb_encoding.make_hbs( last_rd[v], rd );
-        }else{
-          phi_po = phi_po && _hb_encoding.make_hbs( init_loc, rd );
-        }
-        last_rd[v] = rd;
-      }
-      if( wr ) {
-        if( last_wr[v] ) {
-          phi_po = phi_po && _hb_encoding.make_hbs( last_wr[v], wr );
-        }else{
-          phi_po = phi_po && _hb_encoding.make_hbs( init_loc, wr );
-        }
-        last_wr[v] = wr;
-        if( last_rd[v] ) {
-          phi_po = phi_po && _hb_encoding.make_hbs( last_rd[v], wr );
-        }
-      }
-    }
-  }
-}
-**/
 
 void program::wmm_build_power_ppo( thread& thread ) {
   unsupported_mm();
@@ -584,114 +545,9 @@ void program::wmm_test_ppo() {
   std::cerr << "\nrmo" << phi_po; phi_po = _z3.c.bool_val(true);
 }
 
-//----------------------------------------------------------------------------
-// populate content of threads
 
-void program::wmm_build_cssa_thread(const input::program& input) {
 
-  for( unsigned t=0; t < input.threads.size(); t++ ) {
-    thread& thread = *threads[t];
-    assert( thread.size() == 0 );
 
-    shared_ptr<hb_enc::location> prev;
-    for( unsigned j=0; j < input.threads[t].size(); j++ ) {
-      if( shared_ptr<input::instruction_z3> instr =
-          dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j]) ) {
-
-        shared_ptr<hb_enc::location> loc = instr->location();
-        auto ninstr = make_shared<instruction>( _z3, loc, &thread, instr->name,
-                                                instr->type, instr->instr );
-        thread.add_instruction(ninstr);
-      }else{
-        throw cssa_exception("Instruction must be Z3");
-      }
-    }
-  }
-}
-
-//----------------------------------------------------------------------------
-// encode pre condition of multi-threaded code
-
-void program::wmm_build_pre(const input::program& input) {
-  //
-  // start location is needed to ensure all locations are mentioned in phi_ppo
-  //
-  std::shared_ptr<hb_enc::location> _init_l = input.start_name();
-  hb_enc::se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
-                                 _init_l, hb_enc::event_kind_t::pre, se_store );
-  wr->guard = _z3.c.bool_val(true);
-  init_loc.insert(wr);
-  for( const variable& v : globals ) {
-    variable nname(_z3.c);
-    nname = v + "#pre";
-    initial_variables.insert(nname);
-    wr_events[v].insert( wr );
-  }
-
-  if ( shared_ptr<input::instruction_z3> instr =
-       dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
-    z3::expr_vector src(_z3.c), dst(_z3.c);
-    for( const variable& v: instr->variables() ) {
-      variable nname(_z3.c);
-      if (!is_primed(v)) {
-        nname = v + "#pre";
-      } else {
-        throw cssa_exception("Primed variable in precondition");
-      }
-      src.push_back(v);
-      dst.push_back(nname);
-    }
-    // replace variables in expr
-    phi_pre = instr->instr.substitute(src,dst);
-  } else {
-    throw cssa_exception("Instruction must be Z3");
-  }
-}
-
-void program::wmm_build_post(const input::program& input,
-                             unordered_map<string, string>& thread_vars ) {
-    
-  if( shared_ptr<input::instruction_z3> instr =
-      dynamic_pointer_cast<input::instruction_z3>(input.postcondition) ) {
-
-    z3::expr tru = _z3.c.bool_val(true);
-    if( eq( instr->instr, tru ) ) return;
-
-    std::shared_ptr<hb_enc::location> _end_l = input.end_name();
-    hb_enc::se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
-                           _end_l, hb_enc::event_kind_t::post, se_store );
-    rd->guard = _z3.c.bool_val(true);
-
-    for( const variable& v : globals ) {
-      variable nname(_z3.c);
-      nname = v + "#post";
-      post_loc.insert( rd );
-      rd_events[v].push_back( rd );
-    }
-
-    z3::expr_vector src(_z3.c), dst(_z3.c);
-    for( const variable& v: instr->variables() ) {
-      variable nname(_z3.c);
-      if( !is_primed(v) ) {
-        if( is_global(v) ) {
-          nname = v + "#post";
-        }else{
-          nname = v + "#" + thread_vars[v];
-        }
-      } else {
-        throw cssa_exception("Primed variable in postcondition");
-      }
-      src.push_back(v);
-      dst.push_back(nname);
-    }
-    // replace variables in expr
-    phi_post = instr->instr.substitute(src,dst);
-    phi_prp = phi_prp && implies( phi_fea, phi_post );
-    // todo : check the above implies is consistent with rest of the code
-   } else {
-    throw cssa_exception("Instruction must be Z3");
-  }
-}
 
 //----------------------------------------------------------------------------
 
@@ -866,340 +722,141 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
   return new_ord;
 }
 
-void program::wmm_build_ssa( const input::program& input ) {
-
-  wmm_build_pre( input );
-
-  hb_enc::var_to_ses_map dep_events;
-  hb_enc::var_to_ses_map ctrl_events;
-  z3::context& c = _z3.c;
-
-  unordered_map<string, string> thread_vars;
-
-  for( unsigned t=0; t < input.threads.size(); t++ ) {
-    // last reference to global variable in this thread (if any)
-    unordered_map<string, shared_ptr<instruction> > global_in_thread;
-    // maps variable to the last place they were assigned
-
-    // set all local vars to "pre"
-    for (string v: input.threads[t].locals) {
-      thread_vars[ threads[t]->name + "." + v ] = "pre";
-    }
-
-    z3::expr path_constraint = c.bool_val(true);
-    variable_set path_constraint_variables;
-    thread& thread = *threads[t];
-
-    hb_enc::se_set ctrl_thread_ses;
-    for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
-      if ( shared_ptr<input::instruction_z3> instr =
-           dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
-        z3::expr_vector src(c), dst(c);
-        hb_enc::se_set dep_ses;
-        hb_enc::se_set ctrl_ses;
-        // Construct ssa/symbolic events for all the read variables
-        for( const variable& v1: instr->variables() ) {
-          if( !is_primed(v1) ) {
-            variable v = v1;
-            variable nname(c);
-            src.push_back(v);
-            //unprimmed case
-            if ( is_global(v) ) {
-              nname =  "pi_"+ v + "#" + thread[i].loc->name;
-              hb_enc::se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
-                                     thread[i].loc, hb_enc::event_kind_t::r,se_store);
-              thread[i].rds.insert( rd );
-              rd_events[v].push_back( rd );
-              dep_ses.insert( rd );
-	      // if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
-	      //   ctrl_ses.insert( rd );
-	      // }
-              ctrl_dependency[rd].insert( ctrl_thread_ses.begin(),
-                                                   ctrl_thread_ses.end()  );
-            }else{
-              v = thread.name + "." + v;
-              nname = v + "#" + thread_vars[v];
-              // check if we are reading an initial value
-              if (thread_vars[v] == "pre") { initial_variables.insert(nname); }
-              dep_ses.insert( dep_events[v].begin(), dep_events[v].end());
-	      // ctrl_ses.insert( ctrl_events[v].begin(), ctrl_events[v].end());
-            }
-            // the following variable is read by this instruction
-            thread[i].variables_read.insert(nname);
-            thread[i].variables_read_orig.insert(v);
-            dst.push_back(nname);
-          }
-        }
-        // something gets added only if the instruction is asssume or assert
-        // ctrl_thread_ses.insert( ctrl_ses.begin(), ctrl_ses.end() );
-        if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
-          ctrl_thread_ses.insert( dep_ses.begin(), dep_ses.end() );
-        }
-        // Construct ssa/symbolic events for all the write variables
-        for( const variable& v: instr->variables() ) {
-          if( is_primed(v) ) {
-            src.push_back(v);
-            variable nname(c);
-            //primmed case
-            variable v1 = get_unprimed(v); //converting the primed to unprimed
-            if( is_global(v1) ) {
-              nname = v1 + "#" + thread[i].loc->name;
-              //insert write symbolic event
-              hb_enc::se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
-                                     thread[i].loc, hb_enc::event_kind_t::w,se_store);
-              thread[i].wrs.insert( wr );
-              wr_events[v1].insert( wr );
-              data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
-	      ctrl_dependency[wr].insert( ctrl_thread_ses.begin(),
-                                                   ctrl_thread_ses.end() );
-            }else{
-              v1 = thread.name + "." + v1;
-              nname = v1 + "#" + thread[i].loc->name;
-              dep_events[v1].insert( dep_ses.begin(), dep_ses.end() );
-            }
-            // the following variable is written by this instruction
-            thread[i].variables_write.insert( nname );
-            thread[i].variables_write_orig.insert( v1 );
-            // map the instruction to the variable
-            variable_written[nname] = thread.instructions[i];
-            dst.push_back(nname);
-          }
-        }
-
-        // thread havoced variables the same
-        for( const variable& v: instr->havok_vars ) {
-          assert(false); // untested code //todo: havoc ctrl dependency?
-          assert( dep_ses.empty() ); // there must be nothing in dep_ses
-          src.push_back(v);
-          variable nname(c);
-          variable v1 = get_unprimed(v);
-          thread[i].havok_vars.insert(v1);
-          if( is_global(v1) ) {
-            nname = v1 + "#" + thread[i].loc->name;
-            hb_enc::se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
-                                   thread[i].loc,hb_enc::event_kind_t::w, se_store);
-            thread[i].wrs.insert( wr );
-            wr_events[v1].insert( wr );
-            data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
-            // ctrl_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
-          }else{
-            v1 = thread.name + "." + v1;
-            nname = v1 + "#" + thread[i].loc->name;
-            dep_events[v1].insert(dep_ses.begin(),dep_ses.end());
-          }
-          // this variable is written by this instruction
-          thread[i].variables_write.insert(nname);
-          thread[i].variables_write_orig.insert(v1);
-          // map the instruction to the variable
-          variable_written[nname] = thread.instructions[i];
-          dst.push_back(nname);
-          // add havok to initial variables
-          initial_variables.insert(nname);
-        }
-
-        for( hb_enc::se_ptr rd : thread[i].rds ) {
-          rd->guard = path_constraint;
-        }
-
-        // replace variables in expr
-        z3::expr newi = instr->instr.substitute( src, dst );
-        // deal with the path-constraint
-        thread[i].instr = newi;
-        if (thread[i].type == instruction_type::assume) {
-          path_constraint = path_constraint && newi;
-          path_constraint_variables.insert( thread[i].variables_read.begin(),
-                                            thread[i].variables_read.end() );
-        }
-        thread[i].path_constraint = path_constraint;
-        thread[i].variables_read.insert( path_constraint_variables.begin(),
-                                         path_constraint_variables.end() );
-        if ( instr->type == instruction_type::regular ) {
-          phi_vd = phi_vd && newi;
-        }else if ( instr->type == instruction_type::assert ) {
-          // add this assertion, but protect it with the path-constraint
-          phi_prp = phi_prp && implies(path_constraint,newi);
-          // add used variables
-          assertion_instructions.insert(thread.instructions[i]);
-        }
-        if( is_barrier( instr->type) ) {
-          //todo : prepage contraints for barrier
-          hb_enc::se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
-                                   thread[i].loc, hb_enc::event_kind_t::barr,se_store);
-          thread[i].barr.insert( barr );
-          tid_to_instr.insert({t,i}); // for shikhar code
-        }
-        for( hb_enc::se_ptr wr : thread[i].wrs ) {
-          wr->guard = path_constraint;
-        }
-
-        // increase referenced variables
-        for( variable v: thread[i].variables_write_orig ) {
-          thread_vars[v] = thread[i].loc->name;
-          if ( is_global(v) ) {
-            global_in_thread[v] = thread.instructions[i]; // useless??
-            thread.global_var_assign[v].push_back(thread.instructions[i]); //useless??
-          }
-        }
-      }else{
-        throw cssa_exception("Instruction must be Z3");
-      }
-    }
-    phi_fea = phi_fea && path_constraint; //recordes feasibility of threads
-  }
-  wmm_build_post( input, thread_vars );
-}
-
-void program::wmm( const input::program& input ) {
-  
-  wmm_build_cssa_thread( input ); // construct thread skeleton
-  wmm_build_ssa( input ); // build ssa
-  wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
-  wmm_build_ppo(); // build hb formulas to encode the preserved program order
-  wmm_build_ses(); // build symbolic event structure
-  // wmm_build_barrier(); // build barrier// ppo already has the code
-
-  //TODO: deal with atomic section and prespecified happens befores
-  // add atomic sections
-  for (input::location_pair as : input.atomic_sections) {
-    cerr << "#WARNING: atomic sections are declared!! Not supproted in wmm mode!\n";
-    // throw cssa_exception( "atomic sections are not supported!" );
-  }
-}
 
 
 //----------------------------------------------------------------------------
 // unused code
 
-void program::wmm_add_barrier(int tid, int instr) {
-  //assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
-  thread & thread= *threads[tid];
-  auto& barrier_before = thread[instr+1].rds; // everything before (above) is ordered wrt this barrier
-  auto& barrier_after = thread[instr].wrs;   // everything after (below) is ordered wrt this barrier
-  auto& rds_before = thread[instr].rds;
-  auto& rds_after = thread[instr+1].rds;
-  auto& wrs_before = thread[instr].wrs;
-  auto& wrs_after = thread[instr+1].wrs;
+// void program::wmm_add_barrier(int tid, int instr) {
+//   //assert((threads[tid]->instructions[instr]->type == instruction_type::fence) || (threads[tid]->instructions[instr]->type == instruction_type::barrier));
+//   thread & thread= *threads[tid];
+//   auto& barrier_before = thread[instr+1].rds; // everything before (above) is ordered wrt this barrier
+//   auto& barrier_after = thread[instr].wrs;   // everything after (below) is ordered wrt this barrier
+//   auto& rds_before = thread[instr].rds;
+//   auto& rds_after = thread[instr+1].rds;
+//   auto& wrs_before = thread[instr].wrs;
+//   auto& wrs_after = thread[instr+1].wrs;
 
-  if( !rds_before.empty() || !wrs_before.empty() ) {
-    if( !rds_before.empty() && !wrs_before.empty() ) {
-          phi_po = phi_po && _hb_encoding.make_hbs(rds_before , barrier_before);
-          phi_po = phi_po && _hb_encoding.make_hbs(wrs_before , barrier_before);
-    }else if( !rds_before.empty() ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( rds_before , barrier_before );
-    } else if( !wrs_before.empty() ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( wrs_before , barrier_before );
-    }
+//   if( !rds_before.empty() || !wrs_before.empty() ) {
+//     if( !rds_before.empty() && !wrs_before.empty() ) {
+//           phi_po = phi_po && _hb_encoding.make_hbs(rds_before , barrier_before);
+//           phi_po = phi_po && _hb_encoding.make_hbs(wrs_before , barrier_before);
+//     }else if( !rds_before.empty() ) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( rds_before , barrier_before );
+//     } else if( !wrs_before.empty() ) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( wrs_before , barrier_before );
+//     }
 
-    for(int j=instr-1; j>=0; j-- ) {
-      rds_before = thread[j].rds;
-      wrs_before = thread[j].wrs;
-      if(!rds_before.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( rds_before , barrier_before );
-      }
-      if(!wrs_before.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( wrs_before , barrier_before );
-      }
-    }
-  }
+//     for(int j=instr-1; j>=0; j-- ) {
+//       rds_before = thread[j].rds;
+//       wrs_before = thread[j].wrs;
+//       if(!rds_before.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( rds_before , barrier_before );
+//       }
+//       if(!wrs_before.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( wrs_before , barrier_before );
+//       }
+//     }
+//   }
 
-  if( !rds_after.empty() || !wrs_after.empty() ) {
-    if( !rds_after.empty() && !wrs_after.empty() ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
-      phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
-    } else if( !rds_after.empty() ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
-    } else if( !wrs_after.empty() ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
-    }
+//   if( !rds_after.empty() || !wrs_after.empty() ) {
+//     if( !rds_after.empty() && !wrs_after.empty() ) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
+//       phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
+//     } else if( !rds_after.empty() ) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
+//     } else if( !wrs_after.empty() ) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
+//     }
 
-    for(unsigned i=instr+2; i<thread.size(); i++ ) {
-      rds_after = thread[i].rds;
-      wrs_after = thread[i].wrs;
-      if(!rds_after.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
-      }
-      if(!wrs_after.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
-      }
-    }
-  }
-}
+//     for(unsigned i=instr+2; i<thread.size(); i++ ) {
+//       rds_after = thread[i].rds;
+//       wrs_after = thread[i].wrs;
+//       if(!rds_after.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , rds_after );
+//       }
+//       if(!wrs_after.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( barrier_after , wrs_after );
+//       }
+//     }
+//   }
+// }
 
-void program::wmm_build_barrier() {
-  //return;
-  int first_read;
-  for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++) {
-    first_read=0;
-    thread& thread=*threads[it1->first];
-    auto& barrier = thread[it1->second].barr;
-    auto& rds_before = thread[it1->second-1].rds;
-    auto& rds_after = thread[it1->second+1].rds;
-    auto& wrs_before = thread[it1->second-1].wrs;
-    auto& wrs_after = thread[it1->second+1].wrs;
+// void program::wmm_build_barrier() {
+//   //return;
+//   int first_read;
+//   for( auto it1=tid_to_instr.begin();it1!=tid_to_instr.end();it1++) {
+//     first_read=0;
+//     thread& thread=*threads[it1->first];
+//     auto& barrier = thread[it1->second].barr;
+//     auto& rds_before = thread[it1->second-1].rds;
+//     auto& rds_after = thread[it1->second+1].rds;
+//     auto& wrs_before = thread[it1->second-1].wrs;
+//     auto& wrs_after = thread[it1->second+1].wrs;
 
-    if(is_mm_tso()) {
-      if( !wrs_before.empty() ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
-      } else if(!rds_before.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( rds_before, barrier );
-        for(int j=it1->second-2; j>=0; j-- ) {
-          wrs_before = thread[j].wrs;
-          if(!wrs_before.empty()) {
-            phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
-            break;
-          }
-        }
-      }
-      if( !rds_after.empty() ) {
-        phi_po = phi_po && _hb_encoding.make_hbs(barrier, rds_after );
-      }
-    } else if(!wrs_after.empty()) {
-      phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
+//     if(is_mm_tso()) {
+//       if( !wrs_before.empty() ) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
+//       } else if(!rds_before.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( rds_before, barrier );
+//         for(int j=it1->second-2; j>=0; j-- ) {
+//           wrs_before = thread[j].wrs;
+//           if(!wrs_before.empty()) {
+//             phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
+//             break;
+//           }
+//         }
+//       }
+//       if( !rds_after.empty() ) {
+//         phi_po = phi_po && _hb_encoding.make_hbs(barrier, rds_after );
+//       }
+//     } else if(!wrs_after.empty()) {
+//       phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
 
-      for( unsigned j=it1->second+2; j!=thread.size(); j++ ) {
-        rds_after = thread[j].rds;
-        if(!wrs_before.empty()) {
-          phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
-          break;
-        }
-      }
-    }
-    else if(is_mm_pso()) {
-      if( !wrs_before.empty() ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier);
-      }
-      else if(!rds_before.empty()) {
-        phi_po = phi_po && _hb_encoding.make_hbs( rds_before, barrier );
-        for(int j=it1->second-2; j>=0; j-- ){
-          wrs_before = thread[j].wrs;
-          if(!wrs_before.empty()){
-            phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
+//       for( unsigned j=it1->second+2; j!=thread.size(); j++ ) {
+//         rds_after = thread[j].rds;
+//         if(!wrs_before.empty()) {
+//           phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
+//           break;
+//         }
+//       }
+//     }
+//     else if(is_mm_pso()) {
+//       if( !wrs_before.empty() ) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier);
+//       }
+//       else if(!rds_before.empty()) {
+//         phi_po = phi_po && _hb_encoding.make_hbs( rds_before, barrier );
+//         for(int j=it1->second-2; j>=0; j-- ){
+//           wrs_before = thread[j].wrs;
+//           if(!wrs_before.empty()){
+//             phi_po = phi_po && _hb_encoding.make_hbs( wrs_before, barrier );
 
-          }
-        }
-      }
-      if(!wrs_after.empty() || !rds_after.empty()){
-        if( !rds_after.empty() && first_read==0 ){
-          phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
-          first_read=1;
-        }
-        if(!wrs_after.empty()){
-          phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
-        }
-        for( unsigned i=it1->second+2; i<=thread.size()-1; i++ ){
-          rds_after = thread[i].rds;
-          wrs_after = thread[i].wrs;
-          if(!rds_after.empty() && first_read==0){
-            phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
-            first_read=1;
-          }
-          if(!wrs_after.empty()) {
-            phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
-          }
-        }
-      }
-    }
-  }
-}
+//           }
+//         }
+//       }
+//       if(!wrs_after.empty() || !rds_after.empty()){
+//         if( !rds_after.empty() && first_read==0 ){
+//           phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
+//           first_read=1;
+//         }
+//         if(!wrs_after.empty()){
+//           phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
+//         }
+//         for( unsigned i=it1->second+2; i<=thread.size()-1; i++ ){
+//           rds_after = thread[i].rds;
+//           wrs_after = thread[i].wrs;
+//           if(!rds_after.empty() && first_read==0){
+//             phi_po = phi_po && _hb_encoding.make_hbs( barrier, rds_after );
+//             first_read=1;
+//           }
+//           if(!wrs_after.empty()) {
+//             phi_po = phi_po && _hb_encoding.make_hbs( barrier, wrs_after );
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
 
 //----------------------------------------------------------------------------
