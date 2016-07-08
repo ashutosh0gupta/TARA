@@ -41,29 +41,29 @@ using namespace std;
 // hb utilities
 
 // ghb = guarded hb
-z3::expr program::wmm_mk_ghb( const hb_enc::se_ptr& before,
+z3::expr wmm_event_cons::wmm_mk_ghb( const hb_enc::se_ptr& before,
                               const hb_enc::se_ptr& after ) {
   return implies( before->guard && after->guard,
-                  _hb_encoding.make_hbs( before, after ) );
+                  hb_encoding.make_hbs( before, after ) );
 }
 
 // thin air ghb
-z3::expr program::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
+z3::expr wmm_event_cons::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
 				   const hb_enc::se_ptr& after ) {
-  return implies( before->guard && after->guard, _hb_encoding.make_hb_thin( before, after ) );
+  return implies( before->guard && after->guard, hb_encoding.make_hb_thin( before, after ) );
 }
 
 //----------------------------------------------------------------------------
 // memory model utilities
 
 
-bool program::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
-  if( is_mm_sc() ) {
+bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
+  if( p.is_mm_sc() ) {
     return true;
-  }else if( is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha() ) {
+  }else if( p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha() ) {
     return wr->tid != rd->tid; //only events with diff threads are part of grf
   }else{
-    unsupported_mm();
+    p.unsupported_mm();
     return false;
   }
 }
@@ -83,13 +83,13 @@ bool program::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
 
-bool program::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
+bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
-  assert( wr->tid == threads.size() ||
-          rd->tid == threads.size() ||
+  assert( wr->tid == p.no_of_threads() ||
+          rd->tid == p.no_of_threads() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( is_po( rd, wr ) ) {
@@ -97,35 +97,35 @@ bool program::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd 
     }
     //
   }else{
-    unsupported_mm();
+    p.unsupported_mm();
   }
   return false;
 }
 
-bool program::anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr ) {
+bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr ) {
   // preventing coherence violation - fr;
   // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
-  assert( wr->tid == threads.size() || rd->tid == threads.size() ||
+  assert( wr->tid == p.no_of_threads() || rd->tid == p.no_of_threads() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_rmo() || is_mm_alpha()) {
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
     if( is_po( wr, rd ) ) {
       return true;
     }
     //
   }else{
-    unsupported_mm();
+    p.unsupported_mm();
   }
   return false;
 }
 
-bool program::is_rd_rd_coherance_preserved() {
-  if( is_mm_sc() || is_mm_tso() || is_mm_pso() || is_mm_alpha()) {
+bool wmm_event_cons::is_rd_rd_coherance_preserved() {
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_alpha()) {
     return true;
-  }else if( is_mm_rmo() ){
+  }else if( p.is_mm_rmo() ){
     return false;
   }else{
-    unsupported_mm();
+    p.unsupported_mm();
     return false; // dummy return
   }
 }
@@ -135,15 +135,15 @@ bool program::is_rd_rd_coherance_preserved() {
 // In original implementation this part of constraints are
 // referred as pi constraints
 
-z3::expr program::get_rf_bvar( const variable& v1,hb_enc::se_ptr wr,hb_enc::se_ptr rd,
+z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,hb_enc::se_ptr wr,hb_enc::se_ptr rd,
                                bool record ) {
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
-  z3::expr b = _z3.c.bool_const(  bname.c_str() );
-  if( record ) reading_map.insert( std::make_tuple(bname,wr,rd) );
+  z3::expr b = z3.c.bool_const(  bname.c_str() );
+  if( record ) p.reading_map.insert( std::make_tuple(bname,wr,rd) );
   return b;
 }
 
-void program::wmm_build_ses() {
+void wmm_event_cons::wmm_build_ses() {
   // For each global variable we need to construct
   // - wf  well formed
   // - rf  read from
@@ -153,13 +153,13 @@ void program::wmm_build_ses() {
 
   // z3::context& c = _z3.c;
 
-  for( const variable& v1 : globals ) {
-    const auto& rds = rd_events[v1];
-    const auto& wrs = wr_events[v1];
+  for( const variable& v1 : p.globals ) {
+    const auto& rds = p.rd_events[v1];
+    const auto& wrs = p.wr_events[v1];
     unsigned c_tid = 0;
     hb_enc::se_set tid_rds;
     for( const hb_enc::se_ptr& rd : rds ) {
-      z3::expr some_rfs = _z3.c.bool_val(false);
+      z3::expr some_rfs = z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
       if( rd->tid != c_tid ) {
         tid_rds.clear();
@@ -172,20 +172,20 @@ void program::wmm_build_ses() {
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
         // well formed
-        wf = wf && implies( b, wr->guard && eq);
+        p.wf = p.wf && implies( b, wr->guard && eq);
         // read from
         z3::expr new_rf = implies( b, wmm_mk_ghb( wr, rd ) );
-        rf = rf && new_rf;
+        p.rf = p.rf && new_rf;
         z3::expr new_thin = implies( b, wmm_mk_ghb_thin( wr, rd ) );
-        thin = thin && new_thin;
+        p.thin = p.thin && new_thin;
         //global read from
-        if( in_grf( wr, rd ) ) grf = grf && new_rf;
+        if( in_grf( wr, rd ) ) p.grf = p.grf && new_rf;
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && wmm_mk_ghb(wr, after_wr) && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
-              fr = fr && !cond;
+              p.fr = p.fr && !cond;
             }else{
               auto new_fr = wmm_mk_ghb( rd, after_wr );
               if( is_rd_rd_coherance_preserved() ) {
@@ -196,12 +196,12 @@ void program::wmm_build_ses() {
                   new_fr = !anti_coherent_b && new_fr;
                 }
               }
-              fr = fr && implies( cond , new_fr );
+              p.fr = p.fr && implies( cond , new_fr );
             }
           }
         }
       }
-      wf = wf && implies( rd->guard, some_rfs );
+      p.wf = p.wf && implies( rd->guard, some_rfs );
       tid_rds.insert( rd );
     }
 
@@ -217,15 +217,15 @@ void program::wmm_build_ses() {
         if( wr1->tid != wr2->tid && // Why this condition?
             !wr1->is_init() && !wr2->is_init() // no initializations
             ) {
-          ws = ws && ( wmm_mk_ghb( wr1, wr2 ) || wmm_mk_ghb( wr2, wr1 ) );
+          p.ws = p.ws && ( wmm_mk_ghb( wr1, wr2 ) || wmm_mk_ghb( wr2, wr1 ) );
         }
       }
     }
 
     //dependency
     for( const hb_enc::se_ptr& wr : wrs )
-      for( auto& rd : data_dependency[wr] )
-        thin = thin && _hb_encoding.make_hb_thin( rd, wr ); //todo : should it be guarded??
+      for( auto& rd : p.data_dependency[wr] )
+        p.thin = p.thin && hb_encoding.make_hb_thin( rd, wr ); //todo : should it be guarded??
 
   }
 
@@ -667,6 +667,7 @@ wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
 void wmm_event_cons::run() {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
+  wmm_build_ses(); // build symbolic event structure
 }
 
 

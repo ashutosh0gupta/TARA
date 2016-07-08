@@ -699,7 +699,7 @@ void program::unsupported_mm() const {
 void program::wmm_event_cons() {
   // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   // wmm_build_ppo(); // build hb formulas to encode the preserved program order
-  wmm_build_ses(); // build symbolic event structure
+  // wmm_build_ses(); // build symbolic event structure
   // wmm_build_barrier(); // build barrier// ppo already has the code
 }
 

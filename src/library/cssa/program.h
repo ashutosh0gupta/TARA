@@ -96,8 +96,7 @@ private:
   void wmm(const input::program& input);
 
   void wmm_event_cons();
-  void wmm_mk_distinct_events();
-  void wmm_build_ses();
+  // void wmm_mk_distinct_events();
   void wmm_build_barrier();
   // void wmm_add_barrier(int tid, int instr);
 
@@ -106,31 +105,23 @@ private:
   z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
   z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
 
-  z3::expr wmm_mk_ghb_thin( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
-  z3::expr wmm_mk_ghb( const hb_enc::se_ptr& before, const hb_enc::se_ptr& after );
 
   bool hb_eval( const z3::model& model,
                 const hb_enc::se_ptr& before, const hb_enc::se_ptr& after ) const;
 
-  z3::expr get_rf_bvar( const variable& v1, hb_enc::se_ptr wr, hb_enc::se_ptr rd,
-                        bool record=true );
 
-  void wmm_build_sc_ppo   ( thread& thread );
-  void wmm_build_tso_ppo  ( thread& thread );
-  void wmm_build_pso_ppo  ( thread& thread );
-  void wmm_build_rmo_ppo  ( thread& thread );
-  void wmm_build_alpha_ppo( thread& thread );
-  void wmm_build_power_ppo( thread& thread );
-  void wmm_build_ppo();
+  // void wmm_build_sc_ppo   ( thread& thread );
+  // void wmm_build_tso_ppo  ( thread& thread );
+  // void wmm_build_pso_ppo  ( thread& thread );
+  // void wmm_build_rmo_ppo  ( thread& thread );
+  // void wmm_build_alpha_ppo( thread& thread );
+  // void wmm_build_power_ppo( thread& thread );
+  // void wmm_build_ppo();
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
   void wmm_print_dot( z3::model m ) const;
-  void wmm_test_ppo(); // TODO: remove when confident
+  // void wmm_test_ppo(); // TODO: remove when confident
 
-  bool in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-  bool anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-  bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
-  bool is_rd_rd_coherance_preserved();
 private:
   mm_t mm = mm_t::none;
 
