@@ -318,7 +318,6 @@ program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::progr
   set_mm( input.get_mm() );
   if( is_mm_declared() ) {
     wmm(input);
-    wmm_event_cons();
     //------------------------------------------------------------------------
     //end of wmm support
     //------------------------------------------------------------------------
@@ -470,7 +469,7 @@ void program::wmm_build_post(const input::program& input,
     phi_post = instr->instr.substitute(src,dst);
     phi_prp = phi_prp && implies( phi_fea, phi_post );
     // todo : check the above implies is consistent with rest of the code
-   } else {
+  } else {
     throw cssa_exception("Instruction must be Z3");
   }
 }
@@ -696,12 +695,12 @@ void program::unsupported_mm() const {
   throw cssa_exception( msg.c_str() );
 }
 
-void program::wmm_event_cons() {
+// void program::wmm_event_cons() {
   // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   // wmm_build_ppo(); // build hb formulas to encode the preserved program order
   // wmm_build_ses(); // build symbolic event structure
   // wmm_build_barrier(); // build barrier// ppo already has the code
-}
+// }
 
 //----------------------------------------------------------------------------
 // To be deleted

@@ -20,6 +20,7 @@
 #ifndef TARA_CSSA_WMM_H
 #define TARA_CSSA_WMM_H
 
+#include "api/options.h"
 #include "constants.h"
 #include "input/program.h"
 #include "helpers/z3interf.h"
@@ -37,46 +38,57 @@ namespace cssa {
   // depending on the memory model
   class wmm_event_cons {
   public:
-    wmm_event_cons( helpers::z3interf&, hb_enc::encoding&, cssa::program&  );
+    wmm_event_cons( helpers::z3interf&,
+                    hb_enc::encoding&,
+                    api::options&,
+                    cssa::program&  );
     void run();
   private:
     helpers::z3interf& z3;
     hb_enc::encoding& hb_encoding;
+    api::options& o;
     cssa::program& p;
 
     void wmm_mk_distinct_events();
 
-    void wmm_build_sc_ppo   ( const thread& thread );
-    void wmm_build_tso_ppo  ( const thread& thread );
-    void wmm_build_pso_ppo  ( const thread& thread );
-    void wmm_build_rmo_ppo  ( const thread& thread );
-    void wmm_build_alpha_ppo( const thread& thread );
-    void wmm_build_power_ppo( const thread& thread );
-    void wmm_build_ppo();
+    void sc_ppo   ( const thread& thread );
+    void tso_ppo  ( const thread& thread );
+    void pso_ppo  ( const thread& thread );
+    void rmo_ppo  ( const thread& thread );
+    void alpha_ppo( const thread& thread );
+    void power_ppo( const thread& thread );
+    void ppo();
     void wmm_test_ppo(); // TODO: remove when confident
 
     void unsupported_mm() const;
 
-    bool in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_ppo_read ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
     bool is_rd_rd_coherance_preserved();
 
     z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
-    z3::expr wmm_mk_ghb( const hb_enc::se_ptr& bf, const hb_enc::se_ptr& af );
+    z3::expr wmm_mk_ghb     (const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
 
     z3::expr get_rf_bvar( const variable& v1,
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                           bool record=true );
 
-    void wmm_build_ses();
+    void ses();
 
-    z3::expr wmm_insert_tso_barrier( const thread&, unsigned, hb_enc::se_ptr );
-    z3::expr wmm_insert_pso_barrier( const thread&, unsigned, hb_enc::se_ptr );
-    z3::expr wmm_insert_rmo_barrier( const thread&, unsigned, hb_enc::se_ptr );
-    z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
+    z3::expr insert_tso_barrier( const thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_pso_barrier( const thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_rmo_barrier( const thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_barrier( unsigned tid, unsigned instr );
 
-
+    z3::expr dist = z3.mk_true();
+    z3::expr po   = z3.mk_true();
+    z3::expr wf   = z3.mk_true();
+    z3::expr rf   = z3.mk_true();
+    z3::expr grf  = z3.mk_true();
+    z3::expr fr   = z3.mk_true();
+    z3::expr ws   = z3.mk_true();
+    z3::expr thin = z3.mk_true();
   };
 
 }}

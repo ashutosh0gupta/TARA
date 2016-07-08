@@ -79,7 +79,7 @@ void trace_analysis::input(input::program& input_program)
   program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
 
   if( program->is_mm_declared() ) {
-    cssa::wmm_event_cons mk_cons(z3, hb_encoding, *program);
+    cssa::wmm_event_cons mk_cons( z3, hb_encoding, _options, *program);
     mk_cons.run();
   }
 

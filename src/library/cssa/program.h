@@ -51,9 +51,9 @@ public:
   //std::unordered_map<std::string,int>instr_to_MatIndex;
   unsigned no_of_threads() const;
   const thread& get_thread( unsigned tid ) const;
-  unsigned no_of_instructions(unsigned tid) const;
-  unsigned total_instructions() const;
-  std::string instr_name(unsigned tid,unsigned instr_no) const;
+  // unsigned no_of_instructions(unsigned tid) const;
+  // unsigned total_instructions() const;
+  // std::string instr_name(unsigned tid,unsigned instr_no) const;
 private:
   std::vector<std::shared_ptr<cssa::thread>> threads;
   helpers::z3interf& _z3;
@@ -95,27 +95,12 @@ private:
   void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
   void wmm(const input::program& input);
 
-  void wmm_event_cons();
-  // void wmm_mk_distinct_events();
-  void wmm_build_barrier();
-  // void wmm_add_barrier(int tid, int instr);
-
-
   bool hb_eval( const z3::model& model,
-                const hb_enc::se_ptr& before, const hb_enc::se_ptr& after ) const;
-
-
-  // void wmm_build_sc_ppo   ( thread& thread );
-  // void wmm_build_tso_ppo  ( thread& thread );
-  // void wmm_build_pso_ppo  ( thread& thread );
-  // void wmm_build_rmo_ppo  ( thread& thread );
-  // void wmm_build_alpha_ppo( thread& thread );
-  // void wmm_build_power_ppo( thread& thread );
-  // void wmm_build_ppo();
+                const hb_enc::se_ptr& before,
+                const hb_enc::se_ptr& after ) const;
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
   void wmm_print_dot( z3::model m ) const;
-  // void wmm_test_ppo(); // TODO: remove when confident
 
 private:
   mm_t mm = mm_t::none;
@@ -134,17 +119,18 @@ public:
   void unsupported_mm() const;
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
+
   z3::expr wf      = _z3.mk_true();
   z3::expr rf      = _z3.mk_true();
   z3::expr grf     = _z3.mk_true();
   z3::expr ws      = _z3.mk_true();
   z3::expr thin    = _z3.mk_true();
-
   z3::expr fr      = _z3.mk_true();
-  z3::expr rf_some = _z3.mk_true();
-  z3::expr rf_ws   = _z3.mk_true();
-  z3::expr rf_grf  = _z3.mk_true();
-  z3::expr rf_val  = _z3.mk_true();
+
+  // z3::expr rf_some = _z3.mk_true();
+  // z3::expr rf_ws   = _z3.mk_true();
+  // z3::expr rf_grf  = _z3.mk_true();
+  // z3::expr rf_val  = _z3.mk_true();
   z3::expr phi_post = _z3.mk_true();
 
   //--------------------------------------------------------------------------
