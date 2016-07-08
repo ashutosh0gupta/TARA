@@ -22,6 +22,7 @@
 #include "helpers/z3interf.h"
 #include "input/parse.h"
 #include "cssa/program.h"
+#include "cssa/wmm.h"
 #include "api/options.h"
 #include "api/output/nf.h"
 #include "helpers/helpers.h"
@@ -76,6 +77,11 @@ void trace_analysis::input(input::program& input_program)
   input_program.convert_instructions(z3);
   input_program.check_correctness();
   program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
+
+  if( program->is_mm_declared() ) {
+    cssa::wmm_event_cons mk_cons(z3, hb_encoding, *program);
+    mk_cons.run();
+  }
 
   if (_options.print_phi) {
   //--------------------------------------------------------------------------

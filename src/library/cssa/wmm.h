@@ -32,7 +32,34 @@
 
 namespace tara{
 namespace cssa {
-  //todo - remove this file
+
+  // class for constructiing constraints on events
+  // depending on the memory model
+  class wmm_event_cons {
+  public:
+    wmm_event_cons( helpers::z3interf&, hb_enc::encoding&, cssa::program&  );
+    void run();
+  private:
+    helpers::z3interf& z3;
+    hb_enc::encoding& hb_encoding;
+    cssa::program& p;
+
+    void wmm_mk_distinct_events();
+
+    void wmm_build_sc_ppo   ( const thread& thread );
+    void wmm_build_tso_ppo  ( const thread& thread );
+    void wmm_build_pso_ppo  ( const thread& thread );
+    void wmm_build_rmo_ppo  ( const thread& thread );
+    void wmm_build_alpha_ppo( const thread& thread );
+    void wmm_build_power_ppo( const thread& thread );
+    void wmm_build_ppo();
+    void wmm_test_ppo(); // TODO: remove when confident
+
+    void unsupported_mm() const;
+
+
+  };
+
 }}
 
 #endif // TARA_CSSA_WMM_H

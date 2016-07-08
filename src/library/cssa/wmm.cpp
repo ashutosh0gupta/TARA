@@ -18,6 +18,7 @@
  */
 
 #include "program.h"
+#include "wmm.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
 #include "helpers/int_to_string.h"
@@ -722,6 +723,24 @@ z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
   return new_ord;
 }
 
+
+wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
+                                hb_enc::encoding& _hb_encoding,
+                                cssa::program& _p )
+: z3( _z3 )
+,hb_encoding( _hb_encoding )
+,p( _p ) {
+  //TO be uncommented
+  // wmm_build_ses(); // build symbolic event structure
+
+  //----- not after
+  // wmm_build_barrier(); // build barrier// ppo already has the code
+}
+
+void wmm_event_cons::run() {
+  // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
+  // wmm_build_ppo(); // build hb formulas to encode the preserved program order
+}
 
 
 //----------------------------------------------------------------------------
