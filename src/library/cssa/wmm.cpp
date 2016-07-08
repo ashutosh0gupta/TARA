@@ -36,69 +36,9 @@ using namespace std;
 // New code
 //----------------------------------------------------------------------------
 
-//----------------------------------------------------------------------------
-// wmm configuration
-//----------------------------------------------------------------------------
-
-bool program::is_mm_declared() const
-{
-  return mm != mm_t::none;
-}
-
-bool program::is_wmm() const
-{
-  return mm != mm_t::sc;
-}
-
-bool program::is_mm_sc() const
-{
-  return mm == mm_t::sc;
-}
-
-bool program::is_mm_tso() const
-{
-  return mm == mm_t::tso;
-}
-
-bool program::is_mm_pso() const
-{
-  return mm == mm_t::pso;
-}
-
-bool program::is_mm_rmo() const
-{
-  return mm == mm_t::rmo;
-}
-
-bool program::is_mm_alpha() const
-{
-  return mm == mm_t::alpha;
-}
-
-bool program::is_mm_power() const
-{
-  return mm == mm_t::power;
-}
-
-void program::set_mm(mm_t _mm)
-{
-  mm = _mm;
-}
-
-mm_t program::get_mm() const
-{
-  return mm;
-}
-
 
 //----------------------------------------------------------------------------
 // hb utilities
-
-
-// z3::expr program::wmm_mk_hb_thin(const hb_enc::se_ptr& before,
-// 				 const hb_enc::se_ptr& after) {
-//   return _hb_encoding.make_hb( before->thin_v, after->thin_v );
-// }
 
 // ghb = guarded hb
 z3::expr program::wmm_mk_ghb( const hb_enc::se_ptr& before,
@@ -116,10 +56,6 @@ z3::expr program::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
 //----------------------------------------------------------------------------
 // memory model utilities
 
-void program::unsupported_mm() const {
-  std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
-  throw cssa_exception( msg.c_str() );
-}
 
 bool program::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
   if( is_mm_sc() ) {
@@ -132,14 +68,6 @@ bool program::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
   }
 }
 
-bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
-                                    unsigned end_inst_num ) const {
-  const thread& thread = *threads[tid];
-  for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
-    if( is_barrier( thread[i].type ) ) return true;
-  }
-  return false;
-}
 
 //----------------------------------------------------------------------------
 // coherence preserving code
@@ -306,31 +234,6 @@ void program::wmm_build_ses() {
 
 //----------------------------------------------------------------------------
 // declare all events happen at different time points
-
-// void program::wmm_mk_distinct_events() {
-
-//   z3::expr_vector loc_vars( _z3.c );
-
-//   for( auto& init_se : init_loc ) {
-//     loc_vars.push_back( init_se->get_solver_symbol() );
-//   }
-
-//   for( unsigned t=0; t < no_of_threads(); t++ ) {
-//     const thread& thread = get_thread(t);
-//     assert( thread.size() > 0 );
-//     for( unsigned j=0; j < thread.size(); j++ ) {
-//       for( auto& rd : thread[j].rds ) {
-//         loc_vars.push_back( rd->get_solver_symbol() );
-//       }
-//       for( auto& wr : thread[j].wrs ) {
-//         loc_vars.push_back( wr->get_solver_symbol() );
-//       }
-//     }
-//   }
-
-//   phi_distinct = distinct(loc_vars);
-
-// }
 
 void wmm_event_cons::wmm_mk_distinct_events() {
 

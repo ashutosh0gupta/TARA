@@ -670,6 +670,32 @@ void program::wmm( const input::program& input ) {
   }
 }
 
+bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
+                                    unsigned end_inst_num ) const {
+  const thread& thread = *threads[tid];
+  for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
+    if( is_barrier( thread[i].type ) ) return true;
+  }
+  return false;
+}
+
+bool program::is_mm_declared() const {  return mm != mm_t::none; }
+bool program::is_wmm()         const {  return mm != mm_t::sc;   }
+bool program::is_mm_sc()       const {  return mm == mm_t::sc;   }
+bool program::is_mm_tso()      const {  return mm == mm_t::tso;  }
+bool program::is_mm_pso()      const {  return mm == mm_t::pso;  }
+bool program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
+bool program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
+bool program::is_mm_power()    const {  return mm == mm_t::power;}
+
+mm_t program::get_mm()         const { return mm; }
+void program::set_mm(mm_t _mm)       { mm = _mm;  }
+
+void program::unsupported_mm() const {
+  std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
+  throw cssa_exception( msg.c_str() );
+}
+
 void program::wmm_event_cons() {
   // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   // wmm_build_ppo(); // build hb formulas to encode the preserved program order
