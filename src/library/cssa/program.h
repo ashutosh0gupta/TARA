@@ -50,6 +50,7 @@ public:
   std::vector< std::vector < bool > > build_po() const;
   //std::unordered_map<std::string,int>instr_to_MatIndex;
   unsigned no_of_threads() const;
+  const thread& get_thread( unsigned tid ) const;
   unsigned no_of_instructions(unsigned tid) const;
   unsigned total_instructions() const;
   std::string instr_name(unsigned tid,unsigned instr_no) const;

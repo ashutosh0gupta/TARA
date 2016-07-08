@@ -307,16 +307,41 @@ void program::wmm_build_ses() {
 //----------------------------------------------------------------------------
 // declare all events happen at different time points
 
-void program::wmm_mk_distinct_events() {
+// void program::wmm_mk_distinct_events() {
 
-  z3::expr_vector loc_vars(_z3.c);
+//   z3::expr_vector loc_vars( _z3.c );
 
-  for( auto& init_se : init_loc ) {
+//   for( auto& init_se : init_loc ) {
+//     loc_vars.push_back( init_se->get_solver_symbol() );
+//   }
+
+//   for( unsigned t=0; t < no_of_threads(); t++ ) {
+//     const thread& thread = get_thread(t);
+//     assert( thread.size() > 0 );
+//     for( unsigned j=0; j < thread.size(); j++ ) {
+//       for( auto& rd : thread[j].rds ) {
+//         loc_vars.push_back( rd->get_solver_symbol() );
+//       }
+//       for( auto& wr : thread[j].wrs ) {
+//         loc_vars.push_back( wr->get_solver_symbol() );
+//       }
+//     }
+//   }
+
+//   phi_distinct = distinct(loc_vars);
+
+// }
+
+void wmm_event_cons::wmm_mk_distinct_events() {
+
+  z3::expr_vector loc_vars( z3.c );
+
+  for( auto& init_se : p.init_loc ) {
     loc_vars.push_back( init_se->get_solver_symbol() );
   }
 
-  for( unsigned t=0; t < threads.size(); t++ ) {
-    thread& thread = *threads[t];
+  for( unsigned t=0; t < p.no_of_threads(); t++ ) {
+    const thread& thread = p.get_thread(t);
     assert( thread.size() > 0 );
     for( unsigned j=0; j < thread.size(); j++ ) {
       for( auto& rd : thread[j].rds ) {
@@ -327,8 +352,7 @@ void program::wmm_mk_distinct_events() {
       }
     }
   }
-
-  phi_distinct = distinct(loc_vars);
+  p.phi_distinct = distinct(loc_vars);
 
 }
 
@@ -337,213 +361,213 @@ void program::wmm_mk_distinct_events() {
 // todo: deal with double barriers that may cause bugs since they are not 
 //       explicitly ordered
 
-void program::wmm_build_sc_ppo( thread& thread ) {
+void wmm_event_cons::wmm_build_sc_ppo( const thread& thread ) {
   unsigned tsize = thread.size();
-  hb_enc::se_set last = init_loc;
+  hb_enc::se_set last = p.init_loc;
 
   for( unsigned j = 0; j < tsize; j++ ) {
-    auto& rds = thread[j].rds, wrs = thread[j].wrs;
+    auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
     if( rds.empty() && wrs.empty() ) continue;
     auto& after = rds.empty() ? wrs : rds;
-    phi_po = phi_po && _hb_encoding.make_hbs( last, after ) && _hb_encoding.make_hbs( rds, wrs );
+    p.phi_po = p.phi_po && hb_encoding.make_hbs( last, after ) && hb_encoding.make_hbs( rds, wrs );
     last = wrs.empty() ? rds : wrs;
   }
-  phi_po = phi_po && _hb_encoding.make_hbs( last, post_loc);
+  p.phi_po = p.phi_po && hb_encoding.make_hbs( last, p.post_loc);
 }
 
-void program::wmm_build_tso_ppo( thread& thread ) {
-  hb_enc::se_set last_rds = init_loc, last_wrs = init_loc;
+void wmm_event_cons::wmm_build_tso_ppo( const thread& thread ) {
+  hb_enc::se_set last_rds = p.init_loc, last_wrs = p.init_loc;
   bool rd_occured = false;
-  hb_enc::se_set barr_events = init_loc;
+  hb_enc::se_set barr_events = p.init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( last_rds, thread[j].barr );
-      phi_po = phi_po && _hb_encoding.make_hbs( last_wrs, thread[j].barr );
+      p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rds, thread[j].barr );
+      p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wrs, thread[j].barr );
       last_rds = last_wrs = thread[j].barr;
       rd_occured = false;
     }else{
       // if(!is_barrier( thread[j].type )){
-      auto& rds = thread[j].rds, wrs = thread[j].wrs;
+      auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
       if( !rds.empty() ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rds, rds );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rds, rds );
         last_rds = rds;
         rd_occured = true;
       }
       if( !wrs.empty() ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wrs, wrs );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wrs, wrs );
         last_wrs = wrs;
 
         if( rd_occured ) {
-          phi_po = phi_po && _hb_encoding.make_hbs(last_rds, wrs);
+          p.phi_po = p.phi_po && hb_encoding.make_hbs(last_rds, wrs);
         }
       }
     }
   }
-  phi_po = phi_po && _hb_encoding.make_hbs(last_wrs, post_loc);
+  p.phi_po = p.phi_po && hb_encoding.make_hbs(last_wrs, p.post_loc);
 }
 
-void program::wmm_build_pso_ppo( thread& thread ) {
+void wmm_event_cons::wmm_build_pso_ppo( const thread& thread ) {
   hb_enc::var_to_se_map last_wr;
-  assert( init_loc.size() == 1);
-  hb_enc::se_ptr init_l = *init_loc.begin();
-  for( auto& g : globals ) last_wr[g] = init_l;
+  assert( p.init_loc.size() == 1);
+  hb_enc::se_ptr init_l = *p.init_loc.begin();
+  for( auto& g : p.globals ) last_wr[g] = init_l;
 
   bool no_rd_occurred = true;
-  hb_enc::se_set last_rds = init_loc;
+  hb_enc::se_set last_rds = p.init_loc;
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier(thread[j].type) ) {
-      phi_po = phi_po && _hb_encoding.make_hbs( last_rds, thread[j].barr );
+      p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rds, thread[j].barr );
       last_rds = thread[j].barr;
       no_rd_occurred = true;
       assert( thread[j].barr.size() == 1 );
       hb_enc::se_ptr barr = *thread[j].barr.begin();
-      for( auto& g : globals ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], barr );
+      for( auto& g : p.globals ) {
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], barr );
         last_wr[g] = barr;
       }
     }else{
       auto& rds = thread[j].rds;
       auto& wrs = thread[j].wrs;
       if( rds.size() > 0 ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rds, rds );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rds, rds );
         last_rds = rds;
         no_rd_occurred = false;
       }
 
       for( auto wr : wrs ) {
         const variable& v = wr->prog_v;
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[v], wr );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[v], wr );
         last_wr[v] = wr;
         if( !no_rd_occurred ) {
-          phi_po = phi_po && _hb_encoding.make_hbs( last_rds, wr );
+          p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rds, wr );
         }
       }
     }
   }
   // only writes must be ordered with post event
-  for( auto& g : globals ) {
-    phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], post_loc );
+  for( auto& g : p.globals ) {
+    p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], p.post_loc );
   }
-  //phi_po = phi_po && barriers;
+  //p.phi_po = p.phi_po && barriers;
 }
 
-void program::wmm_build_rmo_ppo( thread& thread ) {
+void wmm_event_cons::wmm_build_rmo_ppo( const thread& thread ) {
   hb_enc::var_to_se_map last_rd, last_wr;
   hb_enc::se_set collected_rds;
 
-  assert( init_loc.size() == 1);
-  hb_enc::se_ptr barr = *init_loc.begin();
-  for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
+  assert( p.init_loc.size() == 1);
+  hb_enc::se_ptr barr = *p.init_loc.begin();
+  for( auto& g : p.globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
       assert( thread[j].barr.size() == 1);
       barr = *thread[j].barr.begin();
       for( hb_enc::se_ptr rd : collected_rds) {
-        phi_po = phi_po && _hb_encoding.make_hbs( rd, barr );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( rd, barr );
       }
       collected_rds.clear();
 
-      for( auto& g : globals ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], barr );
+      for( auto& g : p.globals ) {
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], barr );
         last_rd[g] = last_wr[g] = barr;
       }
     }else{
       for( auto rd : thread[j].rds ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( barr, rd );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
-	for( auto read : ctrl_dependency[rd])
-            phi_po = phi_po && _hb_encoding.make_hbs( read, rd );
+	for( auto read : p.ctrl_dependency[rd])
+            p.phi_po = p.phi_po && hb_encoding.make_hbs( read, rd );
       }
 
       for( auto wr : thread[j].wrs ) {
         variable v = wr->prog_v;
 
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[v], wr );
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rd[v], wr );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[v], wr );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rd[v], wr );
         collected_rds.erase( last_rd[v] );// optimization??
 
-        for( auto rd : data_dependency[wr] )
-          phi_po = phi_po && _hb_encoding.make_hbs( rd, wr );
-	for( auto rd : ctrl_dependency[wr])
-            phi_po = phi_po && _hb_encoding.make_hbs( rd, wr );
+        for( auto rd : p.data_dependency[wr] )
+          p.phi_po = p.phi_po && hb_encoding.make_hbs( rd, wr );
+	for( auto rd : p.ctrl_dependency[wr])
+            p.phi_po = p.phi_po && hb_encoding.make_hbs( rd, wr );
 
         last_wr[v] = wr;
       }
     }
   }
 
-  for( auto& g : globals )
-    phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], post_loc );
+  for( auto& g : p.globals )
+    p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], p.post_loc );
 }
 
-void program::wmm_build_alpha_ppo( thread& thread ) {
+void wmm_event_cons::wmm_build_alpha_ppo( const thread& thread ) {
   hb_enc::var_to_se_map last_wr, last_rd;
-  assert( init_loc.size() == 1);
-  hb_enc::se_ptr barr = *init_loc.begin();
-  for( auto& g : globals ) last_rd[g] = last_wr[g] = barr;
+  assert( p.init_loc.size() == 1);
+  hb_enc::se_ptr barr = *p.init_loc.begin();
+  for( auto& g : p.globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
       assert( thread[j].barr.size() == 1);
       barr = *thread[j].barr.begin();
-      for( auto& g : globals ) {
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rd[g], barr );
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], barr );
+      for( auto& g : p.globals ) {
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rd[g], barr );
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], barr );
         last_rd[g] = last_wr[g] = barr;
       }
     }else{
       for( auto rd : thread[j].rds ) {
         const variable& v = rd->prog_v;
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rd[v], rd ); //read-read to same loc
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rd[v], rd ); //read-read to same loc
         last_rd[v] = rd;
       }
       for( auto wr : thread[j].wrs ){
         const variable& v = wr->prog_v;
-        phi_po = phi_po && _hb_encoding.make_hbs( last_wr[v], wr ); //write-write to same loc
-        phi_po = phi_po && _hb_encoding.make_hbs( last_rd[v], wr ); //read-write to same loc
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[v], wr ); //write-write to same loc
+        p.phi_po = p.phi_po && hb_encoding.make_hbs( last_rd[v], wr ); //read-write to same loc
         last_wr[v] = wr;
       }
     }
   }
-  for( auto& g : globals )
-    phi_po = phi_po && _hb_encoding.make_hbs( last_wr[g], post_loc );
+  for( auto& g : p.globals )
+    p.phi_po = p.phi_po && hb_encoding.make_hbs( last_wr[g], p.post_loc );
 }
 
-void program::wmm_build_power_ppo( thread& thread ) {
-  unsupported_mm();
+void wmm_event_cons::wmm_build_power_ppo( const thread& thread ) {
+  p.unsupported_mm();
 }
 
-void program::wmm_build_ppo() {
+void wmm_event_cons::wmm_build_ppo() {
   // wmm_test_ppo();
 
-  for( unsigned t=0; t<threads.size(); t++ ) {
-    thread& thread = *threads[t];
-    if( is_mm_sc() )          { wmm_build_sc_ppo ( thread );
-    }else if( is_mm_tso() )   { wmm_build_tso_ppo( thread );
-    }else if( is_mm_pso() )   { wmm_build_pso_ppo( thread );
-    }else if( is_mm_rmo() )   { wmm_build_rmo_ppo( thread );
-    }else if( is_mm_alpha() ) { wmm_build_alpha_ppo( thread );
-    }else if( is_mm_power() ) { wmm_build_power_ppo( thread );
-    }else{                      unsupported_mm();
+  for( unsigned t=0; t<p.no_of_threads(); t++ ) {
+    const thread& thread = p.get_thread(t);
+    if( p.is_mm_sc() )          { wmm_build_sc_ppo ( thread );
+    }else if( p.is_mm_tso() )   { wmm_build_tso_ppo( thread );
+    }else if( p.is_mm_pso() )   { wmm_build_pso_ppo( thread );
+    }else if( p.is_mm_rmo() )   { wmm_build_rmo_ppo( thread );
+    }else if( p.is_mm_alpha() ) { wmm_build_alpha_ppo( thread );
+    }else if( p.is_mm_power() ) { wmm_build_power_ppo( thread );
+    }else{                      p.unsupported_mm();
     }
   }
-  phi_po = phi_po && phi_distinct;
+  p.phi_po = p.phi_po && p.phi_distinct;
   //phi_po = phi_po && barriers;
 }
 
-void program::wmm_test_ppo() {
+void wmm_event_cons::wmm_test_ppo() {
   unsigned t;
-  phi_po = _z3.c.bool_val(true);
-  for(t=0;t<threads.size();t++){wmm_build_sc_ppo(*threads[t]);}
-  std::cerr << "\nsc" << phi_po; phi_po = _z3.c.bool_val(true);
-  for(t=0;t<threads.size();t++){wmm_build_tso_ppo(*threads[t]);}
-  std::cerr << "\ntso" << phi_po; phi_po = _z3.c.bool_val(true);
-  for(t=0;t<threads.size();t++){wmm_build_pso_ppo(*threads[t]);}
-  std::cerr << "\npso" << phi_po; phi_po = _z3.c.bool_val(true);
-  for(t=0;t<threads.size();t++){wmm_build_rmo_ppo(*threads[t]);}
-  std::cerr << "\nrmo" << phi_po; phi_po = _z3.c.bool_val(true);
+  p.phi_po = z3.mk_true();
+  for(t=0;t<p.no_of_threads();t++){wmm_build_sc_ppo(p.get_thread(t));}
+  std::cerr << "\nsc" << p.phi_po; p.phi_po = z3.mk_true();
+  for(t=0;t<p.no_of_threads();t++){wmm_build_tso_ppo(p.get_thread(t));}
+  std::cerr << "\ntso" << p.phi_po; p.phi_po = z3.mk_true();
+  for(t=0;t<p.no_of_threads();t++){wmm_build_pso_ppo(p.get_thread(t));}
+  std::cerr << "\npso" << p.phi_po; p.phi_po = z3.mk_true();
+  for(t=0;t<p.no_of_threads();t++){wmm_build_rmo_ppo(p.get_thread(t));}
+  std::cerr << "\nrmo" << p.phi_po; p.phi_po = z3.mk_true();
 }
 
 
@@ -738,8 +762,8 @@ wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
 }
 
 void wmm_event_cons::run() {
-  // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
-  // wmm_build_ppo(); // build hb formulas to encode the preserved program order
+  wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
+  wmm_build_ppo(); // build hb formulas to encode the preserved program order
 }
 
 

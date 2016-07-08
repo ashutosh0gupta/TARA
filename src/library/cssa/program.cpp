@@ -149,6 +149,11 @@ unsigned program::no_of_threads() const
 	return threads.size();
 }
 
+const thread& program::get_thread( unsigned tid ) const {
+  return *threads[tid];
+}
+
+
 void program::build_pis(vector< program::pi_needed >& pis, const input::program& input)
 {
   z3::context& c = _z3.c;
@@ -666,8 +671,8 @@ void program::wmm( const input::program& input ) {
 }
 
 void program::wmm_event_cons() {
-  wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
-  wmm_build_ppo(); // build hb formulas to encode the preserved program order
+  // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
+  // wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
   // wmm_build_barrier(); // build barrier// ppo already has the code
 }
