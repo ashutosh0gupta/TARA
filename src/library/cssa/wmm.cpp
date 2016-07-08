@@ -272,7 +272,8 @@ void wmm_event_cons::wmm_build_sc_ppo( const thread& thread ) {
     auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
     if( rds.empty() && wrs.empty() ) continue;
     auto& after = rds.empty() ? wrs : rds;
-    p.phi_po = p.phi_po && hb_encoding.make_hbs( last, after ) && hb_encoding.make_hbs( rds, wrs );
+    p.phi_po = p.phi_po &&
+      hb_encoding.make_hbs( last, after ) && hb_encoding.make_hbs( rds, wrs );
     last = wrs.empty() ? rds : wrs;
   }
   p.phi_po = p.phi_po && hb_encoding.make_hbs( last, p.post_loc);
@@ -474,26 +475,24 @@ void wmm_event_cons::wmm_test_ppo() {
 }
 
 
-
-
-
 //----------------------------------------------------------------------------
 
-z3::expr program::wmm_insert_tso_barrier( thread & thread, unsigned instr,
-                                          hb_enc::se_ptr new_barr ) {
-  z3::expr hbs = _z3.c.bool_val(true);
+z3::expr wmm_event_cons::wmm_insert_tso_barrier( const thread & thread,
+                                                 unsigned instr,
+                                                 hb_enc::se_ptr new_barr ) {
+  z3::expr hbs = z3.mk_true();
 
   bool before_found = false;
   unsigned j = instr;
   while( j != 0 )  {
     j--;
     if( !thread[j].wrs.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].wrs, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].wrs, new_barr );
       before_found = true;
       break;
     }
     if( !before_found && !thread[j].rds.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].rds, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].rds, new_barr );
       before_found = true;
     }
   }
@@ -501,25 +500,26 @@ z3::expr program::wmm_insert_tso_barrier( thread & thread, unsigned instr,
   bool after_found = false;
   for(j = instr; j < thread.size(); j++ ) {
     if( !thread[j].rds.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].rds, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].rds, new_barr );
       after_found = true;
       break;
     }
     if( !after_found && !thread[j].wrs.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].wrs, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].wrs, new_barr );
       after_found = true;
     }
   }
   if( before_found && after_found )  return hbs;
-  return _z3.c.bool_val(true);
+  return z3.mk_true();
 }
 
-z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
-                                      hb_enc::se_ptr new_barr ) {
+z3::expr wmm_event_cons::wmm_insert_pso_barrier( const thread & thread,
+                                                 unsigned instr,
+                                                 hb_enc::se_ptr new_barr ) {
   //todo stop at barriers
-  z3::expr hbs = _z3.c.bool_val(true);
+  z3::expr hbs = z3.mk_true();
 
-  variable_set found_wrs = globals;
+  variable_set found_wrs = p.globals;
   bool before_found = false;
   unsigned j = instr;
   while( j != 0 )  {
@@ -528,23 +528,23 @@ z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
       const variable& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
-        hbs = hbs && _hb_encoding.make_hbs( wr, new_barr );
+        hbs = hbs && hb_encoding.make_hbs( wr, new_barr );
         found_wrs.erase( it );
         before_found = true;
       }
     }
     if( found_wrs.empty() ) break;
     if( !before_found && !thread[j].rds.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].rds, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].rds, new_barr );
       before_found = true;
     }
   }
 
-  found_wrs = globals;
+  found_wrs = p.globals;
   bool after_found = false;
   for( j = instr; j < thread.size(); j++ )  {
     if( !thread[j].rds.empty() ) {
-      hbs = hbs && _hb_encoding.make_hbs( thread[j].rds, new_barr );
+      hbs = hbs && hb_encoding.make_hbs( thread[j].rds, new_barr );
       after_found = true;
       break;
     }
@@ -552,7 +552,7 @@ z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
       const variable& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
-        hbs = hbs && _hb_encoding.make_hbs( wr, new_barr );
+        hbs = hbs && hb_encoding.make_hbs( wr, new_barr );
         found_wrs.erase( it );
         after_found = true;
       }
@@ -560,28 +560,29 @@ z3::expr program::wmm_insert_pso_barrier( thread & thread, unsigned instr,
   }
 
   if( before_found && after_found )  return hbs;
-  return _z3.c.bool_val(true);
+  return z3.mk_true();
 }
 
-z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
-                                      hb_enc::se_ptr new_barr ) {
-  z3::expr hbs = _z3.c.bool_val(true);
+z3::expr wmm_event_cons::wmm_insert_rmo_barrier( const thread & thread,
+                                                 unsigned instr,
+                                                 hb_enc::se_ptr new_barr ) {
+  z3::expr hbs = z3.mk_true();
 
   bool before_found = false;
   unsigned j = instr;
   hb_enc::se_set collected_rds;
-  variable_set found_wrs = globals;
+  variable_set found_wrs = p.globals;
   while( j != 0 )  {
     j--;
     for( auto wr: thread[j].wrs ) {
       const variable& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
-        hbs = hbs && _hb_encoding.make_hbs( wr, new_barr );
+        hbs = hbs && hb_encoding.make_hbs( wr, new_barr );
         found_wrs.erase( it );
         before_found = true;
       }
-      for( auto rd : data_dependency[wr] ) {
+      for( auto rd : p.data_dependency[wr] ) {
         collected_rds.insert( rd );
       }
     }
@@ -591,21 +592,21 @@ z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
       if( it != collected_rds.end() ) {
         collected_rds.erase( it );
       }else{
-        hbs = hbs && _hb_encoding.make_hbs( rd, new_barr );
+        hbs = hbs && hb_encoding.make_hbs( rd, new_barr );
         before_found = true;
       }
     }
   }
 
   bool after_found = false;
-  found_wrs = globals;
+  found_wrs = p.globals;
   for( unsigned j = instr; j < thread.size(); j++ ) {
 
     for( auto rd : thread[j].rds ) {
       const variable& v = rd->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
-        hbs = hbs && _hb_encoding.make_hbs( new_barr, rd );
+        hbs = hbs && hb_encoding.make_hbs( new_barr, rd );
         after_found = true;
         found_wrs.erase( it );
       }
@@ -617,7 +618,7 @@ z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
       if( it != found_wrs.end()
           // && data_dependency[wr].empty() // todo: optimization
           ) {
-        hbs = hbs && _hb_encoding.make_hbs( new_barr, wr );
+        hbs = hbs && hb_encoding.make_hbs( new_barr, wr );
         found_wrs.erase( it );
         after_found = true;
       }
@@ -626,28 +627,24 @@ z3::expr program::wmm_insert_rmo_barrier( thread & thread, unsigned instr,
   }
 
   if( before_found && after_found )  return hbs;
-  return _z3.c.bool_val(true);
+  return z3.mk_true();
 }
 
-z3::expr program::wmm_insert_barrier(unsigned tid, unsigned instr) {
-  assert( tid < threads.size() );
-  thread & thread= *threads[instr];
-  assert( instr < thread.size() );
+z3::expr wmm_event_cons::wmm_insert_barrier(unsigned tid, unsigned instr) {
+  const thread & thr = p.get_thread(tid);//*threads[instr];
+  assert( instr < thr.size() );
 
   //todo : prepage contraints for barrier
-  hb_enc::se_ptr new_barr = mk_se_ptr( _z3.c, _hb_encoding, tid, instr, thread[instr].loc,
-                               hb_enc::event_kind_t::barr, se_store );
-  z3::expr new_ord(_z3.c);
-  if(is_mm_tso()) {
-    new_ord = wmm_insert_tso_barrier( thread, instr, new_barr );
-  }else if(is_mm_pso()) {
-    new_ord = wmm_insert_pso_barrier( thread, instr, new_barr );
-  }else if(is_mm_rmo()) {
-    new_ord = wmm_insert_rmo_barrier( thread, instr, new_barr );
-  }else{
-    unsupported_mm();
+  hb_enc::se_ptr barr =
+    mk_se_ptr( z3.c, hb_encoding, tid, instr, thr[instr].loc,
+               hb_enc::event_kind_t::barr, p.se_store );
+  z3::expr ord(z3.c);
+  if(      p.is_mm_tso()) { ord = wmm_insert_tso_barrier( thr, instr, barr );
+  }else if(p.is_mm_pso()) { ord = wmm_insert_pso_barrier( thr, instr, barr );
+  }else if(p.is_mm_rmo()) { ord = wmm_insert_rmo_barrier( thr, instr, barr );
+  }else{                  p.unsupported_mm();
   }
-  return new_ord;
+  return ord;
 }
 
 
@@ -657,17 +654,13 @@ wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
 : z3( _z3 )
 ,hb_encoding( _hb_encoding )
 ,p( _p ) {
-  //TO be uncommented
-  // wmm_build_ses(); // build symbolic event structure
-
-  //----- not after
-  // wmm_build_barrier(); // build barrier// ppo already has the code
 }
 
 void wmm_event_cons::run() {
   wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   wmm_build_ppo(); // build hb formulas to encode the preserved program order
   wmm_build_ses(); // build symbolic event structure
+  // wmm_build_barrier(); // build barrier// ppo already has the code
 }
 
 

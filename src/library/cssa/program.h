@@ -100,11 +100,6 @@ private:
   void wmm_build_barrier();
   // void wmm_add_barrier(int tid, int instr);
 
-  z3::expr wmm_insert_tso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
-  z3::expr wmm_insert_pso_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
-  z3::expr wmm_insert_rmo_barrier( thread & thread, unsigned instr, hb_enc::se_ptr );
-  z3::expr wmm_insert_barrier( unsigned tid, unsigned instr );
-
 
   bool hb_eval( const z3::model& model,
                 const hb_enc::se_ptr& before, const hb_enc::se_ptr& after ) const;
