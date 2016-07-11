@@ -27,9 +27,10 @@
 // #include "cinput/cinput_exception.h"
 
 namespace tara {
-  // namespace cssa{
-    class thread;
-  // }
+  namespace cssa{
+    class program;
+  }
+  class thread;
   class loc{
   public:
     unsigned line;
@@ -113,7 +114,6 @@ namespace tara {
     instruction& operator [](unsigned i);
     const instruction& operator [](unsigned i) const;
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
-
   };
 
   class program {
@@ -121,10 +121,14 @@ namespace tara {
     unsigned thread_num = 0;
     std::vector<std::shared_ptr<thread>> threads;
     mm_t mm = mm_t::none;
+    helpers::z3interf& z3;
+    // hb_enc::encoding& hb_encoding;
 
   public:
-    program(helpers::z3interf& z3_): z3(z3_) { add_thread("caller"); }
-    helpers::z3interf& z3;
+    program( helpers::z3interf& z3_//,
+             //hb_enc::encoding& hb_encoding
+             ): z3(z3_) {}
+
     cssa::variable_set globals;
     cssa::variable_set allocated; // temp allocations
     std::map< unsigned, loc> inst_to_loc;
@@ -233,7 +237,7 @@ namespace tara {
       cssa::variable g(z3.c); // dummy code to suppress warning
       return g;
     }
-
+    friend cssa::program;
   };
 
 inline bool program::is_mm_declared() const {  return mm != mm_t::none; }

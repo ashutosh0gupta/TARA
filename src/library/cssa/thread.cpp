@@ -17,6 +17,8 @@
  * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// # delete this file
+
 #include "thread.h"
 #include "cssa/cssa_exception.h"
 
@@ -26,36 +28,36 @@ using namespace tara::helpers;
 namespace tara {
 namespace cssa {
 
-thread::thread(const string& name, const tara::cssa::variable_set locals) : name(name), locals(locals)
-{}
+// thread::thread(const string& name, const tara::cssa::variable_set locals) : name(name), locals(locals)
+// {}
 
-bool thread::operator==(const thread &other) const {
-  return this->name == other.name;
-}
+// bool thread::operator==(const thread &other) const {
+//   return this->name == other.name;
+// }
 
-bool thread::operator!=(const thread &other) const {
-  return !(*this==other);
-}
+// bool thread::operator!=(const thread &other) const {
+//   return !(*this==other);
+// }
 
-unsigned int thread::size() const
-{
-  return instructions.size();
-}
+// unsigned int thread::size() const
+// {
+//   return instructions.size();
+// }
 
-const instruction& thread::operator[](unsigned int i) const
-{
-  return *instructions[i];
-}
+// const instruction& thread::operator[](unsigned int i) const
+// {
+//   return *instructions[i];
+// }
 
-instruction& thread::operator[](unsigned int i)
-{
-  return *instructions[i];
-}
+// instruction& thread::operator[](unsigned int i)
+// {
+//   return *instructions[i];
+// }
 
-void thread::add_instruction(const std::shared_ptr<instruction>& instr)
-{
-  instructions.push_back(instr);
-}
+// void thread::add_instruction(const std::shared_ptr<instruction>& instr)
+// {
+//   instructions.push_back(instr);
+// }
 
 
 }}

@@ -56,7 +56,7 @@ public:
   // unsigned total_instructions() const;
   // std::string instr_name(unsigned tid,unsigned instr_no) const;
 private:
-  std::vector<std::shared_ptr<tara::thread>> threads;
+  // std::vector<std::shared_ptr<tara::thread>> threads;
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
   

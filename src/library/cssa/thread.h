@@ -29,6 +29,8 @@
 #include "constants.h"
 // #include "cssa/wmm.h"
 
+// # delete this file
+
 namespace tara {
 namespace cssa {
 
@@ -69,28 +71,28 @@ class thread;
 //   z3::expr original_expr;
 // };
   
-class thread
-{
-public:
-  thread(const std::string& name, variable_set locals);
-  thread(thread& ) = delete;
-  thread& operator=(thread&) = delete;
-private:
-public:
+// class thread
+// {
+// public:
+//   thread(const std::string& name, variable_set locals);
+//   thread(thread& ) = delete;
+//   thread& operator=(thread&) = delete;
+// private:
+// public:
 
-  std::vector<std::shared_ptr<instruction>> instructions;
-  const std::string name;
-  std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
-  variable_set locals;
+//   std::vector<std::shared_ptr<instruction>> instructions;
+//   const std::string name;
+//   std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
+//   variable_set locals;
   
-  bool operator==(const thread &other) const;
-  bool operator!=(const thread &other) const;
+//   bool operator==(const thread &other) const;
+//   bool operator!=(const thread &other) const;
   
-  unsigned size() const;
-  instruction& operator [](unsigned i);
-  const instruction& operator [](unsigned i) const;
-  void add_instruction(const std::shared_ptr< tara::instruction >& instr);
-};
+//   unsigned size() const;
+//   instruction& operator [](unsigned i);
+//   const instruction& operator [](unsigned i) const;
+//   void add_instruction(const std::shared_ptr< tara::instruction >& instr);
+// };
 }}
 
 #endif // TARA_CSSA_THREAD_H
