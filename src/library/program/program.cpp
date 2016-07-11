@@ -116,4 +116,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     instructions.push_back(instr);
   }
 
+  const tara::thread& program::operator[](unsigned int i) const {
+    return *threads[i];
+  }
+
+  unsigned int program::size() const {
+    return threads.size();
+  }
+
 }

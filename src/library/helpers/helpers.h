@@ -71,6 +71,7 @@ public:
 
 #define cinput_error( S ) tara_error( "::cinput", S )
 #define program_error( S ) tara_error( "::program", S )
+#define trace_error( S ) tara_error( "::trace", S )
 
 namespace std {
   template <>

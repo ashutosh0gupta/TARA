@@ -103,7 +103,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   if( module.get() == 0 ) {
     // give err msg
   }
-  program* p = new program(z3_);
+  program* p = new program(z3_, hb_encoding);
 
   // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 

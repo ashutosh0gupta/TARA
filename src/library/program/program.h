@@ -121,13 +121,13 @@ namespace tara {
     unsigned thread_num = 0;
     std::vector<std::shared_ptr<thread>> threads;
     mm_t mm = mm_t::none;
-    helpers::z3interf& z3;
-    // hb_enc::encoding& hb_encoding;
+    helpers::z3interf& _z3;
+    hb_enc::encoding& _hb_encoding;
 
   public:
-    program( helpers::z3interf& z3_//,
-             //hb_enc::encoding& hb_encoding
-             ): z3(z3_) {}
+    program( helpers::z3interf& z3_,
+             hb_enc::encoding& hb_encoding_
+             ): _z3(z3_), _hb_encoding(hb_encoding_) {}
 
     cssa::variable_set globals;
     cssa::variable_set allocated; // temp allocations
@@ -135,11 +135,21 @@ namespace tara {
     std::map< std::string, hb_enc::se_ptr> create_map, join_map;
     hb_enc::name_to_ses_map se_store;
 
+    inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
+    inline const helpers::z3interf& z3() const { return _z3; }
+
     //--------------------------------------------------------------------------
     // cssa::program variables moved here
     //--------------------------------------------------------------------------
-    z3::expr phi_ses = z3.mk_true();
-    z3::expr phi_post = z3.mk_true();
+    z3::expr phi_ses  = _z3.mk_true();
+    z3::expr phi_post = _z3.mk_true();
+    z3::expr phi_pre  = _z3.mk_true();//z3.c.bool_val(true);
+    z3::expr phi_po   = _z3.mk_true();
+    z3::expr phi_vd   = _z3.mk_true();
+    z3::expr phi_pi   = _z3.mk_true();
+    z3::expr phi_prp  = _z3.mk_true();
+    z3::expr phi_fea  = _z3.mk_true(); // feasable traces
+    z3::expr phi_distinct = _z3.mk_true(); //ensures that all locations are distinct
 
     inline bool is_mm_declared() const;
     inline bool is_wmm() const;
@@ -153,16 +163,28 @@ namespace tara {
     mm_t get_mm() const;
     void unsupported_mm() const;
 
+    hb_enc::se_to_ses_map data_dependency;
+    hb_enc::se_to_ses_map ctrl_dependency;
+    hb_enc::se_set init_loc;
+    hb_enc::se_set post_loc;
+    hb_enc::var_to_ses_map wr_events;
+    hb_enc::var_to_se_vec_map rd_events;
+    std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
+
+    const tara::thread& operator[](unsigned i) const;
+    unsigned size() const;
+
     inline unsigned no_of_threads() const {
-      return thread_num;
+      return threads.size();
     }
 
     inline const thread& get_thread(unsigned t) const {
+      assert( t < threads.size() );
       return *threads[t];
     }
 
     unsigned add_thread( std::string str) {
-      auto thr = std::make_shared<thread>( z3, str );
+      auto thr = std::make_shared<thread>( _z3, str );
       threads.push_back( thr );
       thread_num++;
       return thread_num-1;
@@ -220,7 +242,7 @@ namespace tara {
           return g;
       }
       program_error( "global variable " << gname << " not found!" );
-      cssa::variable g(z3.c); // dummy code to suppress warning
+      cssa::variable g(_z3.c); // dummy code to suppress warning
       return g;
     }
 
@@ -234,9 +256,10 @@ namespace tara {
           return g;
       }
       program_error( "allocated name " << gname << " not found!" );
-      cssa::variable g(z3.c); // dummy code to suppress warning
+      cssa::variable g(_z3.c); // dummy code to suppress warning
       return g;
     }
+
     friend cssa::program;
   };
 

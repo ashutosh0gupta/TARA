@@ -145,14 +145,14 @@ void cssa::program::build_threads(const input::program& input)
   build_pis(pis, input);
 }
 
-unsigned cssa::program::no_of_threads() const
-{
-	return threads.size();
-}
+// unsigned cssa::program::no_of_threads() const
+// {
+// 	return threads.size();
+// }
 
-const tara::thread& cssa::program::get_thread( unsigned tid ) const {
-  return *threads[tid];
-}
+// const tara::thread& cssa::program::get_thread( unsigned tid ) const {
+//   return *threads[tid];
+// }
 
 
 void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const input::program& input)
@@ -303,9 +303,9 @@ void cssa::program::build_pre(const input::program& input)
 }
 
 
-cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3),
-  _z3(z3), _hb_encoding(hb_encoding), globals(z3.translate_variables(input.globals))
+cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,hb_encoding)
 {
+  globals = z3.translate_variables(input.globals);
   // add threads
   for (unsigned t=0; t<input.threads.size(); t++) {
     auto tp = make_shared<tara::thread>(z3, input.threads[t].name, z3.translate_variables(input.threads[t].locals));
@@ -330,15 +330,15 @@ cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input:
 
 }
 
-const tara::thread& cssa::program::operator[](unsigned int i) const
-{
-  return *threads[i];
-}
+// const tara::thread& cssa::program::operator[](unsigned int i) const
+// {
+//   return *threads[i];
+// }
 
-unsigned int cssa::program::size() const
-{
-  return threads.size();
-}
+// unsigned int cssa::program::size() const
+// {
+//   return threads.size();
+// }
 
 bool cssa::program::is_global(const variable& name) const
 {

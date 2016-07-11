@@ -658,7 +658,7 @@ z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
 wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
                                 api::options& _o,
                                 hb_enc::encoding& _hb_encoding,
-                                cssa::program& _p )
+                                tara::program& _p )
 : z3( _z3 )
 ,o( _o )
 ,hb_encoding( _hb_encoding )

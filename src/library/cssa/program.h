@@ -42,23 +42,13 @@ struct pi_function_part {
   pi_function_part(z3::expr hb_exression);
 };
 
-  class program : public tara::program
-{
+class program : public tara::program {
 public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
   program(const program&) = delete;
   program& operator=(const program&) = delete;
   std::vector< std::vector < bool > > build_po() const;
-  //std::unordered_map<std::string,int>instr_to_MatIndex;
-  unsigned no_of_threads() const;
-  const tara::thread& get_thread( unsigned tid ) const;
-  // unsigned no_of_instructions(unsigned tid) const;
-  // unsigned total_instructions() const;
-  // std::string instr_name(unsigned tid,unsigned instr_no) const;
 private:
-  // std::vector<std::shared_ptr<tara::thread>> threads;
-  helpers::z3interf& _z3;
-  hb_enc::encoding& _hb_encoding;
   
   struct pi_needed {
     variable name;
@@ -66,10 +56,18 @@ private:
     std::shared_ptr<instruction> last_local; // can be NULL if none
     unsigned thread;
     hb_enc::location_ptr loc;
-    
-    pi_needed(variable name, variable orig_name, std::shared_ptr<instruction> last_local, unsigned thread, hb_enc::location_ptr loc) : name(name), orig_name(orig_name), last_local(last_local), thread(thread), loc(loc) {}
+
+    pi_needed( variable name,
+               variable orig_name,
+               std::shared_ptr<instruction> last_local,
+               unsigned thread, hb_enc::location_ptr loc)
+      : name(name)
+      , orig_name(orig_name)
+      , last_local(last_local)
+      , thread(thread)
+      , loc(loc) {}
   };
-  
+
   void build_threads(const input::program& input);
   void build_hb(const input::program& input);
   void build_pre(const input::program& input);
@@ -80,20 +78,13 @@ private:
   //--------------------------------------------------------------------------
 
 public:
-  hb_enc::name_to_ses_map se_store;
-  hb_enc::se_to_ses_map data_dependency;
-  hb_enc::se_to_ses_map ctrl_dependency;
-  hb_enc::se_set init_loc;
-  hb_enc::se_set post_loc;
-  hb_enc::var_to_ses_map wr_events;
-  hb_enc::var_to_se_vec_map rd_events;
   std::unordered_multimap <int,int>tid_to_instr;
-  std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
 private:
   void wmm_build_cssa_thread( const input::program& input );
   void wmm_build_ssa( const input::program& input );
   void wmm_build_pre( const input::program& input );
-  void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
+  void wmm_build_post( const input::program& input,
+                       std::unordered_map<std::string, std::string>& thread_vars );
   void wmm(const input::program& input);
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
@@ -109,20 +100,15 @@ public:
   //--------------------------------------------------------------------------
 
 public:
-  z3::expr phi_pre = _z3.c.bool_val(true);
-  z3::expr phi_po = _z3.c.bool_val(true);
-  z3::expr phi_vd = _z3.c.bool_val(true);
-  z3::expr phi_pi = _z3.c.bool_val(true);
-  z3::expr phi_prp = _z3.c.bool_val(true);
-  z3::expr phi_fea = _z3.c.bool_val(true); // feasable traces
-  z3::expr phi_distinct = _z3.c.bool_val(true); // ensures that all locations are distinct
-  //z3::expr fences = _z3.c.bool_val(true);
-  std::unordered_set<std::shared_ptr<instruction>> assertion_instructions; // set of instructions that are assertions
-  std::unordered_map<std::string, std::vector<pi_function_part>> pi_functions; // maps a pi variable to a set of function parts
-  std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written; // where a local variable is written
+  // set of instructions that are assertions
+  std::unordered_set<std::shared_ptr<instruction>> assertion_instructions;
+  // maps a pi variable to a set of function parts
+  std::unordered_map<std::string, std::vector<pi_function_part>> pi_functions;
+  // where a local variable is written
+  std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written;
   //std::unordered_map<std::shared_ptr<cssa::instruction>,std::shared_ptr<cssa::variable>> instr_to_var; // where a variable is read/written
   
-//tara::input::variable search_for_variable_in_read(tara::input::variable,std::shared_ptr<cssa::thread>, int); 
+  //tara::input::variable search_for_variable_in_read(tara::input::variable,std::shared_ptr<cssa::thread>, int); 
 
   /**
    * @brief Set of initial variables (used to get input values)
@@ -130,13 +116,7 @@ public:
    */
   variable_set initial_variables;
   
-  const tara::thread& operator[](unsigned i) const;
-  unsigned size() const;
   const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
-  variable_set globals;
-    // variable_set new_globals;
-  inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
-  inline const helpers::z3interf& z3() const { return _z3; }
 public: /* functions */
   /**
    * @brief Gets the initial values of global variables

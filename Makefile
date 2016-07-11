@@ -8,11 +8,11 @@ all : release
 .PHONY : release debug run clean patch test
 
 release : build/buildr/Makefile
-	make -C $(BUILDDIR)/buildr
+	+make -C $(BUILDDIR)/buildr
 	cp -f $(BUILDDIR)/buildr/tara tara
 
 debug : build/buildd/Makefile
-	make -C $(BUILDDIR)/buildd
+	+make -C $(BUILDDIR)/buildd
 	cp -f $(BUILDDIR)/buildd/tara tara
 
 build/buildr/Makefile: build/z3/buildr/libz3.so

@@ -41,13 +41,13 @@ namespace cssa {
     wmm_event_cons( helpers::z3interf&,
                     api::options&,
                     hb_enc::encoding&,
-                    cssa::program&  );
+                    tara::program&  );
     void run();
   private:
     helpers::z3interf& z3;
     api::options& o;
     hb_enc::encoding& hb_encoding;
-    cssa::program& p;
+    tara::program& p;
 
     void wmm_mk_distinct_events();
 
