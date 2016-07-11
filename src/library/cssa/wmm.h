@@ -39,14 +39,14 @@ namespace cssa {
   class wmm_event_cons {
   public:
     wmm_event_cons( helpers::z3interf&,
-                    hb_enc::encoding&,
                     api::options&,
+                    hb_enc::encoding&,
                     cssa::program&  );
     void run();
   private:
     helpers::z3interf& z3;
-    hb_enc::encoding& hb_encoding;
     api::options& o;
+    hb_enc::encoding& hb_encoding;
     cssa::program& p;
 
     void wmm_mk_distinct_events();

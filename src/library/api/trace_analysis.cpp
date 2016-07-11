@@ -32,6 +32,7 @@
 #include "prune/unsat_core.h"
 #include "prune/data_flow.h"
 #include "prune/remove_implied.h"
+#include "program/program.h"
 #include "cinput/cinput.h"
 #include <stdexcept>
 #include <vector>
@@ -55,19 +56,23 @@ void trace_analysis::input(string input_file)
 void trace_analysis::input(string input_file, mm_t mm)
 {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
-    cinput::program* p = cinput::parse_cpp_file( z3, _options, hb_encoding,
+    tara::program* p = cinput::parse_cpp_file( z3, _options, hb_encoding,
                                                  input_file );
+    // if( p->is_mm_declared() ) {
+    //   cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
+    //   mk_cons.run();
+    // }
   }else{
     input::program pa = input::parse::parseFile(input_file.c_str());
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     // start of wmm support
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     if( mm != mm_t::none ) {
       pa.set_mm( mm );
     }
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     // end of wmm support
-    //----------------------------------------------------------------------------
+    //--------------------------------------------------------------------------
     input(pa);
   }
 }
@@ -79,7 +84,7 @@ void trace_analysis::input(input::program& input_program)
   program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
 
   if( program->is_mm_declared() ) {
-    cssa::wmm_event_cons mk_cons( z3, hb_encoding, _options, *program);
+    cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
     mk_cons.run();
   }
 
@@ -90,16 +95,9 @@ void trace_analysis::input(input::program& input_program)
     if( input_program.get_mm() != mm_t::none ) {
       _options.out() << "(" << endl;
       _options.out() << "phi_pre : " << endl << program->phi_pre << endl;
-      _options.out() <<"phi_po : \n"<< program->phi_po<<"\n";
       _options.out() <<"fea : \n"<< program->phi_fea<<"\n";
       _options.out() <<"vd : \n" << program->phi_vd<<"\n";
       _options.out() <<"prp : \n"<< program->phi_prp<<"\n";
-      _options.out() <<"wf : \n" << program->wf <<"\n";
-      _options.out() <<"rf : \n" << program->rf <<"\n";
-      _options.out() <<"grf: \n" << program->grf<<"\n";
-      _options.out() <<"fr : \n" << program->fr <<"\n";
-      _options.out() <<"ws : \n" << program->ws <<"\n";
-      _options.out() <<"thin : \n" << program->thin <<"\n";
       _options.out() << ")" << endl;
     }else{
   //--------------------------------------------------------------------------
@@ -141,11 +139,7 @@ void trace_analysis::connect_read_writes( z3::solver& result )
 {
   if( program->is_mm_declared() ) {
     result.add( program->phi_po );
-    result.add( program->wf     );
-    result.add( program->grf    );
-    result.add( program->fr     );
-    result.add( program->ws     );
-    result.add( program->thin   );
+    result.add( program->phi_ses);
   }else{
     result.add( program->phi_po );
     result.add( program->phi_pi );

@@ -21,7 +21,7 @@
 #include "wmm.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-#include "helpers/int_to_string.h"
+// #include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
 #include <utility>
@@ -42,7 +42,7 @@ using namespace std;
 
 // ghb = guarded hb
 z3::expr wmm_event_cons::wmm_mk_ghb( const hb_enc::se_ptr& before,
-                              const hb_enc::se_ptr& after ) {
+                                     const hb_enc::se_ptr& after ) {
   return implies( before->guard && after->guard,
                   hb_encoding.make_hbs( before, after ) );
 }
@@ -50,17 +50,20 @@ z3::expr wmm_event_cons::wmm_mk_ghb( const hb_enc::se_ptr& before,
 // thin air ghb
 z3::expr wmm_event_cons::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
 				   const hb_enc::se_ptr& after ) {
-  return implies( before->guard && after->guard, hb_encoding.make_hb_thin( before, after ) );
+  return implies( before->guard && after->guard,
+                  hb_encoding.make_hb_thin( before, after ) );
 }
 
 //----------------------------------------------------------------------------
 // memory model utilities
 
 
-bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
+bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
+                             const hb_enc::se_ptr& rd ) {
   if( p.is_mm_sc() ) {
     return true;
-  }else if( p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha() ) {
+  }else if( p.is_mm_tso() || p.is_mm_pso() ||
+            p.is_mm_rmo() || p.is_mm_alpha() ) {
     return wr->tid != rd->tid; //only events with diff threads are part of grf
   }else{
     p.unsupported_mm();
@@ -83,13 +86,15 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd 
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
 
-bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd ) {
+bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr,
+                                    const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
   assert( wr->tid == p.no_of_threads() ||
           rd->tid == p.no_of_threads() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
+      || p.is_mm_rmo() || p.is_mm_alpha() ) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( is_po( rd, wr ) ) {
@@ -102,7 +107,8 @@ bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_p
   return false;
 }
 
-bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr ) {
+bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
+                                     const hb_enc::se_ptr& wr ) {
   // preventing coherence violation - fr;
   // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
@@ -135,8 +141,9 @@ bool wmm_event_cons::is_rd_rd_coherance_preserved() {
 // In original implementation this part of constraints are
 // referred as pi constraints
 
-z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,hb_enc::se_ptr wr,hb_enc::se_ptr rd,
-                               bool record ) {
+z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,
+                                      hb_enc::se_ptr wr, hb_enc::se_ptr rd,
+                                      bool record ) {
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
   z3::expr b = z3.c.bool_const(  bname.c_str() );
   if( record ) p.reading_map.insert( std::make_tuple(bname,wr,rd) );
@@ -179,13 +186,13 @@ void wmm_event_cons::ses() {
         z3::expr new_thin = implies( b, wmm_mk_ghb_thin( wr, rd ) );
         thin = thin && new_thin;
         //global read from
-        if( in_grf( wr, rd ) ) p.grf = p.grf && new_rf;
+        if( in_grf( wr, rd ) ) grf = grf && new_rf;
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && wmm_mk_ghb(wr, after_wr) && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
-              p.fr = p.fr && !cond;
+              fr = fr && !cond;
             }else{
               auto new_fr = wmm_mk_ghb( rd, after_wr );
               if( is_rd_rd_coherance_preserved() ) {
@@ -196,7 +203,7 @@ void wmm_event_cons::ses() {
                   new_fr = !anti_coherent_b && new_fr;
                 }
               }
-              p.fr = p.fr && implies( cond , new_fr );
+              fr = fr && implies( cond , new_fr );
             }
           }
         }
@@ -225,13 +232,10 @@ void wmm_event_cons::ses() {
     //dependency
     for( const hb_enc::se_ptr& wr : wrs )
       for( auto& rd : p.data_dependency[wr] )
-        thin = thin && hb_encoding.make_hb_thin( rd, wr ); //todo : should it be guarded??
+        //todo : should the following be guarded??
+        thin = thin && hb_encoding.make_hb_thin( rd, wr );
 
   }
-  p.rf = rf;
-  p.ws = ws;
-  p.thin = thin;
-  p.wf = wf;
 }
 
 
@@ -449,7 +453,7 @@ void wmm_event_cons::power_ppo( const thread& thread ) {
 void wmm_event_cons::ppo() {
   // wmm_test_ppo();
 
-  for( unsigned t=0; t<p.no_of_threads(); t++ ) {
+  for( unsigned t=0; t < p.no_of_threads(); t++ ) {
     const thread& thread = p.get_thread(t);
     if(       p.is_mm_sc()    ) { sc_ppo   ( thread );
     }else if( p.is_mm_tso()   ) { tso_ppo  ( thread );
@@ -460,9 +464,8 @@ void wmm_event_cons::ppo() {
     }else{                      p.unsupported_mm();
     }
   }
-  po = po && dist;
+  // po = po && dist;
   //phi_po = phi_po && barriers;
-  p.phi_po = po;
 }
 
 void wmm_event_cons::wmm_test_ppo() {
@@ -653,12 +656,12 @@ z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
 
 
 wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
-                                hb_enc::encoding& _hb_encoding,
                                 api::options& _o,
+                                hb_enc::encoding& _hb_encoding,
                                 cssa::program& _p )
 : z3( _z3 )
-,hb_encoding( _hb_encoding )
 ,o( _o )
+,hb_encoding( _hb_encoding )
 ,p( _p ) {
 }
 
@@ -670,7 +673,7 @@ void wmm_event_cons::run() {
 
   if ( o.print_phi ) {
     o.out() << "(" << endl;
-    o.out() <<"phi_po : \n"<< po   <<"\n";
+    o.out() <<"phi_po : \n"<< (po && dist) <<"\n";
     o.out() <<"wf : \n"    << wf   <<"\n";
     o.out() <<"rf : \n"    << rf   <<"\n";
     o.out() <<"grf: \n"    << grf  <<"\n";
@@ -680,6 +683,8 @@ void wmm_event_cons::run() {
     o.out() << ")" << endl;
   }
 
+  p.phi_po = po && dist;
+  p.phi_ses = wf && grf && fr && ws && thin;
 }
 
 

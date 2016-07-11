@@ -33,6 +33,5 @@
 // };
 // }}
 
-#define cinput_error( S ) tara_error( "::cinput", S )
 
 #endif // TARA_CINPUT_EXCEPTION_H

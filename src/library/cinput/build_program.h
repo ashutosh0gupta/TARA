@@ -21,11 +21,12 @@
 #define TARA_CINPUT_BUILD_PROGRAM_H
 
 #include <map>
-#include "cinput/cinput.h"
-#include "cinput/cinput_exception.h"
 #include "helpers/z3interf.h"
 #include "api/options.h"
 #include "helpers/helpers.h"
+#include "program/program.h"
+#include "cinput/cinput.h"
+#include "cinput/cinput_exception.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -92,7 +93,7 @@ namespace cinput {
     api::options& o;
     hb_enc::encoding& hb_encoding;
     // Cfrontend::Config& config;
-    program* p;
+    tara::program* p;
     unsigned inst_counter = 0;
     ValueExprMap valMap;
     std::map< llvm::BasicBlock*, unsigned> block_to_id;
@@ -136,7 +137,7 @@ namespace cinput {
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
                    hb_enc::encoding& hb_encoding_,
-                   program* program_ )
+                   tara::program* program_ )
     : llvm::FunctionPass(ID)
     , z3(z3_)
     , o(o_)

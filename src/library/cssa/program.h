@@ -95,9 +95,9 @@ private:
   void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
   void wmm(const input::program& input);
 
-  bool hb_eval( const z3::model& model,
-                const hb_enc::se_ptr& before,
-                const hb_enc::se_ptr& after ) const;
+  // bool hb_eval( const z3::model& model,
+  //               const hb_enc::se_ptr& before,
+  //               const hb_enc::se_ptr& after ) const;
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
   void wmm_print_dot( z3::model m ) const;
@@ -120,17 +120,15 @@ public:
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
 
-  z3::expr wf      = _z3.mk_true();
-  z3::expr rf      = _z3.mk_true();
-  z3::expr grf     = _z3.mk_true();
-  z3::expr ws      = _z3.mk_true();
-  z3::expr thin    = _z3.mk_true();
-  z3::expr fr      = _z3.mk_true();
+  // z3::expr wf      = _z3.mk_true();
+  // z3::expr rf      = _z3.mk_true();
+  // z3::expr grf     = _z3.mk_true();
+  // z3::expr ws      = _z3.mk_true();
+  // z3::expr thin    = _z3.mk_true();
+  // z3::expr fr      = _z3.mk_true();
 
-  // z3::expr rf_some = _z3.mk_true();
-  // z3::expr rf_ws   = _z3.mk_true();
-  // z3::expr rf_grf  = _z3.mk_true();
-  // z3::expr rf_val  = _z3.mk_true();
+  z3::expr phi_ses = _z3.mk_true();
+
   z3::expr phi_post = _z3.mk_true();
 
   //--------------------------------------------------------------------------

@@ -69,6 +69,9 @@ public:
 #define tara_warning( S ) { std::cerr << "# tara Warning: " << S \
                                       << std::endl; }
 
+#define cinput_error( S ) tara_error( "::cinput", S )
+#define program_error( S ) tara_error( "::program", S )
+
 namespace std {
   template <>
   struct hash<z3::expr>
