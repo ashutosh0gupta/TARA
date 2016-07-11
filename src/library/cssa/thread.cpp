@@ -25,47 +25,6 @@ using namespace tara::helpers;
 
 namespace tara {
 namespace cssa {
-  instruction::instruction(z3interf& z3, hb_enc::location_ptr location, cssa::thread* thread, string& name, instruction_type type, z3::expr original_expression) :
-  loc(location), instr(z3::expr(z3.c)), path_constraint(z3::expr(z3.c)), in_thread(thread), name(name), type(type), original_expr(original_expression)
-{
-  if (thread==nullptr) 
-    throw cssa_exception("Thread cannot be null");
-}
-
-
-std::ostream& operator <<(std::ostream& stream, const instruction& i) {
-  stream << i.loc->name << ": ";
-  if (i.havok_vars.size() > 0) {
-    stream << "havok(";
-    for (auto it = i.havok_vars.begin(); it!=i.havok_vars.end(); it++) {
-      stream << *it;
-      if (!last_element(it, i.havok_vars))
-        stream << ", ";
-    }
-    stream << ") ";
-  }
-  switch (i.type) {
-    case instruction_type::assert:
-      stream << "assert " << i.original_expr;
-      break;
-    case instruction_type::assume:
-      stream << "assume " << i.original_expr;
-      break;
-    default:
-      stream << i.original_expr;
-  }
-  return stream;
-}
-
-variable_set instruction::variables() const
-{
-  return helpers::set_union(variables_read, variables_write);
-}
-
-variable_set instruction::variables_orig() const
-{
-  return helpers::set_union(variables_read_orig, variables_write_orig);
-}
 
 thread::thread(const string& name, const tara::cssa::variable_set locals) : name(name), locals(locals)
 {}
@@ -98,18 +57,5 @@ void thread::add_instruction(const std::shared_ptr<instruction>& instr)
   instructions.push_back(instr);
 }
 
-void instruction::debug_print( std::ostream& o )
-{
-  o << (*this) << "\n";
-  o << "ssa instruction : " << instr << "\n";
-  o << "path constraint : " << path_constraint << "\n";
-  o << "var_read_copy : "; print_set( variables_read_copy,  o);
-  o << "var_read : ";      print_set( variables_read,       o);
-  o << "var_write : ";     print_set( variables_write,      o);
-  o << "var_read_orig : "; print_set( variables_read_orig,  o);
-  o << "var_write_orig : ";print_set( variables_write_orig, o);
-  o << "var_rds : ";       debug_print_se_set(rds, o);
-  o << "var_wrs : ";       debug_print_se_set(wrs, o);
-}
 
 }}

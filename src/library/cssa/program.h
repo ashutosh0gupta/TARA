@@ -96,41 +96,13 @@ private:
   void wmm_build_post( const input::program& input, std::unordered_map<std::string, std::string>& thread_vars );
   void wmm(const input::program& input);
 
-  // bool hb_eval( const z3::model& model,
-  //               const hb_enc::se_ptr& before,
-  //               const hb_enc::se_ptr& after ) const;
-
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
   void wmm_print_dot( z3::model m ) const;
 
-// private:
-//   mm_t mm = mm_t::none;
 
 public:
-  // bool is_mm_declared() const;
-  // bool is_wmm() const;
-  // bool is_mm_sc() const;
-  // bool is_mm_tso() const;
-  // bool is_mm_pso() const;
-  // bool is_mm_rmo() const;
-  // bool is_mm_alpha() const;
-  // bool is_mm_power() const;
-  // void set_mm( mm_t );
-  // mm_t get_mm() const;
-  // void unsupported_mm() const;
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
-
-  // z3::expr wf      = _z3.mk_true();
-  // z3::expr rf      = _z3.mk_true();
-  // z3::expr grf     = _z3.mk_true();
-  // z3::expr ws      = _z3.mk_true();
-  // z3::expr thin    = _z3.mk_true();
-  // z3::expr fr      = _z3.mk_true();
-
-  z3::expr phi_ses = _z3.mk_true();
-
-  z3::expr phi_post = _z3.mk_true();
 
   //--------------------------------------------------------------------------
   //end of wmm support

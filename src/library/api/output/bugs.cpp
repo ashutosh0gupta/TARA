@@ -161,7 +161,7 @@ bool bugs::race_condition(nf::row_type& conj)
       if (order_hb(hb1, hb2)) {
         // check data-flow
         if (hb1.loc1->thread == hb2.loc2->thread) {
-          const cssa::instruction& lastloc = lookup(hb2.loc2);
+          const tara::instruction& lastloc = lookup(hb2.loc2);
           cssa::variable_set common_vars = set_intersection(read_write(hb1), write_write(hb2));
           if (common_vars.size()>0 && !intersection_nonempty(common_vars, lastloc.variables_read_orig)) {
             bug_list.emplace_back(bug_type::data_race, list<hb_enc::location_ptr>({hb1.loc1, hb1.loc2, hb2.loc2}));
@@ -237,7 +237,7 @@ bool bugs::first_assignment(const cssa::variable& variable, hb_enc::location_ptr
   z3::expr hb_other_later = phi_po.ctx().bool_val(true);
   auto assignments = program->get_assignments_to_variable(variable);
   assert (assignments.size() > 0);
-  for (shared_ptr<const cssa::instruction> instr : assignments) {
+  for (shared_ptr<const tara::instruction> instr : assignments) {
     if (instr->loc != loc) {
       hb_other_later = hb_other_later && _hb_encoding->make_hb(loc, instr->loc);
     }

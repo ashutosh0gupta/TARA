@@ -24,6 +24,7 @@
 #include "helpers/z3interf.h"
 #include "hb_enc/encoding.h"
 #include "hb_enc/symbolic_event.h"
+#include "program/program.h"
 #include <unordered_map>
 #include "constants.h"
 // #include "cssa/wmm.h"
@@ -33,40 +34,40 @@ namespace cssa {
 
 class thread;
 
-struct instruction {
-  hb_enc::location_ptr loc;
-  z3::expr instr;
-  z3::expr path_constraint;
-  thread* in_thread;
-  std::string name;
-  variable_set variables_read_copy;
-  variable_set variables_read; // the variable names with the hash
-  variable_set variables_write; // the variable names with the hash
-  variable_set variables_read_orig; // the original variable names
-  variable_set variables_write_orig; // the original variable names, unprimed
-  variable_set variables() const;
-  variable_set variables_orig() const;
-  instruction_type type;
-  variable_set havok_vars;
+// struct instruction {
+//   hb_enc::location_ptr loc;
+//   z3::expr instr;
+//   z3::expr path_constraint;
+//   thread* in_thread;
+//   std::string name;
+//   // variable_set variables_read_copy;
+//   variable_set variables_read; // the variable names with the hash
+//   variable_set variables_write; // the variable names with the hash
+//   variable_set variables_read_orig; // the original variable names
+//   variable_set variables_write_orig; // the original variable names, unprimed
+//   variable_set variables() const;
+//   variable_set variables_orig() const;
+//   instruction_type type;
+//   variable_set havok_vars;
 
-  //--------------------------------------------------------------------------
-  // WMM support
-  //--------------------------------------------------------------------------
+//   //--------------------------------------------------------------------------
+//   // WMM support
+//   //--------------------------------------------------------------------------
 
-  hb_enc::se_set rds;
-  hb_enc::se_set wrs;
-  hb_enc::se_set barr; //the event created for barrier if the instruction is barrier type
-public:
-  //--------------------------------------------------------------------------
-  // End WMM support
-  //--------------------------------------------------------------------------
+//   hb_enc::se_set rds;
+//   hb_enc::se_set wrs;
+//   hb_enc::se_set barr; //the event created for barrier if the instruction is barrier type
+// public:
+//   //--------------------------------------------------------------------------
+//   // End WMM support
+//   //--------------------------------------------------------------------------
   
-  instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
-  friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
-  void debug_print( std::ostream& o );
-private:
-  z3::expr original_expr;
-};
+//   instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
+//   friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
+//   void debug_print( std::ostream& o );
+// private:
+//   z3::expr original_expr;
+// };
   
 class thread
 {
@@ -88,7 +89,7 @@ public:
   unsigned size() const;
   instruction& operator [](unsigned i);
   const instruction& operator [](unsigned i) const;
-  void add_instruction(const std::shared_ptr< tara::cssa::instruction >& instr);
+  void add_instruction(const std::shared_ptr< tara::instruction >& instr);
 };
 }}
 

@@ -27,11 +27,50 @@
 // #include "cinput/cinput_exception.h"
 
 namespace tara {
+  namespace cssa{
+    class thread;
+  }
   class loc{
   public:
     unsigned line;
     unsigned col;
     std::string file;
+  };
+
+  class instruction {
+  public:
+    hb_enc::location_ptr loc;
+    z3::expr instr;
+    z3::expr path_constraint;
+    cssa::thread* in_thread;
+    std::string name;
+    // variable_set variables_read_copy;
+    cssa::variable_set variables_read; // the variable names with the hash
+    cssa::variable_set variables_write; // the variable names with the hash
+    cssa::variable_set variables_read_orig; // the original variable names
+    cssa::variable_set variables_write_orig; // the original variable names, unprimed
+    cssa::variable_set variables() const;
+    cssa::variable_set variables_orig() const;
+    instruction_type type;
+    cssa::variable_set havok_vars;
+
+    //--------------------------------------------------------------------------
+    // WMM support
+    //--------------------------------------------------------------------------
+
+    hb_enc::se_set rds;
+    hb_enc::se_set wrs;
+    hb_enc::se_set barr; //the event created for barrier if the instruction is barrier type
+  public:
+    //--------------------------------------------------------------------------
+    // End WMM support
+    //--------------------------------------------------------------------------
+  
+    instruction(helpers::z3interf& z3, hb_enc::location_ptr location, cssa::thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
+    friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
+    void debug_print( std::ostream& o );
+  private:
+    z3::expr original_expr;
   };
 
   class thread {
@@ -54,6 +93,26 @@ namespace tara {
     void append_property( z3::expr prp) {
       phi_prp = phi_prp || prp;
     }
+
+    //old thread
+
+    // thread(const std::string& name, variable_set locals);
+    // thread(thread& ) = delete;
+    // thread& operator=(thread&) = delete;
+
+    // std::vector<std::shared_ptr<instruction>> instructions;
+    // const std::string name;
+    // std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
+    // variable_set locals;
+  
+    // bool operator==(const thread &other) const;
+    // bool operator!=(const thread &other) const;
+  
+    // unsigned size() const;
+    // instruction& operator [](unsigned i);
+    // const instruction& operator [](unsigned i) const;
+    // void add_instruction(const std::shared_ptr< tara::instruction >& instr);
+
   };
 
   class program {
@@ -71,15 +130,20 @@ namespace tara {
     std::map< std::string, hb_enc::se_ptr> create_map, join_map;
     hb_enc::name_to_ses_map se_store;
 
+    //--------------------------------------------------------------------------
+    // cssa::program variables moved here
+    //--------------------------------------------------------------------------
+    z3::expr phi_ses = z3.mk_true();
+    z3::expr phi_post = z3.mk_true();
 
-    bool is_mm_declared() const;
-    bool is_wmm() const;
-    bool is_mm_sc() const;
-    bool is_mm_tso() const;
-    bool is_mm_pso() const;
-    bool is_mm_rmo() const;
-    bool is_mm_alpha() const;
-    bool is_mm_power() const;
+    inline bool is_mm_declared() const;
+    inline bool is_wmm() const;
+    inline bool is_mm_sc() const;
+    inline bool is_mm_tso() const;
+    inline bool is_mm_pso() const;
+    inline bool is_mm_rmo() const;
+    inline bool is_mm_alpha() const;
+    inline bool is_mm_power() const;
     void set_mm( mm_t );
     mm_t get_mm() const;
     void unsupported_mm() const;

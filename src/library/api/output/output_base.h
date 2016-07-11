@@ -24,6 +24,7 @@
 #include <string>
 #include <z3++.h>
 #include "hb_enc/encoding.h"
+#include "program/program.h"
 #include "cssa/program.h"
 #include <memory>
 #include "api/metric.h"
@@ -55,7 +56,7 @@ protected:
   /***************************
    * Useful utility functions
    ***************************/
-  inline const cssa::instruction& lookup(const hb_enc::location_ptr& loc) const; // lookup a location in the program
+  inline const tara::instruction& lookup(const hb_enc::location_ptr& loc) const; // lookup a location in the program
   /**
    * @brief Check if hb.loc1 is reading and hb.loc2 is writing to the same variable
    * 

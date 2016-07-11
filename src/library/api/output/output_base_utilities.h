@@ -9,7 +9,7 @@ namespace output {
  * Useful utility functions
  ***************************/
 
-const cssa::instruction& output_base::lookup(const hb_enc::location_ptr& loc) const {
+const tara::instruction& output_base::lookup(const hb_enc::location_ptr& loc) const {
   return program->lookup_location(loc); 
 }
 

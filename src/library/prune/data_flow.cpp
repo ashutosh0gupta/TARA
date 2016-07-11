@@ -50,7 +50,7 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
   list<z3::expr> pi_hbs;
   queue<string> follow;
   // init with the variables in the assertions
-  for(std::shared_ptr<cssa::instruction> instr : program.assertion_instructions) {
+  for(std::shared_ptr<tara::instruction> instr : program.assertion_instructions) {
     for (string v : instr->variables_read)
       follow.push(v);
   }
@@ -74,7 +74,7 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
     // if this is a local variable
     auto local = program.variable_written.find(v);
     if (local != program.variable_written.end()) {
-      std::shared_ptr<cssa::instruction> instr = local->second;
+      std::shared_ptr<tara::instruction> instr = local->second;
       for (string v : instr->variables_read)
         follow.push(v);
     } else {

@@ -344,13 +344,13 @@ bool cssa::program::is_global(const variable& name) const
   return globals.find(variable(name))!=globals.end();
 }
 
-const instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
+const tara::instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
 {
   return (*this)[location->thread][location->instr_no];
 }
 
 
-std::vector< std::shared_ptr<const instruction> > cssa::program::get_assignments_to_variable(const variable& variable) const
+std::vector< std::shared_ptr<const tara::instruction> > cssa::program::get_assignments_to_variable(const variable& variable) const
 {
   string name = (get_unprimed(variable)).name;
   vector<std::shared_ptr<const instruction>> result;
@@ -678,6 +678,11 @@ bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
   return false;
 }
 
+
+//----------------------------------------------------------------------------
+// To be deleted
+//----------------------------------------------------------------------------
+
 // bool cssa::program::is_mm_declared() const {  return mm != mm_t::none; }
 // bool cssa::program::is_wmm()         const {  return mm != mm_t::sc;   }
 // bool cssa::program::is_mm_sc()       const {  return mm == mm_t::sc;   }
@@ -701,9 +706,6 @@ bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
   // wmm_build_ses(); // build symbolic event structure
   // wmm_build_barrier(); // build barrier// ppo already has the code
 // }
-
-//----------------------------------------------------------------------------
-// To be deleted
 
 // unsigned cssa::program:: no_of_instructions(unsigned tid) const
 // {
