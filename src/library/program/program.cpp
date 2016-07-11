@@ -27,7 +27,7 @@ namespace tara {
 
 instruction::instruction( z3interf& z3,
                           hb_enc::location_ptr location,
-                          cssa::thread* thread,
+                          tara::thread* thread,
                           std::string& name,
                           instruction_type type,
                           z3::expr original_expression )
@@ -66,26 +66,54 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   return stream;
 }
 
-  cssa::variable_set instruction::variables() const
-{
-  return helpers::set_union(variables_read, variables_write);
-}
+  cssa::variable_set instruction::variables() const {
+    return helpers::set_union(variables_read, variables_write);
+  }
 
-  cssa::variable_set instruction::variables_orig() const
-{
-  return helpers::set_union(variables_read_orig, variables_write_orig);
-}
+  cssa::variable_set instruction::variables_orig() const {
+    return helpers::set_union(variables_read_orig, variables_write_orig);
+  }
 
-void instruction::debug_print( std::ostream& o ) {
-  o << (*this) << "\n";
-  o << "ssa instruction : " << instr << "\n";
-  o << "path constraint : " << path_constraint << "\n";
-  o << "var_read : ";      helpers::print_set( variables_read,       o);
-  o << "var_write : ";     helpers::print_set( variables_write,      o);
-  o << "var_read_orig : "; helpers::print_set( variables_read_orig,  o);
-  o << "var_write_orig : ";helpers::print_set( variables_write_orig, o);
-  o << "var_rds : ";       hb_enc::debug_print_se_set(rds, o);
-  o << "var_wrs : ";       hb_enc::debug_print_se_set(wrs, o);
-}
+  void instruction::debug_print( std::ostream& o ) {
+    o << (*this) << "\n";
+    o << "ssa instruction : " << instr << "\n";
+    o << "path constraint : " << path_constraint << "\n";
+    o << "var_read : ";      helpers::print_set( variables_read,       o);
+    o << "var_write : ";     helpers::print_set( variables_write,      o);
+    o << "var_read_orig : "; helpers::print_set( variables_read_orig,  o);
+    o << "var_write_orig : ";helpers::print_set( variables_write_orig, o);
+    o << "var_rds : ";       hb_enc::debug_print_se_set(rds, o);
+    o << "var_wrs : ";       hb_enc::debug_print_se_set(wrs, o);
+  }
+
+  //==========================================================================
+
+  thread::thread( helpers::z3interf& z3_,
+                  const std::string& name, const tara::cssa::variable_set locals)
+    : z3(z3_)
+    , name(name)
+    , locals(locals)
+  {}
+
+  bool thread::operator==(const thread &other) const {
+    return this->name == other.name;
+  }
+
+  bool thread::operator!=(const thread &other) const {
+    return !(*this==other);
+  }
+
+  unsigned int thread::size() const { return instructions.size(); }
+  const instruction& thread::operator[](unsigned int i) const {
+    return *instructions[i];
+  }
+
+  instruction& thread::operator[](unsigned int i) {
+    return *instructions[i];
+  }
+
+  void thread::add_instruction(const std::shared_ptr<instruction>& instr) {
+    instructions.push_back(instr);
+  }
 
 }

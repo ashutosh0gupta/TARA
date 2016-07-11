@@ -251,7 +251,7 @@ void wmm_event_cons::wmm_mk_distinct_events() {
   }
 
   for( unsigned t=0; t < p.no_of_threads(); t++ ) {
-    const thread& thread = p.get_thread(t);
+    auto& thread = p.get_thread(t);
     assert( thread.size() > 0 );
     for( unsigned j=0; j < thread.size(); j++ ) {
       for( auto& rd : thread[j].rds ) {
@@ -271,7 +271,7 @@ void wmm_event_cons::wmm_mk_distinct_events() {
 // todo: deal with double barriers that may cause bugs since they are not 
 //       explicitly ordered
 
-void wmm_event_cons::sc_ppo( const thread& thread ) {
+void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   unsigned tsize = thread.size();
   hb_enc::se_set last = p.init_loc;
 
@@ -286,7 +286,7 @@ void wmm_event_cons::sc_ppo( const thread& thread ) {
   po = po && hb_encoding.make_hbs( last, p.post_loc);
 }
 
-void wmm_event_cons::tso_ppo( const thread& thread ) {
+void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
   hb_enc::se_set last_rds = p.init_loc, last_wrs = p.init_loc;
   bool rd_occured = false;
   hb_enc::se_set barr_events = p.init_loc;
@@ -317,7 +317,7 @@ void wmm_event_cons::tso_ppo( const thread& thread ) {
   po = po && hb_encoding.make_hbs(last_wrs, p.post_loc);
 }
 
-void wmm_event_cons::pso_ppo( const thread& thread ) {
+void wmm_event_cons::pso_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr;
   assert( p.init_loc.size() == 1);
   hb_enc::se_ptr init_l = *p.init_loc.begin();
@@ -362,7 +362,7 @@ void wmm_event_cons::pso_ppo( const thread& thread ) {
   //po = po && barriers;
 }
 
-void wmm_event_cons::rmo_ppo( const thread& thread ) {
+void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_rd, last_wr;
   hb_enc::se_set collected_rds;
 
@@ -413,7 +413,7 @@ void wmm_event_cons::rmo_ppo( const thread& thread ) {
     po = po && hb_encoding.make_hbs( last_wr[g], p.post_loc );
 }
 
-void wmm_event_cons::alpha_ppo( const thread& thread ) {
+void wmm_event_cons::alpha_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr, last_rd;
   assert( p.init_loc.size() == 1);
   hb_enc::se_ptr barr = *p.init_loc.begin();
@@ -446,7 +446,7 @@ void wmm_event_cons::alpha_ppo( const thread& thread ) {
     po = po && hb_encoding.make_hbs( last_wr[g], p.post_loc );
 }
 
-void wmm_event_cons::power_ppo( const thread& thread ) {
+void wmm_event_cons::power_ppo( const tara::thread& thread ) {
   p.unsupported_mm();
 }
 
@@ -454,7 +454,7 @@ void wmm_event_cons::ppo() {
   // wmm_test_ppo();
 
   for( unsigned t=0; t < p.no_of_threads(); t++ ) {
-    const thread& thread = p.get_thread(t);
+    auto& thread = p.get_thread(t);
     if(       p.is_mm_sc()    ) { sc_ppo   ( thread );
     }else if( p.is_mm_tso()   ) { tso_ppo  ( thread );
     }else if( p.is_mm_pso()   ) { pso_ppo  ( thread );
@@ -484,7 +484,7 @@ void wmm_event_cons::wmm_test_ppo() {
 
 //----------------------------------------------------------------------------
 
-z3::expr wmm_event_cons::insert_tso_barrier( const thread & thread,
+z3::expr wmm_event_cons::insert_tso_barrier( const tara::thread & thread,
                                              unsigned instr,
                                              hb_enc::se_ptr new_barr ) {
   z3::expr hbs = z3.mk_true();
@@ -520,7 +520,7 @@ z3::expr wmm_event_cons::insert_tso_barrier( const thread & thread,
   return z3.mk_true();
 }
 
-z3::expr wmm_event_cons::insert_pso_barrier( const thread & thread,
+z3::expr wmm_event_cons::insert_pso_barrier( const tara::thread & thread,
                                              unsigned instr,
                                              hb_enc::se_ptr new_barr ) {
   //todo stop at barriers
@@ -570,7 +570,7 @@ z3::expr wmm_event_cons::insert_pso_barrier( const thread & thread,
   return z3.mk_true();
 }
 
-z3::expr wmm_event_cons::insert_rmo_barrier( const thread & thread,
+z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
                                              unsigned instr,
                                              hb_enc::se_ptr new_barr ) {
   z3::expr hbs = z3.mk_true();
@@ -638,7 +638,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const thread & thread,
 }
 
 z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
-  const thread & thr = p.get_thread(tid);//*threads[instr];
+  auto & thr = p.get_thread(tid);//*threads[instr];
   assert( instr < thr.size() );
 
   //todo : prepage contraints for barrier

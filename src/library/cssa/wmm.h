@@ -51,12 +51,12 @@ namespace cssa {
 
     void wmm_mk_distinct_events();
 
-    void sc_ppo   ( const thread& thread );
-    void tso_ppo  ( const thread& thread );
-    void pso_ppo  ( const thread& thread );
-    void rmo_ppo  ( const thread& thread );
-    void alpha_ppo( const thread& thread );
-    void power_ppo( const thread& thread );
+    void sc_ppo   ( const tara::thread& thread );
+    void tso_ppo  ( const tara::thread& thread );
+    void pso_ppo  ( const tara::thread& thread );
+    void rmo_ppo  ( const tara::thread& thread );
+    void alpha_ppo( const tara::thread& thread );
+    void power_ppo( const tara::thread& thread );
     void ppo();
     void wmm_test_ppo(); // TODO: remove when confident
 
@@ -76,9 +76,9 @@ namespace cssa {
 
     void ses();
 
-    z3::expr insert_tso_barrier( const thread&, unsigned, hb_enc::se_ptr );
-    z3::expr insert_pso_barrier( const thread&, unsigned, hb_enc::se_ptr );
-    z3::expr insert_rmo_barrier( const thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_tso_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_pso_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_rmo_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
     z3::expr insert_barrier( unsigned tid, unsigned instr );
 
     z3::expr dist = z3.mk_true();

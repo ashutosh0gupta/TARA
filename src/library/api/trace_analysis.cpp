@@ -337,7 +337,7 @@ bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as
   unordered_map<Z3_ast, hb_enc::as> trigger_map;
   z3::expr_vector assumptions(z3.c);
   for (unsigned t=0; t<program->size(); t++) {
-    const cssa::thread& th = (*program)[t];
+    const tara::thread& th = (*program)[t];
     for (unsigned i=0; i<th.size()-1; i++) {
       hb_enc::as a = hb_encoding.make_as(th[i].loc, th[i+1].loc);
       z3::expr trigger = z3.c.fresh_constant("as_assumption", z3.c.bool_sort());

@@ -51,12 +51,12 @@ public:
   std::vector< std::vector < bool > > build_po() const;
   //std::unordered_map<std::string,int>instr_to_MatIndex;
   unsigned no_of_threads() const;
-  const thread& get_thread( unsigned tid ) const;
+  const tara::thread& get_thread( unsigned tid ) const;
   // unsigned no_of_instructions(unsigned tid) const;
   // unsigned total_instructions() const;
   // std::string instr_name(unsigned tid,unsigned instr_no) const;
 private:
-  std::vector<std::shared_ptr<cssa::thread>> threads;
+  std::vector<std::shared_ptr<tara::thread>> threads;
   helpers::z3interf& _z3;
   hb_enc::encoding& _hb_encoding;
   
@@ -130,7 +130,7 @@ public:
    */
   variable_set initial_variables;
   
-  const thread& operator[](unsigned i) const;
+  const tara::thread& operator[](unsigned i) const;
   unsigned size() const;
   const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
   variable_set globals;

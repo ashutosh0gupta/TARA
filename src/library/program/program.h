@@ -27,9 +27,9 @@
 // #include "cinput/cinput_exception.h"
 
 namespace tara {
-  namespace cssa{
+  // namespace cssa{
     class thread;
-  }
+  // }
   class loc{
   public:
     unsigned line;
@@ -42,7 +42,7 @@ namespace tara {
     hb_enc::location_ptr loc;
     z3::expr instr;
     z3::expr path_constraint;
-    cssa::thread* in_thread;
+    thread* in_thread;
     std::string name;
     // variable_set variables_read_copy;
     cssa::variable_set variables_read; // the variable names with the hash
@@ -66,7 +66,7 @@ namespace tara {
     // End WMM support
     //--------------------------------------------------------------------------
   
-    instruction(helpers::z3interf& z3, hb_enc::location_ptr location, cssa::thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
+    instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
     friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
     void debug_print( std::ostream& o );
   private:
@@ -75,11 +75,11 @@ namespace tara {
 
   class thread {
   public:
-    thread(helpers::z3interf& z3_, std::string name_):
+    thread(helpers::z3interf& z3_, std::string& name_):
       z3(z3_), name(name_) {}
     hb_enc::se_ptr start_event, final_event;
     helpers::z3interf& z3;
-    std::string name;
+    const std::string name;
     hb_enc::se_vec events; // topologically sorted events
     z3::expr phi_ssa = z3.mk_true();
     z3::expr phi_prp = z3.mk_false();
@@ -96,29 +96,30 @@ namespace tara {
 
     //old thread
 
-    // thread(const std::string& name, variable_set locals);
-    // thread(thread& ) = delete;
-    // thread& operator=(thread&) = delete;
+    thread( helpers::z3interf& z3_,
+            const std::string& name, cssa::variable_set locals );
+    thread(thread& ) = delete;
+    thread& operator=(thread&) = delete;
 
-    // std::vector<std::shared_ptr<instruction>> instructions;
+    std::vector<std::shared_ptr<instruction>> instructions;
     // const std::string name;
-    // std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
-    // variable_set locals;
-  
-    // bool operator==(const thread &other) const;
-    // bool operator!=(const thread &other) const;
-  
-    // unsigned size() const;
-    // instruction& operator [](unsigned i);
-    // const instruction& operator [](unsigned i) const;
-    // void add_instruction(const std::shared_ptr< tara::instruction >& instr);
+    std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
+    cssa::variable_set locals;
+
+    bool operator==(const thread &other) const;
+    bool operator!=(const thread &other) const;
+
+    unsigned size() const;
+    instruction& operator [](unsigned i);
+    const instruction& operator [](unsigned i) const;
+    void add_instruction(const std::shared_ptr< tara::instruction >& instr);
 
   };
 
   class program {
   private:
     unsigned thread_num = 0;
-    std::vector<thread> threads;
+    std::vector<std::shared_ptr<thread>> threads;
     mm_t mm = mm_t::none;
 
   public:
@@ -153,27 +154,27 @@ namespace tara {
     }
 
     inline const thread& get_thread(unsigned t) const {
-      return threads[t];
+      return *threads[t];
     }
 
     unsigned add_thread( std::string str) {
-      thread thr( z3, str );
+      auto thr = std::make_shared<thread>( z3, str );
       threads.push_back( thr );
       thread_num++;
       return thread_num-1;
     }
 
     void append_ssa( unsigned thread_id, z3::expr e) {
-      threads[thread_id].append_ssa( e );
+      threads[thread_id]->append_ssa( e );
     }
 
     void append_property( unsigned thread_id, z3::expr prp) {
-      threads[thread_id].append_property( prp );
+      threads[thread_id]->append_property( prp );
     }
 
 
     void add_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i].add_event( e );
+      threads[i]->add_event( e );
       se_store[e->name()] = e;
     }
 
@@ -184,11 +185,11 @@ namespace tara {
     }
 
     void set_start_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i].set_start_event( e );
+      threads[i]->set_start_event( e );
     }
 
     void set_final_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i].set_final_event( e );
+      threads[i]->set_final_event( e );
     }
 
     void add_create( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {

@@ -18,6 +18,7 @@
  */
 
 
+#include "program/program.h"
 #include "program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
@@ -48,7 +49,7 @@ void cssa::program::build_threads(const input::program& input)
     
     z3::expr path_constraint = c.bool_val(true);
     variable_set path_constraint_variables;
-    thread& thread = *threads[t];
+    tara::thread& thread = *threads[t];
     for (unsigned i=0; i<input.threads[t].size(); i++) {
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i])) {
         z3::expr_vector src(c);
@@ -149,7 +150,7 @@ unsigned cssa::program::no_of_threads() const
 	return threads.size();
 }
 
-const cssa::thread& cssa::program::get_thread( unsigned tid ) const {
+const tara::thread& cssa::program::get_thread( unsigned tid ) const {
   return *threads[tid];
 }
 
@@ -237,14 +238,14 @@ void cssa::program::build_hb(const input::program& input)
   locations.push_back(*start_location);
   
   for (unsigned t=0; t<input.threads.size(); t++) {
-    thread& thread = *threads[t];
+    tara::thread& thread = *threads[t];
     shared_ptr<hb_enc::location> prev;
     for (unsigned j=0; j<input.threads[t].size(); j++) {
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
         shared_ptr<hb_enc::location> loc = instr->location();
         locations.push_back(*loc);
         
-        std::shared_ptr<instruction> ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
+        auto ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
         thread.add_instruction(ninstr);
       } else {
         throw cssa_exception("Instruction must be Z3");
@@ -256,7 +257,7 @@ void cssa::program::build_hb(const input::program& input)
   phi_distinct = distinct(locations);
   
   for(unsigned t=0; t<threads.size(); t++) {
-    thread& thread = *threads[t];
+    tara::thread& thread = *threads[t];
     unsigned j=0;
     phi_po = phi_po && _hb_encoding.make_hb(start_location, thread[0].loc);
     for(j=0; j<thread.size()-1; j++) {
@@ -307,7 +308,7 @@ cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input:
 {
   // add threads
   for (unsigned t=0; t<input.threads.size(); t++) {
-    shared_ptr<thread> tp = make_shared<thread>(input.threads[t].name, z3.translate_variables(input.threads[t].locals));
+    auto tp = make_shared<tara::thread>(z3, input.threads[t].name, z3.translate_variables(input.threads[t].locals));
     threads.push_back(move(tp));
   }
   
@@ -329,7 +330,7 @@ cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input:
 
 }
 
-const cssa::thread& cssa::program::operator[](unsigned int i) const
+const tara::thread& cssa::program::operator[](unsigned int i) const
 {
   return *threads[i];
 }
@@ -355,7 +356,7 @@ std::vector< std::shared_ptr<const tara::instruction> > cssa::program::get_assig
   string name = (get_unprimed(variable)).name;
   vector<std::shared_ptr<const instruction>> result;
   for (unsigned i = 0; i<this->size(); i++) {
-    const cssa::thread& t = (*this)[i];
+    const tara::thread& t = (*this)[i];
     
     auto find = t.global_var_assign.find(name);
     if (find != t.global_var_assign.end()) {
@@ -373,7 +374,7 @@ std::vector< std::shared_ptr<const tara::instruction> > cssa::program::get_assig
 void cssa::program::wmm_build_cssa_thread(const input::program& input) {
 
   for( unsigned t=0; t < input.threads.size(); t++ ) {
-    thread& thread = *threads[t];
+    tara::thread& thread = *threads[t];
     assert( thread.size() == 0 );
 
     shared_ptr<hb_enc::location> prev;
@@ -496,7 +497,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
 
     z3::expr path_constraint = c.bool_val(true);
     variable_set path_constraint_variables;
-    thread& thread = *threads[t];
+    tara::thread& thread = *threads[t];
 
     hb_enc::se_set ctrl_thread_ses;
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
@@ -671,7 +672,7 @@ void cssa::program::wmm( const input::program& input ) {
 
 bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                                     unsigned end_inst_num ) const {
-  const thread& thread = *threads[tid];
+  const tara::thread& thread = *threads[tid];
   for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
     if( is_barrier( thread[i].type ) ) return true;
   }
