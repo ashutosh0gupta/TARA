@@ -34,7 +34,7 @@ pi_function_part::pi_function_part(variable_set variables, z3::expr hb_exression
 pi_function_part::pi_function_part(z3::expr hb_exression) : hb_exression(hb_exression)
 {}
 
-void program::build_threads(const input::program& input)
+void cssa::program::build_threads(const input::program& input)
 {
   z3::context& c = _z3.c;
   vector<pi_needed> pis;
@@ -144,17 +144,17 @@ void program::build_threads(const input::program& input)
   build_pis(pis, input);
 }
 
-unsigned program::no_of_threads() const
+unsigned cssa::program::no_of_threads() const
 {
 	return threads.size();
 }
 
-const thread& program::get_thread( unsigned tid ) const {
+const cssa::thread& cssa::program::get_thread( unsigned tid ) const {
   return *threads[tid];
 }
 
 
-void program::build_pis(vector< program::pi_needed >& pis, const input::program& input)
+void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const input::program& input)
 {
   z3::context& c = _z3.c;
   for (pi_needed pi : pis) {
@@ -229,7 +229,7 @@ void program::build_pis(vector< program::pi_needed >& pis, const input::program&
 }
 
 
-void program::build_hb(const input::program& input)
+void cssa::program::build_hb(const input::program& input)
 {
   z3::expr_vector locations(_z3.c);
   // start location is needed to ensure all locations are mentioned in phi_po
@@ -279,7 +279,7 @@ void program::build_hb(const input::program& input)
   phi_po = phi_po && phi_distinct;
 }
 
-void program::build_pre(const input::program& input)
+void cssa::program::build_pre(const input::program& input)
 {
   if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
     z3::expr_vector src(_z3.c);
@@ -302,7 +302,7 @@ void program::build_pre(const input::program& input)
 }
 
 
-program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): 
+cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3),
   _z3(z3), _hb_encoding(hb_encoding), globals(z3.translate_variables(input.globals))
 {
   // add threads
@@ -329,28 +329,28 @@ program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::progr
 
 }
 
-const thread& program::operator[](unsigned int i) const
+const cssa::thread& cssa::program::operator[](unsigned int i) const
 {
   return *threads[i];
 }
 
-unsigned int program::size() const
+unsigned int cssa::program::size() const
 {
   return threads.size();
 }
 
-bool program::is_global(const variable& name) const
+bool cssa::program::is_global(const variable& name) const
 {
   return globals.find(variable(name))!=globals.end();
 }
 
-const instruction& program::lookup_location(const hb_enc::location_ptr& location) const
+const instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
 {
   return (*this)[location->thread][location->instr_no];
 }
 
 
-std::vector< std::shared_ptr<const instruction> > program::get_assignments_to_variable(const variable& variable) const
+std::vector< std::shared_ptr<const instruction> > cssa::program::get_assignments_to_variable(const variable& variable) const
 {
   string name = (get_unprimed(variable)).name;
   vector<std::shared_ptr<const instruction>> result;
@@ -370,7 +370,7 @@ std::vector< std::shared_ptr<const instruction> > program::get_assignments_to_va
 // WMM support
 
 // populate content of threads
-void program::wmm_build_cssa_thread(const input::program& input) {
+void cssa::program::wmm_build_cssa_thread(const input::program& input) {
 
   for( unsigned t=0; t < input.threads.size(); t++ ) {
     thread& thread = *threads[t];
@@ -393,7 +393,7 @@ void program::wmm_build_cssa_thread(const input::program& input) {
 }
 
 // encode pre condition of multi-threaded code
-void program::wmm_build_pre(const input::program& input) {
+void cssa::program::wmm_build_pre(const input::program& input) {
   //
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
@@ -429,7 +429,7 @@ void program::wmm_build_pre(const input::program& input) {
   }
 }
 
-void program::wmm_build_post(const input::program& input,
+void cssa::program::wmm_build_post(const input::program& input,
                              unordered_map<string, string>& thread_vars ) {
     
   if( shared_ptr<input::instruction_z3> instr =
@@ -474,7 +474,7 @@ void program::wmm_build_post(const input::program& input,
   }
 }
 
-void program::wmm_build_ssa( const input::program& input ) {
+void cssa::program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
 
@@ -657,7 +657,7 @@ void program::wmm_build_ssa( const input::program& input ) {
   wmm_build_post( input, thread_vars );
 }
 
-void program::wmm( const input::program& input ) {
+void cssa::program::wmm( const input::program& input ) {
   wmm_build_cssa_thread( input ); // construct thread skeleton
   wmm_build_ssa( input ); // build ssa
 
@@ -669,7 +669,7 @@ void program::wmm( const input::program& input ) {
   }
 }
 
-bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
+bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                                     unsigned end_inst_num ) const {
   const thread& thread = *threads[tid];
   for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
@@ -678,24 +678,24 @@ bool program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
   return false;
 }
 
-bool program::is_mm_declared() const {  return mm != mm_t::none; }
-bool program::is_wmm()         const {  return mm != mm_t::sc;   }
-bool program::is_mm_sc()       const {  return mm == mm_t::sc;   }
-bool program::is_mm_tso()      const {  return mm == mm_t::tso;  }
-bool program::is_mm_pso()      const {  return mm == mm_t::pso;  }
-bool program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
-bool program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
-bool program::is_mm_power()    const {  return mm == mm_t::power;}
+// bool cssa::program::is_mm_declared() const {  return mm != mm_t::none; }
+// bool cssa::program::is_wmm()         const {  return mm != mm_t::sc;   }
+// bool cssa::program::is_mm_sc()       const {  return mm == mm_t::sc;   }
+// bool cssa::program::is_mm_tso()      const {  return mm == mm_t::tso;  }
+// bool cssa::program::is_mm_pso()      const {  return mm == mm_t::pso;  }
+// bool cssa::program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
+// bool cssa::program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
+// bool cssa::program::is_mm_power()    const {  return mm == mm_t::power;}
 
-mm_t program::get_mm()         const { return mm; }
-void program::set_mm(mm_t _mm)       { mm = _mm;  }
+// mm_t cssa::program::get_mm()         const { return mm; }
+// void cssa::program::set_mm(mm_t _mm)       { mm = _mm;  }
 
-void program::unsupported_mm() const {
-  std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
-  throw cssa_exception( msg.c_str() );
-}
+// void cssa::program::unsupported_mm() const {
+//   std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
+//   throw cssa_exception( msg.c_str() );
+// }
 
-// void program::wmm_event_cons() {
+// void cssa::program::wmm_event_cons() {
   // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
   // wmm_build_ppo(); // build hb formulas to encode the preserved program order
   // wmm_build_ses(); // build symbolic event structure
@@ -705,17 +705,17 @@ void program::unsupported_mm() const {
 //----------------------------------------------------------------------------
 // To be deleted
 
-// unsigned program:: no_of_instructions(unsigned tid) const
+// unsigned cssa::program:: no_of_instructions(unsigned tid) const
 // {
 // 	return threads[tid]->instructions.size();
 // }
 
-// std::string program::instr_name(unsigned tid, unsigned instr_no) const
+// std::string cssa::program::instr_name(unsigned tid, unsigned instr_no) const
 // {
 // 	return threads[tid]->instructions[instr_no]->loc->name;
 // }
 
-// unsigned program::total_instructions() const
+// unsigned cssa::program::total_instructions() const
 // {
 // 	unsigned count=0;
 // 	for(unsigned i=0; i < threads.size(); i++)
@@ -725,7 +725,7 @@ void program::unsupported_mm() const {
 // 	return count;
 // }
 
-// std::vector< vector < bool > > program:: build_po() const
+// std::vector< vector < bool > > cssa::program::build_po() const
 // {
 // 	unsigned count=0,temp=0;
 // 	for (unsigned t=0; t<threads.size(); t++)

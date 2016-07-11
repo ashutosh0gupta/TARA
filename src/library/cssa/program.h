@@ -21,6 +21,7 @@
 #ifndef TARA_CSSA_PROGRAM_H
 #define TARA_CSSA_PROGRAM_H
 
+#include "program/program.h"
 #include "input/program.h"
 #include "helpers/z3interf.h"
 #include <vector>
@@ -41,7 +42,7 @@ struct pi_function_part {
   pi_function_part(z3::expr hb_exression);
 };
 
-class program
+  class program : public tara::program
 {
 public:
   program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
@@ -102,21 +103,21 @@ private:
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
   void wmm_print_dot( z3::model m ) const;
 
-private:
-  mm_t mm = mm_t::none;
+// private:
+//   mm_t mm = mm_t::none;
 
 public:
-  bool is_mm_declared() const;
-  bool is_wmm() const;
-  bool is_mm_sc() const;
-  bool is_mm_tso() const;
-  bool is_mm_pso() const;
-  bool is_mm_rmo() const;
-  bool is_mm_alpha() const;
-  bool is_mm_power() const;
-  void set_mm( mm_t );
-  mm_t get_mm() const;
-  void unsupported_mm() const;
+  // bool is_mm_declared() const;
+  // bool is_wmm() const;
+  // bool is_mm_sc() const;
+  // bool is_mm_tso() const;
+  // bool is_mm_pso() const;
+  // bool is_mm_rmo() const;
+  // bool is_mm_alpha() const;
+  // bool is_mm_power() const;
+  // void set_mm( mm_t );
+  // mm_t get_mm() const;
+  // void unsupported_mm() const;
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
 

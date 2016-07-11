@@ -9,7 +9,7 @@ using namespace tara::cssa;
 
 using namespace std;
 
-void program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
+void cssa::program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
 {  if( is_mm_declared() ) { wmm_print_dot( m ); return; } //wmm support
   if (!machine_readable){
     // initial values
@@ -76,7 +76,7 @@ void program::print_hb(const z3::model& m, ostream& out, bool machine_readable) 
   out << endl;
 }
 
-list<z3::expr> program::get_hbs(z3::model& m) const
+list<z3::expr> cssa::program::get_hbs(z3::model& m) const
 {
   list<z3::expr> result;
   z3::expr_vector asserted = _z3.c.collect_last_asserted_linear_constr();
@@ -96,7 +96,7 @@ list<z3::expr> program::get_hbs(z3::model& m) const
   return result;
 }
 
-void program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
+void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
 {
   // output the program as a dot file
   stream << "digraph hbs {" << endl;
@@ -120,7 +120,7 @@ void program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
   stream << "}" << endl;
 }
 
-z3::expr program::get_initial(const z3::model& m) const
+z3::expr cssa::program::get_initial(const z3::model& m) const
 {
   z3::expr res = _z3.c.bool_val(true);
   for (variable v:initial_variables) {
@@ -136,7 +136,7 @@ z3::expr program::get_initial(const z3::model& m) const
 //start of wmm support
 //--------------------------------------------------------------------------
 
-void program::wmm_print_dot( z3::model m ) const {
+void cssa::program::wmm_print_dot( z3::model m ) const {
   std::ofstream myfile;
   myfile.open( "/tmp/.iteration-sat-dump" );
   if( myfile.is_open() ) {
@@ -147,7 +147,7 @@ void program::wmm_print_dot( z3::model m ) const {
   myfile.close();
 }
 
-void program::wmm_print_dot( ostream& stream, z3::model m ) const {
+void cssa::program::wmm_print_dot( ostream& stream, z3::model m ) const {
     // output the program as a dot file
   stream << "digraph hbs {" << endl;
   // output labels
