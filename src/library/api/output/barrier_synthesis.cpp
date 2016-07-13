@@ -231,7 +231,17 @@ edge_type barrier_synthesis::is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after)
     if( before->prog_v == after->prog_v ) return edge_type::ppo;
     if( before->is_wr() ) return edge_type::rpo;
     auto& deps = program->data_dependency.at(after);
-    if( deps.find(before) != deps.end() ) return edge_type::ppo;
+    for( auto& dep : deps ) {
+      if( dep.e == before ) {
+        assert(false);
+        //todo : check conditional depedency!!!
+        // if( dep.cond != hb_encoding.ctx.bool_val(true) ) {
+        //   barrier_synthesis_error( "conditional dependency not supported!!" );
+        // }
+        return edge_type::ppo;
+      }
+      // if( deps.find(before) != deps.end() ) return edge_type::ppo;
+    }
     return edge_type::rpo;
   }else{
     program->unsupported_mm();

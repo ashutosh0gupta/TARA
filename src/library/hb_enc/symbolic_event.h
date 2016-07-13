@@ -210,6 +210,22 @@ namespace hb_enc {
 
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 
+  class depends{
+  public:
+    se_ptr e;
+    z3::expr cond;
+    depends( se_ptr e_, z3::expr cond_ ) : e(e_), cond(cond_) {}
+    friend inline bool operator<(const depends& d1, const depends& d2) { return d1.e < d2.e; }
+  };
+
+  typedef std::set<depends> depends_set;
+
+  typedef std::unordered_map<se_ptr, depends_set, se_hash, se_equal> se_to_depends_map;
+  typedef std::unordered_map< cssa::variable,
+                              depends_set,
+                              cssa::variable_hash,
+                              cssa::variable_equal> var_to_depends_map;
+
 
   inline bool is_po( const se_ptr& x, const se_ptr& y ) {
     if( x == y ) return true;

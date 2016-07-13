@@ -270,12 +270,12 @@ vector< expr > z3interf::decompose(expr conj, Z3_decl_kind kind)
 
 z3::sort z3interf::get_variable_sort(const input::variable& var) {
   switch (var.type) {
-    case input::data_type::bv32 : return c.bv_sort(32);
-    case input::data_type::bv16 : return c.bv_sort(16);
-    case input::data_type::bv64 : return c.bv_sort(64);
+    case input::data_type::bv32    : return c.bv_sort(32);
+    case input::data_type::bv16    : return c.bv_sort(16);
+    case input::data_type::bv64    : return c.bv_sort(64);
     case input::data_type::integer : return c.int_sort();
     case input::data_type::boolean : return c.bool_sort();
-    case input::data_type::real : return c.real_sort();
+    case input::data_type::real    : return c.real_sort();
     case input::data_type::smt : {
       // translate the type
       string smt = sanitise_string(var.smt_type);

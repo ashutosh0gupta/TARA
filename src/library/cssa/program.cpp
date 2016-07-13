@@ -480,8 +480,8 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
 
-  hb_enc::var_to_ses_map dep_events;
-  hb_enc::var_to_ses_map ctrl_events;
+  hb_enc::var_to_depends_map dep_events;
+  // hb_enc::var_to_depends_map ctrl_events;
   z3::context& c = _z3.c;
 
   unordered_map<string, string> thread_vars;
@@ -500,13 +500,13 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
     variable_set path_constraint_variables;
     tara::thread& thread = *threads[t];
 
-    hb_enc::se_set ctrl_thread_ses;
+    hb_enc::depends_set ctrl_thread_ses;
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
-        hb_enc::se_set dep_ses;
-        hb_enc::se_set ctrl_ses;
+        hb_enc::depends_set dep_ses;
+        // hb_enc::depends_set ctrl_ses;
         // Construct ssa/symbolic events for all the read variables
         for( const variable& v1: instr->variables() ) {
           if( !is_primed(v1) ) {
@@ -520,7 +520,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
                                      thread[i].loc, hb_enc::event_kind_t::r,se_store);
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
-              dep_ses.insert( rd );
+              dep_ses.insert( hb_enc::depends( rd, _z3.mk_true() ) );
 	      // if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
 	      //   ctrl_ses.insert( rd );
 	      // }

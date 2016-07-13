@@ -35,7 +35,7 @@
 
 namespace tara{
 namespace cssa {
-  
+
 struct pi_function_part {
   variable_set variables;
   z3::expr hb_exression;
@@ -45,12 +45,14 @@ struct pi_function_part {
 
 class program : public tara::program {
 public:
-  program(helpers::z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input);
+  program( helpers::z3interf& z3,
+           hb_enc::encoding& hb_encoding,
+           const input::program& input );
   program(const program&) = delete;
   program& operator=(const program&) = delete;
   std::vector< std::vector < bool > > build_po() const;
 private:
-  
+
   struct pi_needed {
     variable name;
     variable orig_name;
@@ -85,7 +87,7 @@ private:
   void wmm_build_ssa( const input::program& input );
   void wmm_build_pre( const input::program& input );
   void wmm_build_post( const input::program& input,
-                       std::unordered_map<std::string, std::string>& thread_vars );
+                    std::unordered_map<std::string, std::string>& thread_vars );
   void wmm(const input::program& input);
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;
@@ -109,19 +111,19 @@ public:
   std::unordered_map<std::string, std::vector<pi_function_part>> pi_functions;
   // where a local variable is written
   std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written;
-  //std::unordered_map<std::shared_ptr<cssa::instruction>,std::shared_ptr<cssa::variable>> instr_to_var; // where a variable is read/written
-  
-  //tara::input::variable search_for_variable_in_read(tara::input::variable,std::shared_ptr<cssa::thread>, int); 
 
-  
-  const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
+  const instruction& lookup_location(const hb_enc::location_ptr& location) const;
 public: /* functions */
-  void print_hb(const z3::model& m, std::ostream& out, bool machine_readable = false) const;
-  std::list<z3::expr> get_hbs(z3::model& m) const;
-  void print_dot(std::ostream& stream, std::vector<hb_enc::hb>& hbs) const;
-  
+  void print_hb( const z3::model& m,
+                 std::ostream& out,
+                 bool machine_readable = false ) const;
+  // std::list<z3::expr> get_hbs(z3::model& m) const;
+  void print_dot( std::ostream& stream,
+                  std::vector<hb_enc::hb>& hbs ) const;
+
   // bool is_global(const variable& name) const;
-  std::vector< std::shared_ptr<const instruction> > get_assignments_to_variable(const tara::cssa::variable& variable) const;
+  std::vector< std::shared_ptr<const instruction> >
+  get_assignments_to_variable(const cssa::variable& variable) const;
 };
 }}
 

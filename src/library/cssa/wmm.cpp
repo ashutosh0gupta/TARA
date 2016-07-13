@@ -229,11 +229,11 @@ void wmm_event_cons::ses() {
       }
     }
 
-    //dependency
+    // dependency
     for( const hb_enc::se_ptr& wr : wrs )
       for( auto& rd : p.data_dependency[wr] )
         //todo : should the following be guarded??
-        thin = thin && hb_encoding.make_hb_thin( rd, wr );
+          thin = thin && hb_encoding.make_hb_thin( rd.e, wr );
 
   }
 }
@@ -388,8 +388,8 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
         po = po && hb_encoding.make_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
-	for( auto read : p.ctrl_dependency[rd])
-            po = po && hb_encoding.make_hbs( read, rd );
+	for( auto& read : p.ctrl_dependency[rd]) //todo: support condition
+            po = po && hb_encoding.make_hbs( read.e, rd );
       }
 
       for( auto wr : thread[j].wrs ) {
@@ -399,10 +399,10 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
         po = po && hb_encoding.make_hbs( last_rd[v], wr );
         collected_rds.erase( last_rd[v] );// optimization??
 
-        for( auto rd : p.data_dependency[wr] )
-          po = po && hb_encoding.make_hbs( rd, wr );
-	for( auto rd : p.ctrl_dependency[wr])
-            po = po && hb_encoding.make_hbs( rd, wr );
+        for( auto& rd : p.data_dependency[wr] )
+          po = po && hb_encoding.make_hbs( rd.e, wr ); //todo: support cond
+	for( auto& rd : p.ctrl_dependency[wr])
+            po = po && hb_encoding.make_hbs( rd.e, wr ); //todo: support cond
 
         last_wr[v] = wr;
       }
@@ -590,7 +590,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
         before_found = true;
       }
       for( auto rd : p.data_dependency[wr] ) {
-        collected_rds.insert( rd );
+        collected_rds.insert( rd.e );
       }
     }
 

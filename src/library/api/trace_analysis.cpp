@@ -62,7 +62,7 @@ void trace_analysis::input(string input_file, mm_t mm)
       p->set_mm( mm );
     }
     if( p->is_mm_declared() ) {
-      cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
+      cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
       mk_cons.run();
     }else{ trace_error( "cinput and no memory model specified!!" ); }
   }else{
@@ -115,7 +115,6 @@ void trace_analysis::input(input::program& input_program)
       _options.out() << endl;
     }
   }
-  
 
 }
 
@@ -130,18 +129,8 @@ void trace_analysis::gather_statistics(metric& metric)
     trace_error( "no stats for new programs!!" );
   }
 
-  // metric.threads = program->size();
-  // // count the instructions for the metric
-  // for(unsigned i = 0; i < program->size(); i++) {
-  //   metric.instructions += (*program)[i].size();
-  // }
-  
-  // // count pi functions
-  // for (auto pi : program->pi_functions) {
-  //   metric.shared_reads++;
-  //   metric.sum_reads_from += get<1>(pi).size();
-  // }
 }
+
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
@@ -188,22 +177,6 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   if( !program->is_mm_declared() ) //wmm disable TODO: hack??
   if (!include_infeasable)
     result.add(program->phi_fea);
-
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
-  // result.add(program->fr,"p3");
-  // result.add(program->rf_ws,"p4");
-  // result.add(program->rf_some,"p5");
-  // result.add(program->rf_grf,"p6");
-  // result.add(program->rf_val,"p7");
-  // result.add(program->phi_pre,"p8");
-  // result.add(!program->phi_prp,"p9"); // had negation from begining
-  // if (!include_infeasable)
-  //   result.add(program->phi_fea,"p10");
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
 
   return move(result);
 }

@@ -179,8 +179,8 @@ namespace tara {
     mm_t get_mm() const;
     void unsupported_mm() const;
 
-    hb_enc::se_to_ses_map data_dependency;
-    hb_enc::se_to_ses_map ctrl_dependency;
+    hb_enc::se_to_depends_map data_dependency;
+    hb_enc::se_to_depends_map ctrl_dependency;
     hb_enc::se_set init_loc;
     hb_enc::se_set post_loc;
     hb_enc::var_to_ses_map wr_events;

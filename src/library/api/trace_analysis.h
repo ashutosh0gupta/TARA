@@ -47,10 +47,10 @@ public:
     trace_analysis(options options, z3::context& ctx);
     void input(std::string input_file);
     void input(std::string input_file, mm_t mm);
-    void input(tara::input::program& input_program);
-    void gather_statistics(tara::api::metric& metric);
+    void input( input::program& input_program );
+    void gather_statistics( api::metric& metric );
     trace_result seperate(output::output_base& output, metric& metric);
-    bool atomic_sections(std::vector< tara::hb_enc::as >& output, bool merge_as = true);
+    bool atomic_sections( std::vector< hb_enc::as >& output, bool merge_as = true);
     bool check_ambigious_traces(std::unordered_set< std::string >& result);
 private:
     options _options;
@@ -59,7 +59,7 @@ private:
     hb_enc::encoding& hb_encoding;
     /**
      * @brief Creates a solver for good traces
-     * 
+     *
      * @param infeasable Should infeasable traces also be considered good?
      * This is needed for pruning, when we provide inputs
      * @return z3::solver
