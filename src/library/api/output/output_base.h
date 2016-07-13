@@ -39,7 +39,7 @@ public:
   virtual ~output_base();
   virtual void print(std::ostream& stream, bool machine_readable) const = 0;
 
-  virtual void init(const tara::hb_enc::encoding& hb_encoding, const z3::solver& sol_bad, const z3::solver& sol_good, std::shared_ptr< const tara::cssa::program > program);
+  virtual void init(const tara::hb_enc::encoding& hb_encoding, const z3::solver& sol_bad, const z3::solver& sol_good, std::shared_ptr< const tara::program > program);
   virtual void output(const z3::expr& output);
   virtual void gather_statistics(metric& metric) const;
   bool output_ready();
@@ -48,7 +48,7 @@ protected:
   std::unique_ptr<z3::expr> _output = nullptr;
   std::unique_ptr<z3::solver> sol_bad = nullptr;
   std::unique_ptr<z3::solver> sol_good = nullptr;
-  std::shared_ptr<const cssa::program> program = nullptr;
+  std::shared_ptr<const tara::program> program = nullptr;
   void ready_or_throw() const;
   
   

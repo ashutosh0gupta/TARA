@@ -124,4 +124,26 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     return threads.size();
   }
 
+  bool program::is_global(const cssa::variable& name) const
+  {
+    return globals.find(cssa::variable(name))!=globals.end();
+  }
+
+  const tara::instruction& program::lookup_location(const hb_enc::location_ptr& location) const
+  {
+    return (*this)[location->thread][location->instr_no];
+  }
+
+  z3::expr program::get_initial(const z3::model& m) const {
+    z3::expr res = _z3.c.bool_val(true);
+    for( auto v: initial_variables ) {
+      z3::expr vname = v;
+      z3::expr e = m.eval(vname);
+      if (((Z3_ast)vname) != ((Z3_ast)e))
+        res = res && vname == e;
+    }
+  return res;
+}
+
+
 }

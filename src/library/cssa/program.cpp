@@ -305,6 +305,7 @@ void cssa::program::build_pre(const input::program& input)
 
 cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,hb_encoding)
 {
+  prog_type = prog_t::original;// when is it ctrc // todo: ctrc type
   globals = z3.translate_variables(input.globals);
   // add threads
   for (unsigned t=0; t<input.threads.size(); t++) {
@@ -340,15 +341,15 @@ cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input:
 //   return threads.size();
 // }
 
-bool cssa::program::is_global(const variable& name) const
-{
-  return globals.find(variable(name))!=globals.end();
-}
+// bool cssa::program::is_global(const variable& name) const
+// {
+//   return globals.find(variable(name))!=globals.end();
+// }
 
-const tara::instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
-{
-  return (*this)[location->thread][location->instr_no];
-}
+// const tara::instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
+// {
+//   return (*this)[location->thread][location->instr_no];
+// }
 
 
 std::vector< std::shared_ptr<const tara::instruction> > cssa::program::get_assignments_to_variable(const variable& variable) const

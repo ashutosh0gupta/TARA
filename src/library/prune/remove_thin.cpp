@@ -27,7 +27,7 @@ using namespace tara::prune;
 
 using namespace std;
 
-remove_thin::remove_thin(const z3interf& z3, const cssa::program& program) : prune_base(z3, program)
+remove_thin::remove_thin(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
   if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo() || program.is_mm_alpha()){
   }else{

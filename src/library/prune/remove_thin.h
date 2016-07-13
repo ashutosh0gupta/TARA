@@ -28,7 +28,7 @@ namespace prune {
 class remove_thin : public prune::prune_base
 {
 public:
-  remove_thin(const helpers::z3interf& z3, const cssa::program& program);
+  remove_thin(const helpers::z3interf& z3, const tara::program& program);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
   virtual std::string name();
 private:

@@ -76,25 +76,25 @@ void cssa::program::print_hb(const z3::model& m, ostream& out, bool machine_read
   out << endl;
 }
 
-list<z3::expr> cssa::program::get_hbs(z3::model& m) const
-{
-  list<z3::expr> result;
-  z3::expr_vector asserted = _z3.c.collect_last_asserted_linear_constr();
+// list<z3::expr> cssa::program::get_hbs(z3::model& m) const
+// {
+//   list<z3::expr> result;
+//   z3::expr_vector asserted = _z3.c.collect_last_asserted_linear_constr();
   
-  for(unsigned i = 0; i<asserted.size(); i++) {
-    z3::expr atom = asserted[i];
-    unique_ptr<hb_enc::hb> hb = _hb_encoding.get_hb( atom );
-    if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
-      //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
-      //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
-      //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
-      assert(_hb_encoding.eval_hb(m, hb->loc1, hb->loc2));
-      result.push_back(asserted[i]);
-    }
-  }
+//   for(unsigned i = 0; i<asserted.size(); i++) {
+//     z3::expr atom = asserted[i];
+//     unique_ptr<hb_enc::hb> hb = _hb_encoding.get_hb( atom );
+//     if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
+//       //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
+//       //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
+//       //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
+//       assert(_hb_encoding.eval_hb(m, hb->loc1, hb->loc2));
+//       result.push_back(asserted[i]);
+//     }
+//   }
   
-  return result;
-}
+//   return result;
+// }
 
 void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
 {
@@ -120,16 +120,33 @@ void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
   stream << "}" << endl;
 }
 
-z3::expr cssa::program::get_initial(const z3::model& m) const
-{
-  z3::expr res = _z3.c.bool_val(true);
-  for (variable v:initial_variables) {
-    z3::expr vname = v;
-    z3::expr e = m.eval(vname);
-    if (((Z3_ast)vname) != ((Z3_ast)e))
-      res = res && vname == e;
+// z3::expr cssa::program::get_initial(const z3::model& m) const
+// {
+//   z3::expr res = _z3.c.bool_val(true);
+//   for (variable v:initial_variables) {
+//     z3::expr vname = v;
+//     z3::expr e = m.eval(vname);
+//     if (((Z3_ast)vname) != ((Z3_ast)e))
+//       res = res && vname == e;
+//   }
+//   return res;
+// }
+
+
+void cssa::program::gather_statistics(api::metric& metric) {
+  // if (program==nullptr)
+  //   throw logic_error("Input needs to be initialised first.");
+  metric.threads = size();
+  // count the instructions for the metric
+  for(unsigned i = 0; i < size(); i++) {
+    metric.instructions += (threads)[i]->size();
   }
-  return res;
+  
+  // count pi functions
+  for (auto pi : pi_functions) {
+    metric.shared_reads++;
+    metric.sum_reads_from += get<1>(pi).size();
+  }
 }
 
 //--------------------------------------------------------------------------

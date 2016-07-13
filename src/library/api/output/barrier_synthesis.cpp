@@ -183,7 +183,7 @@ barrier_synthesis::barrier_synthesis(bool verify, bool _verbose)
 void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
                               const z3::solver& sol_desired,
                               const z3::solver& sol_undesired,
-                              std::shared_ptr< const cssa::program > _program )
+                              std::shared_ptr< const tara::program > _program )
 {
     output_base::init(hb_encoding, sol_desired, sol_undesired, _program);
     normal_form.init(hb_encoding, sol_desired, sol_undesired, _program);
@@ -208,8 +208,13 @@ edge_type barrier_synthesis::is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after)
     if( before->is_rd() && after->is_wr() ) return edge_type::ppo;
     return edge_type::rpo;
   }
-  if( program->has_barrier_in_range( before->tid, b_num, a_num ) )
-    return edge_type::ppo;
+  if( program->is_original() ) {
+    auto p = (cssa::program*)(program.get());
+    if( p->has_barrier_in_range( before->tid, b_num, a_num ) )
+      return edge_type::ppo;
+  }else{
+    barrier_synthesis_error( "new version of program not supported!!" );
+  }
 
   if( program->is_mm_sc() ) {
     return edge_type::ppo;

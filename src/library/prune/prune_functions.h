@@ -29,7 +29,7 @@ namespace prune {
   typedef std::vector<std::unique_ptr<prune_base>> prune_chain;
   
   z3::expr apply_prune_chain(const tara::prune::prune_chain& prune_chain, std::list< z3::expr >& hbs, const z3::model& m, unsigned int print_pruning, std::ostream& print_out, const hb_enc::encoding& hb_encoding);
-  bool build_prune_chain(const std::string& prune_order, std::vector<std::unique_ptr<prune_base>>& prune_chain, const helpers::z3interf& z3, const cssa::program& program, z3::solver sol_good);
+  bool build_prune_chain(const std::string& prune_order, std::vector<std::unique_ptr<prune_base>>& prune_chain, const helpers::z3interf& z3, const tara::program& program, z3::solver sol_good);
 
 }
 }

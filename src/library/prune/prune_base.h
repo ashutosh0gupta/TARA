@@ -33,9 +33,9 @@ public:
   virtual std::string name() = 0;
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m) = 0;
 protected:
-  prune_base(const helpers::z3interf& z3, const cssa::program& program);
+  prune_base(const helpers::z3interf& z3, const tara::program& program);
   const helpers::z3interf& z3;
-  const cssa::program& program;
+  const tara::program& program;
   const hb_enc::encoding& hb_enc;
 public:  
   friend z3::expr apply_prune_chain(const std::vector<std::unique_ptr<prune_base>>& prunes, const std::list< z3::expr >& hbs, const z3::model& m); // forward declaration

@@ -28,7 +28,7 @@ namespace prune {
 class diffvar : public prune::prune_base
 {
 public:
-  diffvar(const helpers::z3interf& z3, const cssa::program& program);
+  diffvar(const helpers::z3interf& z3, const tara::program& program);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
   virtual std::string name();
 private:

@@ -27,7 +27,7 @@ using namespace tara::prune;
 
 using namespace std;
 
-unsat_core::unsat_core(const z3interf& z3, const cssa::program& program, z3::solver sol_good) : prune_base(z3, program), sol_good(sol_good)
+unsat_core::unsat_core(const z3interf& z3, const tara::program& program, z3::solver sol_good) : prune_base(z3, program), sol_good(sol_good)
 {}
 
 string unsat_core::name()

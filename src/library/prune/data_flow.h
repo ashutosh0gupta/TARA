@@ -28,10 +28,11 @@ namespace prune {
 class data_flow : public prune_base
 {
 public:
-  data_flow(const helpers::z3interf& z3, const cssa::program& program);
+  data_flow(const helpers::z3interf& z3, const tara::program& program);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
   virtual std::string name();
 private:
+  const cssa::program* program_old;
   /**
    * @brief Checks which one of the disjuncts is true, then inserts only that one.
    */

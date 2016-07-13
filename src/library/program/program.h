@@ -116,6 +116,12 @@ namespace tara {
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
   };
 
+  enum class prog_t {
+    original, // thorston kind of program
+    ctrc,
+    bmc
+  };
+
   class program {
   private:
     unsigned thread_num = 0;
@@ -123,6 +129,7 @@ namespace tara {
     mm_t mm = mm_t::none;
     helpers::z3interf& _z3;
     hb_enc::encoding& _hb_encoding;
+    prog_t prog_type = prog_t::bmc;
 
   public:
     program( helpers::z3interf& z3_,
@@ -134,9 +141,18 @@ namespace tara {
     std::map< unsigned, loc> inst_to_loc;
     std::map< std::string, hb_enc::se_ptr> create_map, join_map;
     hb_enc::name_to_ses_map se_store;
+    /**
+     * @brief Set of uninitialized variables (used to get input values)
+     *        or non-deterministic branches
+     */
+    cssa::variable_set initial_variables;
 
     inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
     inline const helpers::z3interf& z3() const { return _z3; }
+
+    inline bool is_original () const { return prog_type == prog_t::original; }
+    inline bool is_ctrc     () const { return prog_type == prog_t::ctrc;     }
+    inline bool is_bmc      () const { return prog_type == prog_t::bmc;      }
 
     //--------------------------------------------------------------------------
     // cssa::program variables moved here
@@ -259,6 +275,15 @@ namespace tara {
       cssa::variable g(_z3.c); // dummy code to suppress warning
       return g;
     }
+    // void gather_statistics(metric& metric); //todo: add this
+
+    /**
+     * @brief Gets the initial values of global variables
+     */
+    z3::expr get_initial(const z3::model& m) const;
+
+    const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
+    bool is_global(const cssa::variable& name) const;
 
     friend cssa::program;
   };

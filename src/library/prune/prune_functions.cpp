@@ -69,7 +69,7 @@ namespace prune {
     return final;
   }
   
-  bool build_prune_chain(const string& prune_order, prune_chain& prune_chain, const z3interf& z3, const cssa::program& program, z3::solver sol_good){
+  bool build_prune_chain(const string& prune_order, prune_chain& prune_chain, const z3interf& z3, const tara::program& program, z3::solver sol_good){
     if (prune_order=="" || prune_order=="none") {
       return true;
     }

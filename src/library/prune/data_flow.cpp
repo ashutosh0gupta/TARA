@@ -26,13 +26,18 @@ using namespace tara::helpers;
 using namespace tara;
 using namespace std;
 
-data_flow::data_flow(const z3interf& z3, const cssa::program& program) : prune_base(z3, program)
+data_flow::data_flow(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
   if( program.is_mm_declared() ) {
       throw std::runtime_error("data_flow analysis is unsupported for mms!!");
+  }
+  if( program.is_original() ) {// todo: remove this hack
+    program_old = (const cssa::program*)(&program);
+  }else{
+    prune_data_flow_error( "new version of program not supported!!")
   }
 //--------------------------------------------------------------------------
 //end of wmm support
@@ -50,7 +55,7 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
   list<z3::expr> pi_hbs;
   queue<string> follow;
   // init with the variables in the assertions
-  for(std::shared_ptr<tara::instruction> instr : program.assertion_instructions) {
+  for(std::shared_ptr<tara::instruction> instr : program_old->assertion_instructions) {
     for (string v : instr->variables_read)
       follow.push(v);
   }
@@ -72,14 +77,14 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
     }
     if (!found) break;
     // if this is a local variable
-    auto local = program.variable_written.find(v);
-    if (local != program.variable_written.end()) {
+    auto local = program_old->variable_written.find(v);
+    if (local != program_old->variable_written.end()) {
       std::shared_ptr<tara::instruction> instr = local->second;
       for (string v : instr->variables_read)
         follow.push(v);
     } else {
-      auto global = program.pi_functions.find(v);
-      assert(global!=program.pi_functions.end());
+      auto global = program_old->pi_functions.find(v);
+      assert(global!=program_old->pi_functions.end());
       vector<cssa::pi_function_part> pi_parts = global->second;
 #ifndef NDEBUG
       bool part_matched = false;

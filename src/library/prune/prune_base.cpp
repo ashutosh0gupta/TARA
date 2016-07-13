@@ -29,7 +29,7 @@
 namespace tara {
 namespace prune {
   
-prune_base::prune_base(const helpers::z3interf& z3, const cssa::program& program) : z3(z3), program(program), hb_enc(program.hb_encoding())
+prune_base::prune_base(const helpers::z3interf& z3, const tara::program& program) : z3(z3), program(program), hb_enc(program.hb_encoding())
 {
 
 }

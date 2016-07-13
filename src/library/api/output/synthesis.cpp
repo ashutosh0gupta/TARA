@@ -68,7 +68,7 @@ ostream& operator<<(ostream& stream, const barrier& barrier)
 synthesis::synthesis(bool verify, bool print_nfs): print_nfs(print_nfs), normal_form(false, false, false, true, verify)
 {}
 
-void synthesis::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const cssa::program > program)
+void synthesis::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const tara::program > program)
 {
     output_base::init(hb_encoding, sol_desired, sol_undesired, program);
     normal_form.init(hb_encoding, sol_desired, sol_undesired, program);

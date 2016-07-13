@@ -78,7 +78,7 @@ ostream& operator<<(ostream& stream, const bug& bug)
 bugs::bugs(bool verify, bool print_nfs): print_nfs(print_nfs), normal_form(true, false, false, false, verify)
 {}
 
-void bugs::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const cssa::program > program)
+void bugs::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const tara::program > program)
 {
     output_base::init(hb_encoding, sol_desired, sol_undesired, program);
     normal_form.init(hb_encoding, sol_desired, sol_undesired, program);
@@ -233,14 +233,18 @@ bool bugs::first_assignment(const cssa::variable& variable, hb_enc::location_ptr
   z3::solver sol = z3interf::create_solver(phi_po.ctx());
   sol.add(phi_po);
   // gather locations (other than loc) and assert they come later
-  
   z3::expr hb_other_later = phi_po.ctx().bool_val(true);
-  auto assignments = program->get_assignments_to_variable(variable);
-  assert (assignments.size() > 0);
-  for (shared_ptr<const tara::instruction> instr : assignments) {
-    if (instr->loc != loc) {
-      hb_other_later = hb_other_later && _hb_encoding->make_hb(loc, instr->loc);
+  if( program->is_original() ) {
+    auto p = (cssa::program*)(program.get());
+    auto assignments = p->get_assignments_to_variable(variable);
+    assert (assignments.size() > 0);
+    for (shared_ptr<const tara::instruction> instr : assignments) {
+      if (instr->loc != loc) {
+        hb_other_later = hb_other_later && _hb_encoding->make_hb(loc, instr->loc);
+      }
     }
+  }else{
+    bugs_error( "c++ programs are not supported yet!!" );
   }
   
   z3::expr hb_exp = phi_po.ctx().bool_val(true);

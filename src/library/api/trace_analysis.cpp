@@ -123,17 +123,24 @@ void trace_analysis::gather_statistics(metric& metric)
 {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
-  metric.threads = program->size();
-  // count the instructions for the metric
-  for(unsigned i = 0; i < program->size(); i++) {
-    metric.instructions += (*program)[i].size();
+  if( program->is_original() ) {
+    auto p = (cssa::program*)(program.get());
+    p->gather_statistics( metric );
+  }else{
+    trace_error( "no stats for new programs!!" );
   }
+
+  // metric.threads = program->size();
+  // // count the instructions for the metric
+  // for(unsigned i = 0; i < program->size(); i++) {
+  //   metric.instructions += (*program)[i].size();
+  // }
   
-  // count pi functions
-  for (auto pi : program->pi_functions) {
-    metric.shared_reads++;
-    metric.sum_reads_from += get<1>(pi).size();
-  }
+  // // count pi functions
+  // for (auto pi : program->pi_functions) {
+  //   metric.shared_reads++;
+  //   metric.sum_reads_from += get<1>(pi).size();
+  // }
 }
 //--------------------------------------------------------------------------
 //start of wmm support
@@ -236,13 +243,16 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         o.out() << "Round " << o.round << endl;
     }
     if (o.print_rounds >= 1) {
+      if( program->is_original() ) {
+        auto p = (cssa::program*)(program.get());
         o.out() << "Example found:" << endl;
         if (o.machine)
-          program->print_hb(m, cout, true);
+          p->print_hb(m, cout, true);
         else
-          program->print_hb(m, o.out());
+          p->print_hb(m, o.out());
+      }
     }
-    list<z3::expr> hbs = program->get_hbs(m);
+    list<z3::expr> hbs = hb_encoding.get_hbs(m);
     z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
     if (o.machine && o.print_pruning >=1 ) {
       Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(), forbid.simplify());

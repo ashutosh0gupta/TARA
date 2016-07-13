@@ -28,7 +28,7 @@ namespace prune {
 class unsat_core : public prune::prune_base
 {
 public:
-  unsat_core(const helpers::z3interf& z3, const cssa::program& program, z3::solver sol_good);
+  unsat_core(const helpers::z3interf& z3, const tara::program& program, z3::solver sol_good);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
   virtual std::string name();
 private:

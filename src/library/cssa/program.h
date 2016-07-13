@@ -23,6 +23,7 @@
 
 #include "program/program.h"
 #include "input/program.h"
+#include "api/metric.h"
 #include "helpers/z3interf.h"
 #include <vector>
 #include <list>
@@ -95,6 +96,8 @@ public:
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
 
+  void gather_statistics(api::metric& metric);
+
   //--------------------------------------------------------------------------
   //end of wmm support
   //--------------------------------------------------------------------------
@@ -110,23 +113,14 @@ public:
   
   //tara::input::variable search_for_variable_in_read(tara::input::variable,std::shared_ptr<cssa::thread>, int); 
 
-  /**
-   * @brief Set of initial variables (used to get input values)
-   * 
-   */
-  variable_set initial_variables;
   
   const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
 public: /* functions */
-  /**
-   * @brief Gets the initial values of global variables
-   */
-  z3::expr get_initial(const z3::model& m) const;
   void print_hb(const z3::model& m, std::ostream& out, bool machine_readable = false) const;
   std::list<z3::expr> get_hbs(z3::model& m) const;
   void print_dot(std::ostream& stream, std::vector<hb_enc::hb>& hbs) const;
   
-  bool is_global(const variable& name) const;
+  // bool is_global(const variable& name) const;
   std::vector< std::shared_ptr<const instruction> > get_assignments_to_variable(const tara::cssa::variable& variable) const;
 };
 }}

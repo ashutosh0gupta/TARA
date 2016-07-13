@@ -49,7 +49,7 @@ class synthesis : public output_base
 public:
   synthesis(bool verify, bool print_nfs);
   virtual void print(std::ostream& stream, bool machine_readable) const override;
-  virtual void init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr<const cssa::program> program) override;
+  virtual void init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr<const tara::program> program) override;
   virtual void output(const z3::expr& output) override;
   virtual void gather_statistics(metric& metric) const override;
 private:

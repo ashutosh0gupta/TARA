@@ -110,7 +110,7 @@ public:
   virtual void init( const hb_enc::encoding& hb_encoding,
                      const z3::solver& sol_desired,
                      const z3::solver& sol_undesired,
-                     std::shared_ptr<const cssa::program> program ) override;
+                     std::shared_ptr<const tara::program> program ) override;
   virtual void output(const z3::expr& output) override;
   virtual void gather_statistics(metric& metric) const override;
   friend class cycle;

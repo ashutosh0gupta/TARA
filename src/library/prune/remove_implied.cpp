@@ -27,7 +27,7 @@ using namespace tara::prune;
 
 using namespace std;
 
-remove_implied::remove_implied(const z3interf& z3, const cssa::program& program) : prune_base(z3, program)
+remove_implied::remove_implied(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
 //--------------------------------------------------------------------------
 //start of wmm support

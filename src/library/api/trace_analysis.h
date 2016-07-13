@@ -55,7 +55,7 @@ public:
 private:
     options _options;
     helpers::z3interf z3;
-    std::shared_ptr<cssa::program> program;
+    std::shared_ptr<tara::program> program;
     hb_enc::encoding& hb_encoding;
     /**
      * @brief Creates a solver for good traces
