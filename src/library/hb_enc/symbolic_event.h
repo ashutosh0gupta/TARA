@@ -129,24 +129,34 @@ namespace hb_enc {
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
-  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
-                           unsigned _tid, unsigned _instr_no,
-                           const cssa::variable& _v, const cssa::variable& _prog_v,
-                           hb_enc::location_ptr _loc, event_kind_t _et,
-                           name_to_ses_map& se_store ) {
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                            _v, _prog_v, _loc->name, _et);
+  inline se_ptr mk_se_ptr_old( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+                               unsigned _tid, unsigned _instr_no,
+                               // const cssa::variable& _v,
+                               const cssa::variable& _prog_v,
+                               std::string _loc,
+                               event_kind_t _et,
+                               name_to_ses_map& se_store ) {
+    std::string prefix = _et == hb_enc::event_kind_t::r ? "pi_" : "";
+    cssa::variable _n_v = prefix + _prog_v + "#" + _loc;
+    // assert( _v == _n_v );
+    se_ptr e = std::make_shared<symbolic_event>( _ctx, _hb_enc, _tid, _instr_no,
+                                                 _n_v, _prog_v,
+                                                 _loc,
+                                                 // _loc->name,
+                                                 _et );
+    // e->set_pre_events( prev_events );
     se_store[e->name()] = e;
     return e;
   }
 
 
-  inline se_ptr mk_se_ptr( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+  inline se_ptr mk_se_ptr_old( z3::context& _ctx, hb_enc::encoding& _hb_enc,
                            unsigned _tid, unsigned _instr_no,
                            hb_enc::location_ptr _loc, event_kind_t _et,
                            name_to_ses_map& se_store ) {
-    se_ptr e = std::make_shared<symbolic_event>(_ctx, _hb_enc, _tid, _instr_no,
-                                            _loc->name, _et);
+    se_ptr e = std::make_shared<symbolic_event>( _ctx, _hb_enc, _tid, _instr_no,
+                                                 _loc->name, _et );
+    // e->set_pre_events( prev_events );
     se_store[e->name()] = e;
     return e;
   }
@@ -158,7 +168,6 @@ namespace hb_enc {
   inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
                            unsigned _tid, se_set prev_events,
                            z3::expr cond,
-                           // const cssa::variable& _v,
                            const cssa::variable& _prog_v,
                            std::string _loc,
                            event_kind_t _et ) {
@@ -215,7 +224,9 @@ namespace hb_enc {
     se_ptr e;
     z3::expr cond;
     depends( se_ptr e_, z3::expr cond_ ) : e(e_), cond(cond_) {}
-    friend inline bool operator<(const depends& d1, const depends& d2) { return d1.e < d2.e; }
+    friend inline bool operator<( const depends& d1, const depends& d2 ) {
+      return d1.e < d2.e;
+    }
   };
 
   typedef std::set<depends> depends_set;

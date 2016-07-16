@@ -327,11 +327,11 @@ translateBlock( unsigned thr_id,
       z3::expr b = getTerm( op1, m );
       unsigned op = bop->getOpcode();
       switch( op ) {
-      case llvm::Instruction::Add : insert_term_map( I, a+b, m); break;
-      case llvm::Instruction::Sub : insert_term_map( I, a-b, m); break;
-      case llvm::Instruction::Mul : insert_term_map( I, a*b, m); break;
+      case llvm::Instruction::Add : insert_term_map( I, a+b,     m); break;
+      case llvm::Instruction::Sub : insert_term_map( I, a-b,     m); break;
+      case llvm::Instruction::Mul : insert_term_map( I, a*b,     m); break;
       case llvm::Instruction::Xor : insert_term_map( I, a xor b, m); break;
-      case llvm::Instruction::SDiv: insert_term_map( I, a/b, m); break;
+      case llvm::Instruction::SDiv: insert_term_map( I, a/b,     m); break;
       default: {
         const char* opName = bop->getOpcodeName();
         cinput_error("unsupported instruction " << opName << " occurred!!");

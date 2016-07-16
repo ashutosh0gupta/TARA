@@ -400,7 +400,7 @@ void cssa::program::wmm_build_pre(const input::program& input) {
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
   std::shared_ptr<hb_enc::location> _init_l = input.start_name();
-  hb_enc::se_ptr wr = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), 0,
+  hb_enc::se_ptr wr = mk_se_ptr_old( _z3.c, _hb_encoding, threads.size(), 0,
                                  _init_l, hb_enc::event_kind_t::pre, se_store );
   wr->guard = _z3.c.bool_val(true);
   init_loc.insert(wr);
@@ -441,7 +441,7 @@ void cssa::program::wmm_build_post(const input::program& input,
     if( eq( instr->instr, tru ) ) return;
 
     std::shared_ptr<hb_enc::location> _end_l = input.end_name();
-    hb_enc::se_ptr rd = mk_se_ptr( _z3.c, _hb_encoding, threads.size(), INT_MAX,
+    hb_enc::se_ptr rd = mk_se_ptr_old( _z3.c, _hb_encoding, threads.size(), INT_MAX,
                            _end_l, hb_enc::event_kind_t::post, se_store );
     rd->guard = _z3.c.bool_val(true);
 
@@ -500,13 +500,12 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
     variable_set path_constraint_variables;
     tara::thread& thread = *threads[t];
 
-    hb_enc::depends_set ctrl_thread_ses;
+    hb_enc::depends_set ctrl_ses;
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
       if ( shared_ptr<input::instruction_z3> instr =
            dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i]) ) {
         z3::expr_vector src(c), dst(c);
         hb_enc::depends_set dep_ses;
-        // hb_enc::depends_set ctrl_ses;
         // Construct ssa/symbolic events for all the read variables
         for( const variable& v1: instr->variables() ) {
           if( !is_primed(v1) ) {
@@ -515,24 +514,21 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
             src.push_back(v);
             //unprimmed case
             if ( is_global(v) ) {
-              nname =  "pi_"+ v + "#" + thread[i].loc->name;
-              hb_enc::se_ptr rd = mk_se_ptr( c, _hb_encoding, t, i, nname, v,
-                                     thread[i].loc, hb_enc::event_kind_t::r,se_store);
+              hb_enc::se_ptr rd = mk_se_ptr_old( c, _hb_encoding, t, i, v,
+                                                 thread[i].loc->name,
+                                                 hb_enc::event_kind_t::r,
+                                                 se_store);
+              nname = rd->v;
               thread[i].rds.insert( rd );
               rd_events[v].push_back( rd );
               dep_ses.insert( hb_enc::depends( rd, _z3.mk_true() ) );
-	      // if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
-	      //   ctrl_ses.insert( rd );
-	      // }
-              ctrl_dependency[rd].insert( ctrl_thread_ses.begin(),
-                                                   ctrl_thread_ses.end()  );
+              ctrl_dependency[rd].insert( ctrl_ses.begin(), ctrl_ses.end()  );
             }else{
               v = thread.name + "." + v;
               nname = v + "#" + thread_vars[v];
               // check if we are reading an initial value
               if (thread_vars[v] == "pre") { initial_variables.insert(nname); }
               dep_ses.insert( dep_events[v].begin(), dep_events[v].end());
-	      // ctrl_ses.insert( ctrl_events[v].begin(), ctrl_events[v].end());
             }
             // the following variable is read by this instruction
             thread[i].variables_read.insert(nname);
@@ -541,9 +537,8 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
           }
         }
         // something gets added only if the instruction is asssume or assert
-        // ctrl_thread_ses.insert( ctrl_ses.begin(), ctrl_ses.end() );
         if (thread[i].type==instruction_type::assume || thread[i].type==instruction_type::assert) {
-          ctrl_thread_ses.insert( dep_ses.begin(), dep_ses.end() );
+          ctrl_ses.insert( dep_ses.begin(), dep_ses.end() );
         }
         // Construct ssa/symbolic events for all the write variables
         for( const variable& v: instr->variables() ) {
@@ -553,15 +548,16 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
             //primmed case
             variable v1 = get_unprimed(v); //converting the primed to unprimed
             if( is_global(v1) ) {
-              nname = v1 + "#" + thread[i].loc->name;
               //insert write symbolic event
-              hb_enc::se_ptr wr = mk_se_ptr( c,_hb_encoding, t, i, nname,v1,
-                                     thread[i].loc, hb_enc::event_kind_t::w,se_store);
+              hb_enc::se_ptr wr = mk_se_ptr_old( c,_hb_encoding, t, i, v1,
+                                                 thread[i].loc->name,
+                                                 hb_enc::event_kind_t::w,
+                                                 se_store);
+              nname = wr->v;
               thread[i].wrs.insert( wr );
               wr_events[v1].insert( wr );
               data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
-	      ctrl_dependency[wr].insert( ctrl_thread_ses.begin(),
-                                                   ctrl_thread_ses.end() );
+	      ctrl_dependency[wr].insert( ctrl_ses.begin(), ctrl_ses.end() );
             }else{
               v1 = thread.name + "." + v1;
               nname = v1 + "#" + thread[i].loc->name;
@@ -585,9 +581,11 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
           variable v1 = get_unprimed(v);
           thread[i].havok_vars.insert(v1);
           if( is_global(v1) ) {
-            nname = v1 + "#" + thread[i].loc->name;
-            hb_enc::se_ptr wr = mk_se_ptr( c, _hb_encoding, t, i, nname, v1,
-                                   thread[i].loc,hb_enc::event_kind_t::w, se_store);
+            // nname = v1 + "#" + thread[i].loc->name;
+            hb_enc::se_ptr wr =
+              mk_se_ptr_old( c, _hb_encoding, t, i, v1, thread[i].loc->name,
+                             hb_enc::event_kind_t::w, se_store);
+            nname = wr->v;
             thread[i].wrs.insert( wr );
             wr_events[v1].insert( wr );
             data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
@@ -633,7 +631,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
         }
         if( is_barrier( instr->type) ) {
           //todo : prepage contraints for barrier
-          hb_enc::se_ptr barr = mk_se_ptr( c, _hb_encoding, t, i,
+          hb_enc::se_ptr barr = mk_se_ptr_old( c, _hb_encoding, t, i,
                                    thread[i].loc, hb_enc::event_kind_t::barr,se_store);
           thread[i].barr.insert( barr );
           tid_to_instr.insert({t,i}); // for shikhar code

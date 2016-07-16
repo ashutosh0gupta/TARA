@@ -22,6 +22,7 @@
 
 #include "api/options.h"
 #include "constants.h"
+#include "program/program.h"
 #include "input/program.h"
 #include "helpers/z3interf.h"
 #include <vector>
@@ -51,13 +52,21 @@ namespace cssa {
 
     void wmm_mk_distinct_events();
 
-    void sc_ppo   ( const tara::thread& thread );
-    void tso_ppo  ( const tara::thread& thread );
-    void pso_ppo  ( const tara::thread& thread );
-    void rmo_ppo  ( const tara::thread& thread );
-    void alpha_ppo( const tara::thread& thread );
-    void power_ppo( const tara::thread& thread );
+    void new_ppo_sc   ( const tara::thread& );
+    void new_ppo_tso  ( const tara::thread& );
+    void new_ppo_pso  ( const tara::thread& );
+    void new_ppo_rmo  ( const tara::thread& );
+    void new_ppo_alpha( const tara::thread& );
+    void new_ppo_power( const tara::thread& );
+
+    void sc_ppo   ( const tara::thread& );
+    void tso_ppo  ( const tara::thread& );
+    void pso_ppo  ( const tara::thread& );
+    void rmo_ppo  ( const tara::thread& );
+    void alpha_ppo( const tara::thread& );
+    void power_ppo( const tara::thread& );
     void ppo();
+
     void wmm_test_ppo(); // TODO: remove when confident
 
     void unsupported_mm() const;

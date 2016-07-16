@@ -78,6 +78,7 @@ namespace tara {
   public:
     thread(helpers::z3interf& z3_, std::string& name_):
       z3(z3_), name(name_) {}
+    // We assume that start_event and final_event are in events.
     hb_enc::se_ptr start_event, final_event;
     helpers::z3interf& z3;
     const std::string name;

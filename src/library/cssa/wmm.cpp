@@ -262,14 +262,34 @@ void wmm_event_cons::wmm_mk_distinct_events() {
       }
     }
   }
+
   dist = distinct(loc_vars);
 
 }
+
 
 //----------------------------------------------------------------------------
 // build preserved programming order(ppo)
 // todo: deal with double barriers that may cause bugs since they are not 
 //       explicitly ordered
+
+void wmm_event_cons::new_ppo_sc( const tara::thread& thread ) {
+  // const hb_enc::se_vec& events = thread.events;
+  // hb_enc::se_set last;
+  // last.insert( thread.start_event );
+
+  for( const hb_enc::se_ptr& e : thread.events ) {
+    // po = po && hb_encoding.make_ghbs( e, e.prev_events );
+    // auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
+    // if( rds.empty() && wrs.empty() ) continue;
+    // auto& after = rds.empty() ? wrs : rds;
+    // po = po
+    //   && hb_encoding.make_hbs( last, after )
+    //   && hb_encoding.make_hbs( rds,  wrs   );
+    // last = wrs.empty() ? rds : wrs;
+  }
+  // po = po && hb_encoding.make_hbs( last, p.post_loc );
+}
 
 void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   unsigned tsize = thread.size();
@@ -643,8 +663,8 @@ z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
 
   //todo : prepage contraints for barrier
   hb_enc::se_ptr barr =
-    mk_se_ptr( z3.c, hb_encoding, tid, instr, thr[instr].loc,
-               hb_enc::event_kind_t::barr, p.se_store );
+    mk_se_ptr_old( z3.c, hb_encoding, tid, instr, thr[instr].loc,
+                   hb_enc::event_kind_t::barr, p.se_store );
   z3::expr ord(z3.c);
   if(      p.is_mm_tso()) { ord = insert_tso_barrier( thr, instr, barr );
   }else if(p.is_mm_pso()) { ord = insert_pso_barrier( thr, instr, barr );

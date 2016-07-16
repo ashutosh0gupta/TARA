@@ -56,9 +56,9 @@ public:
 }
 
 #ifndef NDEBUG
-#define issue_error( ss )  { std::cerr << ss << "\n"; assert( false );}
-#else
 #define issue_error( ss )  { throw tara::tara_exception( ss.str() ); }
+#else
+#define issue_error( ss )  { std::cerr << ss.str() << "\n"; assert( false );}
 #endif
 
 #define tara_error( M, S ) { std::stringstream ss;                   \
