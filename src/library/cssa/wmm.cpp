@@ -190,7 +190,8 @@ void wmm_event_cons::ses() {
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
-            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr) && after_wr->guard;
+            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+                          && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
               fr = fr && !cond;
             }else{

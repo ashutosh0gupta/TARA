@@ -93,10 +93,6 @@ void options::interpret_options(po::variables_map& vm) {
       }
     }
   }
-  
-  if (vm.count("prune")) {
-    prune_chain = vm["prune"].as<string>();
-  }
 
   if (vm.count("mm")) {
     string _mode = seperate_option(vm["mm"].as<string>(), mm_options);
@@ -116,6 +112,16 @@ void options::interpret_options(po::variables_map& vm) {
       throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\"");
     }
   }
+
+  if (vm.count("prune")) {
+    prune_chain = vm["prune"].as<string>();
+  }else
+    {
+    if( mm != mm_t::none ) {
+      // default options for pruning under wmm
+      prune_chain = "diffvar,unsat_core,remove_implied,remove_thin";
+    }
+    }
 }
 
 
