@@ -24,7 +24,7 @@ post: (implies (and (= d_finished 1) (= w_finished 1) ) (= balance (- (+ x y) z)
 # Bugs: DR
 
 ################################################
-#!-r diffvar,unsat_core,remove_implied -M sc
+#! -M sc
 ################################################
 #~
 ##
@@ -36,7 +36,7 @@ post: (implies (and (= d_finished 1) (= w_finished 1) ) (= balance (- (+ x y) z)
 
 
 ################################################
-#!-r diffvar,unsat_core,remove_implied -M tso
+#! -M tso
 ################################################
 #~
 ##
@@ -48,7 +48,7 @@ post: (implies (and (= d_finished 1) (= w_finished 1) ) (= balance (- (+ x y) z)
 
 
 ################################################
-#!-r diffvar,unsat_core,remove_implied -M pso
+#! -M pso
 ################################################
 #~
 ##
@@ -60,7 +60,7 @@ post: (implies (and (= d_finished 1) (= w_finished 1) ) (= balance (- (+ x y) z)
 
 
 ################################################
-#!-r diffvar,unsat_core,remove_implied -M rmo
+#! -M rmo
 ################################################
 #~
 ##
