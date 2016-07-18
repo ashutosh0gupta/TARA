@@ -87,7 +87,8 @@ private:
   void wmm_build_ssa( const input::program& input );
   void wmm_build_pre( const input::program& input );
   void wmm_build_post( const input::program& input,
-                    std::unordered_map<std::string, std::string>& thread_vars );
+                       std::unordered_map<std::string, std::string>&,
+                       hb_enc::se_set last );
   void wmm(const input::program& input);
 
   void wmm_print_dot( std::ostream& stream, z3::model m ) const;

@@ -217,7 +217,9 @@ namespace tara {
 
 
     void add_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i]->add_event( e );
+      if( i < threads.size() )
+        threads[i]->add_event( e );
+      // todo what to do with pre/post events
       se_store[e->name()] = e;
     }
 

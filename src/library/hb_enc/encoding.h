@@ -153,12 +153,18 @@ public:
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
-  hb make_hb_thin(const se_ptr&, const se_ptr& );
-  hb make_hbs(const se_ptr& loc1, const se_ptr& loc2);
-  z3::expr make_hbs(const se_set& loc1, const se_ptr& loc2);
-  z3::expr make_hbs(const se_ptr& loc1, const se_set& loc2);
-  z3::expr make_hbs(const se_set& loc1, const se_set& loc2);
+  hb mk_hb_thin(const se_ptr&, const se_ptr& );
+  hb mk_hbs(const se_ptr& loc1, const se_ptr& loc2);
+  z3::expr mk_hbs(const se_set& loc1, const se_ptr& loc2);
+  z3::expr mk_hbs(const se_ptr& loc1, const se_set& loc2);
+  z3::expr mk_hbs(const se_set& loc1, const se_set& loc2);
+  z3::expr mk_ghbs( const se_ptr& before, const se_ptr& after );
+  z3::expr mk_ghbs( const se_ptr& before, const se_set& after );
+  z3::expr mk_ghbs( const se_set& before, const se_ptr& after );
+  z3::expr mk_ghb_thin( const se_ptr& before, const se_ptr& after );
+
   bool eval_hb( const z3::model& m, const se_ptr& before, const se_ptr& after ) const;
+
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------

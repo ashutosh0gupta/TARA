@@ -39,10 +39,8 @@ namespace cssa {
   // depending on the memory model
   class wmm_event_cons {
   public:
-    wmm_event_cons( helpers::z3interf&,
-                    api::options&,
-                    hb_enc::encoding&,
-                    tara::program&  );
+    wmm_event_cons( helpers::z3interf&, api::options&,
+                    hb_enc::encoding&, tara::program&  );
     void run();
   private:
     helpers::z3interf& z3;
@@ -50,7 +48,14 @@ namespace cssa {
     hb_enc::encoding& hb_encoding;
     tara::program& p;
 
-    void wmm_mk_distinct_events();
+    void distinct_events();
+
+    bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_rmo    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_alpha  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
 
     void new_ppo_sc   ( const tara::thread& );
     void new_ppo_tso  ( const tara::thread& );
@@ -76,8 +81,8 @@ namespace cssa {
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
     bool is_rd_rd_coherance_preserved();
 
-    z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
-    z3::expr wmm_mk_ghb     (const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
+    // z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
+    // z3::expr wmm_mk_ghb     (const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
 
     z3::expr get_rf_bvar( const variable& v1,
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
@@ -85,9 +90,9 @@ namespace cssa {
 
     void ses();
 
-    z3::expr insert_tso_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
-    z3::expr insert_pso_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
-    z3::expr insert_rmo_barrier( const tara::thread&, unsigned, hb_enc::se_ptr );
+    z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    z3::expr insert_rmo_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
     z3::expr insert_barrier( unsigned tid, unsigned instr );
 
     z3::expr dist = z3.mk_true();

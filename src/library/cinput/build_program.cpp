@@ -241,7 +241,7 @@ translateBlock( unsigned thr_id,
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                             gv, loc_name, hb_enc::event_kind_t::w );
+                             gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
@@ -253,7 +253,7 @@ translateBlock( unsigned thr_id,
           z3::expr c = a_pair.first;
           cssa::variable gv = a_pair.second;
           auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond && c,
-                               gv, loc_name, hb_enc::event_kind_t::w );
+                               gv, loc_name, hb_enc::event_t::w );
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
         }
@@ -277,7 +277,7 @@ translateBlock( unsigned thr_id,
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                               gv, loc_name, hb_enc::event_kind_t::r );
+                               gv, loc_name, hb_enc::event_t::r );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
@@ -289,7 +289,7 @@ translateBlock( unsigned thr_id,
             cssa::variable gv = a_pair.second;
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events,
                                  path_cond && c,
-                                 gv, loc_name, hb_enc::event_kind_t::r );
+                                 gv, loc_name, hb_enc::event_t::r );
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
           }
@@ -419,7 +419,7 @@ translateBlock( unsigned thr_id,
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
           std::string loc_name = "fence__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
-                                 loc_name, hb_enc::event_kind_t::barr );
+                                 loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
@@ -432,7 +432,7 @@ translateBlock( unsigned thr_id,
           }
           std::string loc_name = "create__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
-                                 loc_name, hb_enc::event_kind_t::barr_b );
+                                 loc_name, hb_enc::event_t::barr_b );
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
           p->add_create( thr_id, barr, fname );
@@ -446,7 +446,7 @@ translateBlock( unsigned thr_id,
           ptr_to_create.erase( thr_ptr );
           std::string loc_name = "join__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
-                                 loc_name, hb_enc::event_kind_t::barr_a );
+                                 loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, fname);
           prev_events.clear(); prev_events.insert( barr );
         }else{
@@ -471,7 +471,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   initBlockCount( f, block_to_id );
 
   auto start = mk_se_ptr( hb_encoding, thread_id, prev_events,
-                          name, hb_enc::event_kind_t::barr );
+                          name, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start);
   prev_events.insert( start );
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
@@ -518,7 +518,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   }
 
   auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events,
-                          name+"_final", hb_enc::event_kind_t::barr );
+                          name+"_final", hb_enc::event_t::barr );
   p->set_final_event( thread_id, final);
 
   return false;

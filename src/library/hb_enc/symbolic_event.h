@@ -33,7 +33,7 @@ namespace hb_enc {
 
   class location;
 
-  enum class event_kind_t {
+  enum class event_t {
     pre,  // initialization event
       r,    // read events
       w,    // write events
@@ -63,16 +63,16 @@ namespace hb_enc {
     symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
                     unsigned _tid, unsigned i,
                     const cssa::variable& _v, const cssa::variable& _prog_v,
-                    std::string loc, event_kind_t _et );
+                    std::string loc, event_t _et );
 
     symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                     unsigned _tid, unsigned instr_no,
-                    std::string _loc, event_kind_t _et );
+                    std::string _loc, event_t _et );
 
     // symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
     //                 unsigned instr_no, unsigned thin_tid,
     //                 const cssa::variable& _v, const cssa::variable& _prog_v,
-    //                 hb_enc::location_ptr _loc, event_kind_t _et);
+    //                 hb_enc::location_ptr _loc, event_t _et);
 
   public:
     unsigned tid;
@@ -84,7 +84,7 @@ namespace hb_enc {
   public:
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
-    event_kind_t et;
+    event_t et;
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
     z3::expr guard;
@@ -92,17 +92,18 @@ namespace hb_enc {
       return e_v->name;
     }
 
-    inline bool is_init() const {
-      return et == event_kind_t::pre;
+    inline bool is_pre()            const { return et == event_t::pre;    }
+    inline bool is_rd()             const { return et == event_t::r;      }
+    inline bool is_wr()             const { return et == event_t::w;      }
+    inline bool is_barrier()        const { return et == event_t::barr;   }
+    inline bool is_before_barrier() const { return et == event_t::barr_b; }
+    inline bool is_after_barrier () const { return et == event_t::barr_a; }
+    inline bool is_barr_type()      const {
+      return is_barrier() || is_before_barrier() || is_after_barrier();
     }
 
-    inline bool is_rd() const {
-      return et == event_kind_t::r;
-    }
-
-    inline bool is_wr() const {
-      return et == event_kind_t::w;
-    }
+    inline bool is_post()           const { return et == event_t::post;   }
+    inline bool is_mem_op()         const { return is_rd() || is_wr();    }
 
     inline unsigned get_instr_no() const {
       return e_v->instr_no;
@@ -129,35 +130,36 @@ namespace hb_enc {
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
-  inline se_ptr mk_se_ptr_old( z3::context& _ctx, hb_enc::encoding& _hb_enc,
+  inline se_ptr mk_se_ptr_old( hb_enc::encoding& _hb_enc,
                                unsigned _tid, unsigned _instr_no,
-                               // const cssa::variable& _v,
                                const cssa::variable& _prog_v,
                                std::string _loc,
-                               event_kind_t _et,
-                               name_to_ses_map& se_store ) {
-    std::string prefix = _et == hb_enc::event_kind_t::r ? "pi_" : "";
+                               event_t _et,
+                               se_set& prev_events) {
+    std::string prefix = _et == hb_enc::event_t::r ? "pi_" : "";
     cssa::variable _n_v = prefix + _prog_v + "#" + _loc;
     // assert( _v == _n_v );
-    se_ptr e = std::make_shared<symbolic_event>( _ctx, _hb_enc, _tid, _instr_no,
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
                                                  _n_v, _prog_v,
                                                  _loc,
                                                  // _loc->name,
                                                  _et );
-    // e->set_pre_events( prev_events );
-    se_store[e->name()] = e;
+    e->set_pre_events( prev_events );
+    e->guard = _hb_enc.ctx.bool_val(true);
+    // se_store[e->name()] = e;
     return e;
   }
 
 
-  inline se_ptr mk_se_ptr_old( z3::context& _ctx, hb_enc::encoding& _hb_enc,
-                           unsigned _tid, unsigned _instr_no,
-                           hb_enc::location_ptr _loc, event_kind_t _et,
-                           name_to_ses_map& se_store ) {
-    se_ptr e = std::make_shared<symbolic_event>( _ctx, _hb_enc, _tid, _instr_no,
-                                                 _loc->name, _et );
-    // e->set_pre_events( prev_events );
-    se_store[e->name()] = e;
+  inline se_ptr mk_se_ptr_old( hb_enc::encoding& _hb_enc,
+                               unsigned _tid, unsigned _instr_no,
+                               std::string _loc, event_t _et,
+                               se_set& prev_events ) {
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
+                                                 _loc, _et );
+    e->set_pre_events( prev_events );
+    e->guard = _hb_enc.ctx.bool_val(true);
+    // se_store[e->name()] = e;
     return e;
   }
 
@@ -170,7 +172,7 @@ namespace hb_enc {
                            z3::expr cond,
                            const cssa::variable& _prog_v,
                            std::string _loc,
-                           event_kind_t _et ) {
+                           event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_instr_no()) max = e->get_instr_no();
@@ -184,7 +186,7 @@ namespace hb_enc {
 
   inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
                            unsigned _tid, se_set prev_events,
-                           std::string _loc, event_kind_t _et ) {
+                           std::string _loc, event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_instr_no() ) max = e->get_instr_no();
@@ -192,6 +194,7 @@ namespace hb_enc {
                                                 max+1,
                                                 _loc, _et);
     e->set_pre_events( prev_events );
+    e->guard = _hb_enc.ctx.bool_val(true);
     return e;
   }
   //--------------------------------------------------------------------------

@@ -211,38 +211,61 @@ void encoding::save_locations(const vector< shared_ptr< location > >& locations)
   }
 }
 
-hb encoding::make_hbs(const se_ptr& before, const se_ptr& after) {
+hb encoding::mk_hbs(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->e_v, after->e_v );
 }
 
-z3::expr encoding::make_hbs( const se_set& before, const se_ptr& after) {
+
+// ghb = guarded hb
+z3::expr encoding::mk_ghbs( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hbs( before, after ) );
+}
+
+z3::expr encoding::mk_ghbs( const se_ptr& before, const se_set& after ) {
+  z3::expr hbs = ctx.bool_val(true);
+  for( auto& af : after ) hbs = hbs && mk_ghbs( before, af );
+  return hbs;
+}
+
+z3::expr encoding::mk_ghbs( const se_set& before, const se_ptr& after ) {
+  z3::expr hbs = ctx.bool_val(true);
+  for( auto& bf : before ) hbs = hbs && mk_ghbs( bf, after );
+  return hbs;
+}
+
+// thin air ghb
+z3::expr encoding::mk_ghb_thin( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hb_thin( before, after ) );
+}
+
+z3::expr encoding::mk_hbs( const se_set& before, const se_ptr& after) {
   z3::expr hbs = ctx.bool_val(true);
   for( auto& bf : before ) {
-      hbs = hbs && make_hbs( bf, after );
+      hbs = hbs && mk_hbs( bf, after );
   }
   return hbs;
 }
 
-z3::expr encoding::make_hbs(const se_ptr& before, const se_set& after) {
+z3::expr encoding::mk_hbs(const se_ptr& before, const se_set& after) {
   z3::expr hbs = ctx.bool_val(true);
   for( auto& af : after ) {
-      hbs = hbs && make_hbs( before, af );
+      hbs = hbs && mk_hbs( before, af );
   }
   return hbs;
 }
 
 
-z3::expr encoding::make_hbs(const se_set& before, const se_set& after) {
+z3::expr encoding::mk_hbs(const se_set& before, const se_set& after) {
   z3::expr hbs = ctx.bool_val(true);
   for( auto& bf : before ) {
     for( auto& af : after ) {
-      hbs = hbs && make_hbs( bf, af );
+      hbs = hbs && mk_hbs( bf, af );
     }
   }
   return hbs;
 }
 
-hb encoding::make_hb_thin(const se_ptr& before, const se_ptr& after) {
+hb encoding::mk_hb_thin(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->thin_v, after->thin_v );
 }
 

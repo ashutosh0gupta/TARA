@@ -55,7 +55,7 @@ symbolic_event::create_internal_event( z3::context& ctx,
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
                                 const cssa::variable& _v, const cssa::variable& _prog_v,
-                                std::string _loc, event_kind_t _et )
+                                std::string _loc, event_t _et )
   : tid(_tid)
   , v(_v)
   , prog_v( _prog_v )
@@ -64,11 +64,11 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , et( _et )
   , guard(ctx)
 {
-  if( et != event_kind_t::r &&  event_kind_t::w != et ) {
+  if( et != event_t::r &&  event_t::w != et ) {
     throw hb_enc_exception("symboic event with wrong parameters!");
   }
-  // bool special = (event_kind_t::i == et || event_kind_t::f == et);
-  bool is_read = (et == event_kind_t::r); // || event_kind_t::f == et);
+  // bool special = (event_t::i == et || event_t::f == et);
+  bool is_read = (et == event_t::r); // || event_t::f == et);
   std::string et_name = is_read ? "R" : "W";
   std::string event_name = et_name + "#" + v.name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid,instr_no, false,
@@ -82,7 +82,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 // barrier events
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
-                                std::string _loc, event_kind_t _et )
+                                std::string _loc, event_t _et )
   : tid(_tid)
   , v("dummy",ctx)
   , prog_v( "dummy",ctx)
@@ -93,32 +93,32 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 {
   std::string event_name;
   switch( et ) {
-  case event_kind_t::barr: { event_name = "#barr";    break; }
-  case event_kind_t::barr_b: { event_name = "#barr_b";  break; }
-  case event_kind_t::barr_a: { event_name = "#barr_a";  break; }
-  case event_kind_t::pre : { event_name = "#pre" ;    break; }
-  case event_kind_t::post: { event_name = "#post";    break; }
+  case event_t::barr: { event_name = "#barr";    break; }
+  case event_t::barr_b: { event_name = "#barr_b";  break; }
+  case event_t::barr_a: { event_name = "#barr_a";  break; }
+  case event_t::pre : { event_name = "#pre" ;    break; }
+  case event_t::post: { event_name = "#post";    break; }
   default: hb_enc_exception("unreachable code!!");
   }
   event_name = loc_name+event_name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
-                               (event_kind_t::post == et), prog_v.name );
+                               (event_t::post == et), prog_v.name );
   std::string thin_name = "__thin__" + event_name;
   thin_v = create_internal_event( ctx, _hb_enc, thin_name, tid, instr_no, true,
-                                  (event_kind_t::post == et), prog_v.name );
+                                  (event_t::post == et), prog_v.name );
 }
 
 z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
-  assert( et != event_kind_t::barr);
-  if( et == event_kind_t::r || et == event_kind_t::w) {
+  assert( et != event_t::barr);
+  if( et == event_t::r || et == event_t::w) {
     z3::expr v_expr = (z3::expr)(v);
     return v_expr;
   }
   cssa::variable tmp_v(g.sort.ctx());
   switch( et ) {
-  // case event_kind_t::barr: { tmp_v = g+"#barr";  break; }
-  case event_kind_t::pre : { tmp_v = g+"#pre" ;  break; }
-  case event_kind_t::post: { tmp_v = g+"#post";  break; }
+  // case event_t::barr: { tmp_v = g+"#barr";  break; }
+  case event_t::pre : { tmp_v = g+"#pre" ;  break; }
+  case event_t::post: { tmp_v = g+"#post";  break; }
   default: hb_enc_exception("unreachable code!!");
   }
   return (z3::expr)(tmp_v);
@@ -131,8 +131,8 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
 
 void symbolic_event::debug_print(std::ostream& stream ) {
   stream << *this << "\n";
-  if( et == event_kind_t::r || et == event_kind_t::w ) {
-    std::string s = et == event_kind_t::r ? "Read" : "Write";
+  if( et == event_t::r || et == event_t::w ) {
+    std::string s = et == event_t::r ? "Read" : "Write";
     stream << s << " var: " << v << ", orig_var : " <<prog_v
            << ", loc :" << loc_name << "\n";
     stream << "guard: " << guard << "\n";
