@@ -87,17 +87,16 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   , v("dummy",ctx)
   , prog_v( "dummy",ctx)
   , loc_name(_loc)
-  // , loc(_loc)
   , et( _et )
   , guard(ctx)
 {
   std::string event_name;
   switch( et ) {
-  case event_t::barr: { event_name = "#barr";    break; }
+  case event_t::barr  : { event_name = "#barr";    break; }
   case event_t::barr_b: { event_name = "#barr_b";  break; }
   case event_t::barr_a: { event_name = "#barr_a";  break; }
-  case event_t::pre : { event_name = "#pre" ;    break; }
-  case event_t::post: { event_name = "#post";    break; }
+  case event_t::pre   : { event_name = "#pre" ;    break; }
+  case event_t::post  : { event_name = "#post";    break; }
   default: hb_enc_exception("unreachable code!!");
   }
   event_name = loc_name+event_name;
@@ -109,8 +108,9 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 }
 
 z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
-  assert( et != event_t::barr);
-  if( et == event_t::r || et == event_t::w) {
+  assert( et == event_t::r   || et == event_t::w    ||
+          et == event_t::pre || et == event_t::post );
+  if( et == event_t::r || et == event_t::w ) {
     z3::expr v_expr = (z3::expr)(v);
     return v_expr;
   }

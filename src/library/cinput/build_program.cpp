@@ -77,8 +77,21 @@ using namespace tara::helpers;
      cinput_error( "Unsupported instruction!!");                         \
   }
 
+
 //----------------------------------------------------------------------------
 // code for input object generation
+
+void split_step::print( std::ostream& os ) const {
+  os << "--" << block_id << ":"<< succ_num << "\n";
+  os << cond << "\n";
+}
+
+void cinput::print( std::ostream& os, const split_history&  hs ) {
+  os << "[\n";
+  for( auto& s : hs ) s.print( os );
+  os << "]\n";
+}
+
 
 char build_program::ID = 0;
 void
@@ -93,6 +106,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
     h = hs[0];
     return;
   }
+  for( auto& hp : hs ) cinput::print( std::cerr, hp );
   auto sz = hs[0].size();
   for( auto& old_h: hs ) sz = std::min(sz, old_h.size());
   // unsigned sz = min( h1.size(), h2.size() );
@@ -199,7 +213,7 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       llvm::Type* ty = op->getType();
       if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
         int bw = i_ty->getBitWidth();
-        if(bw == 32 ) {
+        if(bw == 32 || bw == 64 ) {
           z3::expr i =  fresh_int();
           insert_term_map( op, i, m );
           // m.at(op) = i;
@@ -315,6 +329,7 @@ translateBlock( unsigned thr_id,
         points_set_t p_set = { std::make_pair( z3.mk_true(), v ) };
         pointing pointing_( p_set );
         points_to.insert( std::make_pair(alloc,pointing_) );//todo: remove ugly
+        assert( !recognized );recognized = true;
       }else{
         cinput_error("unsupported uniary instruction!!" << "\n");
       }
@@ -388,7 +403,7 @@ translateBlock( unsigned thr_id,
   //       typename EHandler::expr retTerm = getTerm( v, m );
   //       //todo: use retTerm somewhere
       }
-      if( o.print_input > 0 ) std::cerr << "return value ignored!!";
+      if( o.print_input > 0 ) cinput_warning( "return value ignored!!" );
       assert( !recognized );recognized = true;
     }
     if( llvm::isa<llvm::UnreachableInst>(I) ) {
@@ -411,7 +426,8 @@ translateBlock( unsigned thr_id,
     //   assert( !recognized );recognized = true;
     // }
     if( auto call = llvm::dyn_cast<llvm::CallInst>(I) ) {
-      if( llvm::isa<llvm::DbgValueInst>(I) ) {
+      if( llvm::isa<llvm::DbgValueInst>(I) ||
+          llvm::isa<llvm::DbgDeclareInst>(I) ) {
         // Ignore debug instructions
       }else{
         llvm::Function* fp = call->getCalledFunction();
@@ -451,7 +467,7 @@ translateBlock( unsigned thr_id,
           prev_events.clear(); prev_events.insert( barr );
         }else{
           if( o.print_input > 0 )
-            llvm::outs() << "Unknown function" << fp->getName();
+            llvm::outs() << "Unknown function" << fp->getName() << "\n";
           cinput_error( "Unknown function called");
         }
       }
@@ -473,7 +489,13 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   auto start = mk_se_ptr( hb_encoding, thread_id, prev_events,
                           name, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start);
+  if( name == "main" ) {
+    p->create_map[ "main" ] = *p->init_loc.begin();
+    p->join_map[ "main" ] = *p->post_loc.begin();
+  }
+
   prev_events.insert( start );
+  // for( llvm::BasicBlock& src : f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     if( o.print_input > 0 ) src->print( llvm::outs() );
@@ -485,10 +507,11 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
-        z3::expr& b = block_to_exit_bit.at(prev);
+        z3::expr b = block_to_exit_bit.at(prev);
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
-        if( succ_num == 1 ) b = !b;
+        assert( succ_num );
+        if( succ_num == 2 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);
       }

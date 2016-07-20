@@ -56,9 +56,9 @@ public:
 }
 
 #ifndef NDEBUG
-#define issue_error( ss )  { throw tara::tara_exception( ss.str() ); }
-#else
 #define issue_error( ss )  { std::cerr << ss.str() << "\n"; assert( false );}
+#else
+#define issue_error( ss )  { throw tara::tara_exception( ss.str() ); }
 #endif
 
 #define tara_error( M, S ) { std::stringstream ss;                   \
@@ -66,8 +66,6 @@ public:
                                 << triggered_at << std::endl;        \
                              issue_error( ss ); }
 
-#define tara_warning( S ) { std::cerr << "# tara Warning: " << S \
-                                      << std::endl; }
 
 #define cinput_error( S )            tara_error( "::cinput",             S )
 #define program_error( S )           tara_error( "::program",            S )
@@ -76,6 +74,12 @@ public:
 #define barrier_synthesis_error( S ) tara_error( "::barrier_synthesis",  S )
 #define bugs_error( S )              tara_error( "::bugs",               S )
 #define prune_data_flow_error( S )   tara_error( "::prune::data_flow",   S )
+
+#define tara_warning( M, S ) { std::cerr << "# tara" << M << " Warning: " << S \
+                                      << std::endl; }
+
+#define cinput_warning( S )       tara_warning( "::cinput", S )
+
 
 
 namespace std {

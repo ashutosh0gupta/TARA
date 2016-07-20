@@ -436,7 +436,8 @@ void cssa::program::wmm_build_pre(const input::program& input) {
 
 void cssa::program::wmm_build_post(const input::program& input,
                                    unordered_map<string, string>& thread_vars,
-                                   hb_enc::se_set last ) {
+                                   hb_enc::se_set last // not needed
+                                   ) {
     
   if( shared_ptr<input::instruction_z3> instr =
       dynamic_pointer_cast<input::instruction_z3>(input.postcondition) ) {

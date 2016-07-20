@@ -56,12 +56,13 @@ void trace_analysis::input(string input_file)
 void trace_analysis::input(string input_file, mm_t mm)
 {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
-    tara::program* p = cinput::parse_cpp_file( z3, _options, hb_encoding,
-                                                 input_file );
+     program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3,
+                                                                 _options, hb_encoding,
+                                                                 input_file ));
     if( mm != mm_t::none ) {
-      p->set_mm( mm );
+      program->set_mm( mm );
     }
-    if( p->is_mm_declared() ) {
+    if( program->is_mm_declared() ) {
       cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
       mk_cons.run();
     }else{ trace_error( "cinput and no memory model specified!!" ); }

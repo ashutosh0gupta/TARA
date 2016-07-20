@@ -258,17 +258,17 @@ void wmm_event_cons::distinct_events() {
 
   for( unsigned t=0; t < p.no_of_threads(); t++ ) {
     auto& thread = p.get_thread(t);
-    assert( thread.size() > 0 );
-    // for(auto& e : thread.events )
-    //   loc_vars.push_back( e->get_solver_symbol() );
-    for( unsigned j=0; j < thread.size(); j++ ) {
-      for( auto& rd : thread[j].rds ) {
-        loc_vars.push_back( rd->get_solver_symbol() );
-      }
-      for( auto& wr : thread[j].wrs ) {
-        loc_vars.push_back( wr->get_solver_symbol() );
-      }
-    }
+    for(auto& e : thread.events )
+      loc_vars.push_back( e->get_solver_symbol() );
+    // assert( thread.size() > 0 );
+    // for( unsigned j=0; j < thread.size(); j++ ) {
+    //   for( auto& rd : thread[j].rds ) {
+    //     loc_vars.push_back( rd->get_solver_symbol() );
+    //   }
+    //   for( auto& wr : thread[j].wrs ) {
+    //     loc_vars.push_back( wr->get_solver_symbol() );
+    //   }
+    // }
     loc_vars.push_back( thread.start_event->get_solver_symbol() );
     loc_vars.push_back( thread.final_event->get_solver_symbol() );
   }

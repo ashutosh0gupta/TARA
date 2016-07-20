@@ -158,24 +158,24 @@ namespace tara {
     //--------------------------------------------------------------------------
     // cssa::program variables moved here
     //--------------------------------------------------------------------------
-    z3::expr phi_ses  = _z3.mk_true();
-    z3::expr phi_post = _z3.mk_true();
-    z3::expr phi_pre  = _z3.mk_true();//z3.c.bool_val(true);
-    z3::expr phi_po   = _z3.mk_true();
-    z3::expr phi_vd   = _z3.mk_true();
-    z3::expr phi_pi   = _z3.mk_true();
-    z3::expr phi_prp  = _z3.mk_true();
-    z3::expr phi_fea  = _z3.mk_true(); // feasable traces
+    z3::expr phi_ses      = _z3.mk_true();
+    z3::expr phi_post     = _z3.mk_true();
+    z3::expr phi_pre      = _z3.mk_true(); //z3.c.bool_val(true);
+    z3::expr phi_po       = _z3.mk_true();
+    z3::expr phi_vd       = _z3.mk_true();
+    z3::expr phi_pi       = _z3.mk_true();
+    z3::expr phi_prp      = _z3.mk_true();
+    z3::expr phi_fea      = _z3.mk_true(); // feasable traces
     z3::expr phi_distinct = _z3.mk_true(); //ensures that all locations are distinct
 
     inline bool is_mm_declared() const;
-    inline bool is_wmm() const;
-    inline bool is_mm_sc() const;
-    inline bool is_mm_tso() const;
-    inline bool is_mm_pso() const;
-    inline bool is_mm_rmo() const;
-    inline bool is_mm_alpha() const;
-    inline bool is_mm_power() const;
+    inline bool is_wmm()         const;
+    inline bool is_mm_sc()       const;
+    inline bool is_mm_tso()      const;
+    inline bool is_mm_pso()      const;
+    inline bool is_mm_rmo()      const;
+    inline bool is_mm_alpha()    const;
+    inline bool is_mm_power()    const;
     void set_mm( mm_t );
     mm_t get_mm() const;
     void unsupported_mm() const;
@@ -216,9 +216,12 @@ namespace tara {
     }
 
 
-    void add_event( unsigned i, hb_enc::se_ptr e ) {
-      if( i < threads.size() )
+    void add_event( unsigned i, hb_enc::se_ptr e )   {
+      if( i < threads.size() ) {
         threads[i]->add_event( e );
+        // if( e->is_rd() ) rd_events[e->prog_v].push_back( e );
+        // if( e->is_wr() ) wr_events[e->prog_v].insert( e );
+      }
       // todo what to do with pre/post events
       se_store[e->name()] = e;
     }
@@ -246,7 +249,7 @@ namespace tara {
 
     void add_join( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {
       add_event( thr_id, e );
-      if( join_map.find( fname) != create_map.end() )
+      if( join_map.find( fname) != join_map.end() )
         program_error( "function launch multiple times not supported!" );
       join_map[ fname ] = e;
     }
@@ -255,6 +258,7 @@ namespace tara {
       globals.insert( cssa::variable(g, sort) );
     }
 
+    // todo: only return const reference??
     cssa::variable get_global( std::string gname ) {
       for( auto& g : globals ) {
         if( gname == g.name )

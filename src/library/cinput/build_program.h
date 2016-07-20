@@ -61,10 +61,12 @@ namespace cinput {
     unsigned block_id;
     unsigned succ_num;
     z3::expr cond;
+    void print(std::ostream& os) const;
     // friend bool operator==(const split_step& step1, const split_step& step2);
   };
 
   typedef std::vector<split_step> split_history;
+  void print( std::ostream& os, const split_history&  hs );
 
   class SplitAtAssumePass : public llvm::FunctionPass {
   public:

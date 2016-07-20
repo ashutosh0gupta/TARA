@@ -70,6 +70,7 @@ using namespace tara::helpers;
 z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
   if( t->isIntegerTy() ) {
     if( t->isIntegerTy( 32 ) ) return c.int_sort();
+    if( t->isIntegerTy( 64 ) ) return c.int_sort();
     if( t->isIntegerTy( 8 ) ) return c.bool_sort();
   }
   cinput_error( "only int and bool sorts are supported");

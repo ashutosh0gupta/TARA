@@ -105,6 +105,16 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   }
   program* p = new program(z3_, hb_encoding);
 
+  hb_enc::se_set prev_events;
+  auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events,
+                          "the_launcher", hb_enc::event_t::pre );
+  auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events,
+                          "the_finisher", hb_enc::event_t::post );
+
+  // add_event( INT_MAX, start );
+  p->init_loc.insert( start );
+  p->post_loc.insert( final );
+
   // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 
   for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
@@ -121,15 +131,20 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     if( auto pty = llvm::dyn_cast<llvm::PointerType>(ty) ) {
       z3::sort sort = llvm_to_z3_sort( z3_.c, pty->getElementType() );
       p->add_global( gvar, sort );
+      p->wr_events[ p->get_global( gvar ) ].insert( start );
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );
-  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
   // passMan.add( llvm::createCFGPrinterPass() );
+  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
   passMan.run( *module.get() );
-  
+
+  for( const auto& g : p->globals ) {
+    p->rd_events[g].push_back( final );
+  }
+
   return p;
 }
