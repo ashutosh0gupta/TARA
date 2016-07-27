@@ -57,7 +57,8 @@ void trace_analysis::input(string input_file, mm_t mm)
 {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
      program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3,
-                                                                 _options, hb_encoding,
+                                                                 _options,
+                                                                 hb_encoding,
                                                                  input_file ));
     if( mm != mm_t::none ) {
       program->set_mm( mm );
@@ -85,7 +86,10 @@ void trace_analysis::input(input::program& input_program)
 {
   input_program.convert_instructions(z3);
   input_program.check_correctness();
-  program = unique_ptr<cssa::program>(new cssa::program(z3, hb_encoding, input_program));
+  program = unique_ptr<cssa::program>(new cssa::program( z3,
+                                                         _options,
+                                                         hb_encoding,
+                                                         input_program));
 
   if( program->is_mm_declared() ) {
     cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);

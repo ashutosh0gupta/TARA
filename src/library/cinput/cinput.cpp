@@ -74,7 +74,7 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-void c2bc( std::string& filename, std::string& outname ) {
+void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
   cmd << "clang-3.6 -emit-llvm -O0 -g " << filename << " -o " << outname << " -c";
@@ -87,23 +87,31 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
                                              api::options& o,
                                              hb_enc::encoding& hb_encoding,
                                              std::string& cfile ) {
+  boost::filesystem::path cf( cfile );
+  boost::filesystem::path bc_file( o.output_dir );
+  cf += ".bc";
+  bc_file += cf.filename();
+  if( o.print_input > 0 ) {
+    std::cerr << "dumping bytecode file : " << bc_file << std::endl;
+  }
+  // std::string bc_file = cfile+".bc";
+  c2bc( cfile, bc_file.string() );
+
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
   llvm::LLVMContext& context = llvm::getGlobalContext();
   llvm::PassManager passMan;
   llvm::PassRegistry& reg = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeAnalysis(reg);
-  std::string bc_file = cfile+".bc";
 
-  c2bc( cfile, bc_file);
 
   //todo: get rid of clang call
   // why are we parsing IR file.. why not directly .cpp??
-  module = llvm::parseIRFile( bc_file, err, context);
+  module = llvm::parseIRFile( bc_file.string(), err, context);
   if( module.get() == 0 ) {
     // give err msg
   }
-  program* p = new program(z3_, hb_encoding);
+  program* p = new program( z3_, o, hb_encoding );
 
   hb_enc::se_set prev_events;
   auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events,
@@ -144,6 +152,10 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   for( const auto& g : p->globals ) {
     p->rd_events[g].push_back( final );
+  }
+
+  if( o.print_input > 0 ) {
+    p->print_dot( "" );
   }
 
   return p;

@@ -1,3 +1,22 @@
+/*
+ * Copyright 2014, IST Austria
+ *
+ * This file is part of TARA.
+ *
+ * TARA is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * TARA is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #include <iostream>
 #include <fstream>
 #include "cssa/program.h"
@@ -154,12 +173,16 @@ void cssa::program::gather_statistics(api::metric& metric) {
 //--------------------------------------------------------------------------
 
 void cssa::program::wmm_print_dot( z3::model m ) const {
+  boost::filesystem::path fname = _o.output_dir;
+  fname += ".iteration-sat-dump";
+  std::cerr << "dumping dot file : " << fname << std::endl;
   std::ofstream myfile;
-  myfile.open( "/tmp/.iteration-sat-dump" );
+  // std::string fname =  (std::string)(_o.output_dir) + ;
+  myfile.open( fname.c_str() );
   if( myfile.is_open() ) {
     wmm_print_dot( myfile, m );
   }else{
-    // warning( "failed to open /tmp/.iteration-sat-dump");
+    cssa_error( "failed to open " << fname.c_str() );
   }
   myfile.close();
 }
@@ -173,7 +196,7 @@ void cssa::program::wmm_print_dot( ostream& stream, z3::model m ) const {
     auto& thread = *threads[t];
     stream << "subgraph cluster_" << t << " {\n";
     stream << "color=lightgrey;\n";
-    stream << "label = \"" << thread.name << "\"";
+    stream << "label = \"" << thread.name << "\"\n";
     for (unsigned i=0; i < thread.instructions.size(); i++) {
       stream << "\"" << thread[i].loc->name << "\""
              << " [label=\"" << thread[i] << "\"";

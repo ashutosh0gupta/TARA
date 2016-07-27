@@ -19,6 +19,7 @@
 
 #include "helpers/helpers.h"
 #include "program/program.h"
+#include <fstream>
 
 using namespace tara::helpers;
 
@@ -129,9 +130,75 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     return globals.find(cssa::variable(name))!=globals.end();
   }
 
-  const tara::instruction& program::lookup_location(const hb_enc::location_ptr& location) const
-  {
+  const tara::instruction&
+  program::lookup_location(const hb_enc::location_ptr& location) const {
     return (*this)[location->thread][location->instr_no];
+  }
+
+  void program::print_dot( const std::string& name ) {
+    boost::filesystem::path fname = _o.output_dir;
+    fname += "program-"+name+"-.dot";
+    std::cerr << "dumping dot file : " << fname << std::endl;
+    std::ofstream myfile;
+    myfile.open( fname.c_str() );
+    if( myfile.is_open() ) {
+      print_dot( myfile );
+    }else{
+      program_error( "failed to open" << fname.c_str() );
+    }
+    myfile.close();
+  }
+  // local function
+  void print_node( std::ostream& os,
+                   const hb_enc::se_ptr& e,
+                   std::string color = "" ) {
+    assert( e );
+    if( color == "" ) color = "black";
+    os << "\"" << e->name() << "\"" << " [label=\"" << e->name()
+       << "\",color=" << color << "]\n";
+  }
+
+  void print_edge( std::ostream& os,
+                   const hb_enc::se_ptr& e1,
+                   const hb_enc::se_ptr& e2,
+                   std::string color = "" ) {
+    assert( e1 );
+    assert( e2 );
+    if( color == "" ) color = "black";
+    os << "\"" << e1->name() << "\""  << "->"
+       << "\"" << e2->name() << "\""
+       << " [color=" << color << "]" << std::endl;
+  }
+
+  void program::print_dot( std::ostream& os ) {
+    os << "digraph prog {" << std::endl;
+    print_node( os, *init_loc.begin() );
+    if( post_loc.size() > 0 ) print_node( os, *post_loc.begin() );
+    for (unsigned t=0; t<threads.size(); t++) {
+      auto& thread = *threads[t];
+      os << "subgraph cluster_" << t << " {\n";
+      os << "color=lightgrey;\n";
+      os << "label = \"" << thread.name << "\"\n";
+      print_node( os, thread.start_event );
+      print_node( os, thread.final_event );
+      for( const auto& e : thread.events ) {
+        print_node( os , e );
+        for( const auto& ep : e->prev_events ) {
+          print_edge( os, ep , e, "brown" );
+        }
+      }
+      for ( const auto& ep : thread.final_event->prev_events ) {
+        print_edge( os, ep, thread.final_event, "brown" );
+      }
+      os << " }\n";
+      if( create_map.find( thread.name ) != create_map.end() ) {
+        print_edge( os, create_map[thread.name], thread.start_event, "brown" );
+      }
+      if( join_map.find( thread.name ) != join_map.end() ) {
+        print_edge( os, thread.final_event, join_map[thread.name], "brown" );
+      }
+    }
+    os << "}" << std::endl;
   }
 
   z3::expr program::get_initial(const z3::model& m) const {

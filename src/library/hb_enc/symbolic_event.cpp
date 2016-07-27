@@ -92,14 +92,14 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
 {
   std::string event_name;
   switch( et ) {
-  case event_t::barr  : { event_name = "#barr";    break; }
-  case event_t::barr_b: { event_name = "#barr_b";  break; }
-  case event_t::barr_a: { event_name = "#barr_a";  break; }
-  case event_t::pre   : { event_name = "#pre" ;    break; }
-  case event_t::post  : { event_name = "#post";    break; }
+  case event_t::barr  : { event_name = "barr#";    break; }
+  case event_t::barr_b: { event_name = "barr_b#";  break; }
+  case event_t::barr_a: { event_name = "barr_a#";  break; }
+  case event_t::pre   : { event_name = "pre#" ;    break; }
+  case event_t::post  : { event_name = "post#";    break; }
   default: hb_enc_exception("unreachable code!!");
   }
-  event_name = loc_name+event_name;
+  event_name = event_name+loc_name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
                                (event_t::post == et), prog_v.name );
   std::string thin_name = "__thin__" + event_name;

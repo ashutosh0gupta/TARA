@@ -74,6 +74,7 @@ public:
 #define barrier_synthesis_error( S ) tara_error( "::barrier_synthesis",  S )
 #define bugs_error( S )              tara_error( "::bugs",               S )
 #define prune_data_flow_error( S )   tara_error( "::prune::data_flow",   S )
+#define cssa_error( S )              tara_error( "::cssa",   S )
 
 #define tara_warning( M, S ) { std::cerr << "# tara" << M << " Warning: " << S \
                                       << std::endl; }

@@ -106,7 +106,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
     h = hs[0];
     return;
   }
-  for( auto& hp : hs ) cinput::print( std::cerr, hp );
+  if( o.print_input > 3 ) for( auto& hp : hs ) cinput::print( std::cerr, hp );
   auto sz = hs[0].size();
   for( auto& old_h: hs ) sz = std::min(sz, old_h.size());
   // unsigned sz = min( h1.size(), h2.size() );

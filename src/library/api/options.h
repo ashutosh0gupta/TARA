@@ -45,7 +45,7 @@ public:
   int print_phi = 0;
   int print_rounds = 0;
   int print_output = 0;
-  boost::filesystem::path output_dir;
+  boost::filesystem::path output_dir = "/tmp/";
   
   bool machine; // produce machine-readable output
   

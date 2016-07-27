@@ -129,13 +129,15 @@ namespace tara {
     std::vector<std::shared_ptr<thread>> threads;
     mm_t mm = mm_t::none;
     helpers::z3interf& _z3;
+    api::options& _o;
     hb_enc::encoding& _hb_encoding;
     prog_t prog_type = prog_t::bmc;
 
   public:
     program( helpers::z3interf& z3_,
+             api::options& o_,
              hb_enc::encoding& hb_encoding_
-             ): _z3(z3_), _hb_encoding(hb_encoding_) {}
+             ): _z3(z3_), _o(o_), _hb_encoding(hb_encoding_) {}
 
     cssa::variable_set globals;
     cssa::variable_set allocated; // temp allocations
@@ -219,8 +221,8 @@ namespace tara {
     void add_event( unsigned i, hb_enc::se_ptr e )   {
       if( i < threads.size() ) {
         threads[i]->add_event( e );
-        // if( e->is_rd() ) rd_events[e->prog_v].push_back( e );
-        // if( e->is_wr() ) wr_events[e->prog_v].insert( e );
+        if( e->is_rd() ) rd_events[e->prog_v].push_back( e );
+        if( e->is_wr() ) wr_events[e->prog_v].insert( e );
       }
       // todo what to do with pre/post events
       se_store[e->name()] = e;
@@ -291,6 +293,9 @@ namespace tara {
 
     const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
     bool is_global(const cssa::variable& name) const;
+
+    void print_dot(std::ostream& );
+    void print_dot(const std::string& );
 
     friend cssa::program;
   };

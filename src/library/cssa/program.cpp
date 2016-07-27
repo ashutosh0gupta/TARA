@@ -303,7 +303,7 @@ void cssa::program::build_pre(const input::program& input)
 }
 
 
-cssa::program::program(z3interf& z3, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,hb_encoding)
+cssa::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,o, hb_encoding)
 {
   prog_type = prog_t::original;// when is it ctrc // todo: ctrc type
   globals = z3.translate_variables(input.globals);
@@ -532,7 +532,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
               add_event( t, rd );
               nname = rd->v;
               thread[i].rds.insert( rd );
-              rd_events[v].push_back( rd );
+              // rd_events[v].push_back( rd );
               dep_ses.insert( hb_enc::depends( rd, _z3.mk_true() ) );
               ctrl_dependency[rd].insert( ctrl_ses.begin(), ctrl_ses.end()  );
             }else{
@@ -570,7 +570,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
               add_event( t, wr );
               nname = wr->v;
               thread[i].wrs.insert( wr );
-              wr_events[v1].insert( wr );
+              // wr_events[v1].insert( wr );
               data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
 	      ctrl_dependency[wr].insert( ctrl_ses.begin(), ctrl_ses.end() );
             }else{
@@ -604,7 +604,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
             add_event( t, wr );
             nname = wr->v;
             thread[i].wrs.insert( wr );
-            wr_events[v1].insert( wr );
+            // wr_events[v1].insert( wr );
             data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
             // ctrl_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
           }else{

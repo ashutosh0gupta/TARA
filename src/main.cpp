@@ -97,7 +97,7 @@ void real_main(int argc, char **argv) {
 
   boost::filesystem::path input_path(o.input_file);
   boost::filesystem::path dir = input_path.parent_path();
-  o.output_dir = dir/"output"/(input_path.stem())/"rounds";
+  // o.output_dir = dir/"output"/(input_path.stem())/"rounds";
   run_metric.filename = input_path.stem().string();
   print_metric = o.output_metric;
 

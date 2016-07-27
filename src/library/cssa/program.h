@@ -46,6 +46,7 @@ struct pi_function_part {
 class program : public tara::program {
 public:
   program( helpers::z3interf& z3,
+           api::options& o_,
            hb_enc::encoding& hb_encoding,
            const input::program& input );
   program(const program&) = delete;
