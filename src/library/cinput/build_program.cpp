@@ -397,6 +397,19 @@ translateBlock( unsigned thr_id,
       }else{
         cinput_error("phi nodes with non integers not supported !!");
       }
+        std::map<const llvm::Value*,bool>::iterator it = cond.begin();
+	z3::expr key = getTerm(I,m);
+	while(it != cond.end())
+        {
+          bool found = false;
+          bool value = it->second;
+          it++;
+          found = (it->second == value);
+          if(found) {
+            key = it->first || key;
+          }
+        }
+	key = key.simplify();
     }
 
     if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
