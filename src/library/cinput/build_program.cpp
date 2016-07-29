@@ -381,9 +381,11 @@ translateBlock( unsigned thr_id,
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       unsigned num = phi->getNumIncomingValues();
+      std::map<const llvm::Value*,bool> cond;
       if( phi->getType()->isIntegerTy() ) {
         z3::expr phi_cons = z3.mk_false();
         z3::expr ov = getTerm(I,m);
+
         for ( unsigned i = 0 ; i < num ; i++ ) {
           const llvm::BasicBlock* b = phi->getIncomingBlock(i);
           const llvm::Value* v_ = phi->getIncomingValue(i);
@@ -419,6 +421,20 @@ translateBlock( unsigned thr_id,
       z3::expr bit = getTerm( br->getCondition(), m);
       block_to_exit_bit.insert( std::make_pair(b,bit) );
       assert( !recognized );recognized = true;
+      if(br->isConditional()) {
+	std::map<const llvm::Value*,bool> cond;
+        for( const llvm::Instruction& Iobj : b->getInstList() ) {
+          const llvm::Instruction* I = &(Iobj);
+          for( unsigned i = 0; i <= I->getNumOperands(); i++){
+            const llvm::Value* op = I->getOperand(i);
+	    if( llvm::isa<llvm::Constant>(op) ){ continue; }
+	    else {
+	      auto pr = std::pair<const llvm::Value*, bool>( op, br->getCondition());
+	      cond.insert(pr);
+	    }
+	  }
+	}
+      }
     }
     UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
     // if( llvm::isa<llvm::SwitchInst>(I) ) {
