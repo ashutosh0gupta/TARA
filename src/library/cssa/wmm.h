@@ -76,6 +76,10 @@ namespace cssa {
 
     void unsupported_mm() const;
 
+    bool anti_ppo_read_new( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
+                             const hb_enc::se_ptr& wr );
+
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_ppo_read ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
@@ -89,6 +93,7 @@ namespace cssa {
                           bool record=true );
 
     void ses();
+    void new_ses();
 
     z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
     z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );

@@ -242,6 +242,150 @@ void wmm_event_cons::ses() {
 
 
 //----------------------------------------------------------------------------
+bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
+                                        const hb_enc::se_ptr& rd ) {
+  // preventing coherence violation - rf
+  // (if rf is local then may not visible to global ordering)
+  assert( wr->tid == p.no_of_threads() ||
+          rd->tid == p.no_of_threads() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
+      || p.is_mm_rmo() || p.is_mm_alpha() ) {
+    // should come here for those memory models where rd-wr on
+    // same variables are in ppo
+    if( is_po_new( rd, wr ) ) {
+      return true;
+    }
+    //
+  }else{
+    p.unsupported_mm();
+  }
+  return false;
+}
+
+
+bool wmm_event_cons::anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
+                                         const hb_enc::se_ptr& wr ) {
+  // preventing coherence violation - fr;
+  // (if rf is local then it may not be visible to the global ordering)
+  // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
+  assert( wr->tid == p.no_of_threads() || rd->tid == p.no_of_threads() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
+    if( is_po_new( wr, rd ) ) {
+      return true;
+    }
+    //
+  }else{
+    p.unsupported_mm();
+  }
+  return false;
+}
+
+void wmm_event_cons::new_ses() {
+  // For each global variable we need to construct
+  // - wf  well formed
+  // - rf  read from
+  // - grf global read from
+  // - fr  from read
+  // - ws  write serialization
+
+  // z3::context& c = _z3.c;
+  hb_enc::se_to_ses_map prev_rds;
+  for( unsigned t = 0; t < p.size(); t++ ) {
+     const auto& thr = p.get_thread( t );
+  // for( const auto& thr : p.threads ) {
+    for( auto e : thr.events ) {
+      hb_enc::se_set& rds = prev_rds[e];
+      for( auto ep : e->prev_events ) {
+        rds.insert( prev_rds[ep].begin(), prev_rds[ep].end() );
+        if( ep->is_rd() ) rds.insert( ep );
+      }
+    }
+  }
+
+  for( const variable& v1 : p.globals ) {
+    const auto& rds = p.rd_events[v1];
+    const auto& wrs = p.wr_events[v1];
+    // unsigned c_tid = 0;
+    // hb_enc::se_set tid_rds; // ??
+    for( const hb_enc::se_ptr& rd : rds ) {
+      z3::expr some_rfs = z3.c.bool_val(false);
+      z3::expr rd_v = rd->get_var_expr(v1);
+      // if( rd->tid != c_tid ) {
+        // tid_rds.clear();
+      //   c_tid = rd->tid;
+      // }
+      for( const hb_enc::se_ptr& wr : wrs ) {
+        if( anti_ppo_read_new( wr, rd ) ) continue;
+        z3::expr wr_v = wr->get_var_expr( v1 );
+        z3::expr b = get_rf_bvar( v1, wr, rd );
+        some_rfs = some_rfs || b;
+        z3::expr eq = ( rd_v == wr_v );
+        // well formed
+        wf = wf && implies( b, wr->guard && eq); // why not rd->guard
+        // read from
+        z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
+        rf = rf && new_rf;
+        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
+        thin = thin && new_thin;
+        //global read from
+        if( in_grf( wr, rd ) ) grf = grf && new_rf;
+        // from read
+        for( const hb_enc::se_ptr& after_wr : wrs ) {
+          if( after_wr->name() != wr->name() ) {
+            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+                          && after_wr->guard;
+            if( anti_po_loc_fr_new( rd, after_wr ) ) {
+              fr = fr && !cond;
+            }else{
+              auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
+              if( is_rd_rd_coherance_preserved() ) {
+                for( auto before_rd : prev_rds[rd] ) {
+                  //disable this code for rmo
+                  z3::expr anti_coherent_b =
+                    get_rf_bvar( v1, after_wr, before_rd, false );
+                  new_fr = !anti_coherent_b && new_fr;
+                }
+              }
+              fr = fr && implies( cond , new_fr );
+            }
+          }
+        }
+      }
+      wf = wf && implies( rd->guard, some_rfs );
+      // tid_rds.insert( rd );
+    }
+
+    // write serialization
+    // todo: what about ws;rf
+    auto it1 = wrs.begin();
+    for( ; it1 != wrs.end() ; it1++ ) {
+      const hb_enc::se_ptr& wr1 = *it1;
+      auto it2 = it1;
+      it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const hb_enc::se_ptr& wr2 = *it2;
+        if( wr1->tid != wr2->tid && // Why this condition?
+            !wr1->is_pre() && !wr2->is_pre() // no initializations
+            ) {
+          ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
+                       hb_encoding.mk_ghbs( wr2, wr1 ) );
+        }
+      }
+    }
+
+    // dependency
+    for( const hb_enc::se_ptr& wr : wrs )
+      for( auto& rd : p.data_dependency[wr] )
+        //todo : should the following be guarded??
+          thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
+
+  }
+}
+
+
+//----------------------------------------------------------------------------
 // declare all events happen at different time points
 
 void wmm_event_cons::distinct_events() {
@@ -756,7 +900,8 @@ wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
 void wmm_event_cons::run() {
   distinct_events(); // Rd/Wr events on globals are distinct
   ppo(); // build hb formulas to encode the preserved program order
-  ses(); // build symbolic event structure
+  new_ses();
+  // ses(); // build symbolic event structure
   // barrier(); // build barrier// ppo already has the code
 
   if ( o.print_phi ) {

@@ -532,7 +532,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
               add_event( t, rd );
               nname = rd->v;
               thread[i].rds.insert( rd );
-              // rd_events[v].push_back( rd );
+              // rd_events[v].push_back( rd ); //to be commented
               dep_ses.insert( hb_enc::depends( rd, _z3.mk_true() ) );
               ctrl_dependency[rd].insert( ctrl_ses.begin(), ctrl_ses.end()  );
             }else{
@@ -570,7 +570,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
               add_event( t, wr );
               nname = wr->v;
               thread[i].wrs.insert( wr );
-              // wr_events[v1].insert( wr );
+              // wr_events[v1].insert( wr );//to be commented
               data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
 	      ctrl_dependency[wr].insert( ctrl_ses.begin(), ctrl_ses.end() );
             }else{
@@ -604,7 +604,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
             add_event( t, wr );
             nname = wr->v;
             thread[i].wrs.insert( wr );
-            // wr_events[v1].insert( wr );
+            // wr_events[v1].insert( wr ); // to be commented
             data_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
             // ctrl_dependency[wr].insert( dep_ses.begin(),dep_ses.end() );
           }else{

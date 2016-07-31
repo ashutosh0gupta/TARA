@@ -100,6 +100,15 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   default: hb_enc_exception("unreachable code!!");
   }
   event_name = event_name+loc_name;
+  // switch( et ) {
+  // case event_t::barr  : { event_name = "#barr";    break; }
+  // case event_t::barr_b: { event_name = "#barr_b";  break; }
+  // case event_t::barr_a: { event_name = "#barr_a";  break; }
+  // case event_t::pre   : { event_name = "#pre" ;    break; }
+  // case event_t::post  : { event_name = "#post";    break; }
+  // default: hb_enc_exception("unreachable code!!");
+  // }
+  // event_name = loc_name+event_name;
   e_v = create_internal_event( ctx, _hb_enc, event_name, _tid, instr_no, true,
                                (event_t::post == et), prog_v.name );
   std::string thin_name = "__thin__" + event_name;
@@ -129,7 +138,7 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
   prev_events = prev_events_;
 }
 
-void symbolic_event::debug_print(std::ostream& stream ) {
+void symbolic_event::debug_print( std::ostream& stream ) {
   stream << *this << "\n";
   if( et == event_t::r || et == event_t::w ) {
     std::string s = et == event_t::r ? "Read" : "Write";
@@ -140,6 +149,25 @@ void symbolic_event::debug_print(std::ostream& stream ) {
 }
 
 
+bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
+  if( x == y ) return true;
+  if( x->is_pre() || y->is_post() ) return true;
+  if( x->is_post() || y->is_pre() ) return false;
+  if( x->tid != y->tid ) return false;
+  if( x->get_topological_order() >= y->get_topological_order() ) return false;
+  se_set visited, pending = y->prev_events;
+  while( !pending.empty() ) {
+    se_ptr yp = *pending.begin();
+    pending.erase( yp );
+    visited.insert( yp );
+    if( x == yp ) return true;
+    if( x->get_topological_order() >= y->get_topological_order() ) continue;
+    for( auto& ypp : yp->prev_events ) {
+      if( visited.find( ypp ) == visited.end() ) pending.insert( ypp );
+    }
+  }
+  return false;
+}
 
 void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
                                        std::ostream& out ) {

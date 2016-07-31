@@ -79,7 +79,8 @@ namespace hb_enc {
     cssa::variable v;               // variable with ssa name
     cssa::variable prog_v;          // variable name in the program
     std::string loc_name;
-  // private:
+  private:
+    unsigned topological_order;
   //   hb_enc::location_ptr loc; // location in
   public:
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
@@ -109,6 +110,15 @@ namespace hb_enc {
       return e_v->instr_no;
     }
 
+    inline unsigned get_topological_order() const {
+      return topological_order;
+      // return e_v->instr_no;
+    }
+
+    inline void set_topological_order( unsigned order ) {
+      topological_order = order;
+    }
+
     inline z3::expr get_solver_symbol() const {
       return *e_v;
     }
@@ -136,6 +146,10 @@ namespace hb_enc {
                                std::string _loc,
                                event_t _et,
                                se_set& prev_events) {
+    unsigned max = 0;
+    for( const se_ptr e : prev_events)
+      if( max < e->get_topological_order()) max = e->get_topological_order();
+
     std::string prefix = _et == hb_enc::event_t::r ? "pi_" : "";
     cssa::variable _n_v = prefix + _prog_v + "#" + _loc;
     // assert( _v == _n_v );
@@ -145,7 +159,9 @@ namespace hb_enc {
                                                  // _loc->name,
                                                  _et );
     e->set_pre_events( prev_events );
+    e->set_topological_order( max+1 );
     e->guard = _hb_enc.ctx.bool_val(true);
+
     // se_store[e->name()] = e;
     return e;
   }
@@ -155,9 +171,14 @@ namespace hb_enc {
                                unsigned _tid, unsigned _instr_no,
                                std::string _loc, event_t _et,
                                se_set& prev_events ) {
+    unsigned max = 0;
+    for( const se_ptr e : prev_events )
+      if( max < e->get_topological_order()) max = e->get_topological_order();
+
     se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
                                                  _loc, _et );
     e->set_pre_events( prev_events );
+    e->set_topological_order( max+1 );
     e->guard = _hb_enc.ctx.bool_val(true);
     // se_store[e->name()] = e;
     return e;
@@ -175,12 +196,13 @@ namespace hb_enc {
                            event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
-      if( max < e->get_instr_no()) max = e->get_instr_no();
+      if( max < e->get_topological_order()) max = e->get_topological_order();
     cssa::variable ssa_var = _prog_v + "#" + _loc;
     se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, max+1,
                                                  ssa_var, _prog_v, _loc, _et);
     e->guard = cond;
     e->set_pre_events( prev_events );
+    e->set_topological_order( max+1 );
     return e;
   }
 
@@ -189,12 +211,13 @@ namespace hb_enc {
                            std::string _loc, event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
-      if( max < e->get_instr_no() ) max = e->get_instr_no();
+      if( max < e->get_topological_order() ) max = e->get_topological_order();
     se_ptr e = std::make_shared<symbolic_event>(_hb_enc.ctx, _hb_enc, _tid,
                                                 max+1,
                                                 _loc, _et);
     e->set_pre_events( prev_events );
     e->guard = _hb_enc.ctx.bool_val(true);
+    e->set_topological_order( max+1 );
     return e;
   }
   //--------------------------------------------------------------------------
@@ -249,6 +272,8 @@ namespace hb_enc {
       return true;
     return false;
   }
+
+  bool is_po_new( const se_ptr& x, const se_ptr& y );
 
   void debug_print_se_set(const se_set& set, std::ostream& out);
 
