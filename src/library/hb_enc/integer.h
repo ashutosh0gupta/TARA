@@ -24,6 +24,7 @@
 #include "hb_enc/encoding.h"
 #include <unordered_map>
 #include "helpers/helpers.h"
+#include "hb_enc/symbolic_event.h"
 
 namespace tara {
 namespace hb_enc {
@@ -31,6 +32,8 @@ namespace hb_enc {
   {
   public:
     integer(z3::context& ctx);
+    virtual void make_event( se_ptr locations ) override;
+    virtual void make_location( std::shared_ptr< location > locations ) override;
     virtual void make_locations(std::vector< std::shared_ptr< location > > locations) override;
     virtual hb_enc::hb make_hb(location_ptr loc1, location_ptr loc2) const override;
     virtual hb_enc::as make_as(location_ptr loc1, location_ptr loc2) const override;
@@ -38,7 +41,9 @@ namespace hb_enc {
     virtual std::unique_ptr<hb_enc::hb> get_hb(const z3::expr& hb, bool allow_equal = false) const override;
     virtual std::vector<location_ptr> get_trace(const z3::model& m) const override;
   protected:
-    std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>> location_lookup;  // map location to instruction
+    std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>> location_lookup;
+    std::unordered_map<z3::expr, se_ptr > event_lookup;
+  // map location to instruction
     typedef std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>>::const_iterator mapit;
     std::pair<mapit,mapit> get_locs(const z3::expr& hb, bool& possibly_equal) const;
     

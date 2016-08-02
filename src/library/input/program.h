@@ -82,14 +82,14 @@ public:
   bool is_global(const std::string& name) const;
   variable find_variable(int thread, const std::string& name) const;
   
-  void convert_instructions(helpers::z3interf& z3);
+  void convert_instructions(helpers::z3interf& z3, hb_enc::encoding& hb_enc);
   /**
    * @brief Converts the location names in the z3 instructions to z3 locations
    * 
    * @param z3 The z3 interface
    * @return void
    */
-  void convert_names(helpers::z3interf& z3);
+  void convert_names(helpers::z3interf& z3, hb_enc::encoding& hb_enc);
   
   /**
    * Throws an exception if an error was found

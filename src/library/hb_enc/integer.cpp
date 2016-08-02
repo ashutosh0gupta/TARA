@@ -31,8 +31,24 @@ using namespace std;
 integer::integer(z3::context& ctx) : encoding(ctx) //, ctx(ctx)
 {}
 
+void integer::make_event( se_ptr e  ) {
+  event_lookup.insert(make_pair(e->get_solver_symbol(), e));
+  event_lookup.insert(make_pair(e->get_thin_solver_symbol(), e));
+  make_location( e->e_v );
+  make_location( e->thin_v );
+  // save_event( e );
+}
+
+void integer::make_location( std::shared_ptr< location > loc )
+{
+  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  locations.push_back( loc );
+  make_locations(locations);
+}
+
 void integer::make_locations(vector< std::shared_ptr< location > > locations)
-{ 
+{
+  // todo: should the following be static??
   uint16_t counter = 0;
   for (unsigned i=0; i<locations.size(); i++) {
     counter++;
@@ -43,6 +59,7 @@ void integer::make_locations(vector< std::shared_ptr< location > > locations)
   }
   save_locations(locations);
 }
+
 
 hb integer::make_hb(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
 {
@@ -127,6 +144,8 @@ unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
     return unique_ptr<hb_enc::hb>();
 }
 
+// unused function set for deprecation
+// interesting code - it has annonymous function
 vector< location_ptr > integer::get_trace(const z3::model& m) const
 {
   vector<location_ptr> result;

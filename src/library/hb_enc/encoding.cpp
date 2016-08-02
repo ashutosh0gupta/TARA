@@ -115,6 +115,14 @@ hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
   _signature |= loc2->serial();
 }
 
+hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
+  e1( e1_), e2( e2_), loc1(e1->e_v), loc2(e2->e_v), expr(expr)
+{
+  _signature = loc1->serial();
+  _signature <<= 16;
+  _signature |= loc2->serial();
+}
+
 uint32_t hb::signature()
 {
   return _signature;

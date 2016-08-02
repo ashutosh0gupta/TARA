@@ -105,7 +105,7 @@ mm_t program::get_mm() const
 // end of wmm support
 //----------------------------------------------------------------------------
 
-void program::convert_instructions(z3interf& z3) {
+void program::convert_instructions(z3interf& z3, hb_enc::encoding& hb_enc) {
   variable_set all_variables = globals;
   for (unsigned i=0; i<threads.size(); i++) {
     for( auto& local: threads[i].locals ) {
@@ -134,10 +134,10 @@ void program::convert_instructions(z3interf& z3) {
       postcondition = make_shared<instruction_z3>(post->name, z3, post->instr, all_variables, post->type, variable_set());
     }
     
-    convert_names(z3);
+    convert_names(z3, hb_enc );
 }
 
-void program::convert_names(z3interf& z3)
+void program::convert_names(z3interf& z3, hb_enc::encoding& hb_enc)
 {
   if (names_converted) return;
   names_converted = true;
@@ -174,7 +174,8 @@ void program::convert_names(z3interf& z3)
       }
     }
   }
-  z3.hb_encoding().make_locations(locations);
+  //z3.hb_encoding().
+  hb_enc.make_locations(locations);
 }
 
 

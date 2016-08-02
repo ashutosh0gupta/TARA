@@ -51,7 +51,7 @@ private:
     
   static void get_variables(const z3::expr& expr, cssa::variable_set& result);
   
-  hb_enc::integer _hb_encoding = hb_enc::integer(c);
+  // hb_enc::integer _hb_encoding = hb_enc::integer(c);
   
 public:
 
@@ -92,7 +92,7 @@ public:
 
   z3::sort get_variable_sort(const input::variable& var);
   
-  inline hb_enc::encoding& hb_encoding() { return _hb_encoding; }
+  // inline hb_enc::encoding& hb_encoding() { return _hb_encoding; }
   
   template <class value>
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate);
