@@ -44,7 +44,7 @@ using namespace tara::helpers;
 
 using namespace std;
 
-trace_analysis::trace_analysis(options options, z3::context& ctx) : _options(options), z3(ctx), hb_encoding(z3.hb_encoding())
+trace_analysis::trace_analysis(options options, z3::context& ctx) : _options(options), z3(ctx), hb_encoding(ctx)
 {
 }
 
@@ -84,7 +84,7 @@ void trace_analysis::input(string input_file, mm_t mm)
 
 void trace_analysis::input(input::program& input_program)
 {
-  input_program.convert_instructions(z3);
+  input_program.convert_instructions(z3, hb_encoding);
   input_program.check_correctness();
   program = unique_ptr<cssa::program>(new cssa::program( z3,
                                                          _options,

@@ -56,7 +56,8 @@ private:
     options _options;
     helpers::z3interf z3;
     std::shared_ptr<tara::program> program;
-    hb_enc::encoding& hb_encoding;
+  //hb_enc::encoding
+    hb_enc::integer hb_encoding;
     /**
      * @brief Creates a solver for good traces
      *

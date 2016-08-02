@@ -54,7 +54,8 @@ symbolic_event::create_internal_event( z3::context& ctx,
 
 symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
                                 unsigned _tid, unsigned instr_no,
-                                const cssa::variable& _v, const cssa::variable& _prog_v,
+                                const cssa::variable& _v,
+                                const cssa::variable& _prog_v,
                                 std::string _loc, event_t _et )
   : tid(_tid)
   , v(_v)

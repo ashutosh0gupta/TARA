@@ -123,6 +123,10 @@ namespace hb_enc {
       return *e_v;
     }
 
+    inline z3::expr get_thin_solver_symbol() const {
+      return *thin_v;
+    }
+
     inline unsigned get_tid() const {
       return tid;
     }
