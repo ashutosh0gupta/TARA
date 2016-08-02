@@ -241,7 +241,8 @@ translateBlock( unsigned thr_id,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
-  data_dependency_set data_dep_ses;
+  hb_enc::depends_set data_dep_ses;
+  hb_enc::depends_set ctrl_dep_ses;
   local_data_dependency local_map;
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
@@ -254,14 +255,14 @@ translateBlock( unsigned thr_id,
       std::string loc_name = getInstructionLocationName( I );
       z3::expr val = getTerm( store->getOperand(0), m );
       hb_enc::se_set new_events;
-      data_dep_ses.insert( std::make_pair( val, path_cond ) );
-      local_map[store].insert( data_dep_ses.begin(), data_dep_ses.end() );
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
-        // p->data_dependency[wr].insert( );
+        data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
+	local_map[store].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -293,13 +294,13 @@ translateBlock( unsigned thr_id,
         std::string loc_name = getInstructionLocationName( I );
         z3::expr l_v = getTerm( I, m);
         hb_enc::se_set new_events;
-        data_dep_ses.insert( std::make_pair( l_v, path_cond ) );
-        local_map[load].insert( data_dep_ses.begin(), data_dep_ses.end() );
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
-          // p->data_dependency[rd].insert();
+          data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
+          local_map[load].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	  p->data_dependency[rd].insert( data_dep_ses.begin(), data_dep_ses.end() );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{

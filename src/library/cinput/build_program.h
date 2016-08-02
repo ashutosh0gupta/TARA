@@ -28,7 +28,7 @@
 #include "cinput/cinput.h"
 #include "cinput/cinput_exception.h"
 #include <utility>
-
+#include "hb_enc/symbolic_event.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "llvm/Pass.h"
@@ -86,10 +86,8 @@ namespace cinput {
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
     ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
-    typedef std::set< std::pair< z3::expr, z3::expr > > data_dependency_set;
-    typedef std::set< std::pair< z3::expr, z3::expr > > ctrl_dependency_set;
-    typedef std::map< const llvm::Value*, data_dependency_set > local_data_dependency;
-    typedef std::map< const llvm::Value*, ctrl_dependency_set > local_ctrl_dependency;
+    typedef std::map< const llvm::Value*, hb_enc::depends_set> local_data_dependency;
+    typedef std::map< const llvm::Value*, hb_enc::depends_set > local_ctrl_dependency;
     static char ID;
     std::string name;
     //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
