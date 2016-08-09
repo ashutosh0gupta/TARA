@@ -261,7 +261,7 @@ translateBlock( unsigned thr_id,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-	local_map[store].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	local_map.insert( std::make_pair( store->getOperand(0), std::make_pair( val , path_cond )) );
 	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
@@ -299,7 +299,7 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
-          local_map[load].insert( data_dep_ses.begin(), data_dep_ses.end() );
+          local_map.insert( std::make_pair( load->getOperand(0), std::make_pair( l_v , path_cond )) );
 	  p->data_dependency[rd].insert( data_dep_ses.begin(), data_dep_ses.end() );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
@@ -361,6 +361,7 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
+      local_map.insert( std::make_pair(I, std::make_pair( a , b ) ));
       assert( !recognized );recognized = true;
     }
 
@@ -386,6 +387,7 @@ translateBlock( unsigned thr_id,
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
+      local_map.insert( std::make_pair(I, std::make_pair( l , r ) ));
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {

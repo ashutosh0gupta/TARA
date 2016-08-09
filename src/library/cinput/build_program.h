@@ -86,8 +86,8 @@ namespace cinput {
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
     ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
-    typedef std::map< const llvm::Value*, hb_enc::depends_set> local_data_dependency;
-    typedef std::map< const llvm::Value*, hb_enc::depends_set > local_ctrl_dependency;
+    typedef std::map< const llvm::Value*, std::pair< z3::expr , z3::expr > > local_data_dependency;
+    typedef std::map< const llvm::Value*, std::pair< z3::expr, z3::expr > > local_ctrl_dependency;
     static char ID;
     std::string name;
     //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
