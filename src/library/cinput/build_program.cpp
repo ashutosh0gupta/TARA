@@ -261,7 +261,7 @@ translateBlock( unsigned thr_id,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-	local_map.insert( std::make_pair( store->getOperand(0), std::make_pair( val , path_cond )) );
+	local_map.insert( std::make_pair( store->getOperand(1), std::make_pair( val , path_cond )) );
 	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
@@ -361,9 +361,13 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-      local_map.insert( std::make_pair(I, std::make_pair( a , b ) ));
-      assert( !recognized );recognized = true;
-    }
+      if( llvm::isa<llvm::Constant>(bop->getOperand(1))
+	&& llvm::isa<llvm::Constant>(bop->getOperand(0)) )
+	{ continue; }
+       else {
+         local_map.insert( std::make_pair(I, std::make_pair( a , b ) ));}
+         assert( !recognized );recognized = true;
+       }
 
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 );
