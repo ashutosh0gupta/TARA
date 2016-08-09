@@ -104,6 +104,9 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
   if(hs.size() == 0 ) return;
   if(hs.size() == 1 ) {
     h = hs[0];
+    for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
+    auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
+    conds.insert( pr );
     return;
   }
   if( o.print_input > 3 ) for( auto& hp : hs ) cinput::print( std::cerr, hp );
@@ -237,7 +240,7 @@ build_program::
 translateBlock( unsigned thr_id,
                 const llvm::BasicBlock* b,
                 hb_enc::se_set& prev_events,
-                z3::expr path_cond,
+                z3::expr& path_cond,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
@@ -272,7 +275,8 @@ translateBlock( unsigned thr_id,
         for( std::pair< z3::expr, cssa::variable > a_pair : p_set ) {
           z3::expr c = a_pair.first;
           cssa::variable gv = a_pair.second;
-          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond && c,
+          z3::expr path_cond_c = path_cond && c;
+          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
                                gv, loc_name, hb_enc::event_t::w );
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
@@ -310,8 +314,8 @@ translateBlock( unsigned thr_id,
           for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ){
             z3::expr c = a_pair.first;
             cssa::variable gv = a_pair.second;
-            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events,
-                                 path_cond && c,
+            z3::expr path_cond_c = path_cond && c;
+            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
                                  gv, loc_name, hb_enc::event_t::r );
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
@@ -389,6 +393,7 @@ translateBlock( unsigned thr_id,
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
+      assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       std::map<const llvm::Value*,bool> cond;
       if( phi->getType()->isIntegerTy() ) {
@@ -447,7 +452,7 @@ translateBlock( unsigned thr_id,
 	std::map<const llvm::Value*,bool> cond;
         for( const llvm::Instruction& Iobj : b->getInstList() ) {
           const llvm::Instruction* I = &(Iobj);
-          for( unsigned i = 0; i <= I->getNumOperands(); i++){
+          for( unsigned i = 0; i < I->getNumOperands(); i++){
             const llvm::Value* op = I->getOperand(i);
 	    if( llvm::isa<llvm::Constant>(op) ){ continue; }
 	    else {
@@ -472,7 +477,7 @@ translateBlock( unsigned thr_id,
         unsigned argnum = call->getNumArgOperands();
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
           std::string loc_name = "fence__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
           prev_events.clear(); prev_events.insert( barr );
@@ -485,7 +490,7 @@ translateBlock( unsigned thr_id,
             cinput_error( "unnamed call to function pointers is not supported!!");
           }
           std::string loc_name = "create__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  loc_name, hb_enc::event_t::barr_b );
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
@@ -499,7 +504,7 @@ translateBlock( unsigned thr_id,
           auto fname = ptr_to_create.at(thr_ptr);
           ptr_to_create.erase( thr_ptr );
           std::string loc_name = "join__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events,
+          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, fname);
           prev_events.clear(); prev_events.insert( barr );
@@ -524,9 +529,11 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   initBlockCount( f, block_to_id );
 
-  auto start = mk_se_ptr( hb_encoding, thread_id, prev_events,
+
+  z3::expr start_bit = getTerm( &f, m );
+  auto start = mk_se_ptr( hb_encoding, thread_id, prev_events, start_bit,
                           name, hb_enc::event_t::barr );
-  p->set_start_event( thread_id, start);
+  p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
     p->create_map[ "main" ] = *p->init_loc.begin();
     p->join_map[ "main" ] = *p->post_loc.begin();
@@ -558,6 +565,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
+    if( src == &(f.getEntryBlock()) ) {
+      split_history h;
+      split_step ss( NULL, 0, 0, start_bit ); // todo : second param??
+      h.push_back( ss );
+      histories.push_back( h );
+    }
     split_history h;
     std::map<const llvm::BasicBlock*, z3::expr> conds;
     z3::expr path_cond = z3.mk_true();
@@ -578,9 +591,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     if( o.print_input > 0 ) helpers::debug_print(ssa );
   }
 
-  auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events,
+  z3::expr exit_cond = z3.mk_true();
+  auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events, exit_cond,
                           name+"_final", hb_enc::event_t::barr );
-  p->set_final_event( thread_id, final);
+  p->set_final_event( thread_id, final, exit_cond );
 
   return false;
 }

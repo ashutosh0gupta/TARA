@@ -85,9 +85,21 @@ namespace tara {
     hb_enc::se_vec events; // topologically sorted events
     z3::expr phi_ssa = z3.mk_true();
     z3::expr phi_prp = z3.mk_false();
+    z3::expr start_cond = z3.mk_true();
+    z3::expr final_cond = z3.mk_true();
+
     void add_event( hb_enc::se_ptr e ) { events.push_back( e ); }
-    void set_start_event( hb_enc::se_ptr e ) { start_event = e; }
-    void set_final_event( hb_enc::se_ptr e ) { final_event = e; }
+
+    void set_start_event( hb_enc::se_ptr e, z3::expr cond ) {
+      start_event = e;
+      start_cond = cond;
+    }
+
+    void set_final_event( hb_enc::se_ptr e, z3::expr cond ) {
+      final_event = e;
+      final_cond = cond;
+    }
+
     void append_ssa( z3::expr e) {
       phi_ssa = phi_ssa && e;
     }
@@ -193,9 +205,9 @@ namespace tara {
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;
 
-    inline unsigned no_of_threads() const {
-      return threads.size();
-    }
+    // inline unsigned no_of_threads() const {
+    //   return threads.size();
+    // }
 
     inline const thread& get_thread(unsigned t) const {
       assert( t < threads.size() );
@@ -234,12 +246,12 @@ namespace tara {
       }
     }
 
-    void set_start_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i]->set_start_event( e );
+    void set_start_event( unsigned i, hb_enc::se_ptr e, z3::expr cond ) {
+      threads[i]->set_start_event( e, cond );
     }
 
-    void set_final_event( unsigned i, hb_enc::se_ptr e ) {
-      threads[i]->set_final_event( e );
+    void set_final_event( unsigned i, hb_enc::se_ptr e, z3::expr cond ) {
+      threads[i]->set_final_event( e, cond );
     }
 
     void add_create( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {

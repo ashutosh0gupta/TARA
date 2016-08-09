@@ -192,17 +192,16 @@ namespace hb_enc {
   // new calls
   // todo: streamline se allocation
 
-  inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
-                           unsigned _tid, se_set prev_events,
-                           z3::expr cond,
-                           const cssa::variable& _prog_v,
-                           std::string _loc,
-                           event_t _et ) {
+  inline se_ptr
+  mk_se_ptr( hb_enc::encoding& _hb_enc, unsigned _tid, se_set prev_events,
+             z3::expr& cond, const cssa::variable& _prog_v, std::string _loc,
+             event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_topological_order()) max = e->get_topological_order();
     cssa::variable ssa_var = _prog_v + "#" + _loc;
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, max+1,
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid,
+                                                 max+1,
                                                  ssa_var, _prog_v, _loc, _et);
     e->guard = cond;
     e->set_pre_events( prev_events );
@@ -210,20 +209,22 @@ namespace hb_enc {
     return e;
   }
 
-  inline se_ptr mk_se_ptr( hb_enc::encoding& _hb_enc,
-                           unsigned _tid, se_set prev_events,
-                           std::string _loc, event_t _et ) {
+  inline se_ptr
+  mk_se_ptr( hb_enc::encoding& _hb_enc, unsigned _tid, se_set prev_events,
+             z3::expr& cond, std::string _loc, event_t _et ) {
     unsigned max = 0;
     for( const se_ptr e : prev_events)
       if( max < e->get_topological_order() ) max = e->get_topological_order();
-    se_ptr e = std::make_shared<symbolic_event>(_hb_enc.ctx, _hb_enc, _tid,
-                                                max+1,
-                                                _loc, _et);
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid,
+                                                 max+1,
+                                                 _loc, _et );
     e->set_pre_events( prev_events );
-    e->guard = _hb_enc.ctx.bool_val(true);
+    e->guard = cond;
+    // e->guard = _hb_enc.ctx.bool_val(true);
     e->set_topological_order( max+1 );
     return e;
   }
+
   //--------------------------------------------------------------------------
 
   struct se_hash {

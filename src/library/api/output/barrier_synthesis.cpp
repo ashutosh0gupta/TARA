@@ -546,7 +546,7 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
     hb_conj hbs;
     vector<hb_enc::se_vec> event_lists;
     set<hb_enc::se_ptr> all_events;
-    event_lists.resize( program->no_of_threads() );
+    event_lists.resize( program->size() );
 
     for( tara::hb_enc::hb& h : c ) {
       hb_enc::se_ptr b = program->se_store.at( h.loc1->name );

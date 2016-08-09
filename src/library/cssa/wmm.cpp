@@ -90,8 +90,8 @@ bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr,
                                     const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
-  assert( wr->tid == p.no_of_threads() ||
-          rd->tid == p.no_of_threads() ||
+  assert( wr->tid == p.size() ||
+          rd->tid == p.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
       || p.is_mm_rmo() || p.is_mm_alpha() ) {
@@ -112,7 +112,7 @@ bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
   // preventing coherence violation - fr;
   // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
-  assert( wr->tid == p.no_of_threads() || rd->tid == p.no_of_threads() ||
+  assert( wr->tid == p.size() || rd->tid == p.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
     if( is_po( wr, rd ) ) {
@@ -246,8 +246,7 @@ bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
                                         const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
-  assert( wr->tid == p.no_of_threads() ||
-          rd->tid == p.no_of_threads() ||
+  assert( wr->tid >= p.size() || rd->tid >= p.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
       || p.is_mm_rmo() || p.is_mm_alpha() ) {
@@ -269,9 +268,13 @@ bool wmm_event_cons::anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
   // preventing coherence violation - fr;
   // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
-  assert( wr->tid == p.no_of_threads() || rd->tid == p.no_of_threads() ||
+  assert( wr->tid >= p.size() || rd->tid >= p.size() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
+  if( p.is_mm_sc()  ||
+      p.is_mm_tso() ||
+      p.is_mm_pso() ||
+      p.is_mm_rmo() ||
+      p.is_mm_alpha() ) {
     if( is_po_new( wr, rd ) ) {
       return true;
     }
@@ -400,7 +403,7 @@ void wmm_event_cons::distinct_events() {
     loc_vars.push_back( e->get_solver_symbol() );
   }
 
-  for( unsigned t=0; t < p.no_of_threads(); t++ ) {
+  for( unsigned t=0; t < p.size(); t++ ) {
     auto& thread = p.get_thread(t);
     for(auto& e : thread.events )
       loc_vars.push_back( e->get_solver_symbol() );
@@ -679,7 +682,7 @@ void wmm_event_cons::power_ppo( const tara::thread& thread ) {
 void wmm_event_cons::ppo() {
   // wmm_test_ppo();
 
-  for( unsigned t=0; t < p.no_of_threads(); t++ ) {
+  for( unsigned t=0; t < p.size(); t++ ) {
     auto& thr = p.get_thread(t);
     po = po && hb_encoding.mk_ghbs( p.create_map[thr.name],thr.start_event );
     if(       p.is_mm_sc()    ) { new_ppo_sc( thr ); // sc_ppo   ( thread );
@@ -700,13 +703,13 @@ void wmm_event_cons::ppo() {
 void wmm_event_cons::wmm_test_ppo() {
   unsigned t;
   po = z3.mk_true();
-  for(t=0;t<p.no_of_threads();t++){sc_ppo(p.get_thread(t));}
+  for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
   std::cerr << "\nsc" << po; po = z3.mk_true();
-  for(t=0;t<p.no_of_threads();t++){tso_ppo(p.get_thread(t));}
+  for(t=0;t<p.size();t++){new_ppo_tso(p.get_thread(t));}
   std::cerr << "\ntso" << po; po = z3.mk_true();
-  for(t=0;t<p.no_of_threads();t++){pso_ppo(p.get_thread(t));}
+  for(t=0;t<p.size();t++){pso_ppo(p.get_thread(t));}
   std::cerr << "\npso" << po; po = z3.mk_true();
-  for(t=0;t<p.no_of_threads();t++){rmo_ppo(p.get_thread(t));}
+  for(t=0;t<p.size();t++){rmo_ppo(p.get_thread(t));}
   std::cerr << "\nrmo" << po; po = z3.mk_true();
 }
 

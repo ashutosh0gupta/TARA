@@ -512,7 +512,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
     hb_enc::se_set last;// = init_loc;
     auto start = mk_se_ptr_old( _hb_encoding, t, 0, "start__"+threads[t]->name,
                                 hb_enc::event_t::barr, last);
-    set_start_event( t, start );
+    set_start_event( t, start, _z3.mk_true() );
     last.insert( start );
     for ( unsigned i=0; i<input.threads[t].size(); i++ ) {
       if ( shared_ptr<input::instruction_z3> instr =
@@ -676,7 +676,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
     auto final = mk_se_ptr_old( _hb_encoding, t,INT_MAX,
                                 "end__"+threads[t]->name,
                                 hb_enc::event_t::barr, last);
-    set_final_event( t, final);
+    set_final_event( t, final, _z3.mk_true());
     all_lasts.insert( final );
     phi_fea = phi_fea && path_constraint; //recordes feasibility of threads
   }
