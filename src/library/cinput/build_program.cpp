@@ -77,6 +77,9 @@ using namespace tara::helpers;
      cinput_error( "Unsupported instruction!!");                         \
   }
 
+  hb_enc::depends_set data_dep_ses;
+  hb_enc::depends_set ctrl_dep_ses;
+  build_program::local_data_dependency local_map;
 
 //----------------------------------------------------------------------------
 // code for input object generation
@@ -167,6 +170,38 @@ z3::expr build_program::fresh_bool() {
   return loc_expr;
 }
 
+hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
+  if( llvm::isa<llvm::Constant>(op) ) {
+    hb_enc::depends_set data_dep;
+    return data_dep; }
+  else {
+    return local_map.at(op); }
+}
+
+hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set dep0, hb_enc::depends_set dep1 ) {
+  hb_enc::depends_set final_set;
+  for(std::set<hb_enc::depends>::iterator it0 = dep0.begin(); it0 != dep0.end(); it0++) {
+    z3::expr cond = z3.mk_emptyexpr();
+    bool flag = false;
+    for(std::set<hb_enc::depends>::iterator it1 = dep1.begin(); it1 != dep1.end(); it1++) {
+      hb_enc::depends element0 = *it0;
+      hb_enc::depends element1 = *it1;
+      hb_enc::se_ptr val0 = element0.e;
+      hb_enc::se_ptr val1 = element1.e;
+      if( val0 == val1 ) {
+        cond = cond || ( element0.cond || element1.cond );
+        final_set.insert( hb_enc::depends( val0, cond ) );
+        dep1.erase(it1);
+        flag = true;
+      }
+      else if( ( !flag ) && ( it1 == dep1.end()) ) {
+        final_set.insert( hb_enc::depends( val0, element0.cond ) );}
+      else if( ( it0 == dep0.end()) && ( !dep1.empty()) ) {
+        final_set.insert( hb_enc::depends( val1, element1.cond ) );}
+    }
+   }
+  return final_set;
+}
 
 z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
   if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
@@ -241,9 +276,6 @@ translateBlock( unsigned thr_id,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
-  hb_enc::depends_set data_dep_ses;
-  hb_enc::depends_set ctrl_dep_ses;
-  local_data_dependency local_map;
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
@@ -261,7 +293,7 @@ translateBlock( unsigned thr_id,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-	local_map.insert( std::make_pair( store->getOperand(1), std::make_pair( val , path_cond )) );
+	//local_map.insert( std::make_pair( store->getOperand(1), std::make_pair( val , path_cond )) );
 	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
@@ -299,7 +331,7 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
-          local_map.insert( std::make_pair( load->getOperand(0), std::make_pair( l_v , path_cond )) );
+          //local_map.insert( std::make_pair( load->getOperand(0), std::make_pair( l_v , path_cond )) );
 	  p->data_dependency[rd].insert( data_dep_ses.begin(), data_dep_ses.end() );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
@@ -345,6 +377,8 @@ translateBlock( unsigned thr_id,
     }
 
     if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
+      hb_enc::depends_set dep_ses0;
+      hb_enc::depends_set dep_ses1;
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
       z3::expr a = getTerm( op0, m );
@@ -361,15 +395,14 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-      if( llvm::isa<llvm::Constant>(bop->getOperand(1))
-	&& llvm::isa<llvm::Constant>(bop->getOperand(0)) )
-	{ continue; }
-       else {
-         local_map.insert( std::make_pair(I, std::make_pair( a , b ) ));}
+         dep_ses0 = get_depends( op0 );
+         dep_ses1 = get_depends( op1 );
          assert( !recognized );recognized = true;
        }
 
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
+      hb_enc::depends_set dep_ses0;
+      hb_enc::depends_set dep_ses1;
       llvm::Value* lhs = cmp->getOperand( 0 );
       llvm::Value* rhs = cmp->getOperand( 1 );
       z3::expr l = getTerm( lhs, m );
@@ -391,7 +424,8 @@ translateBlock( unsigned thr_id,
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
-      local_map.insert( std::make_pair(I, std::make_pair( l , r ) ));
+      dep_ses0 = get_depends( lhs );
+      dep_ses1 = get_depends( rhs );
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
