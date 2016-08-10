@@ -14,5 +14,6 @@ tara.exe
 
 core.*
 .z3-trace
+.gdb_history
 *.kate-swp
 z3smtlog.0.smt2
