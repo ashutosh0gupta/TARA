@@ -186,15 +186,15 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
     return local_map.at(op); }
 }
 
-hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set dep0, hb_enc::depends_set dep1 ) {
+hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 ) {
   hb_enc::depends_set final_set;
   for(std::set<hb_enc::depends>::iterator it0 = dep0.begin(); it0 != dep0.end(); it0++) {
     z3::expr cond = z3.mk_emptyexpr();
     bool flag = false;
+    hb_enc::depends element0 = *it0;
+    hb_enc::se_ptr val0 = element0.e;
     for(std::set<hb_enc::depends>::iterator it1 = dep1.begin(); it1 != dep1.end(); it1++) {
-      hb_enc::depends element0 = *it0;
       hb_enc::depends element1 = *it1;
-      hb_enc::se_ptr val0 = element0.e;
       hb_enc::se_ptr val1 = element1.e;
       if( val0 == val1 ) {
         cond = cond || ( element0.cond || element1.cond );
@@ -202,12 +202,15 @@ hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set dep0, h
         dep1.erase(it1);
         flag = true;
       }
-      else if( ( !flag ) && ( it1 == dep1.end()) ) {
+     }
+      if( !flag ) {
         final_set.insert( hb_enc::depends( val0, element0.cond ) );}
-      else if( ( it0 == dep0.end()) && ( !dep1.empty()) ) {
-        final_set.insert( hb_enc::depends( val1, element1.cond ) );}
-    }
-   }
+     }
+      if( !dep1.empty() ) {
+        for(std::set<hb_enc::depends>::iterator it = dep1.begin(); it != dep1.end(); it++) {
+          hb_enc::depends element = *it;
+          final_set.insert( hb_enc::depends( element.e, element.cond ) );}
+	}
   return final_set;
 }
 
@@ -344,8 +347,8 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
-          //local_map.insert( std::make_pair( load->getOperand(0), std::make_pair( l_v , path_cond )) );
-	  new_events.insert( rd );
+          local_map.insert( std::make_pair( load->getOperand(0), data_dep_ses ));
+          new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
