@@ -87,7 +87,7 @@ public:
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);
   
   z3::expr mk_true(){ return c.bool_val(true); }
-  z3::expr mk_false(){ return c.bool_val(true); }
+  z3::expr mk_false(){ return c.bool_val(false); }
   z3::expr mk_emptyexpr(){ return z3::expr(c); }
 
   z3::sort get_variable_sort(const input::variable& var);
