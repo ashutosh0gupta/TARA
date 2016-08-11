@@ -336,8 +336,7 @@ translateBlock( unsigned thr_id,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
           //local_map.insert( std::make_pair( load->getOperand(0), std::make_pair( l_v , path_cond )) );
-	  p->data_dependency[rd].insert( data_dep_ses.begin(), data_dep_ses.end() );
-          new_events.insert( rd );
+	  new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
@@ -401,6 +400,7 @@ translateBlock( unsigned thr_id,
       }
          dep_ses0 = get_depends( op0 );
          dep_ses1 = get_depends( op1 );
+         data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
          assert( !recognized );recognized = true;
        }
 
@@ -430,6 +430,7 @@ translateBlock( unsigned thr_id,
       }
       dep_ses0 = get_depends( lhs );
       dep_ses1 = get_depends( rhs );
+      data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
@@ -451,20 +452,7 @@ translateBlock( unsigned thr_id,
       }else{
         cinput_error("phi nodes with non integers not supported !!");
       }
-        std::map<const llvm::Value*,bool>::iterator it = cond.begin();
-	z3::expr key = getTerm(I,m);
-	while(it != cond.end())
-        {
-          bool found = false;
-          bool value = it->second;
-          it++;
-          found = (it->second == value);
-          if(found) {
-            key = it->first || key;
-          }
-        }
-	key = key.simplify();
-    }
+     }
 
     if( auto ret = llvm::dyn_cast<llvm::ReturnInst>(I) ) {
       llvm::Value* v = ret->getReturnValue();
