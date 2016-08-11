@@ -105,6 +105,8 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   unsigned int thread::size() const { return instructions.size(); }
+  unsigned int thread::events_size() const { return events.size(); }
+
   const instruction& thread::operator[](unsigned int i) const {
     return *instructions[i];
   }
@@ -195,7 +197,9 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
         print_edge( os, create_map[thread.name], thread.start_event, "brown" );
       }
       if( join_map.find( thread.name ) != join_map.end() ) {
-        print_edge( os, thread.final_event, join_map[thread.name], "brown" );
+        
+        print_edge( os, thread.final_event, join_map.at(thread.name).first,
+                    "brown" );
       }
     }
     os << "}" << std::endl;
@@ -209,8 +213,14 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       if (((Z3_ast)vname) != ((Z3_ast)e))
         res = res && vname == e;
     }
-  return res;
-}
+    return res;
+  }
 
+  void program::gather_statistics( api::metric& metric ) {
+    metric.threads = size();
+    for(unsigned i = 0; i < size(); i++) {
+      metric.instructions += (threads)[i]->events_size();
+    }
+  }
 
 }

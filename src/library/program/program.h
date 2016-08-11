@@ -24,6 +24,8 @@
 #include "helpers/z3interf.h"
 #include "api/options.h"
 #include "hb_enc/symbolic_event.h"
+#include "api/metric.h"
+
 // #include "cinput/cinput_exception.h"
 
 namespace tara {
@@ -124,6 +126,7 @@ namespace tara {
     bool operator!=(const thread &other) const;
 
     unsigned size() const;
+    unsigned events_size() const;
     instruction& operator [](unsigned i);
     const instruction& operator [](unsigned i) const;
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
@@ -154,7 +157,8 @@ namespace tara {
     cssa::variable_set globals;
     cssa::variable_set allocated; // temp allocations
     std::map< unsigned, loc> inst_to_loc;
-    std::map< std::string, hb_enc::se_ptr> create_map, join_map;
+    std::map< std::string, hb_enc::se_ptr> create_map;
+    std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr > > join_map;
     hb_enc::name_to_ses_map se_store;
     /**
      * @brief Set of uninitialized variables (used to get input values)
@@ -222,10 +226,12 @@ namespace tara {
     }
 
     void append_ssa( unsigned thread_id, z3::expr e) {
+      phi_vd = phi_vd && e;
       threads[thread_id]->append_ssa( e );
     }
 
     void append_property( unsigned thread_id, z3::expr prp) {
+      phi_prp = phi_prp && prp;
       threads[thread_id]->append_property( prp );
     }
 
@@ -261,11 +267,12 @@ namespace tara {
       create_map[ fname ] = e;
     }
 
-    void add_join( unsigned thr_id, hb_enc::se_ptr e, std::string fname ) {
+    void add_join( unsigned thr_id, hb_enc::se_ptr e, z3::expr join_cond,
+                   std::string fname ) {
       add_event( thr_id, e );
       if( join_map.find( fname) != join_map.end() )
         program_error( "function launch multiple times not supported!" );
-      join_map[ fname ] = e;
+      join_map.insert( std::make_pair(fname,std::make_pair( e, join_cond )) );
     }
 
     void add_global( std::string g, z3::sort sort ) {
@@ -303,11 +310,13 @@ namespace tara {
      */
     z3::expr get_initial(const z3::model& m) const;
 
-    const instruction& lookup_location(const tara::hb_enc::location_ptr& location) const;
+    const instruction& lookup_location(const tara::hb_enc::location_ptr&) const;
     bool is_global(const cssa::variable& name) const;
 
-    void print_dot(std::ostream& );
-    void print_dot(const std::string& );
+    void print_dot( std::ostream& );
+    void print_dot( const std::string& );
+
+    void gather_statistics(api::metric& metric);
 
     friend cssa::program;
   };

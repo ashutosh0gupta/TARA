@@ -684,8 +684,11 @@ void wmm_event_cons::ppo() {
 
   for( unsigned t=0; t < p.size(); t++ ) {
     auto& thr = p.get_thread(t);
-    po = po && hb_encoding.mk_ghbs( p.create_map[thr.name],thr.start_event );
-    if(       p.is_mm_sc()    ) { new_ppo_sc( thr ); // sc_ppo   ( thread );
+    auto& cr_e = p.create_map[thr.name];
+    po = po && z3::implies( cr_e->guard,
+                            thr.start_event->guard &&
+                            hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
+    if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
     }else if( p.is_mm_tso()   ) { new_ppo_tso( thr ); //tso_ppo  ( thr );
     }else if( p.is_mm_pso()   ) { pso_ppo  ( thr );
     }else if( p.is_mm_rmo()   ) { rmo_ppo  ( thr );
@@ -693,8 +696,15 @@ void wmm_event_cons::ppo() {
     }else if( p.is_mm_power() ) { power_ppo( thr );
     }else{                      p.unsupported_mm();
     }
-    if( hb_enc::se_ptr& join_point = p.join_map[thr.name] )
-      po = po && hb_encoding.mk_ghbs( thr.final_event, join_point );
+    const auto& it = p.join_map.find( thr.name );
+    if( it != p.join_map.end() ) {
+      const auto& jp_pair = it->second;
+      const auto join_point = jp_pair.first;
+      z3::expr join_guard = jp_pair.second;
+      po = po && z3::implies( thr.final_event->guard,
+                              join_guard &&
+                              hb_encoding.mk_hbs( thr.final_event, join_point));
+    }
   }
   // po = po && dist;
   //phi_po = phi_po && barriers;
@@ -916,11 +926,14 @@ void wmm_event_cons::run() {
             << "fr     : \n" << fr           << endl
             << "ws     : \n" << ws           << endl
             << "thin   : \n" << thin         << endl
+            << "phi_prp: \n" << p.phi_prp    << endl
             << ")" << endl;
   }
 
   p.phi_po = po && dist;
-  p.phi_ses = wf && grf && fr && ws && thin;
+  p.phi_ses = wf && grf && fr && ws ;
+  // p.phi_ses = p.phi_ses && thin;
+
 }
 
 

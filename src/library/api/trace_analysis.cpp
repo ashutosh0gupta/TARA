@@ -56,8 +56,7 @@ void trace_analysis::input(string input_file)
 void trace_analysis::input(string input_file, mm_t mm)
 {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
-     program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3,
-                                                                 _options,
+     program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3, _options,
                                                                  hb_encoding,
                                                                  input_file ));
     if( mm != mm_t::none ) {
@@ -66,6 +65,14 @@ void trace_analysis::input(string input_file, mm_t mm)
     if( program->is_mm_declared() ) {
       cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
       mk_cons.run();
+      if( program->get_mm() != mm_t::none ) {
+        _options.out() << "(" << endl
+                       << "phi_pre : \n" << program->phi_pre << endl
+                       <<"fea      : \n" << program->phi_fea << "\n"
+                       <<"vd       : \n" << program->phi_vd  << "\n"
+                       <<"prp      : \n" << program->phi_prp << "\n"
+                       << ")" << endl;
+      }
     }else{ trace_error( "cinput and no memory model specified!!" ); }
   }else{
     input::program pa = input::parse::parseFile(input_file.c_str());
@@ -131,7 +138,8 @@ void trace_analysis::gather_statistics(metric& metric)
     auto p = (cssa::program*)(program.get());
     p->gather_statistics( metric );
   }else{
-    trace_error( "no stats for new programs!!" );
+    program->gather_statistics( metric );
+    //trace_error( "no stats for new programs!!" );
   }
 
 }

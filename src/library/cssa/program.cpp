@@ -450,7 +450,9 @@ void cssa::program::wmm_build_post(const input::program& input,
                                        _end_l,hb_enc::event_t::post, last);
     rd->guard = _z3.mk_true();//c.bool_val(true);
     add_event( threads.size(), rd);
-    for( unsigned t = 0; t < size(); t++ ) join_map[ threads[t]->name ] = rd;
+    for( unsigned t = 0; t < size(); t++ )
+      join_map.insert(std::make_pair(threads[t]->name, std::make_pair(rd,tru)));
+      // join_map[ threads[t]->name ] = rd;
 
     for( const variable& v : globals ) {
       variable nname(_z3.c);

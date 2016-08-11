@@ -101,7 +101,12 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
                                z3::expr& path_cond,
                                std::map< const llvm::BasicBlock*, z3::expr >& conds) {
   h.clear();
-  if(hs.size() == 0 ) return;
+  if(hs.size() == 0 ) {
+    split_step ss( NULL, 0, 0, z3.mk_false() );
+    h.push_back(ss);
+    path_cond = z3.mk_false();
+    return;
+  }
   if(hs.size() == 1 ) {
     h = hs[0];
     for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
@@ -247,6 +252,7 @@ translateBlock( unsigned thr_id,
   hb_enc::depends_set data_dep_ses;
   hb_enc::depends_set ctrl_dep_ses;
   local_data_dependency local_map;
+  z3::expr join_conds = z3.mk_true();
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
@@ -509,10 +515,13 @@ translateBlock( unsigned thr_id,
           auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
           auto fname = ptr_to_create.at(thr_ptr);
           ptr_to_create.erase( thr_ptr );
+          z3::expr join_cond = fresh_bool();
+          path_cond = path_cond && join_cond;
           std::string loc_name = "join__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  loc_name, hb_enc::event_t::barr_a );
-          p->add_join( thr_id, barr, fname);
+          p->add_join( thr_id, barr, join_cond, fname);
+          join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
         }else{
           if( o.print_input > 0 )
@@ -524,6 +533,8 @@ translateBlock( unsigned thr_id,
     }
     if( !recognized ) cinput_error( "----- failed to recognize!!");
   }
+  split_step ss( NULL, 0, 0, join_conds);
+  block_to_split_stack.at(b).push_back( ss );
   return block_ssa;
 }
 
@@ -536,13 +547,15 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   initBlockCount( f, block_to_id );
 
 
-  z3::expr start_bit = getTerm( &f, m );
+  z3::expr start_bit = fresh_bool();
   auto start = mk_se_ptr( hb_encoding, thread_id, prev_events, start_bit,
                           name, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
     p->create_map[ "main" ] = *p->init_loc.begin();
-    p->join_map[ "main" ] = *p->post_loc.begin();
+    hb_enc::se_ptr post_loc = *p->post_loc.begin();
+    auto pr = std::make_pair( post_loc, z3.mk_true() );
+    p->join_map.insert( std::make_pair( "main" , pr) );
   }
 
   prev_events.insert( start );
@@ -587,7 +600,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     block_to_split_stack[src] = h;
 
     if( src->hasName() && (src->getName() == "err") ) {
-      for( auto pair_ : conds ) p->append_property( thread_id, pair_.second );
+      p->append_property( thread_id, !path_cond );
+      // for( auto pair_ : conds ) p->append_property( thread_id, pair_.second );
       continue;
     }
     z3::expr ssa = translateBlock(thread_id, src, prev_events,path_cond,conds);
