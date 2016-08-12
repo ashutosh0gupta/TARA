@@ -308,7 +308,7 @@ translateBlock( unsigned thr_id,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-	//local_map.insert( std::make_pair( store->getOperand(1), std::make_pair( val , path_cond )) );
+	local_map.insert( std::make_pair( I, data_dep_ses ));
 	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
         block_ssa = block_ssa && ( wr->v == val );
       }else{
