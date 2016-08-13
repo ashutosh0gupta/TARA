@@ -448,6 +448,7 @@ translateBlock( unsigned thr_id,
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       hb_enc::depends_set temp;
+      std::vector<hb_enc::depends_set> dep_ses;
       assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       std::map<const llvm::Value*,bool> cond;
@@ -464,7 +465,18 @@ translateBlock( unsigned thr_id,
 	    hb_enc::depends element = *it;
 	    element.cond = element.cond && conds.at(b);
 	  }
+	  dep_ses.push_back( temp );
 	  z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
+        }
+        if ( num == 1 )
+          data_dep_ses = dep_ses.at(0);
+        else if ( num == 2 )
+          data_dep_ses = join_depends_set( dep_ses.at(0), dep_ses.at( 1 ) );
+        else if ( num > 2 ) {
+          data_dep_ses = join_depends_set( dep_ses.at(0), dep_ses.at( 1 ) );
+          for ( unsigned i = 2 ; i < num ; i++ ) {
+	    data_dep_ses = join_depends_set( data_dep_ses, dep_ses.at( i ) );
+          }
         }
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
