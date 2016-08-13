@@ -143,7 +143,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
       p->wr_events[ p->get_global( gvar ) ].insert( start );
       if( glb->hasUniqueInitializer() ) {
         auto c = glb->getInitializer();
-        p->add_init( p->get_global( gvar ), val );
+        // p->add_init( p->get_global( gvar ), val );
       }
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
