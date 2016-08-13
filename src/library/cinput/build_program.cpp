@@ -186,6 +186,7 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
 hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op ) {
   const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(op);
   unsigned num = phi->getNumIncomingValues();
+  assert( num != 0 );
   if ( num == 1 )
     data_dep_ses = dep.at(0);
   else if ( num == 2 )
