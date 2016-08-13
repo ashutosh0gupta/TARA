@@ -77,9 +77,6 @@ using namespace tara::helpers;
      cinput_error( "Unsupported instruction!!");                         \
   }
 
-  hb_enc::depends_set data_dep_ses;
-  hb_enc::depends_set ctrl_dep_ses;
-  build_program::local_data_dependency local_map;
 
 //----------------------------------------------------------------------------
 // code for input object generation

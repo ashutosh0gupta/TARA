@@ -106,6 +106,13 @@ namespace cinput {
     std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
     std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
 
+    //-----------------------------------
+    // local data structure of dependency
+    hb_enc::depends_set data_dep_ses;
+    hb_enc::depends_set ctrl_dep_ses;
+    build_program::local_data_dependency local_map;
+    //-----------------------------------
+
     class pointing {
     public:
       pointing( points_set_t p_set_, z3::expr null_cond_ )

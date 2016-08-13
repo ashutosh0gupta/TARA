@@ -17,7 +17,7 @@ void* p0(void *) {
 
 void* p1(void *) {
   y = 1;
-  r2 = y;
+  r2 = x;
   return NULL;
 }
 

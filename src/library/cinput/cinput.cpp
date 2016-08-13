@@ -141,6 +141,10 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
       z3::sort sort = llvm_to_z3_sort( z3_.c, pty->getElementType() );
       p->add_global( gvar, sort );
       p->wr_events[ p->get_global( gvar ) ].insert( start );
+      if( glb->hasUniqueInitializer() ) {
+        auto c = glb->getInitializer();
+        p->add_init( p->get_global( gvar ), val );
+      }
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
@@ -148,7 +152,8 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( new SplitAtAssumePass() );
   // passMan.add( llvm::createCFGPrinterPass() );
-  passMan.add( new build_program( z3_, o, hb_encoding, p ) );
+  auto build_p = new build_program( z3_, o, hb_encoding, p );
+  passMan.add( build_p );
   passMan.run( *module.get() );
 
   for( const auto& g : p->globals ) {
@@ -158,6 +163,8 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   if( o.print_input > 0 ) {
     p->print_dot( "" );
   }
+
+  // delete build_p;
 
   return p;
 }

@@ -167,7 +167,6 @@ z3::solver trace_analysis::make_bad()
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
 
-  // result.add(program->phi_po); // removed due to wmm
   result.add(program->phi_vd);
   connect_read_writes( result ); //wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
@@ -182,7 +181,6 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
   
-  // result.add(program->phi_po); // removed due to wmm
   result.add(program->phi_vd);
   connect_read_writes( result );//wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
