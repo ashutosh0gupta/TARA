@@ -197,7 +197,8 @@ hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, 
       hb_enc::depends element1 = *it1;
       hb_enc::se_ptr val1 = element1.e;
       if( val0 == val1 ) {
-        cond = cond || ( element0.cond || element1.cond );
+        cond || ( element0.cond || element1.cond );
+        cond.simplify();
         final_set.insert( hb_enc::depends( val0, cond ) );
         dep1.erase(it1);
         flag = true;
@@ -446,6 +447,7 @@ translateBlock( unsigned thr_id,
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
+      hb_enc::depends_set temp;
       assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       std::map<const llvm::Value*,bool> cond;
@@ -457,7 +459,12 @@ translateBlock( unsigned thr_id,
           const llvm::BasicBlock* b = phi->getIncomingBlock(i);
           const llvm::Value* v_ = phi->getIncomingValue(i);
           z3::expr v = getTerm (v_, m );
-          z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
+          temp = get_depends( v_ );
+	  for(std::set<hb_enc::depends>::iterator it = temp.begin(); it != temp.end(); it++) {
+	    hb_enc::depends element = *it;
+	    element.cond = element.cond && conds.at(b);
+	  }
+	  z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
         }
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
