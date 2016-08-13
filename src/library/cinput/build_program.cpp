@@ -183,6 +183,22 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
     return local_map.at(op); }
 }
 
+hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op ) {
+  const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(op);
+  unsigned num = phi->getNumIncomingValues();
+  if ( num == 1 )
+    data_dep_ses = dep.at(0);
+  else if ( num == 2 )
+    data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ) );
+  else if ( num > 2 ) {
+    data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ) );
+    for ( unsigned i = 2 ; i < num ; i++ ) {
+      data_dep_ses = join_depends_set( data_dep_ses, dep.at( i ) );
+    }
+  }
+  return data_dep_ses;
+}
+
 hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 ) {
   hb_enc::depends_set final_set;
   for(std::set<hb_enc::depends>::iterator it0 = dep0.begin(); it0 != dep0.end(); it0++) {
@@ -285,9 +301,6 @@ translateBlock( unsigned thr_id,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
-  // hb_enc::depends_set data_dep_ses;
-  // hb_enc::depends_set ctrl_dep_ses;
-  // local_data_dependency local_map;
   z3::expr join_conds = z3.mk_true();
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
@@ -411,6 +424,7 @@ translateBlock( unsigned thr_id,
          dep_ses0 = get_depends( op0 );
          dep_ses1 = get_depends( op1 );
          data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
+         local_map.insert( std::make_pair( I, data_dep_ses ));
          assert( !recognized );recognized = true;
        }
 
@@ -441,6 +455,7 @@ translateBlock( unsigned thr_id,
       dep_ses0 = get_depends( lhs );
       dep_ses1 = get_depends( rhs );
       data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
+      local_map.insert( std::make_pair( I, data_dep_ses ));
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
@@ -448,7 +463,6 @@ translateBlock( unsigned thr_id,
       std::vector<hb_enc::depends_set> dep_ses;
       assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
-      std::map<const llvm::Value*,bool> cond;
       if( phi->getType()->isIntegerTy() ) {
         z3::expr phi_cons = z3.mk_false();
         z3::expr ov = getTerm(I,m);
@@ -465,16 +479,8 @@ translateBlock( unsigned thr_id,
 	  dep_ses.push_back( temp );
 	  z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
         }
-        if ( num == 1 )
-          data_dep_ses = dep_ses.at(0);
-        else if ( num == 2 )
-          data_dep_ses = join_depends_set( dep_ses.at(0), dep_ses.at( 1 ) );
-        else if ( num > 2 ) {
-          data_dep_ses = join_depends_set( dep_ses.at(0), dep_ses.at( 1 ) );
-          for ( unsigned i = 2 ; i < num ; i++ ) {
-	    data_dep_ses = join_depends_set( data_dep_ses, dep_ses.at( i ) );
-          }
-        }
+        data_dep_ses = join( dep_ses, phi );
+        local_map.insert( std::make_pair( I, data_dep_ses ));
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
       }else{
@@ -504,20 +510,6 @@ translateBlock( unsigned thr_id,
       z3::expr bit = getTerm( br->getCondition(), m);
       block_to_exit_bit.insert( std::make_pair(b,bit) );
       assert( !recognized );recognized = true;
-      if(br->isConditional()) {
-	std::map<const llvm::Value*,bool> cond;
-        for( const llvm::Instruction& Iobj : b->getInstList() ) {
-          const llvm::Instruction* I = &(Iobj);
-          for( unsigned i = 0; i < I->getNumOperands(); i++){
-            const llvm::Value* op = I->getOperand(i);
-	    if( llvm::isa<llvm::Constant>(op) ){ continue; }
-	    else {
-	      auto pr = std::pair<const llvm::Value*, bool>( op, br->getCondition());
-	      cond.insert(pr);
-	    }
-	  }
-	}
-      }
     }
     UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
     // if( llvm::isa<llvm::SwitchInst>(I) ) {

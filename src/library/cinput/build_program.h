@@ -146,6 +146,7 @@ namespace cinput {
    z3::expr fresh_bool();
    hb_enc::depends_set get_depends( const llvm::Value* op );
    hb_enc::depends_set join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 );
+   hb_enc::depends_set join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op );
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,
