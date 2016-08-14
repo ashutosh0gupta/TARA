@@ -174,8 +174,8 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
 
   void program::print_dot( std::ostream& os ) {
     os << "digraph prog {" << std::endl;
-    print_node( os, *init_loc.begin() );
-    if( post_loc.size() > 0 ) print_node( os, *post_loc.begin() );
+    print_node( os, init_loc );
+    if( post_loc ) print_node( os, post_loc );
     for (unsigned t=0; t<threads.size(); t++) {
       auto& thread = *threads[t];
       os << "subgraph cluster_" << t << " {\n";

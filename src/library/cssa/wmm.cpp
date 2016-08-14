@@ -395,13 +395,14 @@ void wmm_event_cons::distinct_events() {
 
   z3::expr_vector loc_vars( z3.c );
 
-  for( auto& e : p.init_loc ) {
-    loc_vars.push_back( e->get_solver_symbol() );
-  }
+  // for( auto& e : p.init_loc ) {
+    loc_vars.push_back( p.init_loc->get_solver_symbol() );
+  // }
 
-  for( auto& e : p.post_loc ) {
-    loc_vars.push_back( e->get_solver_symbol() );
-  }
+  // for( auto& e : p.post_loc ) {
+    if( p.post_loc )
+      loc_vars.push_back( p.post_loc->get_solver_symbol() );
+  // }
 
   for( unsigned t=0; t < p.size(); t++ ) {
     auto& thread = p.get_thread(t);
@@ -502,7 +503,7 @@ void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
 
 void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   unsigned tsize = thread.size();
-  hb_enc::se_set last = p.init_loc;
+  hb_enc::se_set last = {p.init_loc};
 
   for( unsigned j = 0; j < tsize; j++ ) {
     auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
@@ -516,9 +517,9 @@ void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
 }
 
 void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
-  hb_enc::se_set last_rds = p.init_loc, last_wrs = p.init_loc;
+  hb_enc::se_set last_rds = {p.init_loc}, last_wrs = {p.init_loc};
   bool rd_occured = false;
-  hb_enc::se_set barr_events = p.init_loc;
+  hb_enc::se_set barr_events = {p.init_loc};
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier( thread[j].type ) ) {
       po = po && hb_encoding.mk_hbs( last_rds, thread[j].barr );
@@ -548,12 +549,12 @@ void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
 
 void wmm_event_cons::pso_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr;
-  assert( p.init_loc.size() == 1);
-  hb_enc::se_ptr init_l = *p.init_loc.begin();
+  assert( p.init_loc);
+  hb_enc::se_ptr init_l = p.init_loc;
   for( auto& g : p.globals ) last_wr[g] = init_l;
 
   bool no_rd_occurred = true;
-  hb_enc::se_set last_rds = p.init_loc;
+  hb_enc::se_set last_rds = {p.init_loc};
   for( unsigned j=0; j<thread.size(); j++ ) {
     if( is_barrier(thread[j].type) ) {
       po = po && hb_encoding.mk_hbs( last_rds, thread[j].barr );
@@ -585,9 +586,10 @@ void wmm_event_cons::pso_ppo( const tara::thread& thread ) {
     }
   }
   // only writes must be ordered with post event
-  for( auto& g : p.globals ) {
-    po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
-  }
+  if( p.post_loc )
+    for( auto& g : p.globals ) {
+      po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
+    }
   //po = po && barriers;
 }
 
@@ -595,8 +597,8 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_rd, last_wr;
   hb_enc::se_set collected_rds;
 
-  assert( p.init_loc.size() == 1);
-  hb_enc::se_ptr barr = *p.init_loc.begin();
+  assert( p.init_loc);
+  hb_enc::se_ptr barr = p.init_loc;
   for( auto& g : p.globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {
@@ -637,15 +639,15 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
       }
     }
   }
-
-  for( auto& g : p.globals )
-    po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
+  if( p.post_loc )
+    for( auto& g : p.globals )
+      po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
 }
 
 void wmm_event_cons::alpha_ppo( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr, last_rd;
-  assert( p.init_loc.size() == 1);
-  hb_enc::se_ptr barr = *p.init_loc.begin();
+  assert( p.init_loc);
+  hb_enc::se_ptr barr = p.init_loc;
   for( auto& g : p.globals ) last_rd[g] = last_wr[g] = barr;
 
   for( unsigned j=0; j<thread.size(); j++ ) {

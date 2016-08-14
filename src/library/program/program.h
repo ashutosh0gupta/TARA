@@ -200,8 +200,8 @@ namespace tara {
 
     hb_enc::se_to_depends_map data_dependency;
     hb_enc::se_to_depends_map ctrl_dependency;
-    hb_enc::se_set init_loc;
-    hb_enc::se_set post_loc;
+    hb_enc::se_ptr init_loc;
+    hb_enc::se_ptr post_loc;
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
@@ -235,6 +235,9 @@ namespace tara {
       threads[thread_id]->append_property( prp );
     }
 
+    void append_pre( cssa::variable g,  z3::expr val) {
+      phi_pre = phi_pre && (init_loc->get_var_expr( g) == val);
+    }
 
     void add_event( unsigned i, hb_enc::se_ptr e )   {
       if( i < threads.size() ) {

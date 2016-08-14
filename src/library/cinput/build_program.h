@@ -142,8 +142,7 @@ namespace cinput {
                          z3::expr& path_cond,
                          std::map<const llvm::BasicBlock*,z3::expr>& conds
                          );
-   z3::expr fresh_int();
-   z3::expr fresh_bool();
+
    hb_enc::depends_set get_depends( const llvm::Value* op );
    hb_enc::depends_set join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 );
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
@@ -196,9 +195,12 @@ namespace cinput {
     // void addPendingInsertEdge( unsigned, unsigned, z3:expr);
     // void applyPendingInsertEdges( unsigned );
 
-    z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m );
+    z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
+      return get_term( z3, op, m );
+    }
 
-    void insert_term_map( const llvm::Value* op , z3::expr e,ValueExprMap& m ) {
+    static void insert_term_map( const llvm::Value* op ,
+                                 z3::expr e, ValueExprMap& m ) {
       auto pair = std::make_pair( op, e );
       m.insert( pair );
       // m.at(op) = e;
@@ -219,13 +221,23 @@ namespace cinput {
       return true;
     }
 
-    int readInt( const llvm::ConstantInt* c ) {
+    static int readInt( const llvm::ConstantInt* c ) {
       const llvm::APInt& n = c->getUniqueInteger();
       unsigned len = n.getNumWords();
       if( len > 1 ) cinput_error( "long integers not supported!!" );
       const uint64_t *v = n.getRawData();
       return *v;
     }
+
+    z3::expr fresh_bool(){ return fresh_bool(z3); };
+    z3::expr fresh_int() { return fresh_int(z3); };
+
+  public:
+    static z3::expr get_term( helpers::z3interf& z3_,
+                              const llvm::Value* op ,ValueExprMap& m );
+    static z3::expr fresh_int( helpers::z3interf& z3_ );
+    static z3::expr fresh_bool( helpers::z3interf& z3_ );
+
   };
 
 }}
