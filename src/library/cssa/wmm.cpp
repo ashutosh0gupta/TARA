@@ -934,7 +934,7 @@ void wmm_event_cons::run() {
 
   p.phi_po = po && dist;
   p.phi_ses = wf && grf && fr && ws ;
-  // p.phi_ses = p.phi_ses && thin;
+  // p.phi_ses = p.phi_ses && thin; //todo : undo this update
 
 }
 

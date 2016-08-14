@@ -31,7 +31,7 @@ using namespace std;
 integer::integer(z3::context& ctx) : encoding(ctx) //, ctx(ctx)
 {}
 
-void integer::make_event( se_ptr e  ) {
+void integer::record_event( se_ptr e  ) {
   event_lookup.insert(make_pair(e->get_solver_symbol(), e));
   event_lookup.insert(make_pair(e->get_thin_solver_symbol(), e));
   make_location( e->e_v );

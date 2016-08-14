@@ -614,8 +614,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         z3::expr b = block_to_exit_bit.at(prev);
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
-        assert( succ_num );
-        if( succ_num == 2 ) b = !b;
+        // assert( succ_num );
+        assert( prev->getTerminator()->getOperand(succ_num) == src );
+        if( succ_num == 1 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);
       }

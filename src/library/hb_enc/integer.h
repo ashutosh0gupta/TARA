@@ -32,7 +32,7 @@ namespace hb_enc {
   {
   public:
     integer(z3::context& ctx);
-    virtual void make_event( se_ptr locations ) override;
+    virtual void record_event( se_ptr locations ) override;
     virtual void make_location( std::shared_ptr< location > locations ) override;
     virtual void make_locations(std::vector< std::shared_ptr< location > > locations) override;
     virtual hb_enc::hb make_hb(location_ptr loc1, location_ptr loc2) const override;

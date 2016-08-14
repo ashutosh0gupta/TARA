@@ -157,15 +157,13 @@ namespace hb_enc {
     std::string prefix = _et == hb_enc::event_t::r ? "pi_" : "";
     cssa::variable _n_v = prefix + _prog_v + "#" + _loc;
     // assert( _v == _n_v );
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
-                                                 _n_v, _prog_v,
-                                                 _loc,
-                                                 // _loc->name,
-                                                 _et );
+    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid,
+                                                 _instr_no, _n_v, _prog_v,
+                                                 _loc, _et );
     e->set_pre_events( prev_events );
     e->set_topological_order( max+1 );
     e->guard = _hb_enc.ctx.bool_val(true);
-
+    // _hb_enc.
     // se_store[e->name()] = e;
     return e;
   }
@@ -220,7 +218,6 @@ namespace hb_enc {
                                                  _loc, _et );
     e->set_pre_events( prev_events );
     e->guard = cond;
-    // e->guard = _hb_enc.ctx.bool_val(true);
     e->set_topological_order( max+1 );
     return e;
   }

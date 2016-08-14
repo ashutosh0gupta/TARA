@@ -115,6 +115,7 @@ symbolic_event::symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
   std::string thin_name = "__thin__" + event_name;
   thin_v = create_internal_event( ctx, _hb_enc, thin_name, tid, instr_no, true,
                                   (event_t::post == et), prog_v.name );
+  
 }
 
 z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
