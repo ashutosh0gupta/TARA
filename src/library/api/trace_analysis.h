@@ -27,6 +27,7 @@
 #include "input/program.h"
 #include "cssa/program.h"
 #include "hb_enc/encoding.h"
+#include "hb_enc/integer.h"
 
 #include <unordered_set>
 

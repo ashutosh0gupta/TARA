@@ -150,7 +150,7 @@ public:
   encoding(z3::context& ctx);
   virtual ~encoding();
   
-  virtual void record_event( se_ptr ) = 0;
+  virtual void record_event( se_ptr& ) = 0;
 
   virtual void make_location( std::shared_ptr<hb_enc::location> locations ) = 0;
   virtual void make_locations(std::vector<std::shared_ptr<hb_enc::location>> locations) = 0;
