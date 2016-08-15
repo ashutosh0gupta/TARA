@@ -59,7 +59,6 @@ public:
     size_t operator () (const z3::expr& a) const {
       Z3_ast ap = a;
       size_t hash = std::hash<Z3_ast>()(ap);
-      std::cout << ap << hash << "\n";
       return hash;
     }
   };

@@ -107,6 +107,8 @@ public:
   operator z3::expr () const;
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
   hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
+  hb( se_ptr e1, location_ptr loc1,
+      se_ptr e2, location_ptr loc2, z3::expr expr );
   uint32_t signature(); // a unique integer indentifying the hb
   
   bool operator==(const hb &other) const;
