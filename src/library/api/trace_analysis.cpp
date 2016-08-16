@@ -65,7 +65,7 @@ void trace_analysis::input(string input_file, mm_t mm)
     if( program->is_mm_declared() ) {
       cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
       mk_cons.run();
-      if( program->get_mm() != mm_t::none ) {
+      if( _options.print_phi && program->get_mm() != mm_t::none ) {
         _options.out() << "(" << endl
                        << "phi_pre : \n" << program->phi_pre << endl
                        <<"fea      : \n" << program->phi_fea << "\n"

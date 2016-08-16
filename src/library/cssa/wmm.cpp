@@ -462,33 +462,30 @@ bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
 }
 
 void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
-  hb_enc::se_to_ses_map pending_map;
-  hb_enc::se_to_ses_map ordered_map;
+  hb_enc::se_to_ses_map pending_map, ordered_map;
+
   auto& se = thread.start_event;
   pending_map[se].insert(se); // this is how it should start
 
   for( auto& e : thread.events ) {
     pending_map[e].insert(e);
     hb_enc::se_set tmp_pendings;
-    for( auto& ep : e->prev_events ) {
-      hb_enc::se_set& to_be_ordered = pending_map[ep];
-      tmp_pendings.insert( to_be_ordered.begin(), to_be_ordered.end() );
-    }
+    for( auto& ep : e->prev_events )
+      helpers::set_insert( tmp_pendings, pending_map[ep] );
     hb_enc::se_set& pending = pending_map[e];
     hb_enc::se_set& ordered = ordered_map[e];
-    // hb_enc::se_set add_hbs;
     hb_enc::se_set seen_set;
     while( !tmp_pendings.empty() ) {
       auto& ep = *tmp_pendings.begin();
       tmp_pendings.erase( ep );
-      if( seen_set.find( ep ) !=  seen_set.end() ) continue;
+      if( helpers::exists( seen_set, ep ) ) continue;
       seen_set.insert( ep );
       if( is_ordered_tso( ep, e ) ) {
         po = po && hb_encoding.mk_ghbs( ep, e );
         ordered.insert( ep );
       }else{
         pending.insert( ep );
-        tmp_pendings.insert( ordered_map[e].begin(), ordered_map[e].end() );
+        helpers::set_insert( tmp_pendings, ordered_map[ep] );
       }
     }
   }

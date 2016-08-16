@@ -108,7 +108,7 @@ public:
 
   z3::sort get_variable_sort(const input::variable& var);
   
-  // inline hb_enc::encoding& hb_encoding() { return _hb_encoding; }
+  // bool is_entails( z3::expr e1, z3::expr e2 );
   
   template <class value>
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate);

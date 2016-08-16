@@ -24,6 +24,7 @@
 #include "helpers_exception.h"
 #include <string>
 #include <unordered_set>
+#include <set>
 #include <list>
 #include <vector>
 #include <ostream>
@@ -263,6 +264,23 @@ inline std::string get_before_hash(const std::string& variable) {
     result.push_back(c);
   }
   return result;
+}
+
+template< class Key >
+bool exists( const std::set<Key>& set1, const Key& k ) {
+  return set1.find( k ) !=  set1.end();
+}
+
+  // Insert second set inside the first set
+template< class Key >
+void set_insert( std::set<Key>& set1, const std::set<Key>& set2 ) {
+  set1.insert( set2.begin(), set2.end() );
+}
+
+template< class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
+void set_insert( std::unordered_set<Key, Hash, Pred>& set1,
+                 const std::unordered_set<Key, Hash, Pred>& set2 ) {
+  set1.insert( set2.begin(), set2.end() );
 }
 
 template <class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>

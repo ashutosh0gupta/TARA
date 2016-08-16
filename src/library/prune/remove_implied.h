@@ -35,10 +35,9 @@ private:
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
-  bool compare_events( const hb_enc::location_ptr loc1,
-                       const hb_enc::location_ptr loc2 );
-  bool compare_sc_events( const hb_enc::location_ptr loc1,
-                          const hb_enc::location_ptr loc2 );
+  bool compare_events( const hb_enc::se_ptr e1,
+                       const hb_enc::se_ptr e2 );
+  bool compare_sc_events( const hb_enc::se_ptr e1, const hb_enc::se_ptr e2 );
   bool compare_tso_events( const hb_enc::location_ptr loc1,
                            const hb_enc::location_ptr loc2 );
   bool compare_pso_events( const hb_enc::location_ptr loc1,

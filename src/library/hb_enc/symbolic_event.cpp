@@ -143,7 +143,9 @@ void symbolic_event::debug_print( std::ostream& stream ) {
   }
 }
 
-
+//----------------------
+// todo: enable memoization
+//----------------------
 bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
   if( x == y ) return true;
   if( x->is_pre() || y->is_post() ) return true;
