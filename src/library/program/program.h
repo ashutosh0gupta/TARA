@@ -71,6 +71,7 @@ namespace tara {
   
     instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
     friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
+    friend std::ostream& operator<< (std::ostream& os, const hb_enc::depends_set& dep);
     void debug_print( std::ostream& o );
   private:
     z3::expr original_expr;
@@ -312,7 +313,7 @@ namespace tara {
 
     const instruction& lookup_location(const tara::hb_enc::location_ptr&) const;
     bool is_global(const cssa::variable& name) const;
-
+    void print_dependency( std::ostream& );
     void print_dot( std::ostream& );
     void print_dot( const std::string& );
 

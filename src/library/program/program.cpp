@@ -172,6 +172,21 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
        << " [color=" << color << "]" << std::endl;
   }
 
+  void program::print_dependency( std::ostream& os ) {
+    for( auto it = data_dependency.begin(); it != data_dependency.end(); ++it ){
+       const hb_enc::se_ptr& e = it->first;
+       const hb_enc::depends_set& dep_ses = it->second;
+       //os << e->name() << "-" << dep_ses << std::endl;
+    }
+  }
+
+  std::ostream& operator << (std::ostream& os, const hb_enc::depends_set& dep_ses) {
+    for(auto iter = dep_ses.begin(); iter!=dep_ses.end();++iter) {
+
+    }
+    return os;
+  }
+
   void program::print_dot( std::ostream& os ) {
     os << "digraph prog {" << std::endl;
     print_node( os, *init_loc.begin() );
