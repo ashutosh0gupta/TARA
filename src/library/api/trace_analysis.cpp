@@ -72,6 +72,7 @@ void trace_analysis::input(string input_file, mm_t mm)
                        <<"vd       : \n" << program->phi_vd  << "\n"
                        <<"prp      : \n" << program->phi_prp << "\n"
                        << ")" << endl;
+                       program->print_dependency(_options.out());
       }
     }else{ trace_error( "cinput and no memory model specified!!" ); }
   }else{
