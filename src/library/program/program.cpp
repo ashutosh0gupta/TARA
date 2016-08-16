@@ -176,13 +176,17 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     for( auto it = data_dependency.begin(); it != data_dependency.end(); ++it ){
        const hb_enc::se_ptr& e = it->first;
        const hb_enc::depends_set& dep_ses = it->second;
+       assert( e );
        //os << e->name() << "-" << dep_ses << std::endl;
     }
   }
 
   std::ostream& operator << (std::ostream& os, const hb_enc::depends_set& dep_ses) {
-    for(auto iter = dep_ses.begin(); iter!=dep_ses.end();++iter) {
-
+    for( auto iter = dep_ses.begin(); iter!=dep_ses.end(); ++iter ) {
+      hb_enc::depends element = *iter;
+      hb_enc::se_ptr val = element.e;
+      z3::expr condition = element.cond;
+      //os << val->name() << "\"" << condition << std::endl;
     }
     return os;
   }
