@@ -2,10 +2,10 @@
 #-------------------------------------------------------------------------------
 #todo:
 # - make update fully automated
-# - add more example
 # - report if unexpected input in example files
 # - annotate more files and add them here
 # - add concurrent launches
+# - merge suppress and verbose options
 #-------------------------------------------------------------------------------
 
 from __future__ import print_function
@@ -70,6 +70,7 @@ known_files=[ '../locks.ctrc',
 parser = argparse.ArgumentParser(description='Auto testing for TARA')
 parser.add_argument("-v","--verbose", action='store_true', help = "verbose")
 parser.add_argument("-u","--update", action='store_true', help = "update")
+parser.add_argument("-s","--suppress", action='store_true', help = "only report errors")
 parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
 parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
 args = parser.parse_args()
@@ -129,13 +130,16 @@ class example:
     def populate_runs( self, options, output ):
         for o in options:
             self.count = self.count + 1
-            printf( "[%d..", self.count )
+            if( not args.suppress ):
+                printf( "[%d..", self.count )
             sys.stdout.flush()
             result = execute_example(self.filename, o)
             if result == output:
-                printf( "pass] " )
+                if( not args.suppress ):
+                    printf( "pass] " )
             else:
-                printf( "fail]\n" )
+                if( not args.suppress ):
+                    printf( "fail]\n" )
                 printf( "call: %s %s %s\n", bin_name, o, self.filename)
                 if( args.verbose ):
                     process_diff( output, result )
@@ -159,7 +163,8 @@ class example:
                         options.append( line[2:-1] )
                     if line[:2] == '#~' :
                         started = True
-            printf( "\n" )
+            if( not args.suppress ):
+                printf( "\n" )
 
     def __init__( self, fname ):
         self.filename = fname
@@ -201,7 +206,8 @@ elif args.compare != None:
 	    printf( "%s",out2)
 else:
     for f in files:
-        printf( "%s\n", f )
+        if( not args.suppress ):
+            printf( "%s\n", f )
         benchmakr = example(f)
 
 #----------------------------------------------------------------

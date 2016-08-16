@@ -26,7 +26,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include "helpers/helpers.h"
-#include <hb_enc/integer.h>
+// #include <hb_enc/integer.h>
 
 #include <boost/regex.hpp>
 
@@ -54,6 +54,22 @@ private:
   // hb_enc::integer _hb_encoding = hb_enc::integer(c);
   
 public:
+
+  struct expr_hash {
+    size_t operator () (const z3::expr& a) const {
+      Z3_ast ap = a;
+      size_t hash = std::hash<Z3_ast>()(ap);
+      return hash;
+    }
+  };
+
+  struct expr_equal :
+    std::binary_function <z3::expr,z3::expr,bool> {
+    bool operator() (const z3::expr& x, const z3::expr& y) const {
+      return z3::eq( x, y );
+      // return std::equal_to<std::z3::expr>()(x->e_v->name, y->e_v->name);
+    }
+  };
 
   // bool isEq( z3::expr& a, z3::expr&b ) {
   //   Z3_ast ap = a;

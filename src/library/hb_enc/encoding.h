@@ -107,6 +107,8 @@ public:
   operator z3::expr () const;
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
   hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
+  hb( se_ptr e1, location_ptr loc1,
+      se_ptr e2, location_ptr loc2, z3::expr expr );
   uint32_t signature(); // a unique integer indentifying the hb
   
   bool operator==(const hb &other) const;
@@ -150,7 +152,7 @@ public:
   encoding(z3::context& ctx);
   virtual ~encoding();
   
-  virtual void make_event( se_ptr ) = 0;
+  virtual void record_event( se_ptr& ) = 0;
 
   virtual void make_location( std::shared_ptr<hb_enc::location> locations ) = 0;
   virtual void make_locations(std::vector<std::shared_ptr<hb_enc::location>> locations) = 0;

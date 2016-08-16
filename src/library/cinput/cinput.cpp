@@ -121,8 +121,8 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
                           hb_enc::event_t::post );
 
   // add_event( INT_MAX, start );
-  p->init_loc.insert( start );
-  p->post_loc.insert( final );
+  p->init_loc = start;
+  p->post_loc = final;
 
   // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 
@@ -143,7 +143,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
       p->wr_events[ p->get_global( gvar ) ].insert( start );
       if( glb->hasUniqueInitializer() ) {
         auto c = glb->getInitializer();
-        // p->add_init( p->get_global( gvar ), val );
+        build_program::ValueExprMap dummy_vmap;
+        auto val = build_program::get_term( z3_, c, dummy_vmap );
+        p->append_pre( p->get_global( gvar ), val );
       }
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");

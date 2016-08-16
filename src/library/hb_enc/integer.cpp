@@ -31,12 +31,11 @@ using namespace std;
 integer::integer(z3::context& ctx) : encoding(ctx) //, ctx(ctx)
 {}
 
-void integer::make_event( se_ptr e  ) {
-  event_lookup.insert(make_pair(e->get_solver_symbol(), e));
-  event_lookup.insert(make_pair(e->get_thin_solver_symbol(), e));
+void integer::record_event( se_ptr& e ) {
   make_location( e->e_v );
   make_location( e->thin_v );
-  // save_event( e );
+  event_lookup.insert( make_pair( e->get_solver_symbol(), e ) );
+  event_lookup.insert( make_pair( e->get_thin_solver_symbol(), e ) );
 }
 
 void integer::make_location( std::shared_ptr< location > loc )
@@ -139,7 +138,13 @@ unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
   if ((!possibly_equal || allow_equal) && loc1 != location_lookup.end() && loc2 != location_lookup.end()) {
     std::shared_ptr<hb_enc::location> l1 = get<1>(*loc1);
     std::shared_ptr<hb_enc::location> l2 = get<1>(*loc2);
-    return unique_ptr<hb_enc::hb>(new hb_enc::hb(l1, l2, hb));
+    se_ptr e1;
+    if( event_lookup.find( l1->expr ) != event_lookup.end() )
+      e1 = event_lookup.at( l1->expr );
+    se_ptr e2;
+    if( event_lookup.find( l2->expr ) != event_lookup.end() )
+      e2 = event_lookup.at( l2->expr );
+    return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb));
   } else 
     return unique_ptr<hb_enc::hb>();
 }

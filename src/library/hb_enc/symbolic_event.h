@@ -22,6 +22,7 @@
 
 #include "constants.h"
 #include "helpers/z3interf.h"
+#include "encoding.h"
 #include <vector>
 #include <list>
 #include <unordered_map>
@@ -55,24 +56,18 @@ namespace hb_enc {
   {
   private:
     std::shared_ptr<tara::hb_enc::location>
-    create_internal_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
-                           std::string& event_name, unsigned tid,
-                           unsigned instr_no, bool special, bool is_read,
-                           std::string& prog_v_name);
+    create_internal_event( hb_enc::encoding& _hb_enc, std::string& event_name,
+                           unsigned tid, unsigned instr_no, bool special,
+                           bool is_read, std::string& prog_v_name );
   public:
-    symbolic_event( z3::context& ctx, hb_enc::encoding& hb_encoding,
-                    unsigned _tid, unsigned i,
+    symbolic_event( hb_enc::encoding& hb_encoding,
+                    unsigned _tid, se_set& _prev_events, unsigned i,
                     const cssa::variable& _v, const cssa::variable& _prog_v,
                     std::string loc, event_t _et );
 
-    symbolic_event( z3::context& ctx, hb_enc::encoding& _hb_enc,
-                    unsigned _tid, unsigned instr_no,
+    symbolic_event( hb_enc::encoding& _hb_enc,
+                    unsigned _tid, se_set& _prev_events, unsigned instr_no,
                     std::string _loc, event_t _et );
-
-    // symbolic_event( hb_enc::encoding& _hb_enc, z3::context& ctx,
-    //                 unsigned instr_no, unsigned thin_tid,
-    //                 const cssa::variable& _v, const cssa::variable& _prog_v,
-    //                 hb_enc::location_ptr _loc, event_t _et);
 
   public:
     unsigned tid;
@@ -144,47 +139,27 @@ namespace hb_enc {
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
-  inline se_ptr mk_se_ptr_old( hb_enc::encoding& _hb_enc,
-                               unsigned _tid, unsigned _instr_no,
-                               const cssa::variable& _prog_v,
-                               std::string _loc,
-                               event_t _et,
-                               se_set& prev_events) {
-    unsigned max = 0;
-    for( const se_ptr e : prev_events)
-      if( max < e->get_topological_order()) max = e->get_topological_order();
-
-    std::string prefix = _et == hb_enc::event_t::r ? "pi_" : "";
-    cssa::variable _n_v = prefix + _prog_v + "#" + _loc;
-    // assert( _v == _n_v );
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
-                                                 _n_v, _prog_v,
-                                                 _loc,
-                                                 // _loc->name,
-                                                 _et );
-    e->set_pre_events( prev_events );
-    e->set_topological_order( max+1 );
-    e->guard = _hb_enc.ctx.bool_val(true);
-
-    // se_store[e->name()] = e;
+  inline se_ptr
+  mk_se_ptr_old( hb_enc::encoding& hb_enc, unsigned tid, unsigned instr_no,
+                 const cssa::variable& prog_v, std::string loc,
+                 event_t et, se_set& prev_es) {
+    std::string prefix = et == hb_enc::event_t::r ? "pi_" : "";
+    cssa::variable n_v = prefix + prog_v + "#" + loc;
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, instr_no,
+                                                 n_v, prog_v, loc, et );
+    e->guard = hb_enc.ctx.bool_val(true);
+    hb_enc.record_event( e );
     return e;
   }
 
 
-  inline se_ptr mk_se_ptr_old( hb_enc::encoding& _hb_enc,
-                               unsigned _tid, unsigned _instr_no,
-                               std::string _loc, event_t _et,
-                               se_set& prev_events ) {
-    unsigned max = 0;
-    for( const se_ptr e : prev_events )
-      if( max < e->get_topological_order()) max = e->get_topological_order();
-
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid, _instr_no,
-                                                 _loc, _et );
-    e->set_pre_events( prev_events );
-    e->set_topological_order( max+1 );
-    e->guard = _hb_enc.ctx.bool_val(true);
-    // se_store[e->name()] = e;
+  inline se_ptr
+  mk_se_ptr_old( hb_enc::encoding& hb_enc, unsigned tid, unsigned instr_no,
+                 std::string loc, event_t et, se_set& prev_es ) {
+    se_ptr e =
+      std::make_shared<symbolic_event>(hb_enc, tid, prev_es, instr_no, loc, et);
+    e->guard = hb_enc.ctx.bool_val(true);
+    hb_enc.record_event( e );
     return e;
   }
 
@@ -193,35 +168,24 @@ namespace hb_enc {
   // todo: streamline se allocation
 
   inline se_ptr
-  mk_se_ptr( hb_enc::encoding& _hb_enc, unsigned _tid, se_set prev_events,
-             z3::expr& cond, const cssa::variable& _prog_v, std::string _loc,
+  mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
+             z3::expr& cond, const cssa::variable& prog_v, std::string loc,
              event_t _et ) {
-    unsigned max = 0;
-    for( const se_ptr e : prev_events)
-      if( max < e->get_topological_order()) max = e->get_topological_order();
-    cssa::variable ssa_var = _prog_v + "#" + _loc;
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid,
-                                                 max+1,
-                                                 ssa_var, _prog_v, _loc, _et);
+    cssa::variable ssa_v = prog_v + "#" + loc;
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, ssa_v,
+                                                 prog_v, loc, _et);
     e->guard = cond;
-    e->set_pre_events( prev_events );
-    e->set_topological_order( max+1 );
+    hb_enc.record_event( e );
     return e;
   }
 
   inline se_ptr
-  mk_se_ptr( hb_enc::encoding& _hb_enc, unsigned _tid, se_set prev_events,
-             z3::expr& cond, std::string _loc, event_t _et ) {
-    unsigned max = 0;
-    for( const se_ptr e : prev_events)
-      if( max < e->get_topological_order() ) max = e->get_topological_order();
-    se_ptr e = std::make_shared<symbolic_event>( _hb_enc.ctx, _hb_enc, _tid,
-                                                 max+1,
-                                                 _loc, _et );
-    e->set_pre_events( prev_events );
+  mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
+             z3::expr& cond, std::string loc, event_t et ) {
+    se_ptr e =
+      std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, loc, et );
     e->guard = cond;
-    // e->guard = _hb_enc.ctx.bool_val(true);
-    e->set_topological_order( max+1 );
+    hb_enc.record_event( e );
     return e;
   }
 

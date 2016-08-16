@@ -405,7 +405,7 @@ void cssa::program::wmm_build_pre(const input::program& input) {
                                      _init_l, hb_enc::event_t::pre, last);
   add_event( threads.size(), wr );
   wr->guard = _z3.c.bool_val(true);
-  init_loc.insert(wr);
+  init_loc = wr;
   for( unsigned t = 0; t < size(); t++ ) create_map[ threads[t]->name ] = wr;
   for( const variable& v : globals ) {
     variable nname(_z3.c);
@@ -457,7 +457,7 @@ void cssa::program::wmm_build_post(const input::program& input,
     for( const variable& v : globals ) {
       variable nname(_z3.c);
       nname = v + "#post";
-      post_loc.insert( rd );
+      post_loc = rd;
       rd_events[v].push_back( rd );
     }
 

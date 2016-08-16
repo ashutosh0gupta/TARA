@@ -26,6 +26,7 @@
 #include <z3++.h>
 #include "helpers/z3interf.h"
 #include "constants.h"
+#include "hb_enc/integer.h"
 
 namespace tara {
 namespace input {

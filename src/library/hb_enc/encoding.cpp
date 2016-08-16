@@ -115,8 +115,18 @@ hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
   _signature |= loc2->serial();
 }
 
+  //the following allocator is not in use
 hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
   e1( e1_), e2( e2_), loc1(e1->e_v), loc2(e2->e_v), expr(expr)
+{
+  _signature = loc1->serial();
+  _signature <<= 16;
+  _signature |= loc2->serial();
+}
+
+hb::hb( se_ptr e1_, location_ptr l1_,
+        se_ptr e2_, location_ptr l2_, z3::expr expr):
+  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_), expr(expr)
 {
   _signature = loc1->serial();
   _signature <<= 16;
@@ -204,6 +214,7 @@ encoding::~encoding()
 {}
 
 
+  //location_map is only used in old code
 location_ptr encoding::get_location(const string& name) const
 {
   auto found = location_map.find(name);

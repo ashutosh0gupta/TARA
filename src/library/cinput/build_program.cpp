@@ -159,19 +159,19 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
   for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
 }
 
-z3::expr build_program::fresh_int() {
+z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
   static unsigned count = 0;
   count++;
   std::string loc_name = "i_" + std::to_string(count);
-  z3::expr loc_expr = z3.c.int_const(loc_name.c_str());
+  z3::expr loc_expr = z3_.c.int_const(loc_name.c_str());
   return loc_expr;
 }
 
-z3::expr build_program::fresh_bool() {
+z3::expr build_program::fresh_bool( helpers::z3interf& z3_ ) {
   static unsigned count = 0;
   count++;
   std::string loc_name = "b_" + std::to_string(count);
-  z3::expr loc_expr = z3.c.bool_const(loc_name.c_str());
+  z3::expr loc_expr = z3_.c.bool_const(loc_name.c_str());
   return loc_expr;
 }
 
@@ -229,22 +229,23 @@ hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, 
   return final_set;
 }
 
-z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
+z3::expr build_program::get_term( helpers::z3interf& z3_,
+                                  const llvm::Value* op, ValueExprMap& vmap ) {
   if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
     unsigned bw = c->getBitWidth();
     if( bw == 32 ) {
       int i = readInt( c );
-      return z3.c.int_val(i);
+      return z3_.c.int_val(i);
     }else if(bw == 1) {
       int i = readInt( c );
       assert( i == 0 || i == 1 );
-      if( i == 1 ) z3.mk_true(); else z3.mk_false();
+      if( i == 1 ) z3_.mk_true(); else z3_.mk_false();
     }else
       cinput_error( "unrecognized constant!" );
   }else if( llvm::isa<llvm::ConstantPointerNull>(op) ) {
     cinput_error( "Constant pointer are not implemented!!" );
     // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
-    return z3.c.int_val(0);
+    return z3_.c.int_val(0);
   }else if( llvm::isa<llvm::Constant>(op) ) {
     cinput_error( "non int constants are not implemented!!" );
     std::cerr << "un recognized constant!";
@@ -253,14 +254,14 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
   }else if( llvm::isa<llvm::ConstantFP>(op) ) {
     // const llvm::APFloat& n = c->getValueAPF();
     // double v = n.convertToDouble();
-    //return z3.c.real_val(v);
+    //return z3_.c.real_val(v);
     cinput_error( "Floating point constant not implemented!!" );
   }else if( llvm::isa<llvm::ConstantExpr>(op) ) {
     cinput_error( "case for constant not implemented!!" );
   }else if( llvm::isa<llvm::ConstantArray>(op) ) {
     // const llvm::ArrayType* n = c->getType();
     // unsigned len = n->getNumElements();
-    //return z3.c.arraysort();
+    //return z3_.c.arraysort();
     cinput_error( "case for constant not implemented!!" );
   }else if( llvm::isa<llvm::ConstantStruct>(op) ) {
     // const llvm::StructType* n = c->getType();
@@ -269,19 +270,19 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
     // const llvm::VectorType* n = c->getType();
     cinput_error( "vector constant not implemented!!" );
   }else{
-    auto it = m.find( op );
-    if( it == m.end() ) {
+    auto it = vmap.find( op );
+    if( it == vmap.end() ) {
       llvm::Type* ty = op->getType();
       if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
         int bw = i_ty->getBitWidth();
         if(bw == 32 || bw == 64 ) {
-          z3::expr i =  fresh_int();
-          insert_term_map( op, i, m );
+          z3::expr i =  fresh_int( z3_ );
+          insert_term_map( op, i, vmap );
           // m.at(op) = i;
           return i;
         }else if(bw == 1) {
-          z3::expr bit =  fresh_bool();
-          insert_term_map( op, bit, m );
+          z3::expr bit =  fresh_bool( z3_ );
+          insert_term_map( op, bit, vmap );
           // m.at(op) = bit;
           return bit;
         }
@@ -290,7 +291,7 @@ z3::expr build_program::getTerm( const llvm::Value* op ,ValueExprMap& m ) {
     }
     return it->second;
   }
-  return z3.mk_true(); // dummy return to avoid warning
+  return z3_.mk_true(); // dummy return to avoid warning
 }
 
 z3::expr
@@ -589,8 +590,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
                           name, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
-    p->create_map[ "main" ] = *p->init_loc.begin();
-    hb_enc::se_ptr post_loc = *p->post_loc.begin();
+    p->create_map[ "main" ] = p->init_loc;
+    hb_enc::se_ptr post_loc = p->post_loc;
     auto pr = std::make_pair( post_loc, z3.mk_true() );
     p->join_map.insert( std::make_pair( "main" , pr) );
   }
@@ -614,8 +615,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         z3::expr b = block_to_exit_bit.at(prev);
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
-        assert( succ_num );
-        if( succ_num == 2 ) b = !b;
+        // assert( succ_num );
+        assert( prev->getTerminator()->getOperand(succ_num) == src );
+        if( succ_num == 1 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);
       }
