@@ -177,7 +177,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       hb_enc::depends element = *iter;
       hb_enc::se_ptr val = element.e;
       z3::expr condition = element.cond;
-      os << val->name() << "\"" << condition << std::endl;
+      os << "      |" << val->name() << "|" << " => " << "[condition = " <<  condition << "]" << std::endl;
     }
     return os;
   }
@@ -187,7 +187,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
        const hb_enc::se_ptr& e = it->first;
        const hb_enc::depends_set& dep_ses = it->second;
        assert( e );
-       os << e->name() << "-" << dep_ses << std::endl;
+       os << "|" << e->name() << "|=>\n" << dep_ses << std::endl;
     }
   }
 
