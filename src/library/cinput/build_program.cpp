@@ -186,6 +186,7 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
 hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op ) {
   const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(op);
   unsigned num = phi->getNumIncomingValues();
+  hb_enc::depends_set data_dep_ses;
   assert( num != 0 );
   if ( num == 1 )
     data_dep_ses = dep.at(0);
@@ -304,6 +305,7 @@ translateBlock( unsigned thr_id,
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   z3::expr join_conds = z3.mk_true();
+  hb_enc::depends_set data_dep_ses;
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
@@ -360,8 +362,10 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
+          if( !data_dep_ses.empty() ) {
           local_map.insert( std::make_pair( I, data_dep_ses ));
           new_events.insert( rd );
+          }
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
