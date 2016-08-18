@@ -323,8 +323,24 @@ translateBlock( unsigned thr_id,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-	local_map.insert( std::make_pair( I, data_dep_ses ));
-	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
+        if( !data_dep_ses.empty() ) {
+	  local_map.insert( std::make_pair( I, data_dep_ses ));
+	  p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	}
+	for(auto iterator = p->data_dependency.begin(); iterator != p->data_dependency.end(); iterator++) {
+          hb_enc::se_ptr key = iterator->first;
+          std::cout << "*" << key->name() << std::endl;
+          hb_enc::depends_set value = iterator->second;
+          for(std::set<hb_enc::depends>::iterator it0 = value.begin(); it0 != value.end(); it0++) {
+            hb_enc::depends element = *it0;
+            hb_enc::se_ptr val = element.e;
+            std::cout << "-" << val->name() << std::endl;
+            if( val->name() == key->name() ) {
+              std::cout << "Found" << std::endl;
+              val = NULL;
+            }
+          }
+	}
         block_ssa = block_ssa && ( wr->v == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -363,8 +379,8 @@ translateBlock( unsigned thr_id,
                                gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
           if( !data_dep_ses.empty() ) {
-          local_map.insert( std::make_pair( I, data_dep_ses ));
-          new_events.insert( rd );
+            local_map.insert( std::make_pair( I, data_dep_ses ));
+            new_events.insert( rd );
           }
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
