@@ -133,6 +133,10 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
   prev_events = prev_events_;
 }
 
+void symbolic_event::add_post_events( se_ptr& e) {
+  post_events.insert( e.get() );
+}
+
 void symbolic_event::debug_print( std::ostream& stream ) {
   stream << *this << "\n";
   if( et == event_t::r || et == event_t::w ) {
