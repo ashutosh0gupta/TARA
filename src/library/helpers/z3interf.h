@@ -107,9 +107,10 @@ public:
   z3::expr mk_emptyexpr(){ return z3::expr(c); }
 
   z3::sort get_variable_sort(const input::variable& var);
-  
-  // bool is_entails( z3::expr e1, z3::expr e2 );
-  
+
+  bool is_sat( z3::expr ) const;
+  bool entails( z3::expr e1, z3::expr e2 ) const;
+
   template <class value>
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate);
   template <class value>

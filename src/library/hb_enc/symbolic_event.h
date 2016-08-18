@@ -83,6 +83,8 @@ namespace hb_enc {
     event_t et;
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
+    se_set post_events; // in straight line programs it will be singleton
+                        // we need to remove access to  pointer
     z3::expr guard;
     inline std::string name() const {
       return e_v->name;
@@ -243,6 +245,7 @@ namespace hb_enc {
   }
 
   bool is_po_new( const se_ptr& x, const se_ptr& y );
+  bool is_must_before( const se_ptr& x, const se_ptr& y );
 
   void debug_print_se_set(const se_set& set, std::ostream& out);
 

@@ -48,38 +48,47 @@ string remove_implied::name()
   return string("remove_implied");
 }
 
-bool remove_implied::compare_events( const hb_enc::se_ptr e1,
-                                     const hb_enc::se_ptr e2 ) {
+bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
+                                         const hb_enc::se_ptr e2 ) {
   // check if these edge is between the same thread
   if( e1 == e2 ) return true;
   if( e1->get_tid() != e2->get_tid() ) return false;
+  // e1 must be ordered before e2 in order to "must occur before"
+  if( e1->get_topological_order() > e2->get_topological_order() )
+    return false;
 
   switch( program.get_mm() ) {
-  case mm_t::sc:  return compare_sc_events(  e1, e2 ); break;
-  case mm_t::tso: return compare_tso_events( e1->e_v, e2->e_v ); break;
-  case mm_t::pso: return compare_pso_events( e1->e_v, e2->e_v ); break;
-  case mm_t::rmo: return compare_rmo_events( e1->e_v, e2->e_v ); break;
-  case mm_t::alpha: return compare_alpha_events( e1->e_v, e2->e_v ); break;
+  case mm_t::sc   : return must_happen_before_sc   ( e1, e2 ); break;
+  case mm_t::tso  : return must_happen_before_tso  ( e1, e2 ); break;
+  case mm_t::pso  : return must_happen_before_pso  ( e1, e2 ); break;
+  case mm_t::rmo  : return must_happen_before_rmo  ( e1, e2 ); break;
+  case mm_t::alpha: return must_happen_before_alpha( e1, e2 ); break;
   default:
       throw std::runtime_error("remove_implied does not support memory model!");
   }
 }
 
-bool remove_implied::compare_sc_events( const hb_enc::se_ptr e1,
-                                        const hb_enc::se_ptr e2 ) {
+bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
+                                            const hb_enc::se_ptr e2 ) {
+  if( z3.entails( e2->guard, e1->guard ) ) return true;
+
+  // return false;
+  // check if the other is from earlier instruction
+  if( e1->get_topological_order() < e2->get_topological_order() ) return true;
+
   auto loc1 = e1->e_v;
   auto loc2 = e2->e_v;
-  // check if the other is from earlier instruction
-  if( loc1->instr_no < loc2-> instr_no ) return true;
-  // if they are from same instruction then they must be Rd-Wr
-  if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1->is_read && !loc2->is_read ) return true;
-  }
+  // // if they are from same instruction then they must be Rd-Wr
+  // if( loc1->instr_no == loc2->instr_no ) {
+  //   if( loc1->is_read && !loc2->is_read ) return true;
+  // }
   return false;
 }
 
-bool remove_implied::compare_tso_events( const hb_enc::location_ptr loc1,
-                                         const hb_enc::location_ptr loc2 ) {
+bool remove_implied::must_happen_before_tso( const hb_enc::se_ptr e1,
+                                             const hb_enc::se_ptr e2 ) {
+  auto loc1 = e1->e_v;
+  auto loc2 = e2->e_v;
   // check if the other one is more specific
   if( !loc1->is_read && loc2->is_read ) return false;
 
@@ -91,8 +100,10 @@ bool remove_implied::compare_tso_events( const hb_enc::location_ptr loc1,
 }
 
 
-bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
-                                         const hb_enc::location_ptr loc2 ) {
+bool remove_implied::must_happen_before_pso( const hb_enc::se_ptr e1,
+                                             const hb_enc::se_ptr e2 ) {
+  auto loc1 = e1->e_v;
+  auto loc2 = e2->e_v;
   // check if the other one is more specific
   if( !loc1->is_read && loc2->is_read ) return false;
   if( !loc1->is_read && !loc2->is_read)
@@ -111,8 +122,11 @@ bool remove_implied::compare_pso_events( const hb_enc::location_ptr loc1,
 }
 
 
-bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
-                                         const hb_enc::location_ptr loc2 ) {
+bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
+                                             const hb_enc::se_ptr e2 ) {
+  auto loc1 = e1->e_v;
+  auto loc2 = e2->e_v;
+
   if( loc2->is_read ) return false;
   // loc2 is write now onwards
   if ( loc1->is_read ) {
@@ -139,8 +153,10 @@ bool remove_implied::compare_rmo_events( const hb_enc::location_ptr loc1,
   return false;
 }
 
-bool remove_implied::compare_alpha_events( const hb_enc::location_ptr loc1,
-					   const hb_enc::location_ptr loc2 ) {
+bool remove_implied::must_happen_before_alpha( const hb_enc::se_ptr e1,
+                                               const hb_enc::se_ptr e2 ) {
+  auto loc1 = e1->e_v;
+  auto loc2 = e2->e_v;
 
     if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
     if( !loc1->is_read && loc2->is_read ) return false;
@@ -174,13 +190,13 @@ list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
           unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
           assert( hb1 && hb2 );
           assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
-          if( compare_events( hb1->e1, hb2->e1 ) &&
-              compare_events( hb2->e2, hb1->e2 ) ) {
+          if( must_happen_before( hb1->e1, hb2->e1 ) &&
+              must_happen_before( hb2->e2, hb1->e2 ) ) {
             remove = true;
             break;
           }
-          // if( compare_events( hb1->loc1, hb2->loc1 ) &&
-          //     compare_events( hb2->loc2, hb1->loc2 ) ) {
+          // if( must_happen_before( hb1->loc1, hb2->loc1 ) &&
+          //     must_happen_before( hb2->loc2, hb1->loc2 ) ) {
           //   remove = true;
           //   break;
           // }

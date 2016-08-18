@@ -288,6 +288,19 @@ z3::sort z3interf::get_variable_sort(const input::variable& var) {
   throw "unsupported";
 }
 
+bool z3interf::is_sat( z3::expr f ) const {
+  auto s = create_solver();
+  s.add( f );
+  auto res = s.check();
+  if( res == z3::check_result::unsat) return true;
+  if( res == z3::check_result::sat) return false;
+  z3interf_error("unsolved entailmet check");
+  return false; // unreachable code: dummy return
+}
+
+bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
+  return is_sat( e1 && !e2 );
+}
 
 cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
   cssa::variable_set newvars;

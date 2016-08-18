@@ -119,6 +119,14 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     instructions.push_back(instr);
   }
 
+  void thread::update_post_events() {
+    for( hb_enc::se_ptr e : events ) {
+      for( hb_enc::se_ptr ep : e->prev_events ) {
+        ep->post_events.insert( e );
+      }
+    }
+  }
+
   const tara::thread& program::operator[](unsigned int i) const {
     return *threads[i];
   }
@@ -135,6 +143,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   const tara::instruction&
   program::lookup_location(const hb_enc::location_ptr& location) const {
     return (*this)[location->thread][location->instr_no];
+  }
+
+  void program::update_post_events() {
+    for( auto t : threads ) {
+      t->update_post_events();
+    }
   }
 
   void program::print_dot( const std::string& name ) {

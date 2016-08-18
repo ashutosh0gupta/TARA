@@ -35,17 +35,12 @@ private:
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
-  bool compare_events( const hb_enc::se_ptr e1,
-                       const hb_enc::se_ptr e2 );
-  bool compare_sc_events( const hb_enc::se_ptr e1, const hb_enc::se_ptr e2 );
-  bool compare_tso_events( const hb_enc::location_ptr loc1,
-                           const hb_enc::location_ptr loc2 );
-  bool compare_pso_events( const hb_enc::location_ptr loc1,
-                           const hb_enc::location_ptr loc2 );
-  bool compare_rmo_events( const hb_enc::location_ptr loc1,
-                           const hb_enc::location_ptr loc2 );
-  bool compare_alpha_events( const hb_enc::location_ptr loc1,
-                           const hb_enc::location_ptr loc2 );
+  bool must_happen_before      ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_before_sc   ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_before_tso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_before_pso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_before_rmo  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_before_alpha( const hb_enc::se_ptr, const hb_enc::se_ptr );
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------

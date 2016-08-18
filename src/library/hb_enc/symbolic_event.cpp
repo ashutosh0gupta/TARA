@@ -166,6 +166,25 @@ bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
   return false;
 }
 
+
+bool tara::hb_enc::is_must_before( const se_ptr& x, const se_ptr& y ) {
+  if( x == y ) return true;
+  if( x->is_pre()  || y->is_post() ) return true;
+  if( x->is_post() || y->is_pre()  ) return false;
+  if( x->tid != y->tid ) return false;
+  if( x->get_topological_order() >= y->get_topological_order() ) return false;
+  se_set visited, pending = y->prev_events;
+  while( !pending.empty() ) {
+    se_ptr yp = helpers::pick_and_move( pending, visited );
+    if( x == yp ) continue;
+    if( x->get_topological_order() >= y->get_topological_order() ) return false;
+    for( auto& ypp : yp->prev_events ) {
+      if( helpers::exists( visited, ypp ) ) pending.insert( ypp );
+    }
+  }
+  return true;
+}
+
 void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
                                        std::ostream& out ) {
   for (auto c : set) {

@@ -130,6 +130,8 @@ namespace tara {
     instruction& operator [](unsigned i);
     const instruction& operator [](unsigned i) const;
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
+  // private:
+    void update_post_events();
   };
 
   enum class prog_t {
@@ -320,6 +322,7 @@ namespace tara {
     void print_dot( const std::string& );
 
     void gather_statistics(api::metric& metric);
+    void update_post_events();
 
     friend cssa::program;
   };
