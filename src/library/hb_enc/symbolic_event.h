@@ -83,7 +83,7 @@ namespace hb_enc {
     event_t et;
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
-    //no smart pointer to remove circular dependency
+    //no smart pointer to remove circular pointer cycles
     std::set<symbolic_event*> post_events;
     z3::expr guard;
     inline std::string name() const {
@@ -246,7 +246,10 @@ namespace hb_enc {
   }
 
   bool is_po_new( const se_ptr& x, const se_ptr& y );
+  // must_before: if y occurs then, x must occur in the past
   bool is_must_before( const se_ptr& x, const se_ptr& y );
+  // must_after : if x occurs then, y must occur in the future
+  // bool is_must_after ( const se_ptr& x, const se_ptr& y );
 
   void debug_print_se_set(const se_set& set, std::ostream& out);
 

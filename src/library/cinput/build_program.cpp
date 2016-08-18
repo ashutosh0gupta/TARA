@@ -514,8 +514,13 @@ translateBlock( unsigned thr_id,
     // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
     if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
-      z3::expr bit = getTerm( br->getCondition(), m);
-      block_to_exit_bit.insert( std::make_pair(b,bit) );
+      if( br->isUnconditional() ) {
+        z3::expr bit = fresh_bool();
+        block_to_exit_bit.insert( std::make_pair(b,bit) );
+      }else{
+        z3::expr bit = getTerm( br->getCondition(), m);
+        block_to_exit_bit.insert( std::make_pair(b,bit) );
+      }
       assert( !recognized );recognized = true;
     }
     UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
