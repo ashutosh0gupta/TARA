@@ -684,6 +684,6 @@ bool build_program::runOnFunction( llvm::Function &f ) {
                           name+"_final", hb_enc::event_t::barr );
   p->set_final_event( thread_id, final, exit_cond );
 
-  // p->update_post_events();
+  p->update_post_events();
   return false;
 }

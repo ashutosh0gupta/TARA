@@ -120,8 +120,8 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   void thread::update_post_events() {
-    for( hb_enc::se_ptr e : events ) {
-      for( hb_enc::se_ptr ep : e->prev_events ) {
+    for( hb_enc::se_ptr& e : events ) {
+      for( hb_enc::se_ptr& ep : e->prev_events ) {
         ep->post_events.insert( e );
       }
     }
@@ -146,7 +146,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   void program::update_post_events() {
-    for( auto t : threads ) {
+    for( auto& t : threads ) {
       t->update_post_events();
     }
   }
