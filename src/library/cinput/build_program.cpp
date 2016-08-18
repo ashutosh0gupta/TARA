@@ -322,26 +322,12 @@ translateBlock( unsigned thr_id,
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
+        data_dep_ses.clear();
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-        if( !data_dep_ses.empty() ) {
-	  local_map.insert( std::make_pair( I, data_dep_ses ));
-	  p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
-	}
-	for(auto iterator = p->data_dependency.begin(); iterator != p->data_dependency.end(); iterator++) {
-          hb_enc::se_ptr key = iterator->first;
-          std::cout << "*" << key->name() << std::endl;
-          hb_enc::depends_set value = iterator->second;
-          for(std::set<hb_enc::depends>::iterator it0 = value.begin(); it0 != value.end(); it0++) {
-            hb_enc::depends element = *it0;
-            hb_enc::se_ptr val = element.e;
-            std::cout << "-" << val->name() << std::endl;
-            if( val->name() == key->name() ) {
-              std::cout << "Found" << std::endl;
-              val = NULL;
-            }
-          }
-	}
-        block_ssa = block_ssa && ( wr->v == val );
+        hb_enc::depends_set data_dep_ses = get_depends( store->getOperand(0) );
+        local_map.insert( std::make_pair( I, data_dep_ses ));
+	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	block_ssa = block_ssa && ( wr->v == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
           cinput_error( "non pointer dereferenced!" );
@@ -377,11 +363,10 @@ translateBlock( unsigned thr_id,
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                gv, loc_name, hb_enc::event_t::r );
+          data_dep_ses.clear();
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
-          if( !data_dep_ses.empty() ) {
-            local_map.insert( std::make_pair( I, data_dep_ses ));
-            new_events.insert( rd );
-          }
+          local_map.insert( std::make_pair( I, data_dep_ses ));
+          new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
