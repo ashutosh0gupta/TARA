@@ -212,7 +212,7 @@ hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, 
       hb_enc::depends element1 = *it1;
       hb_enc::se_ptr val1 = element1.e;
       if( val0 == val1 ) {
-        cond || ( element0.cond || element1.cond );
+        cond = ( element0.cond || element1.cond );
         cond.simplify();
         final_set.insert( hb_enc::depends( val0, cond ) );
         dep1.erase(it1);
