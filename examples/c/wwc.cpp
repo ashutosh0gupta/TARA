@@ -32,7 +32,7 @@ int main() {
   pthread_t thr_2;
   pthread_create(&thr_0, NULL, p0, NULL );
   pthread_create(&thr_1, NULL, p1, NULL );
-  pthread_create(&thr_1, NULL, p2, NULL );
+  pthread_create(&thr_2, NULL, p2, NULL );
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
   pthread_join(thr_2, NULL);

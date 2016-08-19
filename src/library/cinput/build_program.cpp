@@ -204,7 +204,7 @@ hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep, 
 hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 ) {
   hb_enc::depends_set final_set;
   for(std::set<hb_enc::depends>::iterator it0 = dep0.begin(); it0 != dep0.end(); it0++) {
-    z3::expr cond = z3.mk_emptyexpr();
+    z3::expr cond = z3.mk_false();
     bool flag = false;
     hb_enc::depends element0 = *it0;
     hb_enc::se_ptr val0 = element0.e;
