@@ -249,7 +249,7 @@ namespace hb_enc {
   // must_before: if y occurs then, x must occur in the past
   bool is_must_before( const se_ptr& x, const se_ptr& y );
   // must_after : if x occurs then, y must occur in the future
-  // bool is_must_after ( const se_ptr& x, const se_ptr& y );
+  bool is_must_after ( const se_ptr& x, const se_ptr& y );
 
   void debug_print_se_set(const se_set& set, std::ostream& out);
 

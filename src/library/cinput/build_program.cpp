@@ -484,7 +484,7 @@ translateBlock( unsigned thr_id,
 	    element.cond = element.cond && conds.at(b);
 	  }
 	  dep_ses.push_back( temp );
-	  z3::expr phi_cons = phi_cons || (conds.at(b) && ov == v);
+          phi_cons = phi_cons || (conds.at(b) && ov == v);
         }
         data_dep_ses = join( dep_ses, phi );
         local_map.insert( std::make_pair( I, data_dep_ses ));
