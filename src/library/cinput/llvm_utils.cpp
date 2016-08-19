@@ -107,10 +107,11 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
       llvm::BasicBlock* phiBlock = branch->getParent();
       llvm::BasicBlock* phiDstTrue = branch->getSuccessor(0);
       llvm::BasicBlock* phiDstFalse = branch->getSuccessor(1);
-      if( phiBlock->size() == 2 && cond == (phiBlock->getInstList()).begin() &&
-          phi->getNumIncomingValues() == 2 ) {
-        llvm::Value* val0      = phi->getIncomingValue(0);
-        llvm::BasicBlock* src0 = phi->getIncomingBlock(0);
+      if( phiBlock->size() == 2 && cond == (phiBlock->getInstList()).begin()) {
+        unsigned num = phi->getNumIncomingValues();
+        for( unsigned i = 0; i <= num - 2; i++ ) {
+        llvm::Value* val0      = phi->getIncomingValue(i);
+        llvm::BasicBlock* src0 = phi->getIncomingBlock(i);
         llvm::BranchInst* br0  = (llvm::BranchInst*)(src0->getTerminator());
         unsigned br0_branch_idx = ( br0->getSuccessor(0) ==  phiBlock ) ? 0 : 1;
         if( llvm::ConstantInt* b = llvm::dyn_cast<llvm::ConstantInt>(val0) ) {
@@ -118,8 +119,9 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           llvm::BasicBlock* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
           br0->setSuccessor( br0_branch_idx, newDst );
         }else{ cinput_error("unseen case!");}
-        llvm::Value*      val1 = phi->getIncomingValue(1);
-        llvm::BasicBlock* src1 = phi->getIncomingBlock(1);
+        }
+        llvm::Value*      val1 = phi->getIncomingValue(num-1);
+        llvm::BasicBlock* src1 = phi->getIncomingBlock(num-1);
         llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
         llvm::Instruction* cmp1 = llvm::dyn_cast<llvm::Instruction>(val1);
         assert( cmp1 );
