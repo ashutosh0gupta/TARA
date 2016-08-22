@@ -468,7 +468,7 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
   }
 
   assert( e1->is_mem_op() && e2->is_mem_op() );
-  //if( e1->is_wr() && e2->is_wr() && ) return true;
+  if( e1->is_wr() && e2->is_wr() && is_po_new(e1, e2)) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
   return false;
 }

@@ -638,7 +638,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         unsigned succ_num = PI.getOperandNo();
         // assert( succ_num );
         assert( prev->getTerminator()->getOperand(succ_num) == src );
-        if( prev->getTerminator()->getOperand(0) != 0 ) {
+        llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
+        if( !br->isUnconditional()) {
           llvm::Value* op = prev->getTerminator()->getOperand(0);
           ctrl_temp0 = get_depends( op );
           ctrl_temp1 = get_ctrl(prev);
