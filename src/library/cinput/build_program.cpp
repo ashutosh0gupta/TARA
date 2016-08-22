@@ -183,11 +183,17 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
     return local_map.at(op); }
 }
 
-hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op ) {
-  const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(op);
-  unsigned num = phi->getNumIncomingValues();
+hb_enc::depends_set build_program::get_ctrl( const llvm::BasicBlock* b ) {
+  if( b->empty()) {
+    hb_enc::depends_set ctrl_dep;
+    return ctrl_dep; }
+  else {
+    return local_ctrl.at(b); }
+}
+
+hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep ) {
+  unsigned num = dep.size();
   hb_enc::depends_set data_dep_ses;
-  assert( num != 0 );
   if ( num == 1 )
     data_dep_ses = dep.at(0);
   else if ( num == 2 )
@@ -486,7 +492,7 @@ translateBlock( unsigned thr_id,
 	  dep_ses.push_back( temp );
           phi_cons = phi_cons || (conds.at(b) && ov == v);
         }
-        data_dep_ses = join( dep_ses, phi );
+        data_dep_ses = join( dep_ses );
         local_map.insert( std::make_pair( I, data_dep_ses ));
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
@@ -613,6 +619,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
+    std::vector<hb_enc::depends_set> ctrl_ses;
     if( o.print_input > 0 ) src->print( llvm::outs() );
     if( src->hasName() && (src->getName() == "dummy")) continue;
 
@@ -622,20 +629,31 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
+        hb_enc::depends_set ctrl_temp0;
+        hb_enc::depends_set ctrl_temp1;
+        hb_enc::depends_set ctrl_temp;
         z3::expr b = block_to_exit_bit.at(prev);
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
         // assert( succ_num );
         assert( prev->getTerminator()->getOperand(succ_num) == src );
+        if( prev->getTerminator()->getOperand(0) != 0 ) {
+          llvm::Value* op = prev->getTerminator()->getOperand(0);
+          ctrl_temp0 = get_depends( op );
+          ctrl_temp1 = get_ctrl(prev);
+          ctrl_temp = join_depends_set( ctrl_temp1 , ctrl_temp0 );} //todo : is it correct?
         if( succ_num == 1 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);
+        ctrl_ses.push_back( ctrl_temp );
       }
       histories.push_back(h);
       hb_enc::se_set& prev_trail = block_to_trailing_events.at(prev);
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
+    ctrl_dep_ses = join( ctrl_ses );
+    local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
     if( src == &(f.getEntryBlock()) ) {
       split_history h;
       split_step ss( NULL, 0, 0, start_bit ); // todo : second param??

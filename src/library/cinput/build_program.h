@@ -87,7 +87,7 @@ namespace cinput {
     ValueExprMap m;
     std::map< const llvm::Value*, cssa::variable > localVars;
     typedef std::map< const llvm::Value*, hb_enc::depends_set > local_data_dependency;
-    typedef std::map< const llvm::Value*, hb_enc::depends_set > local_ctrl_dependency;
+    typedef std::map< const llvm::BasicBlock*, hb_enc::depends_set > local_ctrl_dependency;
     static char ID;
     std::string name;
     //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
@@ -111,6 +111,7 @@ namespace cinput {
     //hb_enc::depends_set data_dep_ses;
     hb_enc::depends_set ctrl_dep_ses;
     build_program::local_data_dependency local_map;
+    build_program::local_ctrl_dependency local_ctrl;
     //-----------------------------------
 
     class pointing {
@@ -144,8 +145,9 @@ namespace cinput {
                          );
 
    hb_enc::depends_set get_depends( const llvm::Value* op );
+   hb_enc::depends_set get_ctrl( const llvm::BasicBlock* b);
    hb_enc::depends_set join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 );
-   hb_enc::depends_set join( std::vector<hb_enc::depends_set>& dep, const llvm::Value* op );
+   hb_enc::depends_set join( std::vector<hb_enc::depends_set>& dep );
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,

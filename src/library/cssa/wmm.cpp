@@ -461,6 +461,18 @@ bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
   return false;
 }
 
+bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
+                                     const hb_enc::se_ptr e2  ) {
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+  //if( e1->is_wr() && e2->is_wr() && ) return true;
+  if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
+  return false;
+}
+
 void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
   hb_enc::se_to_ses_map pending_map, ordered_map;
 
