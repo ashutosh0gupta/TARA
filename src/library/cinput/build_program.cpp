@@ -427,7 +427,8 @@ translateBlock( unsigned thr_id,
       case llvm::Instruction::Add : insert_term_map( I, a+b,     m); break;
       case llvm::Instruction::Sub : insert_term_map( I, a-b,     m); break;
       case llvm::Instruction::Mul : insert_term_map( I, a*b,     m); break;
-      case llvm::Instruction::Xor : insert_term_map( I, a xor b, m); break;
+      case llvm::Instruction::Xor :
+        insert_term_map( I, helpers::_xor(a,b), m); break;
       case llvm::Instruction::SDiv: insert_term_map( I, a/b,     m); break;
       default: {
         const char* opName = bop->getOpcodeName();
