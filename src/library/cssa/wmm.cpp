@@ -233,7 +233,7 @@ void wmm_event_cons::ses() {
 
     // dependency
     for( const hb_enc::se_ptr& wr : wrs )
-      for( auto& rd : p.data_dependency[wr] )
+      for( auto& rd : wr->data_dependency )
         //todo : should the following be guarded??
           thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
 
@@ -380,7 +380,7 @@ void wmm_event_cons::new_ses() {
 
     // dependency
     for( const hb_enc::se_ptr& wr : wrs )
-      for( auto& rd : p.data_dependency[wr] )
+      for( auto& rd : wr->data_dependency )
         //todo : should the following be guarded??
           thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
 
@@ -628,7 +628,7 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
         po = po && hb_encoding.mk_hbs( barr, rd );
         last_rd[rd->prog_v]  = rd;
         collected_rds.insert( rd );
-	for( auto& read : p.ctrl_dependency[rd]) //todo: support condition
+	for( auto& read : rd->ctrl_dependency ) //todo: support condition
             po = po && hb_encoding.mk_hbs( read.e, rd );
       }
 
@@ -639,9 +639,9 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
         po = po && hb_encoding.mk_hbs( last_rd[v], wr );
         collected_rds.erase( last_rd[v] );// optimization??
 
-        for( auto& rd : p.data_dependency[wr] )
+        for( auto& rd : wr->data_dependency )
           po = po && hb_encoding.mk_hbs( rd.e, wr ); //todo: support cond
-	for( auto& rd : p.ctrl_dependency[wr])
+	for( auto& rd : wr->ctrl_dependency )
             po = po && hb_encoding.mk_hbs( rd.e, wr ); //todo: support cond
 
         last_wr[v] = wr;
@@ -842,7 +842,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
         found_wrs.erase( it );
         before_found = true;
       }
-      for( auto rd : p.data_dependency[wr] ) {
+      for( auto rd : wr->data_dependency ) {
         collected_rds.insert( rd.e );
       }
     }
@@ -876,7 +876,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
       const variable& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end()
-          // && data_dependency[wr].empty() // todo: optimization
+          // && wr->data_dependency.empty() // todo: optimization
           ) {
         hbs = hbs && hb_encoding.mk_hbs( new_barr, wr );
         found_wrs.erase( it );

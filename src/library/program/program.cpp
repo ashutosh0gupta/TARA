@@ -151,6 +151,25 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     }
   }
 
+// bool program::is_must_before( const se_ptr& x, const se_ptr& y ) {
+//   if( x == y ) return true;
+//   if( x->is_pre()  || y->is_post() ) return true;
+//   if( x->is_post() || y->is_pre()  ) return false;
+//   if( x->tid != y->tid ) return false;
+//   if( x->get_topological_order() >= y->get_topological_order() ) return false;
+//   std::set<symbolic_event*> visited, pending = x->post_events;
+//   while( !pending.empty() ) {
+//     symbolic_event* xp = helpers::pick_and_move( pending, visited );
+//     if( y.get() == xp ) continue;
+//     if(xp->get_topological_order() >= y->get_topological_order() ) return false;
+//     for( auto& xpp : xp->post_events ) {
+//       if( helpers::exists( visited, xpp ) ) pending.insert( xpp );
+//     }
+//   }
+//   return true;
+// }
+
+
   void program::print_dot( const std::string& name ) {
     boost::filesystem::path fname = _o.output_dir;
     fname += "program-"+name+"-.dot";

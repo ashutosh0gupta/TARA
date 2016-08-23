@@ -195,11 +195,6 @@ list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
             remove = true;
             break;
           }
-          // if( must_happen_before( hb1->loc1, hb2->loc1 ) &&
-          //     must_happen_before( hb2->loc2, hb1->loc2 ) ) {
-          //   remove = true;
-          //   break;
-          // }
         }
       }
       if (remove) {

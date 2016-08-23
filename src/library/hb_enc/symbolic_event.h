@@ -48,6 +48,8 @@ namespace hb_enc {
   typedef std::shared_ptr<symbolic_event> se_ptr;
   typedef std::set<se_ptr> se_set;
   typedef std::vector<se_ptr> se_vec;
+  class depends;
+  typedef std::set<depends> depends_set;
 
 //
 // symbolic event
@@ -86,6 +88,9 @@ namespace hb_enc {
     //no smart pointer to remove circular pointer cycles
     std::set<symbolic_event*> post_events;
     z3::expr guard;
+    depends_set data_dependency;
+    depends_set ctrl_dependency;
+
     inline std::string name() const {
       return e_v->name;
     }
@@ -226,8 +231,6 @@ namespace hb_enc {
       return d1.e < d2.e;
     }
   };
-
-  typedef std::set<depends> depends_set;
 
   typedef std::unordered_map<se_ptr, depends_set, se_hash, se_equal> se_to_depends_map;
   typedef std::unordered_map< cssa::variable,

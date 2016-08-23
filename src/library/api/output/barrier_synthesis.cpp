@@ -230,7 +230,7 @@ edge_type barrier_synthesis::is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after)
     if( after->is_rd() ) return edge_type::rpo;
     if( before->prog_v == after->prog_v ) return edge_type::ppo;
     if( before->is_wr() ) return edge_type::rpo;
-    auto& deps = program->data_dependency.at(after);
+    auto& deps = after->data_dependency;//.at(after);
     for( auto& dep : deps ) {
       if( dep.e == before ) {
         assert(false);
