@@ -333,9 +333,9 @@ translateBlock( unsigned thr_id,
         data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
         hb_enc::depends_set data_dep_ses = get_depends( store->getOperand(0) );
         local_map.insert( std::make_pair( I, data_dep_ses ));
-	p->data_dependency[wr].insert( data_dep_ses.begin(), data_dep_ses.end() );
+	wr->data_dependency.insert( data_dep_ses.begin(), data_dep_ses.end() );
 	ctrl = get_ctrl(b);
-	p->ctrl_dependency[wr].insert( ctrl.begin(), ctrl.end() );
+	wr->ctrl_dependency.insert( ctrl.begin(), ctrl.end() );
 	block_ssa = block_ssa && ( wr->v == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -376,7 +376,7 @@ translateBlock( unsigned thr_id,
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
           local_map.insert( std::make_pair( I, data_dep_ses ));
           ctrl = get_ctrl(b);
-          p->ctrl_dependency[rd].insert( ctrl.begin(), ctrl.end() );
+          rd->ctrl_dependency.insert( ctrl.begin(), ctrl.end() );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{

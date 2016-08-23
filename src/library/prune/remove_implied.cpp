@@ -133,18 +133,18 @@ bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
     // loc1 read - loc2 write
     // todo: check if dep relation contains intr internal relations
     // todo: add control dep also
-    for( auto it1=program.data_dependency.begin();
-         it1!=program.data_dependency.end();it1++ ) {
-      if( (it1->first)->e_v == loc2 ) {
-        //todo: check this change from loc to e_v
-        for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
-          if((*it2).e->e_v==loc1) {
-            //todo : check conditional depedency!!!
-            return true;
-          }
-        }
-      }
-    }
+    // for( auto it1=program.data_dependency.begin();
+    //      it1!=program.data_dependency.end();it1++ ) {
+    //   if( (it1->first)->e_v == loc2 ) {
+    //     //todo: check this change from loc to e_v
+    //     for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
+    //       if((*it2).e->e_v==loc1) {
+    //         //todo : check conditional depedency!!!
+    //         return true;
+    //       }
+    //     }
+    //   }
+    // }
   }
 
   if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
