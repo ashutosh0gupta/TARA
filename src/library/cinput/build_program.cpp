@@ -698,7 +698,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events, exit_cond,
                           name+"_final", hb_enc::event_t::barr );
   p->set_final_event( thread_id, final, exit_cond );
-
   p->update_post_events();
+
+  if( o.print_input > 1 ) p->print_dependency( o.out());
+
   return false;
 }
