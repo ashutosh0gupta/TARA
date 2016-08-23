@@ -15,10 +15,9 @@ void* p0(void *) {
   x = 1;
   t0 = x;
   if( t0 > 0 ){
-    t1 = t0 + 1;
+    t1 = t0;
     t3 = t1;
-  }
-  else {
+  }else {
     s = y;
     t2 = t0 + s;
     t3 = t2;
