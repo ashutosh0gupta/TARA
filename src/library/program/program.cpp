@@ -216,18 +216,20 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   void program::print_dependency( std::ostream& os ) {
-    // for( auto it = data_dependency.begin(); it != data_dependency.end(); ++it ) {
-    //    const hb_enc::se_ptr& e = it->first;
-    //    const hb_enc::depends_set& dep_ses = it->second;
-    //    assert( e );
-    //    os << "data" << "|" << e->name() << "|=>\n" << dep_ses << std::endl;
-    // }
-    // for( auto it = ctrl_dependency.begin(); it != ctrl_dependency.end(); ++it ){
-    //   const hb_enc::se_ptr& e = it->first;
-    //   const hb_enc::depends_set& dep_ses = it->second;
-    //   assert( e );
-    //   os << "ctrl" << "|" << e->name() << "|=>\n" << dep_ses << std::endl;
-    // }
+      for (unsigned t=0; t<threads.size(); t++) {
+        auto& thread = *threads[t];
+        for( const auto& e : thread.events ) {
+	  hb_enc::depends_set& dep_ses = e->data_dependency;
+	  os << "data" << "|" << e->name() << "|=>\n" << dep_ses << std::endl;
+        }
+      }
+      for (unsigned t=0; t<threads.size(); t++) {
+        auto& thread = *threads[t];
+        for( const auto& e : thread.events ) {
+          hb_enc::depends_set& ctrl_ses = e->ctrl_dependency;
+          os << "ctrl" << "|" << e->name() << "|=>\n" << ctrl_ses << std::endl;
+        }
+      }
   }
 
   void program::print_dot( std::ostream& os ) {
