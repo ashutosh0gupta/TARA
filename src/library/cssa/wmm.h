@@ -108,6 +108,11 @@ namespace cssa {
     z3::expr fr   = z3.mk_true();
     z3::expr ws   = z3.mk_true();
     z3::expr thin = z3.mk_true();
+
+    bool is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y );
+    void update_orderings();
+    void update_must_before( const hb_enc::se_vec& es, hb_enc::se_ptr e );
+    void update_must_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
   };
 
 }}

@@ -134,7 +134,7 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
 }
 
 void symbolic_event::add_post_events( se_ptr& e) {
-  post_events.insert( e.get() );
+  post_events.insert( e );
 }
 
 void symbolic_event::debug_print( std::ostream& stream ) {
@@ -177,10 +177,10 @@ bool tara::hb_enc::is_must_before( const se_ptr& x, const se_ptr& y ) {
   if( x->is_post() || y->is_pre()  ) return false;
   if( x->tid != y->tid ) return false;
   if( x->get_topological_order() >= y->get_topological_order() ) return false;
-  std::set<symbolic_event*> visited, pending = x->post_events;
+  se_set visited, pending = x->post_events;
   while( !pending.empty() ) {
-    symbolic_event* xp = helpers::pick_and_move( pending, visited );
-    if( y.get() == xp ) continue;
+    se_ptr xp = helpers::pick_and_move( pending, visited );
+    if( y == xp ) continue;
     if(xp->get_topological_order() >= y->get_topological_order() ) return false;
     for( auto& xpp : xp->post_events ) {
       if( helpers::exists( visited, xpp ) ) pending.insert( xpp );

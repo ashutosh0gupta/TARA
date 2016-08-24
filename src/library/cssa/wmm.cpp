@@ -735,7 +735,44 @@ void wmm_event_cons::wmm_test_ppo() {
 }
 
 
+wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
+                                api::options& _o,
+                                hb_enc::encoding& _hb_encoding,
+                                tara::program& _p )
+: z3( _z3 )
+,o( _o )
+,hb_encoding( _hb_encoding )
+,p( _p ) {
+}
+
+void wmm_event_cons::run() {
+  distinct_events(); // Rd/Wr events on globals are distinct
+  ppo(); // build hb formulas to encode the preserved program order
+  new_ses();
+  // ses(); // build symbolic event structure
+  // barrier(); // build barrier// ppo already has the code
+
+  if ( o.print_phi ) {
+    o.out() << "(" << endl
+            << "phi_po : \n" << (po && dist) << endl
+            << "wf     : \n" << wf           << endl
+            << "rf     : \n" << rf           << endl
+            << "grf    : \n" << grf          << endl
+            << "fr     : \n" << fr           << endl
+            << "ws     : \n" << ws           << endl
+            << "thin   : \n" << thin         << endl
+            << "phi_prp: \n" << p.phi_prp    << endl
+            << ")" << endl;
+  }
+
+  p.phi_po = po && dist;
+  p.phi_ses = wf && grf && fr && ws ;
+  // p.phi_ses = p.phi_ses && thin; //todo : undo this update
+
+}
+
 //----------------------------------------------------------------------------
+// remove the following functions
 
 z3::expr wmm_event_cons::insert_tso_barrier( const tara::thread & thread,
                                              unsigned instr,
@@ -911,39 +948,69 @@ z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
 }
 
 
-wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
-                                api::options& _o,
-                                hb_enc::encoding& _hb_encoding,
-                                tara::program& _p )
-: z3( _z3 )
-,o( _o )
-,hb_encoding( _hb_encoding )
-,p( _p ) {
+void wmm_event_cons::update_orderings() {
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    for( auto& e : p.get_thread(i).events ) {
+      update_must_before( p.get_thread(i).events, e );
+    }
+  }
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    auto rit = p.get_thread(i).events.rbegin();
+    auto rend = p.get_thread(i).events.rend();
+    for (; rit!= rend; ++rit)
+      update_must_after( p.get_thread(i).events, *rit );
+  }
 }
 
-void wmm_event_cons::run() {
-  distinct_events(); // Rd/Wr events on globals are distinct
-  ppo(); // build hb formulas to encode the preserved program order
-  new_ses();
-  // ses(); // build symbolic event structure
-  // barrier(); // build barrier// ppo already has the code
 
-  if ( o.print_phi ) {
-    o.out() << "(" << endl
-            << "phi_po : \n" << (po && dist) << endl
-            << "wf     : \n" << wf           << endl
-            << "rf     : \n" << rf           << endl
-            << "grf    : \n" << grf          << endl
-            << "fr     : \n" << fr           << endl
-            << "ws     : \n" << ws           << endl
-            << "thin   : \n" << thin         << endl
-            << "phi_prp: \n" << p.phi_prp    << endl
-            << ")" << endl;
+bool wmm_event_cons::is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y) {
+  return false;
+}
+
+void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
+                                         hb_enc::se_ptr e ) {
+  // hb_enc::se_tord_set to_be_visited = { e };
+  hb_enc::se_to_ses_map local_ordered;
+  for( auto ep : es ) {
+    if( ep->get_topological_order() >= e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets;
+    for( auto epp : ep->prev_events ) {
+      hb_enc::se_set epp_ord = local_ordered[epp];
+      if( is_ordered( epp, e ) ) {
+        epp_ord.insert( epp );
+        helpers::set_insert( epp_ord, p.must_before[ep] );
+      }
+    }
+    hb_enc::se_set& l_ord = local_ordered[ep];
+    helpers::set_intersection( ord_sets, l_ord );
+    if( e == ep ) break;
   }
+  p.must_before[e] = local_ordered[e];
+}
 
-  p.phi_po = po && dist;
-  p.phi_ses = wf && grf && fr && ws ;
-  // p.phi_ses = p.phi_ses && thin; //todo : undo this update
+void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
+                                        hb_enc::se_ptr e ) {
+  std::map< hb_enc::se_ptr, std::set<hb_enc::se_ptr> > local_ordered;
+  auto rit = es.rbegin();
+  auto rend = es.rend();
+  for (; rit!= rend; ++rit) {
+    auto ep = *rit;
+    if( ep->get_topological_order() <= e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets;
+    for( auto epp : ep->post_events ) {
+      hb_enc::se_set epp_ord = local_ordered[epp];
+      if( is_ordered( e, epp ) ) {
+        epp_ord.insert( epp );
+        helpers::set_insert( epp_ord, p.must_before[ep] );
+      }
+    }
+    hb_enc::se_set& l_ord = local_ordered[ep];
+    helpers::set_intersection( ord_sets, l_ord );
+    if( e == ep ) break;
+  }
+  p.must_after[e] = local_ordered[e];
 
 }
 

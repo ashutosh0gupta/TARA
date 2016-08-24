@@ -274,16 +274,45 @@ bool exists( const std::set<Key>& set1, const Key& k ) {
 
   // Insert second set inside the first set
 template< class Key >
-Key pick_and_move( std::set<Key>& doner, std::set<Key>& receiver ) {
+Key pick( std::set<Key>& doner ) {
     Key x = *doner.begin();
     doner.erase( x );
-    receiver.insert( x );
     return x;
+}
+
+template< class Key >
+Key pick_and_move( std::set<Key>& doner, std::set<Key>& receiver ) {
+  Key x = pick( doner );
+  receiver.insert( x );
+  return x;
 }
 
 template< class Key >
 void set_insert( std::set<Key>& set1, const std::set<Key>& set2 ) {
   set1.insert( set2.begin(), set2.end() );
+}
+
+template< class Key >
+void set_intersection( const std::set<Key>& set_src,
+                       std::set<Key>& set ) {
+  auto j =  set.begin();
+  for (j++; j!=set.end(); ) {
+    if ( exists( set_src, *j ) )
+      j++;
+    else
+      j = set.erase(j);
+  }
+}
+
+template< class Key >
+void set_intersection( const std::vector< std::set<Key> >& vec_set,
+                       std::set<Key>& set ) {
+  set.clear();
+  if( vec_set.empty() ) return;
+  set = vec_set[0];
+  for( unsigned i = 1; i < vec_set.size(); i++ ) {
+    set_intersection( vec_set[i], set );
+  }
 }
 
 template< class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
@@ -292,23 +321,32 @@ void set_insert( std::unordered_set<Key, Hash, Pred>& set1,
   set1.insert( set2.begin(), set2.end() );
 }
 
-template <class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
-std::unordered_set<Key, Hash, Pred> set_union(const std::unordered_set<Key, Hash, Pred>& set1, const std::unordered_set<Key, Hash, Pred>& set2) {
+template <class Key, class Hash = std::hash<Key>,
+          class Pred = std::equal_to<Key>>
+std::unordered_set<Key, Hash, Pred>
+set_union( const std::unordered_set<Key, Hash, Pred>& set1,
+           const std::unordered_set<Key, Hash, Pred>& set2 ) {
   std::unordered_set<Key, Hash, Pred> res = set1;
   res.insert(set2.begin(), set2.end());
   return res;
 }
 
-template <class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
-void print_set(const std::unordered_set<Key, Hash, Pred>& set1, std::ostream& out) {
-  for (Key c : set1) {
-    out << c << " ";
+  template < class Key, class Hash = std::hash<Key>,
+            class Pred = std::equal_to<Key>>
+  void print_set( const std::unordered_set<Key, Hash, Pred>& set1,
+                std::ostream& out ) {
+    for (Key c : set1) {
+      out << c << " ";
+    }
+    out << std::endl;
   }
-  out << std::endl;
-}
 
-template <class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
-std::unordered_set<Key, Hash, Pred> set_intersection(const std::unordered_set<Key, Hash, Pred>& set1, const std::unordered_set<Key, Hash, Pred>& set2) {
+template < class Key,
+           class Hash = std::hash< Key >,
+           class Pred = std::equal_to< Key > >
+std::unordered_set<Key, Hash, Pred>
+set_intersection( const std::unordered_set<Key, Hash, Pred>& set1,
+                  const std::unordered_set<Key, Hash, Pred>& set2 ) {
   std::unordered_set<Key, Hash, Pred> result;
   for (auto& e : set1) {
     if (set2.find(e) != set2.end())
@@ -317,8 +355,12 @@ std::unordered_set<Key, Hash, Pred> set_intersection(const std::unordered_set<Ke
   return result;
 }
 
-template <class Key, class Hash = std::hash<Key>, class Pred = std::equal_to<Key>>
-bool intersection_nonempty(const std::unordered_set<Key, Hash, Pred>& set1, const std::unordered_set<Key, Hash, Pred>& set2) {
+template < class Key,
+           class Hash = std::hash< Key >,
+           class Pred = std::equal_to< Key > >
+bool
+intersection_nonempty( const std::unordered_set<Key, Hash, Pred>& set1,
+                       const std::unordered_set<Key, Hash, Pred>& set2 ) {
   for (auto& e : set1) {
     if (set2.find(e) != set2.end())
       return true;

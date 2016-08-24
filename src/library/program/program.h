@@ -90,6 +90,12 @@ namespace tara {
     z3::expr start_cond = z3.mk_true();
     z3::expr final_cond = z3.mk_true();
 
+    ~thread() {
+      for( hb_enc::se_ptr& e : events ) {
+        e->prev_events.clear(); // code added to remove 
+        e->post_events.clear();
+      }
+    }
     void add_event( hb_enc::se_ptr e ) { events.push_back( e ); }
 
     void set_start_event( hb_enc::se_ptr e, z3::expr cond ) {
@@ -207,6 +213,9 @@ namespace tara {
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
+    // precalculation of ordering
+    hb_enc::se_to_ses_map must_after;
+    hb_enc::se_to_ses_map must_before;
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;

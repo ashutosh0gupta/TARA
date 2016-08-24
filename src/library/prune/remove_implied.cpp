@@ -124,28 +124,39 @@ bool remove_implied::must_happen_before_pso( const hb_enc::se_ptr e1,
 
 bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
                                              const hb_enc::se_ptr e2 ) {
+  if( e2->is_rd() ) return false;
+
+  if( e1->is_rd() ) {
+    // e1 read - e2 write
+    // todo: check if dep relation contains intr internal relations
+    // todo: add control dep also
+    for( const auto& dep_pair : e2->data_dependency ) {
+      if( dep_pair.e == e1 ) return true;
+    }
+  }
+
   auto loc1 = e1->e_v;
   auto loc2 = e2->e_v;
 
-  if( loc2->is_read ) return false;
-  // loc2 is write now onwards
-  if ( loc1->is_read ) {
-    // loc1 read - loc2 write
-    // todo: check if dep relation contains intr internal relations
-    // todo: add control dep also
-    // for( auto it1=program.data_dependency.begin();
-    //      it1!=program.data_dependency.end();it1++ ) {
-    //   if( (it1->first)->e_v == loc2 ) {
-    //     //todo: check this change from loc to e_v
-    //     for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
-    //       if((*it2).e->e_v==loc1) {
-    //         //todo : check conditional depedency!!!
-    //         return true;
-    //       }
-    //     }
-    //   }
-    // }
-  }
+  // if( loc2->is_read ) return false;
+  // // loc2 is write now onwards
+  // if ( loc1->is_read ) {
+  //   // loc1 read - loc2 write
+  //   // todo: check if dep relation contains intr internal relations
+  //   // todo: add control dep also
+  //   for( auto it1=program.data_dependency.begin();
+  //        it1!=program.data_dependency.end();it1++ ) {
+  //     if( (it1->first)->e_v == loc2 ) {
+  //       //todo: check this change from loc to e_v
+  //       for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
+  //         if((*it2).e->e_v==loc1) {
+  //           //todo : check conditional depedency!!!
+  //           return true;
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
 

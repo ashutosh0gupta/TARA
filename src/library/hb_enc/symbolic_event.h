@@ -45,6 +45,7 @@ namespace hb_enc {
       };
 
   class symbolic_event;
+  typedef symbolic_event se;
   typedef std::shared_ptr<symbolic_event> se_ptr;
   typedef std::set<se_ptr> se_set;
   typedef std::vector<se_ptr> se_vec;
@@ -86,7 +87,7 @@ namespace hb_enc {
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
     //no smart pointer to remove circular pointer cycles
-    std::set<symbolic_event*> post_events;
+    se_set post_events;
     z3::expr guard;
     depends_set data_dependency;
     depends_set ctrl_dependency;
@@ -212,6 +213,17 @@ namespace hb_enc {
     }
   };
 
+  struct se_cmp :
+    std::binary_function <symbolic_event,symbolic_event,bool> {
+    bool operator() (const se_ptr& x, const se_ptr& y) const {
+      return x->get_topological_order() < y->get_topological_order() ||
+        ( x->get_topological_order() == y->get_topological_order() &&
+          x < y
+          );
+    }
+  };
+
+  typedef std::set< se_ptr, se_cmp > se_tord_set;
   // typedef std::unordered_set<se_ptr, se_hash, se_equal> se_set;
 
   typedef std::unordered_map<cssa::variable, se_ptr, cssa::variable_hash, cssa::variable_equal> var_to_se_map;
