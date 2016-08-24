@@ -466,9 +466,8 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
   if( e1->is_barr_type() || e2->is_barr_type() ) {
     return is_barrier_ordered( e1, e2 );
   }
-
   assert( e1->is_mem_op() && e2->is_mem_op() );
-  if( e1->is_wr() && e2->is_wr() && is_po_new(e1, e2)) return true;
+  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name )) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
   return false;
 }
@@ -481,7 +480,7 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
   bool find = false;
   assert( e1->is_mem_op() && e2->is_mem_op() );
   std::vector<hb_enc::se_ptr> dep;
-  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && is_po_new(e1, e2)) return true;
+  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
   const hb_enc::depends_set& data_ses =  e2->data_dependency;
   const hb_enc::depends_set& ctrl_ses = e2->ctrl_dependency;
   for(std::set<hb_enc::depends>::iterator it = data_ses.begin(); it != data_ses.end(); it++) {
@@ -499,9 +498,8 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
   return false;
 }
 
-void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
+void wmm_event_cons::new_ppo( const tara::thread& thread ) {
   hb_enc::se_to_ses_map pending_map, ordered_map;
-
   auto& se = thread.start_event;
   pending_map[se].insert(se); // this is how it should start
 
@@ -518,7 +516,7 @@ void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
       tmp_pendings.erase( ep );
       if( helpers::exists( seen_set, ep ) ) continue;
       seen_set.insert( ep );
-      if( is_ordered_tso( ep, e ) ) {
+      if( check_ppo( ep, e )) {
         po = po && hb_encoding.mk_ghbs( ep, e );
         ordered.insert( ep );
       }else{
@@ -534,6 +532,15 @@ void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
       po = po && hb_encoding.mk_ghbs( ep, fe );
     }
   }
+}
+
+bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1, const hb_enc::se_ptr e2 ) {
+  bool flag = false;
+  if( p.is_mm_tso() ) { flag = is_ordered_tso( e1, e2 );
+  }else if( p.is_mm_pso() ) { flag = is_ordered_pso( e1, e2 );
+  }else if( p.is_mm_rmo() ) { flag = is_ordered_rmo( e1, e2 );
+  }if(flag) return true;
+  return false;
 }
 
 void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
@@ -726,9 +733,9 @@ void wmm_event_cons::ppo() {
                             thr.start_event->guard &&
                             hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
     if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
-    }else if( p.is_mm_tso()   ) { new_ppo_tso( thr ); //tso_ppo  ( thr );
-    }else if( p.is_mm_pso()   ) { pso_ppo  ( thr );
-    }else if( p.is_mm_rmo()   ) { rmo_ppo  ( thr );
+    }else if( p.is_mm_tso()   ) { new_ppo( thr );
+    }else if( p.is_mm_pso()   ) { new_ppo( thr );
+    }else if( p.is_mm_rmo()   ) { new_ppo( thr );
     }else if( p.is_mm_alpha() ) { alpha_ppo( thr );
     }else if( p.is_mm_power() ) { power_ppo( thr );
     }else{                      p.unsupported_mm();
@@ -752,7 +759,7 @@ void wmm_event_cons::wmm_test_ppo() {
   po = z3.mk_true();
   for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
   std::cerr << "\nsc" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){new_ppo_tso(p.get_thread(t));}
+  for(t=0;t<p.size();t++){new_ppo(p.get_thread(t));}
   std::cerr << "\ntso" << po; po = z3.mk_true();
   for(t=0;t<p.size();t++){pso_ppo(p.get_thread(t));}
   std::cerr << "\npso" << po; po = z3.mk_true();
