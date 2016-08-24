@@ -498,6 +498,17 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
   return false;
 }
 
+bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
+                                     const hb_enc::se_ptr e2  ) {
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
+  if( e1->is_rd() && ( e2->is_wr() || e2->is_rd()) && (e1->prog_v.name == e2->prog_v.name)) return true;
+  return false;
+}
+
 void wmm_event_cons::new_ppo( const tara::thread& thread ) {
   hb_enc::se_to_ses_map pending_map, ordered_map;
   auto& se = thread.start_event;
@@ -539,6 +550,7 @@ bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1, const hb_enc::se_ptr e2
   if( p.is_mm_tso() ) { flag = is_ordered_tso( e1, e2 );
   }else if( p.is_mm_pso() ) { flag = is_ordered_pso( e1, e2 );
   }else if( p.is_mm_rmo() ) { flag = is_ordered_rmo( e1, e2 );
+  }else if( p.is_mm_alpha() ) { flag = is_ordered_alpha( e1, e2 );
   }if(flag) return true;
   return false;
 }
