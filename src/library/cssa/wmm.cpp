@@ -473,6 +473,32 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
   return false;
 }
 
+bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
+                                     const hb_enc::se_ptr e2  ) {
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+  bool find = false;
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+  std::vector<hb_enc::se_ptr> dep;
+  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && is_po_new(e1, e2)) return true;
+  const hb_enc::depends_set& data_ses =  e2->data_dependency;
+  const hb_enc::depends_set& ctrl_ses = e2->ctrl_dependency;
+  for(std::set<hb_enc::depends>::iterator it = data_ses.begin(); it != data_ses.end(); it++) {
+    hb_enc::depends element= *it;
+    hb_enc::se_ptr val = element.e;
+    dep.push_back(val);
+  }
+  for(std::set<hb_enc::depends>::iterator it = ctrl_ses.begin(); it != ctrl_ses.end(); it++) {
+    hb_enc::depends element= *it;
+    hb_enc::se_ptr val = element.e;
+    dep.push_back(val);
+  }
+  find = std::find(dep.begin(), dep.end(), e1) != dep.end();
+  if(( e1->is_rd() && ( e1->is_rd() || e2->is_wr() ) && find)) return true;
+  return false;
+}
+
 void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
   hb_enc::se_to_ses_map pending_map, ordered_map;
 
