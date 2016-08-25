@@ -748,7 +748,7 @@ void wmm_event_cons::ppo() {
     }else if( p.is_mm_tso()   ) { new_ppo( thr );
     }else if( p.is_mm_pso()   ) { new_ppo( thr );
     }else if( p.is_mm_rmo()   ) { new_ppo( thr );
-    }else if( p.is_mm_alpha() ) { alpha_ppo( thr );
+    }else if( p.is_mm_alpha() ) { new_ppo( thr );
     }else if( p.is_mm_power() ) { power_ppo( thr );
     }else{                      p.unsupported_mm();
     }
