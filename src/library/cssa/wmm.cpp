@@ -382,7 +382,7 @@ void wmm_event_cons::new_ses() {
     for( const hb_enc::se_ptr& wr : wrs )
       for( auto& rd : wr->data_dependency )
         //todo : should the following be guarded??
-          thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
+        thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
 
   }
 }
@@ -395,28 +395,15 @@ void wmm_event_cons::distinct_events() {
 
   z3::expr_vector loc_vars( z3.c );
 
-  // for( auto& e : p.init_loc ) {
-    loc_vars.push_back( p.init_loc->get_solver_symbol() );
-  // }
+  loc_vars.push_back( p.init_loc->get_solver_symbol() );
 
-  // for( auto& e : p.post_loc ) {
-    if( p.post_loc )
-      loc_vars.push_back( p.post_loc->get_solver_symbol() );
-  // }
+  if( p.post_loc )
+    loc_vars.push_back( p.post_loc->get_solver_symbol() );
 
   for( unsigned t=0; t < p.size(); t++ ) {
     auto& thread = p.get_thread(t);
     for(auto& e : thread.events )
       loc_vars.push_back( e->get_solver_symbol() );
-    // assert( thread.size() > 0 );
-    // for( unsigned j=0; j < thread.size(); j++ ) {
-    //   for( auto& rd : thread[j].rds ) {
-    //     loc_vars.push_back( rd->get_solver_symbol() );
-    //   }
-    //   for( auto& wr : thread[j].wrs ) {
-    //     loc_vars.push_back( wr->get_solver_symbol() );
-    //   }
-    // }
     loc_vars.push_back( thread.start_event->get_solver_symbol() );
     loc_vars.push_back( thread.final_event->get_solver_symbol() );
   }
@@ -470,6 +457,32 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() && is_po_new(e1, e2)) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
+  return false;
+}
+
+bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
+                                     const hb_enc::se_ptr e2  ) {
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+  bool find = false;
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+  std::vector<hb_enc::se_ptr> dep;
+  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && is_po_new(e1, e2)) return true;
+  const hb_enc::depends_set& data_ses =  e2->data_dependency;
+  const hb_enc::depends_set& ctrl_ses = e2->ctrl_dependency;
+  for(std::set<hb_enc::depends>::iterator it = data_ses.begin(); it != data_ses.end(); it++) {
+    hb_enc::depends element= *it;
+    hb_enc::se_ptr val = element.e;
+    dep.push_back(val);
+  }
+  for(std::set<hb_enc::depends>::iterator it = ctrl_ses.begin(); it != ctrl_ses.end(); it++) {
+    hb_enc::depends element= *it;
+    hb_enc::se_ptr val = element.e;
+    dep.push_back(val);
+  }
+  find = std::find(dep.begin(), dep.end(), e1) != dep.end();
+  if(( e1->is_rd() && ( e1->is_rd() || e2->is_wr() ) && find)) return true;
   return false;
 }
 
@@ -765,9 +778,75 @@ void wmm_event_cons::run() {
             << ")" << endl;
   }
 
-  p.phi_po = po && dist;
+  p.phi_po  = po && dist;
   p.phi_ses = wf && grf && fr && ws ;
-  // p.phi_ses = p.phi_ses && thin; //todo : undo this update
+  p.phi_ses = p.phi_ses && thin; //todo : undo this update
+
+}
+
+void wmm_event_cons::update_orderings() {
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    for( auto& e : p.get_thread(i).events ) {
+      update_must_before( p.get_thread(i).events, e );
+    }
+  }
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    auto rit = p.get_thread(i).events.rbegin();
+    auto rend = p.get_thread(i).events.rend();
+    for (; rit!= rend; ++rit)
+      update_must_after( p.get_thread(i).events, *rit );
+  }
+}
+
+
+bool wmm_event_cons::is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y) {
+  return false;
+}
+
+void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
+                                         hb_enc::se_ptr e ) {
+  // hb_enc::se_tord_set to_be_visited = { e };
+  hb_enc::se_to_ses_map local_ordered;
+  for( auto ep : es ) {
+    if( ep->get_topological_order() >= e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets;
+    for( auto epp : ep->prev_events ) {
+      hb_enc::se_set epp_ord = local_ordered[epp];
+      if( is_ordered( epp, e ) ) {
+        epp_ord.insert( epp );
+        helpers::set_insert( epp_ord, p.must_before[ep] );
+      }
+    }
+    hb_enc::se_set& l_ord = local_ordered[ep];
+    helpers::set_intersection( ord_sets, l_ord );
+    if( e == ep ) break;
+  }
+  p.must_before[e] = local_ordered[e];
+}
+
+void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
+                                        hb_enc::se_ptr e ) {
+  std::map< hb_enc::se_ptr, std::set<hb_enc::se_ptr> > local_ordered;
+  auto rit = es.rbegin();
+  auto rend = es.rend();
+  for (; rit!= rend; ++rit) {
+    auto ep = *rit;
+    if( ep->get_topological_order() <= e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets;
+    for( auto epp : ep->post_events ) {
+      hb_enc::se_set epp_ord = local_ordered[epp];
+      if( is_ordered( e, epp ) ) {
+        epp_ord.insert( epp );
+        helpers::set_insert( epp_ord, p.must_before[ep] );
+      }
+    }
+    hb_enc::se_set& l_ord = local_ordered[ep];
+    helpers::set_intersection( ord_sets, l_ord );
+    if( e == ep ) break;
+  }
+  p.must_after[e] = local_ordered[e];
 
 }
 
@@ -948,71 +1027,7 @@ z3::expr wmm_event_cons::insert_barrier(unsigned tid, unsigned instr) {
 }
 
 
-void wmm_event_cons::update_orderings() {
-  for( unsigned i = 0; i < p.size(); i ++ ) {
-    for( auto& e : p.get_thread(i).events ) {
-      update_must_before( p.get_thread(i).events, e );
-    }
-  }
-  for( unsigned i = 0; i < p.size(); i ++ ) {
-    auto rit = p.get_thread(i).events.rbegin();
-    auto rend = p.get_thread(i).events.rend();
-    for (; rit!= rend; ++rit)
-      update_must_after( p.get_thread(i).events, *rit );
-  }
-}
 
-
-bool wmm_event_cons::is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y) {
-  return false;
-}
-
-void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
-                                         hb_enc::se_ptr e ) {
-  // hb_enc::se_tord_set to_be_visited = { e };
-  hb_enc::se_to_ses_map local_ordered;
-  for( auto ep : es ) {
-    if( ep->get_topological_order() >= e->get_topological_order() )
-      continue;
-    std::vector<hb_enc::se_set> ord_sets;
-    for( auto epp : ep->prev_events ) {
-      hb_enc::se_set epp_ord = local_ordered[epp];
-      if( is_ordered( epp, e ) ) {
-        epp_ord.insert( epp );
-        helpers::set_insert( epp_ord, p.must_before[ep] );
-      }
-    }
-    hb_enc::se_set& l_ord = local_ordered[ep];
-    helpers::set_intersection( ord_sets, l_ord );
-    if( e == ep ) break;
-  }
-  p.must_before[e] = local_ordered[e];
-}
-
-void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
-                                        hb_enc::se_ptr e ) {
-  std::map< hb_enc::se_ptr, std::set<hb_enc::se_ptr> > local_ordered;
-  auto rit = es.rbegin();
-  auto rend = es.rend();
-  for (; rit!= rend; ++rit) {
-    auto ep = *rit;
-    if( ep->get_topological_order() <= e->get_topological_order() )
-      continue;
-    std::vector<hb_enc::se_set> ord_sets;
-    for( auto epp : ep->post_events ) {
-      hb_enc::se_set epp_ord = local_ordered[epp];
-      if( is_ordered( e, epp ) ) {
-        epp_ord.insert( epp );
-        helpers::set_insert( epp_ord, p.must_before[ep] );
-      }
-    }
-    hb_enc::se_set& l_ord = local_ordered[ep];
-    helpers::set_intersection( ord_sets, l_ord );
-    if( e == ep ) break;
-  }
-  p.must_after[e] = local_ordered[e];
-
-}
 
 
 //----------------------------------------------------------------------------

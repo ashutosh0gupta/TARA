@@ -36,6 +36,7 @@ private:
 //start of wmm support
 //--------------------------------------------------------------------------
   bool must_happen_before      ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  bool must_happen_after       ( const hb_enc::se_ptr, const hb_enc::se_ptr );
   bool must_happen_before_sc   ( const hb_enc::se_ptr, const hb_enc::se_ptr );
   bool must_happen_before_tso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
   bool must_happen_before_pso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );

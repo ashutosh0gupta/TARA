@@ -48,6 +48,12 @@ string remove_implied::name()
   return string("remove_implied");
 }
 
+bool remove_implied::must_happen_after( const hb_enc::se_ptr e1,
+                                        const hb_enc::se_ptr e2 ) {
+  return must_happen_before(e1, e2);
+  //todo: del above
+  return helpers::exists( program.must_after.at(e1), e2 );
+}
 bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
                                          const hb_enc::se_ptr e2 ) {
   // check if these edge is between the same thread
@@ -66,6 +72,9 @@ bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
   default:
       throw std::runtime_error("remove_implied does not support memory model!");
   }
+
+  //todo: del above
+  return helpers::exists( program.must_before.at(e2), e1 );
 }
 
 bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
@@ -138,26 +147,6 @@ bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
   auto loc1 = e1->e_v;
   auto loc2 = e2->e_v;
 
-  // if( loc2->is_read ) return false;
-  // // loc2 is write now onwards
-  // if ( loc1->is_read ) {
-  //   // loc1 read - loc2 write
-  //   // todo: check if dep relation contains intr internal relations
-  //   // todo: add control dep also
-  //   for( auto it1=program.data_dependency.begin();
-  //        it1!=program.data_dependency.end();it1++ ) {
-  //     if( (it1->first)->e_v == loc2 ) {
-  //       //todo: check this change from loc to e_v
-  //       for(auto it2=it1->second.begin(); it2!=it1->second.end(); it2++ ) {
-  //         if((*it2).e->e_v==loc1) {
-  //           //todo : check conditional depedency!!!
-  //           return true;
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-
   if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
 
   if( loc1->instr_no < loc2-> instr_no ) return true;
@@ -202,7 +191,7 @@ list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
           assert( hb1 && hb2 );
           assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
           if( must_happen_before( hb1->e1, hb2->e1 ) &&
-              must_happen_before( hb2->e2, hb1->e2 ) ) {
+              must_happen_after( hb2->e2, hb1->e2 ) ) {
             remove = true;
             break;
           }

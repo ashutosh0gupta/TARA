@@ -213,7 +213,7 @@ namespace tara {
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
-    // precalculation of ordering
+    // pre calculation of ordering
     hb_enc::se_to_ses_map must_after;
     hb_enc::se_to_ses_map must_before;
 
