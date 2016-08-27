@@ -436,11 +436,24 @@ bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
   return false;
 }
 
+bool wmm_event_cons::is_ordered_sc( const hb_enc::se_ptr e1,
+                                    const hb_enc::se_ptr e2  ) {
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
+
+  return true;
+  // assert( e1->is_mem_op() && e2->is_mem_op() );
+  // if( e1->is_wr() && e2->is_wr() ) return true;
+  // if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
+  // return false;
+}
+
 bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
-  }
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
 
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() ) return true;
@@ -450,25 +463,24 @@ bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
 
 bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
-  }
-
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
   assert( e1->is_mem_op() && e2->is_mem_op() );
-  if( e1->is_wr() && e2->is_wr() && is_po_new(e1, e2)) return true;
+  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name )) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
   return false;
 }
 
 bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
-  }
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
   bool find = false;
   assert( e1->is_mem_op() && e2->is_mem_op() );
   std::vector<hb_enc::se_ptr> dep;
-  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && is_po_new(e1, e2)) return true;
+  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
   const hb_enc::depends_set& data_ses =  e2->data_dependency;
   const hb_enc::depends_set& ctrl_ses = e2->ctrl_dependency;
   for(std::set<hb_enc::depends>::iterator it = data_ses.begin(); it != data_ses.end(); it++) {
@@ -486,9 +498,37 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
   return false;
 }
 
-void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
-  hb_enc::se_to_ses_map pending_map, ordered_map;
+bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
+                                     const hb_enc::se_ptr e2  ) {
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
+  if( e1->is_rd() && ( e2->is_wr() || e2->is_rd()) && (e1->prog_v.name == e2->prog_v.name)) return true;
+  return false;
+}
 
+bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
+                                const hb_enc::se_ptr e2 ) {
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+
+  // bool flag = false;
+  if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
+  }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
+  }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
+  }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 );
+  }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
+  }else{    p.unsupported_mm();
+  }
+// if(flag) return true;
+  return false; // dummy return
+}
+
+void wmm_event_cons::new_ppo( const tara::thread& thread ) {
+  hb_enc::se_to_ses_map pending_map, ordered_map;
   auto& se = thread.start_event;
   pending_map[se].insert(se); // this is how it should start
 
@@ -505,7 +545,7 @@ void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
       tmp_pendings.erase( ep );
       if( helpers::exists( seen_set, ep ) ) continue;
       seen_set.insert( ep );
-      if( is_ordered_tso( ep, e ) ) {
+      if( check_ppo( ep, e ) ) {
         po = po && hb_encoding.mk_ghbs( ep, e );
         ordered.insert( ep );
       }else{
@@ -522,6 +562,176 @@ void wmm_event_cons::new_ppo_tso( const tara::thread& thread ) {
     }
   }
 }
+
+
+
+void wmm_event_cons::power_ppo( const tara::thread& thread ) {
+  p.unsupported_mm();
+}
+
+void wmm_event_cons::ppo() {
+  // wmm_test_ppo();
+
+  for( unsigned t=0; t < p.size(); t++ ) {
+    auto& thr = p.get_thread(t);
+    auto& cr_e = p.create_map[thr.name];
+    po = po && z3::implies( cr_e->guard,
+                            thr.start_event->guard &&
+                            hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
+    if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
+    }else if( p.is_mm_tso()   ) { new_ppo( thr );
+    }else if( p.is_mm_pso()   ) { new_ppo( thr );
+    }else if( p.is_mm_rmo()   ) { new_ppo( thr );
+    }else if( p.is_mm_alpha() ) { new_ppo( thr );
+    }else if( p.is_mm_power() ) { power_ppo( thr );
+    }else{                      p.unsupported_mm();
+    }
+    const auto& it = p.join_map.find( thr.name );
+    if( it != p.join_map.end() ) {
+      const auto& jp_pair = it->second;
+      const auto join_point = jp_pair.first;
+      z3::expr join_guard = jp_pair.second;
+      po = po && z3::implies( thr.final_event->guard,
+                              join_guard &&
+                              hb_encoding.mk_hbs( thr.final_event, join_point));
+    }
+  }
+  // po = po && dist;
+  //phi_po = phi_po && barriers;
+}
+
+void wmm_event_cons::wmm_test_ppo() {
+  unsigned t;
+  po = z3.mk_true();
+  for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
+  std::cerr << "\nsc" << po; po = z3.mk_true();
+  for(t=0;t<p.size();t++){new_ppo(p.get_thread(t));}
+  std::cerr << "\ntso" << po; po = z3.mk_true();
+  for(t=0;t<p.size();t++){pso_ppo(p.get_thread(t));}
+  std::cerr << "\npso" << po; po = z3.mk_true();
+  for(t=0;t<p.size();t++){rmo_ppo(p.get_thread(t));}
+  std::cerr << "\nrmo" << po; po = z3.mk_true();
+}
+
+
+wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
+                                api::options& _o,
+                                hb_enc::encoding& _hb_encoding,
+                                tara::program& _p )
+: z3( _z3 )
+,o( _o )
+,hb_encoding( _hb_encoding )
+,p( _p ) {
+}
+
+void wmm_event_cons::run() {
+  update_orderings();
+
+  distinct_events(); // Rd/Wr events on globals are distinct
+  ppo(); // build hb formulas to encode the preserved program order
+  new_ses();
+  // ses(); // build symbolic event structure
+  // barrier(); // build barrier// ppo already has the code
+
+  if ( o.print_phi ) {
+    o.out() << "(" << endl
+            << "phi_po : \n" << (po && dist) << endl
+            << "wf     : \n" << wf           << endl
+            << "rf     : \n" << rf           << endl
+            << "grf    : \n" << grf          << endl
+            << "fr     : \n" << fr           << endl
+            << "ws     : \n" << ws           << endl
+            << "thin   : \n" << thin         << endl
+            << "phi_prp: \n" << p.phi_prp    << endl
+            << ")" << endl;
+  }
+
+  p.phi_po  = po && dist;
+  p.phi_ses = wf && grf && fr && ws ;
+  p.phi_ses = p.phi_ses && thin; //todo : undo this update
+
+}
+
+void wmm_event_cons::update_orderings() {
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    for( auto& e : p.get_thread(i).events ) {
+      update_must_before( p.get_thread(i).events, e );
+    }
+  }
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    auto rit = p.get_thread(i).events.rbegin();
+    auto rend = p.get_thread(i).events.rend();
+    for (; rit!= rend; ++rit)
+      update_must_after( p.get_thread(i).events, *rit );
+  }
+  if( o.print_input > 2 ) {
+    o.out() << "============================\n";
+    o.out() << "must after/before relations:\n";
+    o.out() << "============================\n";
+    for( unsigned i = 0; i < p.size(); i ++ ) {
+      for( auto& e : p.get_thread(i).events ) {
+        o.out() << e->name() << "\nbefore: ";
+        hb_enc::debug_print_se_set( p.must_before[e],  o.out() );
+        o.out() << "after: ";
+        hb_enc::debug_print_se_set( p.must_after [e],  o.out() );
+        o.out() << "\n";
+      }
+    }
+  }
+}
+
+
+void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
+                                         hb_enc::se_ptr e ) {
+  // hb_enc::se_tord_set to_be_visited = { e };
+  hb_enc::se_to_ses_map local_ordered;
+  for( auto ep : es ) {
+    if( ep->get_topological_order() > e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets( ep->prev_events.size() );
+    unsigned i = 0;
+    for( auto epp : ep->prev_events ) {
+      ord_sets[i] = local_ordered[epp];
+      if( check_ppo( epp, e ) ) {
+        ord_sets[i].insert( epp );
+        helpers::set_insert( ord_sets[i], p.must_before[epp] );
+      }
+      i++;
+    }
+    helpers::set_intersection( ord_sets, local_ordered[ep] );
+    if( e == ep ) break;
+  }
+  p.must_before[e] = local_ordered[e];
+}
+
+void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
+                                        hb_enc::se_ptr e ) {
+  hb_enc::se_to_ses_map local_ordered;
+  auto rit = es.rbegin();
+  auto rend = es.rend();
+  for (; rit!= rend; ++rit) {
+    auto ep = *rit;
+    if( ep->get_topological_order() < e->get_topological_order() )
+      continue;
+    std::vector<hb_enc::se_set> ord_sets( ep->post_events.size() );
+    unsigned i = 0;
+    for( auto epp : ep->post_events ) {
+      ord_sets[i] = local_ordered[epp];
+      if( check_ppo( e, epp ) ) {
+        ord_sets[i].insert( epp );
+        helpers::set_insert( ord_sets[i], p.must_after[epp] );
+      }
+      i++;
+    }
+    helpers::set_intersection( ord_sets, local_ordered[ep] );
+    if( e == ep ) break;
+  }
+  p.must_after[e] = local_ordered[e];
+
+}
+
+//------------------------------------------------------------------------
+// to be removed ------------------------
 
 void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   unsigned tsize = thread.size();
@@ -699,157 +909,7 @@ void wmm_event_cons::alpha_ppo( const tara::thread& thread ) {
     po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
 }
 
-void wmm_event_cons::power_ppo( const tara::thread& thread ) {
-  p.unsupported_mm();
-}
-
-void wmm_event_cons::ppo() {
-  // wmm_test_ppo();
-
-  for( unsigned t=0; t < p.size(); t++ ) {
-    auto& thr = p.get_thread(t);
-    auto& cr_e = p.create_map[thr.name];
-    po = po && z3::implies( cr_e->guard,
-                            thr.start_event->guard &&
-                            hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
-    if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
-    }else if( p.is_mm_tso()   ) { new_ppo_tso( thr ); //tso_ppo  ( thr );
-    }else if( p.is_mm_pso()   ) { pso_ppo  ( thr );
-    }else if( p.is_mm_rmo()   ) { rmo_ppo  ( thr );
-    }else if( p.is_mm_alpha() ) { alpha_ppo( thr );
-    }else if( p.is_mm_power() ) { power_ppo( thr );
-    }else{                      p.unsupported_mm();
-    }
-    const auto& it = p.join_map.find( thr.name );
-    if( it != p.join_map.end() ) {
-      const auto& jp_pair = it->second;
-      const auto join_point = jp_pair.first;
-      z3::expr join_guard = jp_pair.second;
-      po = po && z3::implies( thr.final_event->guard,
-                              join_guard &&
-                              hb_encoding.mk_hbs( thr.final_event, join_point));
-    }
-  }
-  // po = po && dist;
-  //phi_po = phi_po && barriers;
-}
-
-void wmm_event_cons::wmm_test_ppo() {
-  unsigned t;
-  po = z3.mk_true();
-  for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
-  std::cerr << "\nsc" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){new_ppo_tso(p.get_thread(t));}
-  std::cerr << "\ntso" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){pso_ppo(p.get_thread(t));}
-  std::cerr << "\npso" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){rmo_ppo(p.get_thread(t));}
-  std::cerr << "\nrmo" << po; po = z3.mk_true();
-}
-
-
-wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
-                                api::options& _o,
-                                hb_enc::encoding& _hb_encoding,
-                                tara::program& _p )
-: z3( _z3 )
-,o( _o )
-,hb_encoding( _hb_encoding )
-,p( _p ) {
-}
-
-void wmm_event_cons::run() {
-  distinct_events(); // Rd/Wr events on globals are distinct
-  ppo(); // build hb formulas to encode the preserved program order
-  new_ses();
-  // ses(); // build symbolic event structure
-  // barrier(); // build barrier// ppo already has the code
-
-  if ( o.print_phi ) {
-    o.out() << "(" << endl
-            << "phi_po : \n" << (po && dist) << endl
-            << "wf     : \n" << wf           << endl
-            << "rf     : \n" << rf           << endl
-            << "grf    : \n" << grf          << endl
-            << "fr     : \n" << fr           << endl
-            << "ws     : \n" << ws           << endl
-            << "thin   : \n" << thin         << endl
-            << "phi_prp: \n" << p.phi_prp    << endl
-            << ")" << endl;
-  }
-
-  p.phi_po  = po && dist;
-  p.phi_ses = wf && grf && fr && ws ;
-  p.phi_ses = p.phi_ses && thin; //todo : undo this update
-
-}
-
-void wmm_event_cons::update_orderings() {
-  for( unsigned i = 0; i < p.size(); i ++ ) {
-    for( auto& e : p.get_thread(i).events ) {
-      update_must_before( p.get_thread(i).events, e );
-    }
-  }
-  for( unsigned i = 0; i < p.size(); i ++ ) {
-    auto rit = p.get_thread(i).events.rbegin();
-    auto rend = p.get_thread(i).events.rend();
-    for (; rit!= rend; ++rit)
-      update_must_after( p.get_thread(i).events, *rit );
-  }
-}
-
-
-bool wmm_event_cons::is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y) {
-  return false;
-}
-
-void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
-                                         hb_enc::se_ptr e ) {
-  // hb_enc::se_tord_set to_be_visited = { e };
-  hb_enc::se_to_ses_map local_ordered;
-  for( auto ep : es ) {
-    if( ep->get_topological_order() >= e->get_topological_order() )
-      continue;
-    std::vector<hb_enc::se_set> ord_sets;
-    for( auto epp : ep->prev_events ) {
-      hb_enc::se_set epp_ord = local_ordered[epp];
-      if( is_ordered( epp, e ) ) {
-        epp_ord.insert( epp );
-        helpers::set_insert( epp_ord, p.must_before[ep] );
-      }
-    }
-    hb_enc::se_set& l_ord = local_ordered[ep];
-    helpers::set_intersection( ord_sets, l_ord );
-    if( e == ep ) break;
-  }
-  p.must_before[e] = local_ordered[e];
-}
-
-void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
-                                        hb_enc::se_ptr e ) {
-  std::map< hb_enc::se_ptr, std::set<hb_enc::se_ptr> > local_ordered;
-  auto rit = es.rbegin();
-  auto rend = es.rend();
-  for (; rit!= rend; ++rit) {
-    auto ep = *rit;
-    if( ep->get_topological_order() <= e->get_topological_order() )
-      continue;
-    std::vector<hb_enc::se_set> ord_sets;
-    for( auto epp : ep->post_events ) {
-      hb_enc::se_set epp_ord = local_ordered[epp];
-      if( is_ordered( e, epp ) ) {
-        epp_ord.insert( epp );
-        helpers::set_insert( epp_ord, p.must_before[ep] );
-      }
-    }
-    hb_enc::se_set& l_ord = local_ordered[ep];
-    helpers::set_intersection( ord_sets, l_ord );
-    if( e == ep ) break;
-  }
-  p.must_after[e] = local_ordered[e];
-
-}
-
+//------------------------------------------------------------------------
 //----------------------------------------------------------------------------
 // remove the following functions
 

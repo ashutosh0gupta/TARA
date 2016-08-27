@@ -1,3 +1,5 @@
+// this example is for testing all the reasoning related to branching.
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +22,8 @@ void* p0(void *) {
   }else {
     s = y;
     t2 = t0 + s;
-    t3 = t2;
+    if( t2 == 0 )
+      t3 = t2;
   }
   z = t3;
   return NULL;

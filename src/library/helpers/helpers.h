@@ -296,7 +296,7 @@ template< class Key >
 void set_intersection( const std::set<Key>& set_src,
                        std::set<Key>& set ) {
   auto j =  set.begin();
-  for (j++; j!=set.end(); ) {
+  for (; j!=set.end(); ) {
     if ( exists( set_src, *j ) )
       j++;
     else

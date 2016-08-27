@@ -51,6 +51,7 @@ namespace cssa {
     void distinct_events();
 
     bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool is_ordered_sc     ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_rmo    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
@@ -58,12 +59,12 @@ namespace cssa {
     bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
 
     void new_ppo_sc   ( const tara::thread& );
-    void new_ppo_tso  ( const tara::thread& );
+    void new_ppo  ( const tara::thread& );
     void new_ppo_pso  ( const tara::thread& );
     void new_ppo_rmo  ( const tara::thread& );
     void new_ppo_alpha( const tara::thread& );
     void new_ppo_power( const tara::thread& );
-
+    bool check_ppo( const hb_enc::se_ptr, const hb_enc::se_ptr );
     void sc_ppo   ( const tara::thread& );
     void tso_ppo  ( const tara::thread& );
     void pso_ppo  ( const tara::thread& );

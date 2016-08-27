@@ -649,6 +649,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           ctrl_temp0 = get_depends( op );
           ctrl_temp1 = get_ctrl(prev);
           ctrl_temp = join_depends_set( ctrl_temp1 , ctrl_temp0 );} //todo : is it correct?
+	else if( br->isUnconditional()) {
+	  ctrl_temp = get_ctrl(prev);}
         if( succ_num == 1 ) b = !b;
         split_step ss(prev, block_to_id[prev], succ_num, b);
         h.push_back(ss);

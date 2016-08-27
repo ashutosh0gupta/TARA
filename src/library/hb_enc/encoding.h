@@ -102,8 +102,8 @@ struct hb {
 public:
   se_ptr e1;
   se_ptr e2;
-  location_ptr loc1;
-  location_ptr loc2;
+  location_ptr loc1; //todo : to be removed
+  location_ptr loc2; //todo : to be removed
   operator z3::expr () const;
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
   hb(location_ptr loc1, location_ptr loc2, z3::expr expr);

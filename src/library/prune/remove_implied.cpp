@@ -50,32 +50,113 @@ string remove_implied::name()
 
 bool remove_implied::must_happen_after( const hb_enc::se_ptr e1,
                                         const hb_enc::se_ptr e2 ) {
-  return must_happen_before(e1, e2);
+  // return must_happen_before(e1, e2);
   //todo: del above
   return helpers::exists( program.must_after.at(e1), e2 );
 }
+
 bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
                                          const hb_enc::se_ptr e2 ) {
-  // check if these edge is between the same thread
-  if( e1 == e2 ) return true;
-  if( e1->get_tid() != e2->get_tid() ) return false;
-  // e1 must be ordered before e2 in order to "must occur before"
-  if( e1->get_topological_order() > e2->get_topological_order() )
-    return false;
-
-  switch( program.get_mm() ) {
-  case mm_t::sc   : return must_happen_before_sc   ( e1, e2 ); break;
-  case mm_t::tso  : return must_happen_before_tso  ( e1, e2 ); break;
-  case mm_t::pso  : return must_happen_before_pso  ( e1, e2 ); break;
-  case mm_t::rmo  : return must_happen_before_rmo  ( e1, e2 ); break;
-  case mm_t::alpha: return must_happen_before_alpha( e1, e2 ); break;
-  default:
-      throw std::runtime_error("remove_implied does not support memory model!");
-  }
-
-  //todo: del above
   return helpers::exists( program.must_before.at(e2), e1 );
 }
+
+// bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
+//                                          const hb_enc::se_ptr e2 ) {
+//   // check if these edge is between the same thread
+//   if( e1 == e2 ) return true;
+//   if( e1->get_tid() != e2->get_tid() ) return false;
+//   // e1 must be ordered before e2 in order to "must occur before"
+//   if( e1->get_topological_order() > e2->get_topological_order() )
+//     return false;
+
+//   switch( program.get_mm() ) {
+//   case mm_t::sc   : return must_happen_before_sc   ( e1, e2 ); break;
+//   case mm_t::tso  : return must_happen_before_tso  ( e1, e2 ); break;
+//   case mm_t::pso  : return must_happen_before_pso  ( e1, e2 ); break;
+//   case mm_t::rmo  : return must_happen_before_rmo  ( e1, e2 ); break;
+//   case mm_t::alpha: return must_happen_before_alpha( e1, e2 ); break;
+//   default:
+//       throw std::runtime_error("remove_implied does not support memory model!");
+//   }
+
+// }
+
+list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
+                                        const z3::model& m )
+{
+  list<z3::expr> result = hbs;
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  if( program.is_mm_declared() ) {
+    for (auto it = result.begin() ; it != result.end(); ) {
+      bool remove = false;
+      for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+        // ensure that we do not compare with ourselves
+        if (it != it2) {
+          // find duplicate
+          if ((Z3_ast)*it == (Z3_ast)*it2) {
+            remove = true;
+            break;
+          }
+          unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
+          unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
+          assert( hb1 && hb2 );
+          assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
+          if( must_happen_before( hb1->e1, hb2->e1 ) &&
+              must_happen_after( hb2->e2, hb1->e2 ) ) {
+            remove = true;
+            break;
+          }
+        }
+      }
+      if (remove) {
+        //cerr << *it << endl;
+        it = result.erase(it);
+      }else 
+        ++it;
+    }
+    
+    return result;
+  }
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
+  for (auto it = result.begin() ; it != result.end(); ) {
+    bool remove = false;
+    for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+      // ensure that we do not compare with ourselves
+      if (it != it2) {
+        // find duplicate
+        if ((Z3_ast)*it == (Z3_ast)*it2) {
+          remove = true;
+          break;
+        }
+        unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
+        unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
+        assert (hb1 && hb2);
+        // check if these edge is between the same thread
+        if (hb1->loc1->thread == hb2->loc1->thread && hb1->loc2->thread == hb2->loc2->thread) {
+          // check if the other one is more specific
+          if (hb1->loc1->instr_no <= hb2->loc1->instr_no && hb1->loc2->instr_no >= hb2->loc2->instr_no)
+          {
+            remove = true;
+            break;
+          }
+        }
+      }
+    }
+    if (remove) {
+      //cerr << *it << endl;
+      it = result.erase(it);
+    }else 
+      ++it;
+  }
+  return result;
+}
+
+//------------------------------------------------------------------
+// old code ready for deletetion.
 
 bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
                                             const hb_enc::se_ptr e2 ) {
@@ -168,77 +249,3 @@ bool remove_implied::must_happen_before_alpha( const hb_enc::se_ptr e1,
 
     return false;
 }
-list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
-                                        const z3::model& m )
-{
-  list<z3::expr> result = hbs;
-//--------------------------------------------------------------------------
-//start of wmm support
-//--------------------------------------------------------------------------
-  if( program.is_mm_declared() ) {
-    for (auto it = result.begin() ; it != result.end(); ) {
-      bool remove = false;
-      for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
-        // ensure that we do not compare with ourselves
-        if (it != it2) {
-          // find duplicate
-          if ((Z3_ast)*it == (Z3_ast)*it2) {
-            remove = true;
-            break;
-          }
-          unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
-          unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
-          assert( hb1 && hb2 );
-          assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
-          if( must_happen_before( hb1->e1, hb2->e1 ) &&
-              must_happen_after( hb2->e2, hb1->e2 ) ) {
-            remove = true;
-            break;
-          }
-        }
-      }
-      if (remove) {
-        //cerr << *it << endl;
-        it = result.erase(it);
-      }else 
-        ++it;
-    }
-    
-    return result;
-  }
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
-  for (auto it = result.begin() ; it != result.end(); ) {
-    bool remove = false;
-    for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
-      // ensure that we do not compare with ourselves
-      if (it != it2) {
-        // find duplicate
-        if ((Z3_ast)*it == (Z3_ast)*it2) {
-          remove = true;
-          break;
-        }
-        unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
-        unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
-        assert (hb1 && hb2);
-        // check if these edge is between the same thread
-        if (hb1->loc1->thread == hb2->loc1->thread && hb1->loc2->thread == hb2->loc2->thread) {
-          // check if the other one is more specific
-          if (hb1->loc1->instr_no <= hb2->loc1->instr_no && hb1->loc2->instr_no >= hb2->loc2->instr_no)
-          {
-            remove = true;
-            break;
-          }
-        }
-      }
-    }
-    if (remove) {
-      //cerr << *it << endl;
-      it = result.erase(it);
-    }else 
-      ++it;
-  }
-  return result;
-}
-
