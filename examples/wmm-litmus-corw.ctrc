@@ -52,3 +52,12 @@ post: (or (not (= x 2)) (not (= P0.r1 2)) )
 ##All traces are good or infeasable.
 #~
 
+
+################################################
+#!-M alpha
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+

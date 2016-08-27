@@ -76,3 +76,16 @@ post: (and (< i 55) (< j 55))
 ##
 #~
 
+
+################################################
+#!-M alpha
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(W#i#a2,R#pi_i#b1) ∧ hb(W#i#a4,R#pi_i#b3) ∧ hb(W#i#a6,R#pi_i#b5) ∧ hb(W#i#a8,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a3) ∧ hb(W#j#b4,R#pi_j#a5) ∧ hb(W#j#b6,R#pi_j#a7) ) ∨
+##( hb(W#i#a2,R#pi_i#b3) ∧ hb(W#i#a4,R#pi_i#b5) ∧ hb(W#i#a6,R#pi_i#b7) ∧ hb(W#j#b2,R#pi_j#a1) ∧ hb(W#j#b4,R#pi_j#a3) ∧ hb(W#j#b6,R#pi_j#a5) ∧ hb(W#j#b8,R#pi_j#a7) ) 
+##
+#~
+
