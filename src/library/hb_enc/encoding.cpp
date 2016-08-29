@@ -313,9 +313,9 @@ list<z3::expr> encoding::get_hbs( z3::model& m ) const
   return result;
 }
 
-vector<hb_enc::hb> encoding::get_hbs_new( z3::model& m ) const
+vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
 {
-  vector<hb_enc::hb> result;
+  vector<hb_ptr> result;
   z3::expr_vector asserted = ctx.collect_last_asserted_linear_constr();
 
   for( unsigned i = 0; i<asserted.size(); i++ ) {
@@ -326,7 +326,8 @@ vector<hb_enc::hb> encoding::get_hbs_new( z3::model& m ) const
       //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
       //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
       assert(eval_hb(m, hb->loc1, hb->loc2));
-      result.push_back(*hb);
+      hb_ptr h = make_shared<hb_enc::hb>(*hb);
+      result.push_back(h);
     }
   }
 
