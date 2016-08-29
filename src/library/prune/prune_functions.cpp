@@ -68,6 +68,39 @@ namespace prune {
       final = final && r;
     return final;
   }
+
+  void print_hbs( const hb_enc::hb_vec& hbs, ostream& print_out ) {
+    for (auto& hb : hbs) {
+      if (hb != nullptr)
+        print_out << *hb << endl;
+    }
+  }
+
+  hb_enc::hb_vec
+  apply_prune_chain( const prune_chain& prune_chain,
+                     hb_enc::hb_vec& hbs,
+                     const z3::model& m,
+                     unsigned print_pruning,
+                     ostream& print_out,
+                     const hb_enc::encoding& hb_encoding ) {
+    if (print_pruning >= 2) {
+      print_out << "Original constraint for this ctex" << endl;
+      print_hbs(hbs, print_out );
+    }
+    
+    for( unsigned i = 0; i < prune_chain.size(); i++ ) {
+      hbs = prune_chain[i]->prune( hbs, m );
+      if (print_pruning >= 1) {
+        print_out << "Constraint after " << prune_chain[i]->name() << endl;
+        print_hbs(hbs, print_out);
+      }
+    }
+    return hbs;
+    // z3::expr final = m.ctx().bool_val(true);
+    // for(auto r : hbs)
+    //   final = final && r;
+    // return final;
+  }
   
   bool build_prune_chain(const string& prune_order, prune_chain& prune_chain, const z3interf& z3, const tara::program& program, z3::solver sol_good){
     if (prune_order=="" || prune_order=="none") {

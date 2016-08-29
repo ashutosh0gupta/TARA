@@ -129,6 +129,9 @@ private:
   uint32_t _signature = 0;
 };
 
+typedef std::shared_ptr<hb_enc::hb> hb_ptr;
+typedef std::vector<hb_ptr> hb_vec;
+
 struct as {
 public:
   location_ptr loc1;

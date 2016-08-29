@@ -50,13 +50,23 @@ string remove_implied::name()
 
 bool remove_implied::must_happen_after( const hb_enc::se_ptr e1,
                                         const hb_enc::se_ptr e2 ) {
-  // return must_happen_before(e1, e2);
-  //todo: del above
+  if( e1 == e2 ) return true;
+  if( e1->get_tid() != e2->get_tid() ) return false;
+  // e1 must be ordered before e2 in order to "must occur after"
+  if( e1->get_topological_order() > e2->get_topological_order() )
+    return false;
+
   return helpers::exists( program.must_after.at(e1), e2 );
 }
 
 bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
                                          const hb_enc::se_ptr e2 ) {
+  if( e1 == e2 ) return true;
+  if( e1->get_tid() != e2->get_tid() ) return false;
+  // e1 must be ordered before e2 in order to "must occur before"
+  if( e1->get_topological_order() > e2->get_topological_order() )
+    return false;
+
   return helpers::exists( program.must_before.at(e2), e1 );
 }
 
@@ -80,6 +90,84 @@ bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
 //   }
 
 // }
+
+
+
+
+hb_enc::hb_vec remove_implied::prune( hb_enc::hb_vec& hbs,
+                                      const z3::model& m )
+{
+   hb_enc::hb_vec result = hbs;
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
+  if( program.is_mm_declared() ) {
+    for (auto it = result.begin() ; it != result.end(); ) {
+      bool remove = false;
+      for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+        // ensure that we do not compare with ourselves
+        if( it != it2 ) {
+          // find duplicate
+          // if ((Z3_ast)*it == (Z3_ast)*it2) {
+          //   remove = true;
+          //   break;
+          // }
+          auto& hb1 = *it;
+          auto& hb2 = *it2;
+          assert( hb1 && hb2 );
+          assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
+          if( must_happen_before( hb1->e1, hb2->e1 ) &&
+              must_happen_after( hb2->e2, hb1->e2 ) ) {
+            remove = true;
+            break;
+          }
+        }
+      }
+      if (remove) {
+        //cerr << *it << endl;
+        it = result.erase(it);
+      }else 
+        ++it;
+    }
+    
+    return result;
+  }
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
+  for (auto it = result.begin() ; it != result.end(); ) {
+    bool remove = false;
+    for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+      // ensure that we do not compare with ourselves
+      if (it != it2) {
+        // find duplicate
+        // if ((Z3_ast)*it == (Z3_ast)*it2) {
+        //   remove = true;
+        //   break;
+        // }
+        auto& hb1 = *it;
+        auto& hb2 = *it2;
+        assert (hb1 && hb2);
+        // check if these edge is between the same thread
+        if (hb1->loc1->thread == hb2->loc1->thread && hb1->loc2->thread == hb2->loc2->thread) {
+          // check if the other one is more specific
+          if (hb1->loc1->instr_no <= hb2->loc1->instr_no && hb1->loc2->instr_no >= hb2->loc2->instr_no)
+          {
+            remove = true;
+            break;
+          }
+        }
+      }
+    }
+    if (remove) {
+      //cerr << *it << endl;
+      it = result.erase(it);
+    }else 
+      ++it;
+  }
+  return result;
+}
+
 
 list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
                                         const z3::model& m )
