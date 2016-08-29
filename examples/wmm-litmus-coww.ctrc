@@ -47,3 +47,12 @@ post: (= x 2)
 ##All traces are good or infeasable.
 #~
 
+
+################################################
+#!-M alpha
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+

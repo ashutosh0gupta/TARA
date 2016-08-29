@@ -62,3 +62,15 @@ post: (or (= P0.r 1) (= P1.s 1))
 ##All traces are good or infeasable.
 #~
 
+
+################################################
+#!-M alpha
+################################################
+#~
+##
+##Final result
+##Bad DNF
+##( hb(R#pi_x#d2,W#x#w1) ∧ hb(R#pi_y#w2,W#y#d1) ) 
+##
+#~
+

@@ -56,3 +56,12 @@ post: (= P0.r1 P1.r2)
 ##All traces are good or infeasable.
 #~
 
+
+################################################
+#!-M alpha
+################################################
+#~
+##
+##All traces are good or infeasable.
+#~
+
