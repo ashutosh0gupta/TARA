@@ -94,7 +94,7 @@ bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
 
 
 
-hb_enc::hb_vec remove_implied::prune( hb_enc::hb_vec& hbs,
+hb_enc::hb_vec remove_implied::prune( const hb_enc::hb_vec& hbs,
                                       const z3::model& m )
 {
    hb_enc::hb_vec result = hbs;
@@ -107,11 +107,6 @@ hb_enc::hb_vec remove_implied::prune( hb_enc::hb_vec& hbs,
       for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
         // ensure that we do not compare with ourselves
         if( it != it2 ) {
-          // find duplicate
-          // if ((Z3_ast)*it == (Z3_ast)*it2) {
-          //   remove = true;
-          //   break;
-          // }
           auto& hb1 = *it;
           auto& hb2 = *it2;
           assert( hb1 && hb2 );
@@ -124,12 +119,10 @@ hb_enc::hb_vec remove_implied::prune( hb_enc::hb_vec& hbs,
         }
       }
       if (remove) {
-        //cerr << *it << endl;
         it = result.erase(it);
       }else 
         ++it;
     }
-    
     return result;
   }
 //--------------------------------------------------------------------------
@@ -140,11 +133,6 @@ hb_enc::hb_vec remove_implied::prune( hb_enc::hb_vec& hbs,
     for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
       // ensure that we do not compare with ourselves
       if (it != it2) {
-        // find duplicate
-        // if ((Z3_ast)*it == (Z3_ast)*it2) {
-        //   remove = true;
-        //   break;
-        // }
         auto& hb1 = *it;
         auto& hb2 = *it2;
         assert (hb1 && hb2);

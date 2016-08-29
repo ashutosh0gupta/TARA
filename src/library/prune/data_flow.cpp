@@ -50,6 +50,14 @@ string data_flow::name()
 }
 
 
+hb_enc::hb_vec data_flow::prune( const hb_enc::hb_vec& hbs,
+                                      const z3::model& m )
+{
+  throw std::runtime_error("data_flow is out of sync needs work!!");
+  // todo : copy the following code into the new interface
+  return hbs;
+}
+
 list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
 {
   list<z3::expr> pi_hbs;

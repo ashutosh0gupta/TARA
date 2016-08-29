@@ -30,6 +30,9 @@ class remove_thin : public prune::prune_base
 public:
   remove_thin(const helpers::z3interf& z3, const tara::program& program);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
+  //todo : remove the code above
+  // virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m );
+
   virtual std::string name();
 private:
 };

@@ -30,6 +30,9 @@ class data_flow : public prune_base
 public:
   data_flow(const helpers::z3interf& z3, const tara::program& program);
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
+  //todo : remove above and implement befow!!
+  virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m );
+
   virtual std::string name();
 private:
   const cssa::program* program_old;
