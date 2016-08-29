@@ -313,5 +313,24 @@ list<z3::expr> encoding::get_hbs( z3::model& m ) const
   return result;
 }
 
+vector<hb_enc::hb> encoding::get_hbs_new( z3::model& m ) const
+{
+  vector<hb_enc::hb> result;
+  z3::expr_vector asserted = ctx.collect_last_asserted_linear_constr();
+
+  for( unsigned i = 0; i<asserted.size(); i++ ) {
+    z3::expr atom = asserted[i];
+    unique_ptr<hb_enc::hb> hb = get_hb( atom );
+    if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
+      //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
+      //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
+      //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
+      assert(eval_hb(m, hb->loc1, hb->loc2));
+      result.push_back(*hb);
+    }
+  }
+
+  return result;
+}
 
 }}

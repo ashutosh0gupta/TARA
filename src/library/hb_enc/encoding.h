@@ -181,6 +181,7 @@ public:
   virtual std::unique_ptr<hb> get_hb(const z3::expr& hb, bool allow_equal = false) const = 0;
   virtual std::vector<hb_enc::location_ptr> get_trace(const z3::model& m) const = 0;
   std::list<z3::expr> get_hbs( z3::model& m ) const;
+  std::vector<hb_enc::hb> get_hbs_new( z3::model& m ) const;
   z3::context& ctx;
 protected:
   std::unordered_map<std::string, location_ptr> location_map;
