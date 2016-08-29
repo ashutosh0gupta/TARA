@@ -54,13 +54,23 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
                                   const z3::model& m)
 {
   std::list< z3::expr > hbs_expr;
+    // test minunsat here
+  sol_good.push();
+  // insert initial variable valuation
+  z3::expr initial = program.get_initial(m);
+  //cout << initial << endl;
   for( auto& hb : hbs ) {
     z3::expr h_expr = (*hb);
     hbs_expr.push_back( h_expr );
+    z3::expr e = hb->e1->guard && hb->e2->guard;
+    sol_good.add(e);
   }
-  list< z3::expr > result = prune( hbs_expr, m );
+
+  sol_good.add(program.get_initial(m));
+  z3interf::min_unsat<z3::expr>(sol_good, hbs_expr, [](z3::expr e) { return e; });
+  sol_good.pop();
   hb_enc::hb_vec final_result;
-  for( z3::expr e : result ) {
+  for( z3::expr e : hbs_expr ) {
     auto u_hb = hb_enc.get_hb( e );
     hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
     final_result.push_back( hb );
