@@ -57,4 +57,20 @@ list< z3::expr > remove_thin::prune( const list< z3::expr >& hbs,
 	 return result;
 }
 
+hb_enc::hb_vec remove_thin::prune( const hb_enc::hb_vec& hbs,
+                                   const z3::model& m ) {
+  assert( program.is_mm_declared() );
+  hb_enc::hb_vec result = hbs;
+  for (auto it = result.begin() ; it != result.end(); ) {
+    bool remove = false;
+    hb_enc::hb_ptr hb1 = *it;
+    auto& l1 = hb1->loc1;
+    auto& l2 = hb1->loc2;
+    if( ( l1->name.find("__thin__") != std::string::npos) &&
+        (l2->name.find("__thin__") != std::string::npos) ) remove = true; 
+    if( remove ) it = result.erase(it); else ++it; 
+  }
+  return result;
+}
+
 

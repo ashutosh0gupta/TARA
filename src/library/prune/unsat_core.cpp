@@ -50,4 +50,20 @@ list< z3::expr > unsat_core::prune(const list< z3::expr >& hbs, const z3::model&
   return hbsn;
 }
 
-
+hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
+                                  const z3::model& m)
+{
+  std::list< z3::expr > hbs_expr;
+  for( auto& hb : hbs ) {
+    z3::expr h_expr = (*hb);
+    hbs_expr.push_back( h_expr );
+  }
+  list< z3::expr > result = prune( hbs_expr, m );
+  hb_enc::hb_vec final_result;
+  for( z3::expr e : result ) {
+    auto u_hb = hb_enc.get_hb( e );
+    hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
+    final_result.push_back( hb );
+  }
+  return final_result;
+}

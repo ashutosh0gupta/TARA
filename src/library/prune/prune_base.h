@@ -33,7 +33,7 @@ public:
   virtual std::string name() = 0;
   virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m) = 0;
   // todo: remove the above call and remove the following const in 1st param
-  virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m) { return hbs; };
+  virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m) = 0;//{ return hbs; };
 protected:
   prune_base(const helpers::z3interf& z3, const tara::program& program);
   const helpers::z3interf& z3;

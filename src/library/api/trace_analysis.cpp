@@ -236,8 +236,13 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
           p->print_hb(m, o.out());
       }
     }
-    list<z3::expr> hbs = hb_encoding.get_hbs(m);
+
+    // list<z3::expr> hbs = hb_encoding.get_hbs(m);
+    // z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
+
+    hb_enc::hb_vec hbs = hb_encoding.get_hbs_new(m);
     z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
+
     if (o.machine && o.print_pruning >=1 ) {
       Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(), forbid.simplify());
       if (forbid_value == Z3_L_UNDEF) {

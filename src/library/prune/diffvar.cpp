@@ -60,8 +60,8 @@ list< z3::expr > diffvar::prune( const list< z3::expr >& hbs,
   return result;
 }
 
-hb_enc::hb_vec diffvar::prune_new( const hb_enc::hb_vec& hbs,
-                                 const z3::model& m )
+hb_enc::hb_vec diffvar::prune( const hb_enc::hb_vec& hbs,
+                               const z3::model& m )
 {
   assert( program.is_mm_declared() );
   hb_enc::hb_vec result = hbs;

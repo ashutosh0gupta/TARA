@@ -76,7 +76,8 @@ namespace prune {
     }
   }
 
-  hb_enc::hb_vec
+  // hb_enc::hb_vec
+  z3::expr 
   apply_prune_chain( const prune_chain& prune_chain,
                      hb_enc::hb_vec& hbs,
                      const z3::model& m,
@@ -95,11 +96,13 @@ namespace prune {
         print_hbs(hbs, print_out);
       }
     }
-    return hbs;
-    // z3::expr final = m.ctx().bool_val(true);
-    // for(auto r : hbs)
-    //   final = final && r;
-    // return final;
+    // return hbs;
+    z3::expr final = m.ctx().bool_val(true);
+    for(auto hb : hbs) {
+      z3::expr hb_e = *hb;
+      final = final && hb_e;
+    }
+    return final;
   }
   
   bool build_prune_chain(const string& prune_order, prune_chain& prune_chain, const z3interf& z3, const tara::program& program, z3::solver sol_good){
