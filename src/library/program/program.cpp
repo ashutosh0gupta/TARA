@@ -79,12 +79,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     o << (*this) << "\n";
     o << "ssa instruction : " << instr << "\n";
     o << "path constraint : " << path_constraint << "\n";
-    o << "var_read : ";      helpers::print_set( variables_read,       o);
-    o << "var_write : ";     helpers::print_set( variables_write,      o);
-    o << "var_read_orig : "; helpers::print_set( variables_read_orig,  o);
-    o << "var_write_orig : ";helpers::print_set( variables_write_orig, o);
-    o << "var_rds : ";       hb_enc::debug_print_se_set(rds, o);
-    o << "var_wrs : ";       hb_enc::debug_print_se_set(wrs, o);
+    o << "var_read : ";      helpers::print_set( o, variables_read       );
+    o << "var_write : ";     helpers::print_set( o, variables_write      );
+    o << "var_read_orig : "; helpers::print_set( o, variables_read_orig  );
+    o << "var_write_orig : ";helpers::print_set( o, variables_write_orig );
+    o << "var_rds : ";       tara::debug_print(o, rds);
+    o << "var_wrs : ";       tara::debug_print(o, wrs);
   }
 
   //==========================================================================

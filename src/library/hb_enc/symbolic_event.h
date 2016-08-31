@@ -86,9 +86,9 @@ namespace hb_enc {
     event_t et;
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
-    //no smart pointer to remove circular pointer cycles
     se_set post_events;
     z3::expr guard;
+    std::vector<z3::expr> history;
     depends_set data_dependency;
     depends_set ctrl_dependency;
 
@@ -178,22 +178,26 @@ namespace hb_enc {
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, const cssa::variable& prog_v, std::string loc,
+             z3::expr& cond, std::vector<z3::expr> history_,
+             const cssa::variable& prog_v, std::string loc,
              event_t _et ) {
     cssa::variable ssa_v = prog_v + "#" + loc;
     se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, ssa_v,
                                                  prog_v, loc, _et);
     e->guard = cond;
+    e->history = history_;
     hb_enc.record_event( e );
     return e;
   }
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, std::string loc, event_t et ) {
+             z3::expr& cond, std::vector<z3::expr> history_,
+             std::string loc, event_t et ) {
     se_ptr e =
       std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, loc, et );
     e->guard = cond;
+    e->history = history_;
     hb_enc.record_event( e );
     return e;
   }
@@ -251,6 +255,12 @@ namespace hb_enc {
                               cssa::variable_equal> var_to_depends_map;
 
 
+  void insert_depends_set( const se_ptr&, const z3::expr, depends_set& set );
+  void insert_depends_set( const depends& dep, depends_set& set );
+  void join_depends_set( const depends_set& , depends_set& );
+  void join_depends_set( const depends_set& , const depends_set&, depends_set& );
+  void join_depends_set( const std::vector<depends_set>&, depends_set& );
+
   inline bool is_po( const se_ptr& x, const se_ptr& y ) {
     if( x == y ) return true;
     if( x->tid != y->tid ) return false;
@@ -264,10 +274,12 @@ namespace hb_enc {
   // must_before: if y occurs then, x must occur in the past
   // bool is_must_before( const se_ptr& x, const se_ptr& y );
   // must_after : if x occurs then, y must occur in the future
-  // bool is_must_after ( const se_ptr& x, const se_ptr& y ); 
+  // bool is_must_after ( const se_ptr& x, const se_ptr& y );
 
-  void debug_print_se_set(const se_set& set, std::ostream& out);
-
-}}
+}
+  void debug_print(std::ostream& out, const hb_enc::se_set& set );
+  void debug_print(std::ostream& out, const hb_enc::depends& dep );
+  void debug_print(std::ostream& out, const hb_enc::depends_set& set);
+}
 
 #endif // TARA_CSSA_SYMBOLIC_EVENT_H

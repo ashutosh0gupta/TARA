@@ -62,8 +62,11 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   for( auto& hb : hbs ) {
     z3::expr h_expr = (*hb);
     hbs_expr.push_back( h_expr );
-    z3::expr e = hb->e1->guard && hb->e2->guard;
-    sol_good.add(e);
+    if( hb->e1 && hb->e2 ) {
+      z3::expr e = hb->e1->guard && hb->e2->guard;
+      // std::cout << hb->e1->name() << hb->e2->name() << " " << e << "\n";
+      sol_good.add(e);
+    }
   }
 
   sol_good.add(program.get_initial(m));

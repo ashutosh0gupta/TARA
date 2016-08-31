@@ -29,6 +29,8 @@ using namespace tara::helpers;
 z3interf::z3interf(context& ctx) : c(ctx)
 {
   Z3_update_param_value(ctx, "unsat_core", "true");
+  Z3_enable_trace( "rewriter");
+  Z3_enable_trace( "rewriter_step");
 }
 
 z3interf::~z3interf()
@@ -298,6 +300,14 @@ bool z3interf::is_sat( z3::expr f ) const {
   return false; // unreachable code: dummy return
 }
 
+bool z3interf::is_false( z3::expr f ) {
+  return z3::eq( f, mk_false() );
+}
+
+bool z3interf::is_true( z3::expr f ) {
+  return z3::eq( f, mk_true() );
+}
+
 bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
   return is_sat( e1 && !e2 );
 }
@@ -313,28 +323,32 @@ cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
 
 //----------------
 //support for gdb
-void tara::helpers::debug_print(const z3::expr& e) {
+void tara::debug_print( std::ostream& out, const z3::expr& e ) {
   Z3_ast ptr = e;
   if( ptr )
-    std::cerr << e;
+    out << e;
   else
-    std::cerr << "uninitialized z3 expression!!";
-  std::cerr << "\n";
+    out << "(uninitialized z3 expression!!)";
+  // std::cerr << "\n";
 }
 
-void debug_print(const std::list<z3::expr>& es) {
+void tara::debug_print(const z3::expr& e) {
+  debug_print( std::cerr, e);
+}
+
+void tara::debug_print(const std::list<z3::expr>& es) {
   for(const z3::expr e : es ) {
     debug_print( e );
   }
 }
 
-void debug_print(const std::vector< z3::expr >& es) {
+void tara::debug_print(const std::vector< z3::expr >& es) {
   for(const z3::expr e : es ) {
     debug_print( e );
   }
 }
 
-void debug_print(const z3::model& m) {
+void tara::debug_print( const z3::model& m ) {
   // Z3_ast ptr = m;
   // if( ptr )
     std::cerr << m;

@@ -191,7 +191,8 @@ void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
 }
 
 
-edge_type barrier_synthesis::is_ppo(hb_enc::se_ptr before, hb_enc::se_ptr after) {
+edge_type barrier_synthesis::is_ppo( hb_enc::se_ptr before,
+                                     hb_enc::se_ptr after ) {
 
   assert( before );
   assert( after );

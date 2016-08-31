@@ -332,9 +332,9 @@ set_union( const std::unordered_set<Key, Hash, Pred>& set1,
 }
 
   template < class Key, class Hash = std::hash<Key>,
-            class Pred = std::equal_to<Key>>
-  void print_set( const std::unordered_set<Key, Hash, Pred>& set1,
-                std::ostream& out ) {
+             class Pred = std::equal_to<Key>>
+  void print_set( std::ostream& out,
+                  const std::unordered_set<Key, Hash, Pred>& set1 ) {
     for (Key c : set1) {
       out << c << " ";
     }

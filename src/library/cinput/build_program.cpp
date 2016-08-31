@@ -159,6 +159,9 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
   for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
 }
 
+// function that takes a history as input and returns vector of z3::expr
+
+
 z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
   static unsigned count = 0;
   count++;
@@ -191,50 +194,7 @@ hb_enc::depends_set build_program::get_ctrl( const llvm::BasicBlock* b ) {
     return local_ctrl.at(b); }
 }
 
-hb_enc::depends_set build_program::join( std::vector<hb_enc::depends_set>& dep ) {
-  unsigned num = dep.size();
-  hb_enc::depends_set data_dep_ses;
-  if ( num == 1 )
-    data_dep_ses = dep.at(0);
-  else if ( num == 2 )
-    data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ) );
-  else if ( num > 2 ) {
-    data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ) );
-    for ( unsigned i = 2 ; i < num ; i++ ) {
-      data_dep_ses = join_depends_set( data_dep_ses, dep.at( i ) );
-    }
-  }
-  return data_dep_ses;
-}
 
-hb_enc::depends_set build_program::join_depends_set( hb_enc::depends_set& dep0, hb_enc::depends_set dep1 ) {
-  hb_enc::depends_set final_set;
-  for(std::set<hb_enc::depends>::iterator it0 = dep0.begin(); it0 != dep0.end(); it0++) {
-    z3::expr cond = z3.mk_false();
-    bool flag = false;
-    hb_enc::depends element0 = *it0;
-    hb_enc::se_ptr val0 = element0.e;
-    for(std::set<hb_enc::depends>::iterator it1 = dep1.begin(); it1 != dep1.end(); it1++) {
-      hb_enc::depends element1 = *it1;
-      hb_enc::se_ptr val1 = element1.e;
-      if( val0 == val1 ) {
-        cond = ( element0.cond || element1.cond );
-        cond.simplify();
-        final_set.insert( hb_enc::depends( val0, cond ) );
-        dep1.erase(it1);
-        flag = true;
-      }
-     }
-      if( !flag ) {
-        final_set.insert( hb_enc::depends( val0, element0.cond ) );}
-     }
-      if( !dep1.empty() ) {
-        for(std::set<hb_enc::depends>::iterator it = dep1.begin(); it != dep1.end(); it++) {
-          hb_enc::depends element = *it;
-          final_set.insert( hb_enc::depends( element.e, element.cond ) );}
-	}
-  return final_set;
-}
 
 z3::expr build_program::get_term( helpers::z3interf& z3_,
                                   const llvm::Value* op, ValueExprMap& vmap ) {
@@ -442,7 +402,7 @@ translateBlock( unsigned thr_id,
       }
          dep_ses0 = get_depends( op0 );
          dep_ses1 = get_depends( op1 );
-         data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
+         hb_enc::join_depends_set( dep_ses0, dep_ses1, data_dep_ses );
          local_map.insert( std::make_pair( I, data_dep_ses ));
          assert( !recognized );recognized = true;
        }
@@ -473,7 +433,7 @@ translateBlock( unsigned thr_id,
       }
       dep_ses0 = get_depends( lhs );
       dep_ses1 = get_depends( rhs );
-      data_dep_ses = join_depends_set( dep_ses0, dep_ses1 );
+      hb_enc::join_depends_set( dep_ses0, dep_ses1, data_dep_ses );
       local_map.insert( std::make_pair( I, data_dep_ses ));
       assert( !recognized );recognized = true;
     }
@@ -498,7 +458,7 @@ translateBlock( unsigned thr_id,
 	  dep_ses.push_back( temp );
           phi_cons = phi_cons || (conds.at(b) && ov == v);
         }
-        data_dep_ses = join( dep_ses );
+        hb_enc::join_depends_set( dep_ses, data_dep_ses );
         local_map.insert( std::make_pair( I, data_dep_ses ));
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
@@ -644,11 +604,13 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         // assert( succ_num );
         assert( prev->getTerminator()->getOperand(succ_num) == src );
         llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
-        if( !br->isUnconditional()) {
+        if( !br->isUnconditional() ) {
           llvm::Value* op = prev->getTerminator()->getOperand(0);
           ctrl_temp0 = get_depends( op );
           ctrl_temp1 = get_ctrl(prev);
-          ctrl_temp = join_depends_set( ctrl_temp1 , ctrl_temp0 );} //todo : is it correct?
+          hb_enc::join_depends_set( ctrl_temp1 , ctrl_temp0, ctrl_temp );
+          //todo : is it correct? Should the above be intersection
+        }
 	else if( br->isUnconditional()) {
 	  ctrl_temp = get_ctrl(prev);}
         if( succ_num == 1 ) b = !b;
@@ -661,7 +623,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
-    ctrl_dep_ses = join( ctrl_ses );
+    hb_enc::join_depends_set( ctrl_ses, ctrl_dep_ses );
     local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
     if( src == &(f.getEntryBlock()) ) {
       split_history h;
@@ -689,7 +651,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     }
     prev_events.clear();
     p->append_ssa( thread_id, ssa );
-    if( o.print_input > 0 ) helpers::debug_print(ssa );
+    if( o.print_input > 0 ) tara::debug_print(ssa );
   }
 
   split_history final_h;

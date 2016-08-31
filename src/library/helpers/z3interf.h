@@ -108,6 +108,8 @@ public:
 
   z3::sort get_variable_sort(const input::variable& var);
 
+  bool is_false( z3::expr );
+  bool is_true( z3::expr );
   bool is_sat( z3::expr ) const;
   bool entails( z3::expr e1, z3::expr e2 ) const;
 
@@ -124,14 +126,16 @@ public:
     return z3::expr(a.ctx(), r);
   }
 
+}
   //----------------
   //support for gdb
-  void debug_print(const z3::expr&);
-  void debug_print(const std::list<z3::expr>&);
-  void debug_print(const z3::model&);
-
+  void debug_print( std::ostream& out, const z3::expr& );
+  void debug_print( const z3::expr& );
+  void debug_print( const std::list<z3::expr>& );
+  void debug_print( const z3::model& );
+  void debug_print( const std::vector< z3::expr >& es );
+  void debug_print( const z3::model& m );
   //----------------
-
-}}
+}
 
 #endif // Z3INTERF_H

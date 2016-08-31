@@ -156,6 +156,8 @@ hb_enc::hb_vec remove_implied::prune( const hb_enc::hb_vec& hbs,
   return result;
 }
 
+//------------------------------------------------------------------
+// old code ready for deletetion.
 
 list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
                                         const z3::model& m )
@@ -231,8 +233,6 @@ list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
   return result;
 }
 
-//------------------------------------------------------------------
-// old code ready for deletetion.
 
 bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
                                             const hb_enc::se_ptr e2 ) {

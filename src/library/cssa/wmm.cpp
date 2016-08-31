@@ -150,95 +150,7 @@ z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,
   return b;
 }
 
-void wmm_event_cons::ses() {
-  // For each global variable we need to construct
-  // - wf  well formed
-  // - rf  read from
-  // - grf global read from
-  // - fr  from read
-  // - ws  write serialization
 
-  // z3::context& c = _z3.c;
-
-  for( const variable& v1 : p.globals ) {
-    const auto& rds = p.rd_events[v1];
-    const auto& wrs = p.wr_events[v1];
-    unsigned c_tid = 0;
-    hb_enc::se_set tid_rds;
-    for( const hb_enc::se_ptr& rd : rds ) {
-      z3::expr some_rfs = z3.c.bool_val(false);
-      z3::expr rd_v = rd->get_var_expr(v1);
-      if( rd->tid != c_tid ) {
-        tid_rds.clear();
-        c_tid = rd->tid;
-      }
-      for( const hb_enc::se_ptr& wr : wrs ) {
-        if( anti_ppo_read( wr, rd ) ) continue;
-        z3::expr wr_v = wr->get_var_expr( v1 );
-        z3::expr b = get_rf_bvar( v1, wr, rd );
-        some_rfs = some_rfs || b;
-        z3::expr eq = ( rd_v == wr_v );
-        // well formed
-        wf = wf && implies( b, wr->guard && eq);
-        // read from
-        z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
-        rf = rf && new_rf;
-        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
-        thin = thin && new_thin;
-        //global read from
-        if( in_grf( wr, rd ) ) grf = grf && new_rf;
-        // from read
-        for( const hb_enc::se_ptr& after_wr : wrs ) {
-          if( after_wr->name() != wr->name() ) {
-            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
-                          && after_wr->guard;
-            if( anti_po_loc_fr( rd, after_wr ) ) {
-              fr = fr && !cond;
-            }else{
-              auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
-              if( is_rd_rd_coherance_preserved() ) {
-                for( auto before_rd : tid_rds ) {
-                  //disable this code for rmo
-                  z3::expr anti_coherent_b =
-                    get_rf_bvar( v1, after_wr, before_rd, false );
-                  new_fr = !anti_coherent_b && new_fr;
-                }
-              }
-              fr = fr && implies( cond , new_fr );
-            }
-          }
-        }
-      }
-      wf = wf && implies( rd->guard, some_rfs );
-      tid_rds.insert( rd );
-    }
-
-    // write serialization
-    // todo: what about ws;rf
-    auto it1 = wrs.begin();
-    for( ; it1 != wrs.end() ; it1++ ) {
-      const hb_enc::se_ptr& wr1 = *it1;
-      auto it2 = it1;
-      it2++;
-      for( ; it2 != wrs.end() ; it2++ ) {
-        const hb_enc::se_ptr& wr2 = *it2;
-        if( wr1->tid != wr2->tid && // Why this condition?
-            !wr1->is_pre() && !wr2->is_pre() // no initializations
-            ) {
-          ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
-                       hb_encoding.mk_ghbs( wr2, wr1 ) );
-        }
-      }
-    }
-
-    // dependency
-    for( const hb_enc::se_ptr& wr : wrs )
-      for( auto& rd : wr->data_dependency )
-        //todo : should the following be guarded??
-          thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
-
-  }
-}
 
 
 //----------------------------------------------------------------------------
@@ -285,7 +197,7 @@ bool wmm_event_cons::anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
   return false;
 }
 
-void wmm_event_cons::new_ses() {
+void wmm_event_cons::ses() {
   // For each global variable we need to construct
   // - wf  well formed
   // - rf  read from
@@ -382,8 +294,7 @@ void wmm_event_cons::new_ses() {
     for( const hb_enc::se_ptr& wr : wrs )
       for( auto& rd : wr->data_dependency )
         //todo : should the following be guarded??
-        thin = thin && hb_encoding.mk_hb_thin( rd.e, wr );
-
+        thin = thin && z3::implies(rd.cond, hb_encoding.mk_hb_thin( rd.e, wr ));
   }
 }
 
@@ -463,49 +374,64 @@ bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
 
 bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name )) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
   return false;
 }
 
+// Note: the following function does not check dependency orderings
+// in rmo
 bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
-  bool find = false;
+  if( e1->is_barr_type() || e2->is_barr_type() ) {
+    return is_barrier_ordered( e1, e2 );
+  }
+  // bool find = false;
   assert( e1->is_mem_op() && e2->is_mem_op() );
-  std::vector<hb_enc::se_ptr> dep;
-  if(( e1->is_wr() || e1->is_rd() ) && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
-  const hb_enc::depends_set& data_ses =  e2->data_dependency;
-  const hb_enc::depends_set& ctrl_ses = e2->ctrl_dependency;
-  for(std::set<hb_enc::depends>::iterator it = data_ses.begin(); it != data_ses.end(); it++) {
-    hb_enc::depends element= *it;
-    hb_enc::se_ptr val = element.e;
-    dep.push_back(val);
-  }
-  for(std::set<hb_enc::depends>::iterator it = ctrl_ses.begin(); it != ctrl_ses.end(); it++) {
-    hb_enc::depends element= *it;
-    hb_enc::se_ptr val = element.e;
-    dep.push_back(val);
-  }
-  find = std::find(dep.begin(), dep.end(), e1) != dep.end();
-  if(( e1->is_rd() && ( e1->is_rd() || e2->is_wr() ) && find)) return true;
+  if( e1->is_mem_op() && e2->is_wr() &&
+      (e1->prog_v.name == e2->prog_v.name) ) return true;
+
+  if( e1->is_wr() ) return false;
+
+  // for( auto& dep : e2->data_dependency ) {
+  //   if( dep.e == e1 ) return true; //todo : should return conditionals
+  // }
+  // for( auto& dep : e2->ctrl_dependency ) {
+  //   if( dep.e == e1 ) return true; //todo :: should return conditionals
+  // }
   return false;
+}
+
+
+z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr e1,
+                                                const hb_enc::se_ptr e2  ) {
+  
+  assert( e1->is_mem_op() && e2->is_mem_op() );
+
+  z3::expr ret = z3.mk_emptyexpr();
+  for( auto& dep : e2->data_dependency ) {
+    if( dep.e == e1 ) {
+      ret = dep.cond;
+      break;
+    }
+  }
+  for( auto& dep : e2->ctrl_dependency ) {
+    if( dep.e == e1 ) {
+      if( ret ) ret = ret || dep.cond; else ret = dep.cond;
+      break;
+    }
+  }
+  return ret;
 }
 
 bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
   assert( e1->is_mem_op() && e2->is_mem_op() );
-  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name)) return true;
-  if( e1->is_rd() && ( e2->is_wr() || e2->is_rd()) && (e1->prog_v.name == e2->prog_v.name)) return true;
+  if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name))
+    return true;
+  if( e1->is_rd() && ( e2->is_wr() || e2->is_rd()) &&
+      (e1->prog_v.name == e2->prog_v.name)) return true;
   return false;
 }
 
@@ -527,7 +453,7 @@ bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
   return false; // dummy return
 }
 
-void wmm_event_cons::new_ppo( const tara::thread& thread ) {
+void wmm_event_cons::ppo_traverse( const tara::thread& thread ) {
   hb_enc::se_to_ses_map pending_map, ordered_map;
   auto& se = thread.start_event;
   pending_map[se].insert(se); // this is how it should start
@@ -563,7 +489,59 @@ void wmm_event_cons::new_ppo( const tara::thread& thread ) {
   }
 }
 
+//
+// due to data/ctrl dependency based orderings we need a seperate
+// traverse function for rmo
+void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
+  hb_enc::se_to_depends_map ordered_map,pending_map;
+  auto& se = thread.start_event;
+  pending_map[se].insert( hb_enc::depends( se, z3.mk_true() ) );
 
+  for( auto& e : thread.events ) {
+    pending_map[e].insert( {e , z3.mk_true() } );
+    hb_enc::depends_set tmp_pendings;
+    for( auto& ep : e->prev_events )
+      hb_enc::join_depends_set( pending_map[ep], tmp_pendings );
+    // tara::debug_print( std::cerr, tmp_pendings );
+    hb_enc::depends_set& pending = pending_map[e];
+    hb_enc::depends_set& ordered = ordered_map[e];
+    hb_enc::se_set seen_set; //todo : correct ??
+    while( !tmp_pendings.empty() ) {
+      auto dep = *tmp_pendings.begin();
+      tmp_pendings.erase( dep );
+      if( helpers::exists( seen_set, dep.e ) ) continue;
+      seen_set.insert( dep.e );
+      if( is_ordered_rmo( dep.e, e ) ) {
+        po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
+        hb_enc::insert_depends_set( dep, ordered );
+      }else if( z3::expr cond = is_ordered_dependency( dep.e, e ) ) {
+        z3::expr c = cond && dep.cond;
+        c = c.simplify();
+      // tara::debug_print( std::cerr, c );
+        if( !z3.is_false( c ) ) {
+          po = po && implies( c, hb_encoding.mk_ghbs( dep.e, e ) );
+          hb_enc::insert_depends_set( dep.e, c, ordered );
+        }
+        if( !z3.is_true( c ) ) {
+          hb_enc::insert_depends_set( dep.e, dep.cond && !cond, pending );
+          for( auto& depp : ordered_map[dep.e] )
+            hb_enc::insert_depends_set(depp.e,depp.cond && !cond, tmp_pendings);
+        }
+      }else{
+        pending.insert( dep );
+        for( auto& depp : ordered_map[dep.e] )
+          hb_enc::insert_depends_set( depp, tmp_pendings );
+      }
+    }
+  }
+
+  auto& fe = thread.final_event;
+  for( auto& e : fe->prev_events ) {
+    for( auto& dep : pending_map[e] ) {
+      po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, fe ) );
+    }
+  }
+}
 
 void wmm_event_cons::power_ppo( const tara::thread& thread ) {
   p.unsupported_mm();
@@ -579,10 +557,10 @@ void wmm_event_cons::ppo() {
                             thr.start_event->guard &&
                             hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
     if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
-    }else if( p.is_mm_tso()   ) { new_ppo( thr );
-    }else if( p.is_mm_pso()   ) { new_ppo( thr );
-    }else if( p.is_mm_rmo()   ) { new_ppo( thr );
-    }else if( p.is_mm_alpha() ) { new_ppo( thr );
+    }else if( p.is_mm_tso()   ) { ppo_traverse( thr );
+    }else if( p.is_mm_pso()   ) { ppo_traverse( thr );
+    }else if( p.is_mm_rmo()   ) { ppo_rmo_traverse( thr );
+    }else if( p.is_mm_alpha() ) { ppo_traverse( thr );
     }else if( p.is_mm_power() ) { power_ppo( thr );
     }else{                      p.unsupported_mm();
     }
@@ -600,18 +578,18 @@ void wmm_event_cons::ppo() {
   //phi_po = phi_po && barriers;
 }
 
-void wmm_event_cons::wmm_test_ppo() {
-  unsigned t;
-  po = z3.mk_true();
-  for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
-  std::cerr << "\nsc" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){new_ppo(p.get_thread(t));}
-  std::cerr << "\ntso" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){pso_ppo(p.get_thread(t));}
-  std::cerr << "\npso" << po; po = z3.mk_true();
-  for(t=0;t<p.size();t++){rmo_ppo(p.get_thread(t));}
-  std::cerr << "\nrmo" << po; po = z3.mk_true();
-}
+// void wmm_event_cons::wmm_test_ppo() {
+//   unsigned t;
+//   po = z3.mk_true();
+//   for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
+//   std::cerr << "\nsc" << po; po = z3.mk_true();
+//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
+//   std::cerr << "\ntso" << po; po = z3.mk_true();
+//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
+//   std::cerr << "\npso" << po; po = z3.mk_true();
+//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
+//   std::cerr << "\nrmo" << po; po = z3.mk_true();
+// }
 
 
 wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
@@ -629,8 +607,8 @@ void wmm_event_cons::run() {
 
   distinct_events(); // Rd/Wr events on globals are distinct
   ppo(); // build hb formulas to encode the preserved program order
-  new_ses();
-  // ses(); // build symbolic event structure
+  ses();
+  // old_ses(); // build symbolic event structure
   // barrier(); // build barrier// ppo already has the code
 
   if ( o.print_phi ) {
@@ -671,9 +649,9 @@ void wmm_event_cons::update_orderings() {
     for( unsigned i = 0; i < p.size(); i ++ ) {
       for( auto& e : p.get_thread(i).events ) {
         o.out() << e->name() << "\nbefore: ";
-        hb_enc::debug_print_se_set( p.must_before[e],  o.out() );
+        tara::debug_print( o.out(), p.must_before[e] );
         o.out() << "after: ";
-        hb_enc::debug_print_se_set( p.must_after [e],  o.out() );
+        tara::debug_print( o.out(), p.must_after [e] );
         o.out() << "\n";
       }
     }
@@ -685,12 +663,12 @@ void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
                                          hb_enc::se_ptr e ) {
   // hb_enc::se_tord_set to_be_visited = { e };
   hb_enc::se_to_ses_map local_ordered;
-  for( auto ep : es ) {
+  for( auto& ep : es ) {
     if( ep->get_topological_order() > e->get_topological_order() )
       continue;
     std::vector<hb_enc::se_set> ord_sets( ep->prev_events.size() );
     unsigned i = 0;
-    for( auto epp : ep->prev_events ) {
+    for( auto& epp : ep->prev_events ) {
       ord_sets[i] = local_ordered[epp];
       if( check_ppo( epp, e ) ) {
         ord_sets[i].insert( epp );
@@ -710,12 +688,12 @@ void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
   auto rit = es.rbegin();
   auto rend = es.rend();
   for (; rit!= rend; ++rit) {
-    auto ep = *rit;
+    auto& ep = *rit;
     if( ep->get_topological_order() < e->get_topological_order() )
       continue;
     std::vector<hb_enc::se_set> ord_sets( ep->post_events.size() );
     unsigned i = 0;
-    for( auto epp : ep->post_events ) {
+    for( auto& epp : ep->post_events ) {
       ord_sets[i] = local_ordered[epp];
       if( check_ppo( e, epp ) ) {
         ord_sets[i].insert( epp );
@@ -732,6 +710,98 @@ void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
 
 //------------------------------------------------------------------------
 // to be removed ------------------------
+
+
+void wmm_event_cons::old_ses() {
+  // For each global variable we need to construct
+  // - wf  well formed
+  // - rf  read from
+  // - grf global read from
+  // - fr  from read
+  // - ws  write serialization
+
+  // z3::context& c = _z3.c;
+
+  for( const variable& v1 : p.globals ) {
+    const auto& rds = p.rd_events[v1];
+    const auto& wrs = p.wr_events[v1];
+    unsigned c_tid = 0;
+    hb_enc::se_set tid_rds;
+    for( const hb_enc::se_ptr& rd : rds ) {
+      z3::expr some_rfs = z3.c.bool_val(false);
+      z3::expr rd_v = rd->get_var_expr(v1);
+      if( rd->tid != c_tid ) {
+        tid_rds.clear();
+        c_tid = rd->tid;
+      }
+      for( const hb_enc::se_ptr& wr : wrs ) {
+        if( anti_ppo_read( wr, rd ) ) continue;
+        z3::expr wr_v = wr->get_var_expr( v1 );
+        z3::expr b = get_rf_bvar( v1, wr, rd );
+        some_rfs = some_rfs || b;
+        z3::expr eq = ( rd_v == wr_v );
+        // well formed
+        wf = wf && implies( b, wr->guard && eq);
+        // read from
+        z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
+        rf = rf && new_rf;
+        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
+        thin = thin && new_thin;
+        //global read from
+        if( in_grf( wr, rd ) ) grf = grf && new_rf;
+        // from read
+        for( const hb_enc::se_ptr& after_wr : wrs ) {
+          if( after_wr->name() != wr->name() ) {
+            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+                          && after_wr->guard;
+            if( anti_po_loc_fr( rd, after_wr ) ) {
+              fr = fr && !cond;
+            }else{
+              auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
+              if( is_rd_rd_coherance_preserved() ) {
+                for( auto before_rd : tid_rds ) {
+                  //disable this code for rmo
+                  z3::expr anti_coherent_b =
+                    get_rf_bvar( v1, after_wr, before_rd, false );
+                  new_fr = !anti_coherent_b && new_fr;
+                }
+              }
+              fr = fr && implies( cond , new_fr );
+            }
+          }
+        }
+      }
+      wf = wf && implies( rd->guard, some_rfs );
+      tid_rds.insert( rd );
+    }
+
+    // write serialization
+    // todo: what about ws;rf
+    auto it1 = wrs.begin();
+    for( ; it1 != wrs.end() ; it1++ ) {
+      const hb_enc::se_ptr& wr1 = *it1;
+      auto it2 = it1;
+      it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const hb_enc::se_ptr& wr2 = *it2;
+        if( wr1->tid != wr2->tid && // Why this condition?
+            !wr1->is_pre() && !wr2->is_pre() // no initializations
+            ) {
+          ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
+                       hb_encoding.mk_ghbs( wr2, wr1 ) );
+        }
+      }
+    }
+
+    // dependency
+    for( const hb_enc::se_ptr& wr : wrs )
+      for( auto& rd : wr->data_dependency )
+        //todo : should the following be guarded??
+        thin = thin && z3::implies( rd.cond,
+                                    hb_encoding.mk_hb_thin( rd.e, wr ));
+
+  }
+}
 
 void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   unsigned tsize = thread.size();

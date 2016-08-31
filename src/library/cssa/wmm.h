@@ -51,6 +51,8 @@ namespace cssa {
     void distinct_events();
 
     bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    z3::expr is_ordered_dependency( const hb_enc::se_ptr,
+                                    const hb_enc::se_ptr);
     bool is_ordered_sc     ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
@@ -58,8 +60,10 @@ namespace cssa {
     bool is_ordered_alpha  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
     bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
 
+    void ppo_traverse ( const tara::thread& );
+    void ppo_rmo_traverse ( const tara::thread& );
+
     void new_ppo_sc   ( const tara::thread& );
-    void new_ppo  ( const tara::thread& );
     void new_ppo_pso  ( const tara::thread& );
     void new_ppo_rmo  ( const tara::thread& );
     void new_ppo_alpha( const tara::thread& );
@@ -73,7 +77,7 @@ namespace cssa {
     void power_ppo( const tara::thread& );
     void ppo();
 
-    void wmm_test_ppo(); // TODO: remove when confident
+    // void wmm_test_ppo(); // TODO: remove when confident
 
     void unsupported_mm() const;
 
@@ -82,7 +86,7 @@ namespace cssa {
                              const hb_enc::se_ptr& wr );
 
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_ppo_read ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
     bool is_rd_rd_coherance_preserved();
 
@@ -93,8 +97,8 @@ namespace cssa {
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                           bool record=true );
 
+    void old_ses();
     void ses();
-    void new_ses();
 
     z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
     z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );

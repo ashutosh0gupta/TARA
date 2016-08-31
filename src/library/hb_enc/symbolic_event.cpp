@@ -207,11 +207,87 @@ bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
 //   return true;
 // }
 
-void tara::hb_enc::debug_print_se_set( const hb_enc::se_set& set,
-                                       std::ostream& out ) {
+
+void
+hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
+                          hb_enc::depends_set& result ) {
+  result.clear();
+  unsigned num = dep.size();
+  // hb_enc::depends_set data_dep_ses;
+  if ( num == 1 )
+    result = dep.at(0);
+  else if ( num == 2 )
+    join_depends_set( dep.at(0), dep.at( 1 ), result );
+  else if ( num > 2 ) {
+    // data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ), result );
+    for ( unsigned i = 0 ; i < num ; i++ ) {
+      join_depends_set( dep.at( i ), result );
+    }
+  }
+  // return data_dep_ses;
+}
+
+  //todo : make depends set efficient
+  //       make it a well implemented class
+
+void hb_enc::insert_depends_set( const hb_enc::se_ptr& e1,
+                                 const z3::expr cond1,
+                                 depends_set& set ) {
+  z3::expr cond = cond1;
+  for( auto it1 = set.begin(); it1 != set.end(); it1++) {
+    const hb_enc::depends& dep2 = *it1;
+    hb_enc::se_ptr e2 = dep2.e;
+    if( e1 == e2 ) {
+      cond = ( cond || dep2.cond );
+      cond = cond.simplify();
+      set.erase(it1);
+      break;
+    }
+  }
+  set.insert( hb_enc::depends( e1, cond ) );
+
+}
+
+void hb_enc::insert_depends_set( const hb_enc::depends& dep,
+                                 hb_enc::depends_set& set ) {
+  // hb_enc::se_ptr e1 = dep.e;
+  // z3::expr cond = dep.cond;
+  insert_depends_set( dep.e, dep.cond, set );
+}
+
+void hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
+                               hb_enc::depends_set& dep1 ) {
+  for( auto element0 : dep0 )
+    hb_enc::insert_depends_set( element0, dep1 );
+}
+
+
+void
+hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
+                          const hb_enc::depends_set& dep1,
+                          hb_enc::depends_set& set ) {
+  set = dep1;
+  join_depends_set( dep0, set );
+}
+
+
+void tara::debug_print( std::ostream& out, const hb_enc::se_set& set ) {
   for (auto c : set) {
     out << *c << " ";
-    }
+  }
+  out << std::endl;
+}
+
+void tara::debug_print( std::ostream& out, const hb_enc::depends& dep ) {
+  out << "("<< *(dep.e) << ",";
+  debug_print( out, dep.cond );
+  out << ")";
+}
+
+void tara::debug_print( std::ostream& out, const hb_enc::depends_set& set ) {
+  for (auto dep : set) {
+    debug_print( out, dep );
+  }
   out << std::endl;
 }
 
