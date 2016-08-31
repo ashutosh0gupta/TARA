@@ -160,6 +160,11 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
 }
 
 // function that takes a history as input and returns vector of z3::expr
+void split_history_to_exprs( const split_history& h,
+                             std::vector<z3::expr> history_exprs ) {
+  history_exprs.clear();
+  for( auto& step : h ) history_exprs.push_back( step.cond );
+}
 
 
 z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
@@ -267,6 +272,7 @@ translateBlock( unsigned thr_id,
                 const llvm::BasicBlock* b,
                 hb_enc::se_set& prev_events,
                 z3::expr& path_cond,
+                std::vector< z3::expr >& history,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
   assert(b);
   z3::expr block_ssa = z3.mk_true();
@@ -286,7 +292,7 @@ translateBlock( unsigned thr_id,
       hb_enc::se_set new_events;
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
-        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond, history,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
         data_dep_ses.clear();
@@ -306,7 +312,7 @@ translateBlock( unsigned thr_id,
           z3::expr c = a_pair.first;
           cssa::variable gv = a_pair.second;
           z3::expr path_cond_c = path_cond && c;
-          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
+          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,history,
                                gv, loc_name, hb_enc::event_t::w );
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
@@ -331,7 +337,7 @@ translateBlock( unsigned thr_id,
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                               gv, loc_name, hb_enc::event_t::r );
+                               history, gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.clear();
           data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
           local_map.insert( std::make_pair( I, data_dep_ses ));
@@ -348,7 +354,7 @@ translateBlock( unsigned thr_id,
             cssa::variable gv = a_pair.second;
             z3::expr path_cond_c = path_cond && c;
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
-                                 gv, loc_name, hb_enc::event_t::r );
+                                 history, gv, loc_name, hb_enc::event_t::r );
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
           }
@@ -510,7 +516,7 @@ translateBlock( unsigned thr_id,
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
           std::string loc_name = "fence__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                                 loc_name, hb_enc::event_t::barr );
+                                 history, loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
@@ -523,7 +529,7 @@ translateBlock( unsigned thr_id,
           }
           std::string loc_name = "create__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                                 loc_name, hb_enc::event_t::barr_b );
+                                 history, loc_name, hb_enc::event_t::barr_b );
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
           p->add_create( thr_id, barr, fname );
@@ -539,7 +545,7 @@ translateBlock( unsigned thr_id,
           path_cond = path_cond && join_cond;
           std::string loc_name = "join__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                                 loc_name, hb_enc::event_t::barr_a );
+                                 history, loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, join_cond, fname);
           join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
@@ -568,8 +574,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
 
   z3::expr start_bit = fresh_bool();
+  std::vector< z3::expr > history = { start_bit };
   auto start = mk_se_ptr( hb_encoding, thread_id, prev_events, start_bit,
-                          name, hb_enc::event_t::barr );
+                          history, name, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
     p->create_map[ "main" ] = p->init_loc;
@@ -642,7 +649,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       // for( auto pair_ : conds ) p->append_property( thread_id, pair_.second );
       continue;
     }
-    z3::expr ssa = translateBlock(thread_id, src, prev_events,path_cond,conds);
+    std::vector<z3::expr> history_exprs;
+    split_history_to_exprs( h, history_exprs );
+    z3::expr ssa = translateBlock( thread_id, src, prev_events,
+                                   path_cond, history_exprs, conds);
     block_to_trailing_events[src] = prev_events;
     if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
       final_prev_events.insert( prev_events.begin(), prev_events.end() );
@@ -659,8 +669,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   z3::expr exit_cond = z3.mk_true();
   join_histories( final_preds, final_histories, final_h, exit_cond, conds);
 
+  std::vector<z3::expr> history_exprs;
+  split_history_to_exprs( final_h, history_exprs );
+
   auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events, exit_cond,
-                          name+"_final", hb_enc::event_t::barr );
+                          history_exprs, name+"_final", hb_enc::event_t::barr );
+
   p->set_final_event( thread_id, final, exit_cond );
   p->update_post_events();
 

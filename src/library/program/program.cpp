@@ -121,7 +121,9 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
 
   void thread::update_post_events() {
     for( hb_enc::se_ptr& e : events ) {
+      auto& e_h= e->history;
       for( const hb_enc::se_ptr& ep : e->prev_events ) {
+        auto& ep_h = ep->history;
         ep->add_post_events( e );
       }
     }

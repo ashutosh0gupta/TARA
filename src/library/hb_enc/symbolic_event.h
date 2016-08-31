@@ -178,7 +178,7 @@ namespace hb_enc {
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, std::vector<z3::expr> history_,
+             z3::expr& cond, std::vector<z3::expr>& history_,
              const cssa::variable& prog_v, std::string loc,
              event_t _et ) {
     cssa::variable ssa_v = prog_v + "#" + loc;
@@ -192,7 +192,7 @@ namespace hb_enc {
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, std::vector<z3::expr> history_,
+             z3::expr& cond, std::vector<z3::expr>& history_,
              std::string loc, event_t et ) {
     se_ptr e =
       std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, loc, et );
