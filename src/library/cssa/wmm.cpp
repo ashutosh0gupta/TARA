@@ -693,7 +693,9 @@ void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
       continue;
     std::vector<hb_enc::se_set> ord_sets( ep->post_events.size() );
     unsigned i = 0;
-    for( auto& epp : ep->post_events ) {
+    for( auto it = ep->post_events.begin(); it != ep->post_events.end(); it++) {
+      const hb_enc::depends& dep = *it;
+      hb_enc::se_ptr epp = dep.e;
       ord_sets[i] = local_ordered[epp];
       if( check_ppo( e, epp ) ) {
         ord_sets[i].insert( epp );
