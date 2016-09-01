@@ -282,22 +282,15 @@ void barrier_synthesis::succ( hb_enc::se_ptr e,
       next_set.push_back( {it.second,edge_type::hb} );
     }
   }
-  const hb_enc::se_vec& es = event_lists.at( e->tid );
-  auto it = es.begin();
-  for(;it < es.end();it++) {
-    if( *it == e ) break;
+  const hb_enc::depends_set after = program->may_after.at(e);
+  for(std::set<hb_enc::depends>::iterator it = after.begin(); it != after.end(); it++) {
+    hb_enc::depends dep = *it;
+    z3::expr cond = dep.cond;
+    if( filter.find( e ) != filter.end() ) continue;
+    if( dep.cond ) next_set.push_back( {dep.e, edge_type::ppo } );
+    else next_set.push_back( {dep.e, edge_type::rpo } );
   }
-  for(;it < es.end();it++) {
-    hb_enc::se_ptr a = *it;
-    if( a->get_instr_no() != e->get_instr_no() ) break;
-    if( a->is_wr() && e->is_rd() ) break;
-  }
-  for(;it < es.end();it++) {
-    hb_enc::se_ptr a = *it;
-      if( filter.find( a ) == filter.end() ) continue;
-    next_set.push_back( {a, is_ppo(e, a) });
     // break; // todo <- do we miss anything
-  }
 }
 
 
