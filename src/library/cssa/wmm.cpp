@@ -505,12 +505,13 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
     // tara::debug_print( std::cerr, tmp_pendings );
     hb_enc::depends_set& pending = pending_map[e];
     hb_enc::depends_set& ordered = ordered_map[e];
-    hb_enc::se_set seen_set; //todo : correct ??
     while( !tmp_pendings.empty() ) {
-      auto dep = *tmp_pendings.begin();
-      tmp_pendings.erase( dep );
-      if( helpers::exists( seen_set, dep.e ) ) continue;
-      seen_set.insert( dep.e );
+      //todo: does ordered access solve the problem
+      auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
+      // auto dep = *tmp_pendings.begin();
+      // tmp_pendings.erase( dep ); // todo : pick the maximal element
+      // if( helpers::exists( seen_set, dep.e ) ) continue;
+      // seen_set.insert( dep.e );
       if( is_ordered_rmo( dep.e, e ) ) {
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
         hb_enc::insert_depends_set( dep, ordered );
@@ -529,8 +530,9 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
         }
       }else{
         pending.insert( dep );
-        for( auto& depp : ordered_map[dep.e] )
-          hb_enc::insert_depends_set( depp, tmp_pendings );
+        hb_enc::join_depends_set( ordered_map[dep.e], tmp_pendings );
+        // for( auto& depp : ordered_map[dep.e] )
+        //   hb_enc::insert_depends_set( depp, tmp_pendings );
       }
     }
   }
