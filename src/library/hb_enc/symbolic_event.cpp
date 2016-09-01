@@ -133,8 +133,8 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
   prev_events = prev_events_;
 }
 
-void symbolic_event::add_post_events( se_ptr& e) {
-  post_events.insert( e );
+void symbolic_event::add_post_events( se_ptr& e, z3::expr cond ) {
+  post_events.insert( hb_enc::depends( e, cond) );
 }
 
 void symbolic_event::debug_print( std::ostream& stream ) {

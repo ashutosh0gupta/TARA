@@ -86,7 +86,7 @@ namespace hb_enc {
     event_t et;
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
-    se_set post_events;
+    hb_enc::depends_set post_events;
     z3::expr guard;
     std::vector<z3::expr> history;
     depends_set data_dependency;
@@ -135,7 +135,7 @@ namespace hb_enc {
     }
 
     void set_pre_events( se_set& );
-    void add_post_events( se_ptr& );
+    void add_post_events( se_ptr&, z3::expr );
 
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
