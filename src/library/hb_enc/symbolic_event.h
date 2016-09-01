@@ -135,7 +135,7 @@ namespace hb_enc {
     }
 
     void set_pre_events( se_set& );
-    void add_post_events( se_ptr& );
+    void add_post_events( se_ptr&, z3::expr );
 
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
@@ -255,6 +255,7 @@ namespace hb_enc {
                               cssa::variable_equal> var_to_depends_map;
 
 
+  depends pick_maximal_depends_set( hb_enc::depends_set& set );
   void insert_depends_set( const se_ptr&, const z3::expr, depends_set& set );
   void insert_depends_set( const depends& dep, depends_set& set );
   void join_depends_set( const depends_set& , depends_set& );

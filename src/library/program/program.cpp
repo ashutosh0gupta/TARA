@@ -121,10 +121,17 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
 
   void thread::update_post_events() {
     for( hb_enc::se_ptr& e : events ) {
-      auto& e_h= e->history;
+      const auto& e_h= e->history;
       for( const hb_enc::se_ptr& ep : e->prev_events ) {
-        auto& ep_h = ep->history;
-        ep->add_post_events( e );
+        const auto& ep_h = ep->history;
+        unsigned min_size = std::min( e_h.size(), ep_h.size() );
+        unsigned i =0;
+        for(; i < min_size; i++  ) {
+          if( !z3::eq( e_h[i],ep_h[i] ) ) {
+            break;
+          }
+        }
+        ep->add_post_events( e, e_h[i]); // todo : wrong code 
       }
     }
   }

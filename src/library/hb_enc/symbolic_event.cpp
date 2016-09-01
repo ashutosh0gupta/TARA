@@ -133,8 +133,8 @@ void symbolic_event::set_pre_events( se_set& prev_events_) {
   prev_events = prev_events_;
 }
 
-void symbolic_event::add_post_events( se_ptr& e) {
-  //post_events.insert( e );
+void symbolic_event::add_post_events( se_ptr& e, z3::expr cond ) {
+  post_events.insert( hb_enc::depends( e, cond) );
 }
 
 void symbolic_event::debug_print( std::ostream& stream ) {
@@ -208,6 +208,9 @@ bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
 // }
 
 
+//------------------------------------------------------------------------
+// depends set utilities
+
 void
 hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
                           hb_enc::depends_set& result ) {
@@ -270,6 +273,20 @@ hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
   join_depends_set( dep0, set );
 }
 
+
+hb_enc::depends
+hb_enc::pick_maximal_depends_set( hb_enc::depends_set& set ) {
+  //todo : get depends set ordered
+  unsigned ord = 0;
+  depends d = *set.begin(); //todo : dummy initialization
+  for( auto& dep : set ) {
+    if( dep.e->get_topological_order() > ord ) d = dep;
+  }
+  set.erase( d );
+  return d;
+}
+
+//------------------------------------------------------------------------
 
 void tara::debug_print( std::ostream& out, const hb_enc::se_set& set ) {
   for (auto c : set) {
