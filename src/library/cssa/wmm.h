@@ -118,6 +118,8 @@ namespace cssa {
     void update_orderings();
     void update_must_before( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void update_must_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
+    void update_may_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
+    void pointwise_and ( z3::expr cond, hb_enc::depends_set dep );
   };
 
 }}
