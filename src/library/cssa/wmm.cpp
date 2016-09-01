@@ -642,6 +642,12 @@ void wmm_event_cons::update_orderings() {
     for (; rit!= rend; ++rit)
       update_must_after( p.get_thread(i).events, *rit );
   }
+  for( unsigned i = 0; i < p.size(); i ++ ) {
+    auto rit = p.get_thread(i).events.rbegin();
+    auto rend = p.get_thread(i).events.rend();
+    for (; rit!= rend; ++rit)
+      update_may_after( p.get_thread(i).events, *rit );
+  }
   if( o.print_input > 2 ) {
     o.out() << "============================\n";
     o.out() << "must after/before relations:\n";
