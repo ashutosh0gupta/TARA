@@ -107,6 +107,10 @@ hb::operator z3::expr () const {
   return expr;
 }
 
+  z3::expr hb::get_guarded_forbid_expr() {
+    return implies( e1->guard && e2->guard, !expr );
+  }
+
 hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
   loc1(location1), loc2(location2), expr(expr)
 {
@@ -287,6 +291,22 @@ z3::expr encoding::mk_hbs(const se_set& before, const se_set& after) {
 hb encoding::mk_hb_thin(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->thin_v, after->thin_v );
 }
+
+  z3::expr encoding::mk_guarded_forbid_expr( const hb_enc::hb_vec& vec ) {
+    z3::expr hbs = ctx.bool_val(true);
+    for( auto& hb : vec ) {
+      hbs = hbs && hb->get_guarded_forbid_expr();
+    }
+    return hbs;
+  }
+
+  z3::expr encoding::mk_expr( const hb_enc::hb_vec& vec ) {
+    z3::expr hbs = ctx.bool_val(true);
+    for( auto& hb : vec ) {
+      hbs = hbs && *hb;
+    }
+    return hbs;
+  }
 
 bool encoding::eval_hb( const z3::model& m,
                         const se_ptr& before, const se_ptr& after ) const{

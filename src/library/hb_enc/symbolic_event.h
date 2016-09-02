@@ -41,6 +41,7 @@ namespace hb_enc {
       barr, // barrier events
       barr_b, // only order before events
       barr_a, // only order after events
+      block,  // events that indicate the heads of blocks
       post  // final event
       };
 
@@ -103,9 +104,10 @@ namespace hb_enc {
     inline bool is_before_barrier() const { return et == event_t::barr_b; }
     inline bool is_after_barrier () const { return et == event_t::barr_a; }
     inline bool is_barr_type()      const {
-      return is_barrier() || is_before_barrier() || is_after_barrier();
+      return is_barrier() || is_before_barrier() || is_after_barrier() ||
+        is_block_head ();
     }
-
+    inline bool is_block_head ()    const { return et == event_t::block;  }
     inline bool is_post()           const { return et == event_t::post;   }
     inline bool is_mem_op()         const { return is_rd() || is_wr();    }
 

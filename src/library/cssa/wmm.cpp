@@ -340,6 +340,7 @@ void wmm_event_cons::new_ppo_sc( const tara::thread& thread ) {
 
 bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
                                          const hb_enc::se_ptr e2  ) {
+  if( e2->is_block_head() || e2->is_block_head() ) return false;
   if( e2->is_barrier() || e2->is_before_barrier() ) return true;
   if( e1->is_barrier() || e1->is_after_barrier()  ) return true;
   if( e2->is_after_barrier() || e1->is_before_barrier()  ) return false;

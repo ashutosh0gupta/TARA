@@ -105,6 +105,7 @@ public:
   location_ptr loc1; //todo : to be removed
   location_ptr loc2; //todo : to be removed
   operator z3::expr () const;
+  z3::expr get_guarded_forbid_expr();
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
   hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
   hb( se_ptr e1, location_ptr loc1,
@@ -131,6 +132,7 @@ private:
 
 typedef std::shared_ptr<hb_enc::hb> hb_ptr;
 typedef std::vector<hb_ptr> hb_vec;
+
 
 struct as {
 public:
@@ -173,6 +175,9 @@ public:
   z3::expr mk_ghbs( const se_ptr& before, const se_set& after );
   z3::expr mk_ghbs( const se_set& before, const se_ptr& after );
   z3::expr mk_ghb_thin( const se_ptr& before, const se_ptr& after );
+
+  z3::expr mk_guarded_forbid_expr( const hb_vec& );
+  z3::expr mk_expr( const hb_vec& );
 
   bool eval_hb( const z3::model& m, const se_ptr& before, const se_ptr& after ) const;
 

@@ -131,7 +131,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
             break;
           }
         }
-        ep->add_post_events( e, e_h[i]); // todo : wrong code 
+        ep->add_post_events( e, e->guard ); // todo : wrong code
       }
     }
   }

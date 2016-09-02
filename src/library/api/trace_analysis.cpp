@@ -260,6 +260,10 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
       o.out() << endl << endl;
     }
     //o.out() << forbid.simplify() << endl;
+    // if( program->is_mm_declared() ) {
+    //   z3::expr guarded_forbid = hb_encoding.mk_guarded_forbid_expr(hbs);
+    //   sol_bad.add(guarded_forbid);
+    // }else
     sol_bad.add(!forbid);
     result = result || forbid;
     auto end_time = chrono::steady_clock::now();
