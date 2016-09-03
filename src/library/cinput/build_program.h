@@ -47,7 +47,7 @@ namespace cinput {
   z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t );
   std::string getInstructionLocationName(const llvm::Instruction* I );
   void initBlockCount( llvm::Function &f,
-                       std::map<llvm::BasicBlock*, unsigned>& block_to_id);
+                       std::map<const llvm::BasicBlock*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
   //-------------------------------------------------------
 
@@ -101,7 +101,7 @@ namespace cinput {
     tara::program* p;
     unsigned inst_counter = 0;
     ValueExprMap valMap;
-    std::map< llvm::BasicBlock*, unsigned> block_to_id;
+    std::map< const llvm::BasicBlock*, unsigned> block_to_id;
     std::map< const llvm::BasicBlock*, split_history > block_to_split_stack;
     std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
     std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;

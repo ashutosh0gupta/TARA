@@ -46,28 +46,28 @@ namespace prune {
     }
   }
   
-  z3::expr apply_prune_chain(const prune_chain& prune_chain, list< z3::expr >& hbs, const z3::model& m, unsigned print_pruning, ostream& print_out, const hb_enc::encoding& hb_encoding) {
-    if (print_pruning >= 2) {
-      print_out << "Original constraint for this ctex" << endl;
-      print_hbs(hbs, hb_encoding, print_out);
-    }
+  // z3::expr apply_prune_chain(const prune_chain& prune_chain, list< z3::expr >& hbs, const z3::model& m, unsigned print_pruning, ostream& print_out, const hb_enc::encoding& hb_encoding)  {
+  //   if (print_pruning >= 2) {
+  //     print_out << "Original constraint for this ctex" << endl;
+  //     print_hbs(hbs, hb_encoding, print_out);
+  //   }
     
-    for (unsigned i = 0; i < prune_chain.size(); i++) {
-      hbs = prune_chain[i]->prune(hbs, m);
-      if (print_pruning >= 1) {
-        print_out << "Constraint after " << prune_chain[i]->name() << endl;
-        print_hbs(hbs, hb_encoding, print_out);
-        /*boost::filesystem::ofstream dot_file(cmd_options->output_dir/("round" + to_string(cmd_options->round) + "_" + to_string(i) + "_" + prune_chain[i]->name() + ".dot"));
-         prune_chain*[i]->program.print_dot(dot_file, res);
-        dot_file.close();*/
-      }
-    }
+  //   for (unsigned i = 0; i < prune_chain.size(); i++) {
+  //     hbs = prune_chain[i]->prune(hbs, m);
+  //     if (print_pruning >= 1) {
+  //       print_out << "Constraint after " << prune_chain[i]->name() << endl;
+  //       print_hbs(hbs, hb_encoding, print_out);
+  //       /*boost::filesystem::ofstream dot_file(cmd_options->output_dir/("round" + to_string(cmd_options->round) + "_" + to_string(i) + "_" + prune_chain[i]->name() + ".dot"));
+  //        prune_chain*[i]->program.print_dot(dot_file, res);
+  //       dot_file.close();*/
+  //     }
+  //   }
     
-    z3::expr final = m.ctx().bool_val(true);
-    for(auto r : hbs)
-      final = final && r;
-    return final;
-  }
+  //   z3::expr final = m.ctx().bool_val(true);
+  //   for(auto r : hbs)
+  //     final = final && r;
+  //   return final;
+  // }
 
   void print_hbs( const hb_enc::hb_vec& hbs, ostream& print_out ) {
     for (auto& hb : hbs) {

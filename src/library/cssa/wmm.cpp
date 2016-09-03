@@ -340,7 +340,7 @@ void wmm_event_cons::new_ppo_sc( const tara::thread& thread ) {
 
 bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
                                          const hb_enc::se_ptr e2  ) {
-  if( e2->is_block_head() || e2->is_block_head() ) return false;
+  if( e1->is_block_head() || e2->is_block_head()  ) return false;
   if( e2->is_barrier() || e2->is_before_barrier() ) return true;
   if( e1->is_barrier() || e1->is_after_barrier()  ) return true;
   if( e2->is_after_barrier() || e1->is_before_barrier()  ) return false;
@@ -350,22 +350,13 @@ bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
 
 bool wmm_event_cons::is_ordered_sc( const hb_enc::se_ptr e1,
                                     const hb_enc::se_ptr e2  ) {
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
+  assert( e1->is_mem_op() && e2->is_mem_op() );
 
   return true;
-  // assert( e1->is_mem_op() && e2->is_mem_op() );
-  // if( e1->is_wr() && e2->is_wr() ) return true;
-  // if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
-  // return false;
 }
 
 bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
                                      const hb_enc::se_ptr e2  ) {
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
 
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() ) return true;
@@ -395,12 +386,6 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
 
   if( e1->is_wr() ) return false;
 
-  // for( auto& dep : e2->data_dependency ) {
-  //   if( dep.e == e1 ) return true; //todo : should return conditionals
-  // }
-  // for( auto& dep : e2->ctrl_dependency ) {
-  //   if( dep.e == e1 ) return true; //todo :: should return conditionals
-  // }
   return false;
 }
 
@@ -442,11 +427,10 @@ bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
     return is_barrier_ordered( e1, e2 );
   }
 
-  // bool flag = false;
   if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
   }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
   }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
-  }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 );
+  }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
   }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
   }else{    p.unsupported_mm();
   }
@@ -532,8 +516,6 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
       }else{
         pending.insert( dep );
         hb_enc::join_depends_set( ordered_map[dep.e], tmp_pendings );
-        // for( auto& depp : ordered_map[dep.e] )
-        //   hb_enc::insert_depends_set( depp, tmp_pendings );
       }
     }
   }

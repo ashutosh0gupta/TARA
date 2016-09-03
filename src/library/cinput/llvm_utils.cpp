@@ -91,7 +91,7 @@ std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
 }
 
 void cinput::initBlockCount( llvm::Function &f,
-                          std::map<llvm::BasicBlock*, unsigned>& block_to_id) {
+                     std::map<const llvm::BasicBlock*, unsigned>& block_to_id) {
   unsigned l = 0;
   block_to_id.clear();
   for( auto it  = f.begin(), end = f.end(); it != end; it++ ) {

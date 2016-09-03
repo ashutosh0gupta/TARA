@@ -274,6 +274,14 @@ translateBlock( unsigned thr_id,
                 z3::expr& path_cond,
                 std::vector< z3::expr >& history,
                 std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
+
+  std::string loc_name = "block__" + std::to_string(thr_id)
+                             + "__"+ std::to_string(block_to_id[b]);
+  auto block = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                         history, loc_name, hb_enc::event_t::block );
+  p->add_event( thr_id, block );
+  prev_events.clear(); prev_events.insert( block );
+
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   z3::expr join_conds = z3.mk_true();
