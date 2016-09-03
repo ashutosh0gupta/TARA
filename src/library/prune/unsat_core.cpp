@@ -42,7 +42,6 @@ list< z3::expr > unsat_core::prune(const list< z3::expr >& hbs, const z3::model&
   sol_good.push();
   // insert initial variable valuation
   z3::expr initial = program.get_initial(m);
-  //cout << initial << endl;
   sol_good.add(program.get_initial(m));
   list< z3::expr > hbsn = hbs;
   z3interf::min_unsat<z3::expr>(sol_good, hbsn, [](z3::expr e) { return e; });
@@ -58,14 +57,15 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   sol_good.push();
   // insert initial variable valuation
   z3::expr initial = program.get_initial(m);
-  //cout << initial << endl;
+  unsigned i = 0;
   for( auto& hb : hbs ) {
+    i++;
     z3::expr h_expr = (*hb);
     hbs_expr.push_back( h_expr );
     if( hb->e1 && hb->e2 ) {
       z3::expr e = hb->e1->guard && hb->e2->guard;
-      // std::cout << hb->e1->name() << hb->e2->name() << " " << e << "\n";
-      sol_good.add(e);
+      std::cout << i << " " << hb->e1->name() << hb->e2->name() << " " << e << "\n";
+      //sol_good.add(e);
     }
   }
 

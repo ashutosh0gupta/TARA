@@ -408,7 +408,7 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
 z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr e1,
                                                 const hb_enc::se_ptr e2  ) {
   
-  assert( e1->is_mem_op() && e2->is_mem_op() );
+  if( !(e1->is_mem_op() && e2->is_mem_op()) ) return z3.mk_emptyexpr();
 
   z3::expr ret = z3.mk_emptyexpr();
   for( auto& dep : e2->data_dependency ) {
