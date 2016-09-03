@@ -214,10 +214,20 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
       if( i == 1 ) z3_.mk_true(); else z3_.mk_false();
     }else
       cinput_error( "unrecognized constant!" );
+
   }else if( llvm::isa<llvm::ConstantPointerNull>(op) ) {
     cinput_error( "Constant pointer are not implemented!!" );
     // }else if( LLCAST( llvm::ConstantPointerNull, c, op) ) {
     return z3_.c.int_val(0);
+  }else if( llvm::isa<llvm::UndefValue>(op) ) {
+    llvm::Type* ty = op->getType();
+    if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
+      int bw = i_ty->getBitWidth();
+      if(bw == 32 || bw == 64 ) { return fresh_int( z3_ );
+      }else if(      bw == 1  ) { return fresh_bool( z3_ );
+      }
+    }
+    cinput_error("unsupported type!!");
   }else if( llvm::isa<llvm::Constant>(op) ) {
     cinput_error( "non int constants are not implemented!!" );
     std::cerr << "un recognized constant!";
