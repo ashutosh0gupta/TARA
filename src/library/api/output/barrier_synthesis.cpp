@@ -18,7 +18,7 @@
  *
  */
 
-
+#include "program/program.h"
 #include "output_exception.h"
 #include "barrier_synthesis.h"
 #include "api/output/output_base_utilities.h"
@@ -709,6 +709,79 @@ void barrier_synthesis::gen_max_sat_problem() {
 
 }
 
+void barrier_synthesis::gen_max_sat_problem_new() {
+  z3::context& z3_ctx = sol_bad->ctx();
+  for( unsigned t = 0; t < program->size(); t++ ) {
+     const auto& thread = program->get_thread( t );
+     for( const auto& e : thread.events ) {
+       z3::expr h = get_fresh_bool();
+       event_bit_map.insert({ e, h });
+       soft.push_back( !h );
+     }
+  }
+  for( auto& cycles : all_cycles ) {
+      for( auto& cycle : cycles ) {
+        bool found = false;
+        for( auto edge : cycle.edges ) {
+          if( edge.type==edge_type::rpo ) {
+            //check each edge for rpo: push them in another vector
+            //compare the edges in same thread
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
+            found = true;
+          }
+        }
+        if( !found )
+          throw output_exception( "cycles found without any relaxed program oders!!");
+      }
+  }
+
+  for( auto it = tid_to_se_ptr.begin();  it != tid_to_se_ptr.end(); it++ ) {
+    hb_enc::se_vec& vec = it->second;
+    std::sort( vec.begin(), vec.end(), cmp );
+    vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
+    for(auto e : vec ) {
+      z3::expr s = get_fresh_bool();
+      // std::cout << s << e->name() << endl;
+      segment_map.insert( {e,s} );
+      soft.push_back( !s);
+    }
+  }
+
+  z3::expr hard = z3_ctx.bool_val(true);
+  for( auto& cycles : all_cycles ) {
+    if( cycles.size() == 0 ) continue; // throw error unfixable situation
+    z3::expr c_disjunct = z3_ctx.bool_val(false);
+    for( auto& cycle : cycles ) {
+      z3::expr r_conjunct = z3_ctx.bool_val(true);
+      for( auto edge : cycle.edges ) {
+        if( edge.type==edge_type::rpo ) {
+          //unsigned tid = edge.before->tid;
+          //auto& events = tid_to_se_ptr.at(tid);
+          z3::expr s_disjunct = z3_ctx.bool_val(false);
+          s_disjunct = mk_edge_constraint( edge.before, edge.after, hard );
+          // bool in_range = false;
+          // for( auto e : events ) {
+          //    if( e == edge.before ) in_range = true;
+          //    if( e == edge.after ) break;
+          //    if( in_range ) {
+          //      auto find_z3 = segment_map.find( e );
+          //      s_disjunct = s_disjunct || find_z3->second;
+          //    }
+          //}
+          r_conjunct = r_conjunct && s_disjunct;
+        }
+      }
+      z3::expr c = get_fresh_bool();
+      // z3_to_cycle.insert({c, &cycle});
+      c_disjunct = c_disjunct || c;
+      hard = hard && implies( c, r_conjunct );
+    }
+    hard = hard && c_disjunct;
+  }
+  cut.push_back( hard );
+
+}
 // ===========================================================================
 // max sat code
 
