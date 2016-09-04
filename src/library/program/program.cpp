@@ -346,7 +346,9 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
         hb_enc::se_ptr wr = std::get<1>(it);
         hb_enc::se_ptr rd = std::get<2>(it);
-        print_edge( stream, wr, rd, "blue" );
+        if( rd->e_v->thread == wr->e_v->thread )
+        print_edge( stream, wr, rd, "blue,style=dashed" );
+        else print_edge( stream, wr, rd, "blue" );
         //fr
         std::set< hb_enc::se_ptr > fr_wrs;
         auto it = wr_events.find(rd->prog_v);

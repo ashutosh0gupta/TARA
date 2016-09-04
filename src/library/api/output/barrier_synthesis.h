@@ -188,7 +188,7 @@ private:
   z3::expr mk_edge_constraint( hb_enc::se_ptr before,
                                hb_enc::se_ptr after, z3::expr& e );
   void gen_max_sat_problem();
-
+  void gen_max_sat_problem_new();
   void print_all_cycles( std::ostream& stream ) const;
 
   std::vector<hb_enc::se_ptr>barrier_where;
