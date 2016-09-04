@@ -272,12 +272,32 @@ bool exists( const std::set<Key>& set1, const Key& k ) {
   return set1.find( k ) !=  set1.end();
 }
 
+template< class Key,class cmp >
+bool exists( const std::set<Key,cmp>& set1, const Key& k ) {
+  return set1.find( k ) !=  set1.end();
+}
+
   // Insert second set inside the first set
 template< class Key >
 Key pick( std::set<Key>& doner ) {
     Key x = *doner.begin();
     doner.erase( x );
     return x;
+}
+
+template< class Key, class cmp >
+Key pick( std::set<Key, cmp>& doner ) {
+    Key x = *doner.begin();
+    doner.erase( x );
+    return x;
+}
+
+template< class Key, class cmp >
+Key pick_and_move( std::set<Key,cmp>& doner,
+                   std::set<Key,cmp>& receiver ) {
+  Key x = pick( doner );
+  receiver.insert( x );
+  return x;
 }
 
 template< class Key >
