@@ -270,6 +270,26 @@ vector< expr > z3interf::decompose(expr conj, Z3_decl_kind kind)
   return result;
 }
 
+
+z3::expr z3interf::get_fresh_bool() {
+  static unsigned count = 0;
+  stringstream b_name;
+  b_name<<"b"<<count;
+  z3::expr b = c.bool_const(b_name.str().c_str());
+  count++;
+  return b;
+}
+
+z3::expr z3interf::get_fresh_int() {
+  static unsigned count = 0;
+  count++;
+  std::string loc_name = "i_" + std::to_string(count);
+  z3::expr loc_expr = c.int_const(loc_name.c_str());
+  return loc_expr;
+}
+
+
+
 z3::sort z3interf::get_variable_sort(const input::variable& var) {
   switch (var.type) {
     case input::data_type::bv32    : return c.bv_sort(32);

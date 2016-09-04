@@ -105,7 +105,7 @@ typedef std::shared_ptr<cycle> cycle_ptr;
 class barrier_synthesis : public output_base
 {
 public:
-  barrier_synthesis(bool verify, bool verbose);
+  barrier_synthesis( helpers::z3interf& _z3, bool verify, bool verbose );
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   virtual void init( const hb_enc::encoding& hb_encoding,
                      const z3::solver& sol_desired,

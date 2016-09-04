@@ -167,21 +167,23 @@ void split_history_to_exprs( const split_history& h,
 }
 
 
-z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
-  static unsigned count = 0;
-  count++;
-  std::string loc_name = "i_" + std::to_string(count);
-  z3::expr loc_expr = z3_.c.int_const(loc_name.c_str());
-  return loc_expr;
-}
+// z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
+//   return z3_.get_fresh_int();
+//   // static unsigned count = 0;
+//   // count++;
+//   // std::string loc_name = "i_" + std::to_string(count);
+//   // z3::expr loc_expr = z3_.c.int_const(loc_name.c_str());
+//   // return loc_expr;
+// }
 
-z3::expr build_program::fresh_bool( helpers::z3interf& z3_ ) {
-  static unsigned count = 0;
-  count++;
-  std::string loc_name = "b_" + std::to_string(count);
-  z3::expr loc_expr = z3_.c.bool_const(loc_name.c_str());
-  return loc_expr;
-}
+// z3::expr build_program::fresh_bool( helpers::z3interf& z3_ ) {
+//   return z3_.get_fresh_bool();
+//   // static unsigned count = 0;
+//   // count++;
+//   // std::string loc_name = "b_" + std::to_string(count);
+//   // z3::expr loc_expr = z3_.c.bool_const(loc_name.c_str());
+//   // return loc_expr;
+// }
 
 hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
   if( llvm::isa<llvm::Constant>(op) ) {
@@ -223,8 +225,8 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
     llvm::Type* ty = op->getType();
     if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
       int bw = i_ty->getBitWidth();
-      if(bw == 32 || bw == 64 ) { return fresh_int( z3_ );
-      }else if(      bw == 1  ) { return fresh_bool( z3_ );
+      if(bw == 32 || bw == 64 ) { return z3_.get_fresh_int();
+      }else if(      bw == 1  ) { return z3_.get_fresh_bool();
       }
     }
     cinput_error("unsupported type!!");
@@ -258,12 +260,12 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
       if( auto i_ty = llvm::dyn_cast<llvm::IntegerType>(ty) ) {
         int bw = i_ty->getBitWidth();
         if(bw == 32 || bw == 64 ) {
-          z3::expr i =  fresh_int( z3_ );
+          z3::expr i =  z3_.get_fresh_int();
           insert_term_map( op, i, vmap );
           // m.at(op) = i;
           return i;
         }else if(bw == 1) {
-          z3::expr bit =  fresh_bool( z3_ );
+          z3::expr bit =  z3_.get_fresh_bool();
           insert_term_map( op, bit, vmap );
           // m.at(op) = bit;
           return bit;
@@ -511,7 +513,7 @@ translateBlock( unsigned thr_id,
 
     if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
       if( br->isUnconditional() ) {
-        z3::expr bit = fresh_bool();
+        z3::expr bit = z3.get_fresh_bool();
         block_to_exit_bit.insert( std::make_pair(b,bit) );
       }else{
         z3::expr bit = getTerm( br->getCondition(), m);
@@ -559,7 +561,7 @@ translateBlock( unsigned thr_id,
           auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
           auto fname = ptr_to_create.at(thr_ptr);
           ptr_to_create.erase( thr_ptr );
-          z3::expr join_cond = fresh_bool();
+          z3::expr join_cond = z3.get_fresh_bool();
           path_cond = path_cond && join_cond;
           std::string loc_name = "join__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
@@ -591,7 +593,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   initBlockCount( f, block_to_id );
 
 
-  z3::expr start_bit = fresh_bool();
+  z3::expr start_bit = z3.get_fresh_bool();
   std::vector< z3::expr > history = { start_bit };
   auto start = mk_se_ptr( hb_encoding, thread_id, prev_events, start_bit,
                           history, name, hb_enc::event_t::barr );
@@ -611,7 +613,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     std::vector<hb_enc::depends_set> ctrl_ses;
-    if( o.print_input > 0 ) src->print( llvm::outs() );
+    if( o.print_input > 0 ) {
+      std::cout << "=====================================================\n";
+      std::cout << "Processing block" << " block__" << thread_id << "__"
+                << block_to_id[src] << "\n";
+      src->print( llvm::outs() );
+    }
     if( src->hasName() && (src->getName() == "dummy")) continue;
 
     std::vector< split_history > histories; // needs to be ref
@@ -627,7 +634,6 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
         // assert( succ_num );
-        assert( prev->getTerminator()->getOperand(succ_num) == src );
         llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
         if( !br->isUnconditional() ) {
           llvm::Value* op = prev->getTerminator()->getOperand(0);
@@ -635,12 +641,16 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           ctrl_temp1 = get_ctrl(prev);
           hb_enc::join_depends_set( ctrl_temp1 , ctrl_temp0, ctrl_temp );
           //todo : is it correct? Should the above be intersection
+        }else if( br->isUnconditional()) {
+	  ctrl_temp = get_ctrl(prev);
         }
-	else if( br->isUnconditional()) {
-	  ctrl_temp = get_ctrl(prev);}
-        if( succ_num == 1 ) b = !b;
-        split_step ss(prev, block_to_id[prev], succ_num, b);
-        h.push_back(ss);
+        assert( br->getOperand(succ_num) == src );
+        // std::cout << br->getNumOperands() << "\n";
+        if( br->getNumOperands() >= 2 ) {
+          if( succ_num == 1 ) b = !b;
+          split_step ss(prev, block_to_id[prev], succ_num, b);
+          h.push_back(ss);
+        }
         ctrl_ses.push_back( ctrl_temp );
       }
       histories.push_back(h);
@@ -679,7 +689,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     }
     prev_events.clear();
     p->append_ssa( thread_id, ssa );
-    if( o.print_input > 0 ) tara::debug_print(ssa );
+    if( o.print_input > 0 ) {
+      std::cout << "path cond : "<< path_cond << "\n";
+      std::cout << "path ssa  : \n";
+      tara::debug_print(ssa );
+      std::cout << "\n";
+    }
   }
 
   split_history final_h;

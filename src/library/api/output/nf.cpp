@@ -32,10 +32,10 @@ using namespace tara::api::output;
 
 using namespace std;
 
-nf::nf(bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify, bool no_opt) : output_base(), bad_dnf(bad_dnf), bad_cnf(bad_cnf), good_dnf(good_dnf), good_cnf(good_cnf), verify(verify), no_opt(no_opt)
+nf::nf(helpers::z3interf& _z3, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify, bool no_opt) : output_base(_z3), bad_dnf(bad_dnf), bad_cnf(bad_cnf), good_dnf(good_dnf), good_cnf(good_cnf), verify(verify), no_opt(no_opt)
 {}
 
-nf::nf() : output_base(), bad_dnf(true), bad_cnf(false), good_dnf(true), good_cnf(false), verify(false)
+nf::nf( helpers::z3interf& _z3 ) : output_base(_z3), bad_dnf(true), bad_cnf(false), good_dnf(true), good_cnf(false), verify(false)
 {}
 
 

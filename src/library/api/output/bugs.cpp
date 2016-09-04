@@ -30,7 +30,7 @@ using namespace std;
 bug::bug(bug_type type) : type(type)
 { }
 
-bug::bug(bug_type type, list< hb_enc::location_ptr > locations) : type(type), locations(locations)
+bug::bug( bug_type type, list< hb_enc::location_ptr > locations) : type(type), locations(locations)
 { }
 
 bool bug::operator==(const bug& rhs) const
@@ -75,7 +75,7 @@ ostream& operator<<(ostream& stream, const bug& bug)
 }
 }}}
 
-bugs::bugs(bool verify, bool print_nfs): print_nfs(print_nfs), normal_form(true, false, false, false, verify)
+bugs::bugs(helpers::z3interf& _z3, bool verify, bool print_nfs): output_base(_z3), print_nfs(print_nfs), normal_form(_z3,true, false, false, false, verify)
 {}
 
 void bugs::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const tara::program > program)
