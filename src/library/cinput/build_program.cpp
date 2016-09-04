@@ -611,7 +611,11 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     std::vector<hb_enc::depends_set> ctrl_ses;
-    if( o.print_input > 0 ) src->print( llvm::outs() );
+    if( o.print_input > 0 ) {
+      std::cout << "Processing block" << " block__" << thread_id << "__"
+                << block_to_id[src] << "\n";
+      src->print( llvm::outs() );
+    }
     if( src->hasName() && (src->getName() == "dummy")) continue;
 
     std::vector< split_history > histories; // needs to be ref
@@ -679,7 +683,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     }
     prev_events.clear();
     p->append_ssa( thread_id, ssa );
-    if( o.print_input > 0 ) tara::debug_print(ssa );
+    if( o.print_input > 0 ) {
+      std::cout << "path cond : "<< path_cond << "\n";
+      std::cout << "path ssa  : \n";
+      tara::debug_print(ssa );
+      std::cout << "\n";
+    }
   }
 
   split_history final_h;
