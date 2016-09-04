@@ -241,7 +241,9 @@ hb encoding::mk_hbs(const se_ptr& before, const se_ptr& after) {
 
 // ghb = guarded hb
 z3::expr encoding::mk_ghbs( const se_ptr& before, const se_ptr& after ) {
-  return implies( before->guard && after->guard, mk_hbs( before, after ) );
+  z3::expr cond = before->guard && after->guard;
+  cond = cond.simplify();
+  return implies( cond, mk_hbs( before, after ) );
 }
 
 z3::expr encoding::mk_ghbs( const se_ptr& before, const se_set& after ) {

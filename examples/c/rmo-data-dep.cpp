@@ -9,6 +9,15 @@ void assume( bool );
 void assert( bool );
 void fence();
 
+// void* p0(void *) {
+//   int t0 = 0;
+//   r1 = 2; //x + 1;
+//   t0 = r1;
+//   assert( t0 == 2 );
+//   // y = 1 + t0;
+//   return NULL;
+// }
+
 void* p0(void *) {
   int t0 = 0;
   r1 = x;

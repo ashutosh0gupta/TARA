@@ -607,7 +607,28 @@ z3::expr barrier_synthesis::get_fresh_bool() {
   return b;
 }
 
-bool cmp (hb_enc::se_ptr a,hb_enc::se_ptr b) { return (a->get_instr_no() <b->get_instr_no()); }
+bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
+  return ( a->get_instr_no() < b->get_instr_no() );
+}
+
+
+// void barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr before,
+//                                             hb_enc::se_ptr after ) {
+//   hb_enc::se_tset pending;
+//   prending.insert( before );
+//   while( !to_visit.empty() ) {
+//     se_ptr e = helpers::pick_and_move( pending, visited );
+//     if( after == e ) {
+      
+//     }
+//     if( e->get_topological_order() >= after->get_topological_order() )
+//       continue;
+//     for( auto& xpp : xp->post_events ) {
+//       if( !helpers::exists( visited, xpp ) ) pending.insert( xpp );
+//     }
+//   }
+  
+// }
 
 void barrier_synthesis::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();

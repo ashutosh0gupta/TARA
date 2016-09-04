@@ -167,3 +167,13 @@ For a good trace all assumes and all asserts need to evaluate to true for all in
 For a bad trace there exists one initial state or non-deterministic choice so that one of the assertions fails, but all assumptions on the path to the assertion hold.
 
 All other executions are considered infeasable.
+
+
+
+
+Known issues
+------------
+
+- unsat_core pruning needs guards
+- can thin be removed without worry
+- 

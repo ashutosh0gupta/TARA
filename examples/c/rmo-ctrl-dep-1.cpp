@@ -9,23 +9,42 @@ void assume( bool );
 void assert( bool );
 void fence();
 
-void* p0(void *) {
+void* p0(void * ) {
   int t0 = 0;
-  t0 = x;
-  if( t0 + 1 > 0 )
+  r1 = x;
+  t0 = r1 + 1;
+  if( t0 > 0 )
     y = 1;
-  r1 = t0;
   return NULL;
 }
 
 void* p1(void *) {
   int t1 = 0;
-  t1 = y;
-  if( t1 + 1 > 0 )
+  r2 = y;
+  t1 = r2 + 1;
+  if( t1 > 0 )
     x = 1;
-  r2 = t1;
   return NULL;
 }
+
+// void* p0(void * ) {
+//   int t0 = 0;
+//   r1 = x;
+//   t0 = r1 + 1;
+//   if( t0 > 0 )
+//     y = 1;
+//   return NULL;
+// }
+
+// void* p1(void *) {
+//   int t1 = 0;
+//   r2 = y;
+//   t1 = r2 + 1;
+//   if( t1 > 0 )
+//     x = 1;
+//   return NULL;
+// }
+
 
 int main() {
   pthread_t thr_0;

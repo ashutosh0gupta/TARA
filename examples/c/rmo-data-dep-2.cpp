@@ -12,8 +12,7 @@ void fence();
 void* p0(void *) {
   int t0 = 0;
   t0 = x;
-  if( t0 + 1 > 0 )
-    y = 1;
+  y = 2 + t0;
   r1 = t0;
   return NULL;
 }
@@ -21,8 +20,7 @@ void* p0(void *) {
 void* p1(void *) {
   int t1 = 0;
   t1 = y;
-  if( t1 + 1 > 0 )
-    x = 1;
+  x = 2 + t1;
   r2 = t1;
   return NULL;
 }
