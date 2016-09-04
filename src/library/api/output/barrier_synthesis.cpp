@@ -599,13 +599,7 @@ void barrier_synthesis::gather_statistics(api::metric& metric) const
 
 //----------------------------------------------------------------------------
 z3::expr barrier_synthesis::get_fresh_bool() {
-  static unsigned count = 0;
-  z3::context& z3_ctx = sol_bad->ctx();
-  stringstream b_name;
-  b_name<<"b"<<count;
-  z3::expr b = z3_ctx.bool_const(b_name.str().c_str());
-  count++;
-  return b;
+  return z3.get_fresh_bool();
 }
 
 bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
