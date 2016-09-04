@@ -275,7 +275,21 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
 
-  void program::wmm_print_dot( std::ostream& stream, z3::model m ) const {
+  void program::print_execution( const std::string& name, z3::model m ) {
+    boost::filesystem::path fname = _o.output_dir;
+    fname += "program-execution-"+name+"-.dot";
+    std::cerr << "dumping dot file : " << fname << std::endl;
+    std::ofstream myfile;
+    myfile.open( fname.c_str() );
+    if( myfile.is_open() ) {
+      print_execution( myfile, m );
+    }else{
+      program_error( "failed to open" << fname.c_str() );
+    }
+    myfile.close();
+  }
+
+  void program::print_execution( std::ostream& stream, z3::model m ) const {
     // output the program as a dot file
     stream << "digraph hbs {" << std::endl;
     // output labels
@@ -292,12 +306,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
           print_node( stream, e , "gray");
         else
           print_node( stream, e );
-      print_node( stream, thread.start_event );
-      print_node( stream, thread.final_event );
-      for( const auto& ep : e->prev_events )
-          print_edge( stream, ep , e, "brown" );
-      for ( const auto& ep : thread.final_event->prev_events )
-        print_edge( stream, ep, thread.final_event, "brown" );
+        print_node( stream, thread.start_event );
+        print_node( stream, thread.final_event );
+        for( const auto& ep : e->prev_events )
+          print_edge( stream, ep , e, "white" );
+        for( const auto& ep : thread.final_event->prev_events )
+          print_edge( stream, ep, thread.final_event, "white" );
       }
       stream << " }\n";
       if( create_map.find( thread.name ) != create_map.end() ) {

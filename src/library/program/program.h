@@ -334,7 +334,8 @@ namespace tara {
     void gather_statistics(api::metric& metric);
     void update_post_events();
 
-    void wmm_print_dot( std::ostream& stream, z3::model m ) const;
+    void print_execution( const std::string& name, z3::model m );
+    void print_execution( std::ostream& stream, z3::model m ) const;
 
     friend cssa::program;
   };

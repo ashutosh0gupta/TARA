@@ -615,8 +615,8 @@ bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
 z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr before,
                                                 hb_enc::se_ptr after,
                                                 z3::expr& c ) {
+  z3::context& z3_ctx = sol_bad->ctx();
   hb_enc::se_tord_set pending,visited;
-  std::map< hb_enc::se_ptr, z3::expr > event_bit_map;
   std::map< hb_enc::se_ptr, z3::expr > history_map;
   pending.insert( before );
   // z3::expr c =  z3_ctx.bool_val(true);

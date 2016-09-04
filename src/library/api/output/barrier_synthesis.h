@@ -184,6 +184,7 @@ private:
   std::unordered_map<hb_enc::se_ptr,z3::expr> segment_map;
   // std::map<std::string, hb_enc::se_ptr> rev_segment_map;
 
+  std::map< hb_enc::se_ptr, z3::expr > event_bit_map;
   z3::expr mk_edge_constraint( hb_enc::se_ptr before,
                                hb_enc::se_ptr after, z3::expr& e );
   void gen_max_sat_problem();

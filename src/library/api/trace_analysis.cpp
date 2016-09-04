@@ -234,6 +234,8 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
           p->print_hb(m, cout, true);
         else
           p->print_hb(m, o.out());
+      }else{
+        program->print_execution( "dump", m );
       }
     }
 
