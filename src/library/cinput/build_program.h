@@ -231,14 +231,11 @@ namespace cinput {
       return *v;
     }
 
-    z3::expr fresh_bool(){ return fresh_bool(z3); };
-    z3::expr fresh_int() { return fresh_int(z3); };
-
   public:
     static z3::expr get_term( helpers::z3interf& z3_,
                               const llvm::Value* op ,ValueExprMap& m );
-    static z3::expr fresh_int( helpers::z3interf& z3_ );
-    static z3::expr fresh_bool( helpers::z3interf& z3_ );
+    // static z3::expr fresh_int( helpers::z3interf& z3_ );
+    // static z3::expr fresh_bool( helpers::z3interf& z3_ );
 
   };
 

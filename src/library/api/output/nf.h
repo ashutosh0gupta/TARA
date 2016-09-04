@@ -50,8 +50,8 @@ public:
    * @param no_opt Do not try to optimise the DNF or CNF
    */
   
-  nf(bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify = false, bool no_opt = false); // sets the default for printing
-  nf();
+  nf(helpers::z3interf& _z3, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify = false, bool no_opt = false); // sets the default for printing
+  nf(helpers::z3interf& _z3);
   const result_type& get_result(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   z3::expr get_result_expr(bool bad_not_good, bool dnf_not_cnf) const; // make sure the desired output is ready
   virtual void print(std::ostream& stream, bool machine_readable) const override;

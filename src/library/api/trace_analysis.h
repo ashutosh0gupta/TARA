@@ -45,6 +45,7 @@ enum class trace_result {
 class trace_analysis
 {
 public:
+  trace_analysis(options options, helpers::z3interf& _z3);
     trace_analysis(options options, z3::context& ctx);
     void input(std::string input_file);
     void input(std::string input_file, mm_t mm);
@@ -55,7 +56,7 @@ public:
     bool check_ambigious_traces(std::unordered_set< std::string >& result);
 private:
     options _options;
-    helpers::z3interf z3;
+    helpers::z3interf& z3;
     std::shared_ptr<tara::program> program;
   //hb_enc::encoding
     hb_enc::integer hb_encoding;

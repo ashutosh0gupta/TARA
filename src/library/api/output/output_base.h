@@ -35,7 +35,7 @@ namespace output {
 class output_base
 {
 public:
-  output_base();
+  output_base(helpers::z3interf& _z3);
   virtual ~output_base();
   virtual void print(std::ostream& stream, bool machine_readable) const = 0;
 
@@ -44,7 +44,7 @@ public:
   virtual void gather_statistics(metric& metric) const;
   bool output_ready();
 protected:
-  // z3::context z3_ctx;
+  helpers::z3interf& z3;
   const hb_enc::encoding* _hb_encoding = nullptr;
   std::unique_ptr<z3::expr> _output = nullptr;
   std::unique_ptr<z3::solver> sol_bad = nullptr;

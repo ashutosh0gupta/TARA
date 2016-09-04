@@ -302,8 +302,8 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       //for (unsigned i=0; i < thread.instructions.size(); i++) {
       for( const auto& e : thread.events ) {
         z3::expr v = m.eval( e->guard );
-        // std::cout << e->name() << "\n" << e->guard << "\n";
         if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
+          std::cout << e->name() << "\n" << e->guard << "\n";
           print_node( stream, e , "gray");
         }else
           print_node( stream, e );
@@ -318,16 +318,24 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
           hb_enc::depends element = *iter;
           hb_enc::se_ptr val = element.e;
           z3::expr condition = element.cond;
-          if(condition)
+          z3::expr v = m.eval( condition );
+          if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE ) {
             print_edge( stream, val, e, "yellow");
+          }else{
+            print_edge( stream, val, e, "gray");
+          }
         }
         hb_enc::depends_set& ctrl_ses = e->ctrl_dependency;
         for( auto iter = ctrl_ses.begin(); iter!=ctrl_ses.end(); ++iter ) {
           hb_enc::depends element = *iter;
           hb_enc::se_ptr val = element.e;
           z3::expr condition = element.cond;
-          if(condition)
+          z3::expr v = m.eval( condition );
+          if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE ) {
             print_edge( stream, val, e, "yellow");
+          }else{
+            print_edge( stream, val, e, "gray");
+          }
         }
       }
       stream << " }\n";

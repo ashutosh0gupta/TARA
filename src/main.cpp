@@ -31,6 +31,7 @@
 #include <api/output/barrier_synthesis.h> // support for wmm
 #include <api/output/bugs.h>
 #include <helpers/helpers.h>
+#include <helpers/z3interf.h>
 #include "options_cmd.h"
 
 #include <boost/iostreams/stream.hpp>
@@ -77,10 +78,11 @@ void handler(
 }
 
 void real_main(int argc, char **argv) {
-  z3::context c;  
+  z3::context c;
+  tara::helpers::z3interf z3(c);
   options_cmd o = options_cmd();
 
-  
+
   boost::iostreams::stream< boost::iostreams::null_sink > nullOstream( ( boost::iostreams::null_sink() ) );
   if (o.machine)
     o._out = &nullOstream;
@@ -164,7 +166,7 @@ void real_main(int argc, char **argv) {
   stringstream resultbuf;
 
   start_time = chrono::steady_clock::now();
-  trace_analysis ts(o,c);
+  trace_analysis ts(o,z3);
   ts.input(o.input_file,o.mm);
   ts.gather_statistics(run_metric);
   
@@ -193,7 +195,7 @@ void real_main(int argc, char **argv) {
       bool silent = false;
       unique_ptr<output::output_base> output;
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
-        output = unique_ptr<output::output_base>(new output::smt());
+        output = unique_ptr<output::output_base>(new output::smt(z3));
       } if (synthesise||bugs||wmm_synthesis) {
         bool verify = false;
         bool print_nfs = false;
@@ -201,7 +203,11 @@ void real_main(int argc, char **argv) {
           if (p=="verify") verify = true;
           else if (p=="nfs") print_nfs = true;
         }
-        output = wmm_synthesis ? unique_ptr<output::output_base>(new output::barrier_synthesis(verify, print_nfs)) : synthesise ? unique_ptr<output::output_base>(new output::synthesis(verify, print_nfs)) : unique_ptr<output::output_base>(new output::bugs(verify, print_nfs)) ;
+        output = wmm_synthesis ?
+          unique_ptr<output::output_base>(new output::barrier_synthesis(z3, verify, print_nfs))
+          : synthesise ?
+          unique_ptr<output::output_base>(new output::synthesis(z3, verify, print_nfs))
+          : unique_ptr<output::output_base>(new output::bugs(z3, verify, print_nfs)) ;
       } else {
         bool bad_dnf = false;
         bool bad_cnf = false;
@@ -219,7 +225,7 @@ void real_main(int argc, char **argv) {
           else if (p=="silent") silent = true;
         }
         if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
-        output = unique_ptr<output::output_base>(new output::nf(bad_dnf, bad_cnf, good_dnf, good_cnf, verify, no_opt));
+        output = unique_ptr<output::output_base>(new output::nf(z3,bad_dnf, bad_cnf, good_dnf, good_cnf, verify, no_opt));
       }
             
       trace_result res = ts.seperate(*output, run_metric);

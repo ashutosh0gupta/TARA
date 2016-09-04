@@ -175,9 +175,10 @@ bool cycle::is_dominated_by( cycle& c ) {
 
 //----------------------------------------------------------------------------
 
-barrier_synthesis::barrier_synthesis(bool verify, bool _verbose)
-  : verbose(_verbose)
-  , normal_form(true, false, false, false, verify)
+barrier_synthesis::barrier_synthesis(helpers::z3interf& z3_,
+                                     bool verify, bool _verbose)
+  : output_base( z3_), verbose(_verbose)
+  , normal_form(z3_, true, false, false, false, verify)
 {}
 
 void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
