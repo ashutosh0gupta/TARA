@@ -33,6 +33,7 @@ output_base::~output_base()
 
 void output_base::init(const tara::hb_enc::encoding& hb_encoding, const z3::solver& sol_bad, const z3::solver& sol_good, std::shared_ptr< const tara::program > program)
 {
+  // z3_ctx = sol_bad->ctx();
   _hb_encoding = &hb_encoding;
   this->sol_bad = unique_ptr<z3::solver>(new z3::solver(sol_bad));
   this->sol_good = unique_ptr<z3::solver>(new z3::solver(sol_good));

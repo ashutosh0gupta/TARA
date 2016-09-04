@@ -44,6 +44,7 @@ public:
   virtual void gather_statistics(metric& metric) const;
   bool output_ready();
 protected:
+  z3::context z3_ctx;
   const hb_enc::encoding* _hb_encoding = nullptr;
   std::unique_ptr<z3::expr> _output = nullptr;
   std::unique_ptr<z3::solver> sol_bad = nullptr;

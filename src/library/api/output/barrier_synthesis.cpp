@@ -612,23 +612,41 @@ bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
 }
 
 
-// void barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr before,
-//                                             hb_enc::se_ptr after ) {
-//   hb_enc::se_tset pending;
-//   prending.insert( before );
-//   while( !to_visit.empty() ) {
-//     se_ptr e = helpers::pick_and_move( pending, visited );
-//     if( after == e ) {
-      
-//     }
-//     if( e->get_topological_order() >= after->get_topological_order() )
-//       continue;
-//     for( auto& xpp : xp->post_events ) {
-//       if( !helpers::exists( visited, xpp ) ) pending.insert( xpp );
-//     }
-//   }
-  
-// }
+z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr before,
+                                                hb_enc::se_ptr after,
+                                                z3::expr& c ) {
+  hb_enc::se_tord_set pending,visited;
+  std::map< hb_enc::se_ptr, z3::expr > event_bit_map;
+  std::map< hb_enc::se_ptr, z3::expr > history_map;
+  pending.insert( before );
+  // z3::expr c =  z3_ctx.bool_val(true);
+  while( !pending.empty() ) {
+    hb_enc::se_ptr e = helpers::pick_and_move( pending, visited );
+
+    if( e->get_topological_order() >= after->get_topological_order() )
+      continue;
+
+    z3::expr h = get_fresh_bool();
+    history_map.insert( std::make_pair( e, h ) );
+    z3::expr conj =  z3_ctx.bool_val(true);
+    for( const hb_enc::se_ptr& ep : e->prev_events ) {
+      if( history_map.find( ep ) != history_map.end() ) {
+        conj = conj && history_map.at(ep);
+      }
+    }
+    c = c && implies( h, ( conj || event_bit_map.at(e) ) );
+
+    if( after == e ) {
+      return h;
+    }
+
+    for( auto& xpp : e->post_events ) {
+      if( !helpers::exists( visited, xpp.e ) ) pending.insert( xpp.e );
+    }
+  }
+  assert( false );
+  return z3_ctx.bool_val(true); //dummy return
+}
 
 void barrier_synthesis::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();
