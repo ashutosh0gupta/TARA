@@ -285,39 +285,30 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       stream << "subgraph cluster_" << t << " {\n";
       stream << "color=lightgrey;\n";
       stream << "label = \"" << thread.name << "\"\n";
-      for (unsigned i=0; i < thread.instructions.size(); i++) {
-        stream << "\"" << thread[i].loc->name << "\""
-               << " [label=\"" << thread[i] << "\"";
-        z3::expr v = m.eval( thread[i].path_constraint );
-        if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
-          stream << ",color=gray";
-        }
-        stream << "]"<< std::endl;
+      //for (unsigned i=0; i < thread.instructions.size(); i++) {
+      for( const auto& e : thread.events ) {
+        z3::expr v = m.eval( e->guard );
+        if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE)
+          print_node( stream, e , "gray");
+        else
+          print_node( stream, e );
+      print_node( stream, thread.start_event );
+      print_node( stream, thread.final_event );
+      for( const auto& ep : e->prev_events )
+          print_edge( stream, ep , e, "brown" );
+      for ( const auto& ep : thread.final_event->prev_events )
+        print_edge( stream, ep, thread.final_event, "brown" );
       }
       stream << " }\n";
+      if( create_map.find( thread.name ) != create_map.end() ) {
+        print_edge( stream , create_map.at(thread.name), thread.start_event, "brown" );
+      }
+      if( join_map.find( thread.name ) != join_map.end() ) {
+        print_edge( stream, thread.final_event, join_map.at(thread.name).first, "brown" );
     }
-
-    stream << "pre" << " [label=\""  << phi_pre << "\"]" << std::endl;
-    stream << "post" << " [label=\"" << phi_post << "\"]" << std::endl;
-
-    // add white edges between instructions
-    for (unsigned t=0; t<threads.size(); t++) {
-      auto& thread = *threads[t];
-      if( thread.instructions.size() > 0 ) {
-        stream << "pre ->" << "\"" << thread[0].loc->name << "\""
-               << " [color=white]" << std::endl;
-      }
-      for (unsigned i=0; i<thread.instructions.size()-1; i++) {
-        stream << "\"" << thread[i].loc->name << "\""  << "->"
-               << "\"" << thread[i+1].loc->name << "\""
-               << " [color=white]" << std::endl;
-      }
-      if( thread.instructions.size() > 0 ) {
-        stream << "\"" << thread[thread.instructions.size()-1].loc->name << "\""
-               << "-> post [color=white]" << std::endl;
-      }
-    }
-
+  }
+    //stream << "pre" << " [label=\""  << phi_pre << "\"]" << std::endl;
+    //stream << "post" << " [label=\"" << phi_post << "\"]" << std::endl;
     for( auto& it : reading_map ) {
       std::string bname = std::get<0>(it);
       z3::expr b = _z3.c.bool_const(  bname.c_str() );
@@ -325,26 +316,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
         hb_enc::se_ptr wr = std::get<1>(it);
         hb_enc::se_ptr rd = std::get<2>(it);
-        unsigned wr_tid      = wr->e_v->thread;
-        std::string wr_name;
-        if( wr_tid == threads.size() ) {
-          wr_name = "pre";
-        }else{
-          auto& wr_thread = *threads[wr_tid];
-          unsigned wr_instr_no = wr->e_v->instr_no;
-          wr_name = wr_thread[wr_instr_no].loc->name;
-        }
-        unsigned rd_tid      = rd->e_v->thread;
-        std::string rd_name;
-        if( rd_tid == threads.size() ) {
-          rd_name = "post";
-        }else{
-          auto& rd_thread = *threads[rd_tid];
-          unsigned rd_instr_no = rd->e_v->instr_no;
-          rd_name = rd_thread[rd_instr_no].loc->name;
-        }
-        stream << "\"" << wr_name  << "\" -> \"" << rd_name << "\""
-               << "[color=blue]"<< std::endl;
+        print_edge( stream, wr, rd, "blue" );
         //fr
         std::set< hb_enc::se_ptr > fr_wrs;
         auto it = wr_events.find(rd->prog_v);
@@ -353,13 +325,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
             z3::expr v = m.eval( after_wr->guard );
             if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
               if( _hb_encoding.eval_hb( m, wr, after_wr ) ) {
-                unsigned after_wr_tid      = after_wr->e_v->thread;
-                auto& after_wr_thread = *threads[after_wr_tid];
-                unsigned after_wr_instr_no = after_wr->e_v->instr_no;
-                std::string after_wr_name =
-                  after_wr_thread[after_wr_instr_no].loc->name;
-                stream << "\"" << rd_name  << "\" -> \"" << after_wr_name << "\""
-                       << "[color=orange,constraint=false]"<< std::endl;
+                print_edge( stream, rd, after_wr, "orange,constraint=false" );
               }
             }
           }
@@ -392,24 +358,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       }
 
       for( unsigned i = 1; i < ord_wrs.size(); i++  ) {
-        unsigned wr_tid      = ord_wrs[i-1]->e_v->thread;
-        std::string wr_name;
-        if( wr_tid == threads.size() ) {
-          wr_name = "pre";
-        }else{
-          auto& wr_thread = *threads[wr_tid];
-          unsigned wr_instr_no = ord_wrs[i-1]->e_v->instr_no;
-          wr_name = wr_thread[wr_instr_no].loc->name;
-        }
-
-        unsigned wr1_tid = ord_wrs[i]->e_v->thread;
-        unsigned wr1_instr_no = ord_wrs[i]->e_v->instr_no;
-        assert( wr1_tid != threads.size() );
-        auto& wr1_thread = *threads[wr1_tid];
-        std::string wr1_name = wr1_thread[wr1_instr_no].loc->name;
-
-        stream << "\"" << wr_name << "\" -> \"" << wr1_name << "\""
-               << "[color=green]" <<  std::endl;
+        print_edge( stream, ord_wrs[i-1], ord_wrs[i], "green" );
       }
     }
 
