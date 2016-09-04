@@ -248,7 +248,6 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
         print_edge( os, create_map[thread.name], thread.start_event, "brown" );
       }
       if( join_map.find( thread.name ) != join_map.end() ) {
-        
         print_edge( os, thread.final_event, join_map.at(thread.name).first,
                     "brown" );
       }
@@ -273,6 +272,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       metric.instructions += (threads)[i]->events_size();
     }
   }
+
 
 
   void program::print_execution( const std::string& name, z3::model m ) {
@@ -313,6 +313,22 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
           print_edge( stream, ep , e, "white" );
         for( const auto& ep : thread.final_event->prev_events )
           print_edge( stream, ep, thread.final_event, "white" );
+        hb_enc::depends_set& dep_ses = e->data_dependency;
+        for( auto iter = dep_ses.begin(); iter!=dep_ses.end(); ++iter ) {
+          hb_enc::depends element = *iter;
+          hb_enc::se_ptr val = element.e;
+          z3::expr condition = element.cond;
+          if(condition)
+            print_edge( stream, val, e, "yellow");
+        }
+        hb_enc::depends_set& ctrl_ses = e->ctrl_dependency;
+        for( auto iter = ctrl_ses.begin(); iter!=ctrl_ses.end(); ++iter ) {
+          hb_enc::depends element = *iter;
+          hb_enc::se_ptr val = element.e;
+          z3::expr condition = element.cond;
+          if(condition)
+            print_edge( stream, val, e, "yellow");
+        }
       }
       stream << " }\n";
       if( create_map.find( thread.name ) != create_map.end() ) {
@@ -381,6 +397,5 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     //   stream << hb.loc1->name << "->" << hb.loc2->name << " [constraint = false]" << std::endl;
     // }
     stream << "}" << std::endl;
-
   }
 }
