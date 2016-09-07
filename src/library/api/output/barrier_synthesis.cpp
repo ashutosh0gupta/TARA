@@ -288,9 +288,11 @@ void barrier_synthesis::succ( hb_enc::se_ptr e,
   for(std::set<hb_enc::depends>::iterator it = after.begin(); it != after.end(); it++) {
     hb_enc::depends dep = *it;
     z3::expr cond = dep.cond;
-    if( filter.find( e ) != filter.end() ) continue;
-    if( dep.cond ) next_set.push_back( {dep.e, edge_type::ppo } );
-    else next_set.push_back( {dep.e, edge_type::rpo } );
+    if( filter.find( dep.e ) == filter.end() ) continue;
+    if( z3.is_true( dep.cond )  )
+      next_set.push_back( {dep.e, edge_type::ppo } );
+    else
+      next_set.push_back( {dep.e, edge_type::rpo } );
   }
     // break; // todo <- do we miss anything
 }
@@ -584,8 +586,17 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
 
   stream <<"Barriers must be inserted after the following instructions:- \n";
   for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
-    stream << "thread " << barrier_where[i]->get_tid() << ",instr "
-           <<  barrier_where[i]->loc_name << endl;
+    hb_enc::se_ptr e = barrier_where[i];
+    stream << "thread " << e->get_tid() << e->name() << endl;
+    // stream << "thread " << barrier_where[i]->get_tid() << ",instr "
+    //        <<  barrier_where[i]->loc_name << endl;
+  }
+  stream <<"Soft Barriers must be inserted after the following instructions:- \n";
+  for ( unsigned i = 0; i < soft_barrier_where.size(); i++ ) {
+    hb_enc::se_ptr e = soft_barrier_where[i];
+    stream << "thread " << e->get_tid() << e->name() << endl;
+    // stream << "thread " << barrier_where[i]->get_tid() << ",instr "
+    //        <<  barrier_where[i]->loc_name << endl;
   }
 
   stream << endl;
@@ -675,8 +686,9 @@ void barrier_synthesis::gen_max_sat_problem() {
 // constraints for mk_edge( b, a)
 // h_bij means that b~>i~>j and b,j is ordered at i
 // h_bbb => true
-// h_bij => /\_{k \in prev(i)} ( h_bkj \/
-//                               ( h_bkk /\ ord(k,j) ) \/
+// h_bba => false ( TODO <<------------- check )
+// h_bij => /\_{k \in prev(i)} ( h_bkj  \/
+//                               ( h_bkk /\ check_ppo(k,j) ) \/
 //                               ( l_k /\ w_bk /\ is_write(j) ) \/
 //                               b_k )
 // w_bb => is_write(b)
@@ -692,7 +704,7 @@ z3::expr barrier_synthesis::get_h_var_bit( hb_enc::se_ptr b,
   auto it = hist_map.find( pr );
   if( it != hist_map.end() )
     return it->second;
-  z3::expr bit = z3.get_fresh_bool();
+  z3::expr bit = z3.get_fresh_bool( b->name() + "_"+ e_i->name() + "_"+ e_j->name() );
   hist_map.insert( std::make_pair( pr, bit) );
   return bit;
 }
@@ -717,8 +729,8 @@ z3::expr barrier_synthesis::get_lw_barr_bit( hb_enc::se_ptr e ) {
 }
 
 
-z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr b,
-                                                hb_enc::se_ptr a,
+z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
+                                                hb_enc::se_ptr& a,
                                                 z3::expr& hard ) {
   mm_t mm = program->get_mm();
   hb_enc::se_tord_set pending;
@@ -729,7 +741,9 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr b,
 
   pending.insert( b );
   while( !pending.empty() ) {
-    hb_enc::se_ptr e = helpers::pick( pending );
+    hb_enc::se_ptr e = *pending.begin();
+    pending.erase( e );
+    // hb_enc::se_ptr e = helpers::pick( pending );
     found.push_back( e );
     if( e->get_topological_order() > a->get_topological_order() )
       continue;
@@ -739,10 +753,11 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr b,
     }
   }
 
+  
   for( auto it = found.begin(); it != found.end();it++ ) {
     hb_enc::se_ptr& i = *it;
-    auto& it2 = it;
-    for( it2++; it2 != found.end() ; it2++ ) {
+    auto it2 = it;
+    for(; it2 != found.end() ; it2++ ) {
       hb_enc::se_ptr& j = *it2;
       z3::expr conj = z3.mk_true();
       for( const hb_enc::se_ptr& k : i->prev_events ) {
@@ -753,9 +768,13 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr b,
           // todo: check for the lwsync requirement
           z3::expr lw_k = j->is_wr()? get_lw_barr_bit( k ) : z3.mk_false();
           lw_k = lw_k && get_write_order_bit( b, k );
+          // z3::expr lw_k = z3.mk_false();
           z3::expr b_k = get_barr_bit( k );
           conj = conj && (h_bkj || h_bkk || lw_k || b_k);
         }
+      }
+      if( i == b && j == a ) {
+        conj = z3.mk_false();
       }
       z3::expr h_bij = get_h_var_bit( b, i, j );;
       hard = hard && implies( h_bij, conj );
@@ -763,15 +782,18 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr b,
     z3::expr conj = z3.mk_true();
     for( const hb_enc::se_ptr& k : i->prev_events ) {
       if( helpers::exists( found, k ) ) {
-        z3::expr w_bk = get_write_order_bit( b, k );
-        conj = conj && w_bk;
+        conj = conj && get_write_order_bit( b, k );
       }
     }
     // todo: check for the lwsync requirement
     z3::expr h_bii = i->is_wr() ? get_h_var_bit( b, i, i ) : z3.mk_false();
     z3::expr w_bi = get_write_order_bit( b, i );
-    hard = implies( w_bi, conj ||  h_bii );
+    hard = hard && implies( w_bi, conj ||  h_bii );
+    z3::expr s_i = get_barr_bit( i );
+    z3::expr lw_i = get_lw_barr_bit( i );
+    hard = hard && implies( s_i, lw_i );
   }
+  return get_h_var_bit( b, a, a );
 
   // pending.insert( before );
   // while( !pending.empty() ) {
@@ -812,10 +834,13 @@ void barrier_synthesis::gen_max_sat_problem_new() {
   for( unsigned t = 0; t < program->size(); t++ ) {
      const auto& thread = program->get_thread( t );
      for( const auto& e : thread.events ) {
-       z3::expr h = z3.get_fresh_bool();
-       barrier_map.insert({ e, h });
-       light_barrier_map.insert({ e, h });
-       soft.push_back( !h );
+       // todo : optimize number of variables introduced
+       z3::expr m_bit = z3.get_fresh_bool(e->name());
+       barrier_map.insert({ e, m_bit });
+       soft.push_back( !m_bit );
+       z3::expr s_bit = z3.get_fresh_bool("lw_"+e->name());
+       light_barrier_map.insert({ e, s_bit });
+       soft.push_back( !s_bit );
      }
   }
 
@@ -824,17 +849,15 @@ void barrier_synthesis::gen_max_sat_problem_new() {
     if( cycles.size() == 0 ) continue; // throw error unfixable situation
     z3::expr c_disjunct = z3_ctx.bool_val(false);
     for( auto& cycle : cycles ) {
-      z3::expr r_conjunct = z3.mk_true();
+      z3::expr r_conj = z3.mk_true();
       for( auto edge : cycle.edges ) {
-        if( edge.type==edge_type::rpo ) {
-          z3::expr s_disjunct = z3_ctx.bool_val(false);
-          s_disjunct = mk_edge_constraint( edge.before, edge.after, hard );
-          r_conjunct = r_conjunct && s_disjunct;
+        if( edge.type == edge_type::rpo ) {
+          r_conj = r_conj && mk_edge_constraint( edge.before, edge.after, hard ); 
         }
       }
       z3::expr c = z3.get_fresh_bool();
       c_disjunct = c_disjunct || c;
-      hard = hard && implies( c, r_conjunct );
+      hard = hard && implies( c, r_conj );
     }
     hard = hard && c_disjunct;
   }
@@ -945,7 +968,8 @@ void barrier_synthesis::output(const z3::expr& output) {
 
     find_cycles( bad_dnf );
 
-    gen_max_sat_problem();
+    // gen_max_sat_problem();
+    gen_max_sat_problem_new();
 
     if( verbose ) {
       std::cout << cut[0] << endl;
@@ -960,15 +984,30 @@ void barrier_synthesis::output(const z3::expr& output) {
       return;
     }
     z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
-    for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
+    std::cout << m ;
+
+    for( auto it=barrier_map.begin(); it != barrier_map.end(); it++ ) {
       hb_enc::se_ptr e = it->first;
       z3::expr b = it->second;
-      if( m.eval(b).get_bool() )
+      if( m.eval(b).get_bool() ) {
         barrier_where.push_back( e );
+      }else{
+        z3::expr b_s = light_barrier_map.at(e);
+        if( m.eval(b_s).get_bool() ) {
+          soft_barrier_where.push_back( e );
+        }
+      }
     }
 
+    // for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
+    //   hb_enc::se_ptr e = it->first;
+    //   z3::expr b = it->second;
+    //   if( m.eval(b).get_bool() )
+    //     barrier_where.push_back( e );
+    // }
+
     info = to_string(all_cycles.size()) + " " +
-      to_string(barrier_where.size()) + " ";
+      to_string(barrier_where.size()) + " " + to_string(soft_barrier_where.size());
 
     auto delay = chrono::steady_clock::now() - start_time;
     time = chrono::duration_cast<chrono::microseconds>(delay).count();

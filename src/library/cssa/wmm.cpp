@@ -677,6 +677,9 @@ void wmm_event_cons::update_orderings() {
         tara::debug_print( o.out(), p.must_before[e] );
         o.out() << "after: ";
         tara::debug_print( o.out(), p.must_after [e] );
+        // o.out() << "\n";
+        o.out() << "may after: ";
+        tara::debug_print( o.out(), p.may_after [e] );
         o.out() << "\n";
       }
     }
@@ -734,12 +737,15 @@ void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
   p.must_after[e] = local_ordered[e];
 }
 
-void wmm_event_cons::pointwise_and( z3::expr cond, const hb_enc::depends_set dep ) {
-   for(std::set<hb_enc::depends>::iterator it = dep.begin(); it != dep.end(); it++) {
-      hb_enc::depends element = *it;
-      element.cond = element.cond && cond;
-    }
+void wmm_event_cons::pointwise_and( const hb_enc::depends_set dep_in,
+                                    z3::expr cond,
+                                    hb_enc::depends_set dep_out ) {
+  for( const hb_enc::depends& d : dep_in ) {
+    z3::expr c = d.cond && cond;
+    dep_out.insert( hb_enc::depends( d.e, c ));
+  }
 }
+
 void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
                                        hb_enc::se_ptr e ) {
   hb_enc::se_to_depends_map local_ordered;
@@ -749,30 +755,26 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
     auto ep = *rit;
     if( ep->get_topological_order() < e->get_topological_order() )
       continue;
-    std::vector<hb_enc::depends_set> temp_vector( ep->post_events.size() );
-    unsigned i = 0;
-    for( auto it = ep->post_events.begin(); it != ep->post_events.end(); it++) {
-      const hb_enc::depends& dep = *it;
-      hb_enc::se_ptr epp = dep.e;
+    std::vector<hb_enc::depends_set> temp_vector; //( ep->post_events.size() );
+    // unsigned i = 0;
+    for( const hb_enc::depends& dep : ep->post_events ){
+      const hb_enc::se_ptr epp = dep.e;
       hb_enc::depends_set temp;
-      //ord_sets[i] = local_ordered[epp];
+      z3::expr epp_cond = z3.mk_false();
       if( check_ppo( e, epp ) ) {
-        //ord_sets[i].insert( hb_enc::depends( epp, dep.cond ));
-        //helpers::set_insert( ord_sets[i], p.may_after[epp] );
-        hb_enc::depends_set temp1 = p.may_after[epp];
-        hb_enc::depends_set temp2 = local_ordered[epp];
-        hb_enc::join_depends_set( temp1, temp2, temp );
-        pointwise_and( dep.cond, temp );
+        hb_enc::depends_set temp3;
+        hb_enc::join_depends_set( p.may_after[epp], local_ordered[epp], temp3 );
+        pointwise_and( temp3, dep.cond, temp );
+        epp_cond = dep.cond;
+      } else {
+     	pointwise_and( local_ordered[epp], dep.cond, temp );
+     	// pointwise_and( p.may_after[epp], dep.cond, temp );
       }
-      else {
-     	hb_enc::depends_set temp = p.may_after[epp];
-     	pointwise_and( dep.cond, temp );
-      }
+      temp.insert( hb_enc::depends( epp, epp_cond ) );
       temp_vector.push_back( temp );
-      i++;
+      // i++;
     }
     hb_enc::join_depends_set( temp_vector, local_ordered[ep] );
-    //helpers::set_intersection( ord_sets, local_ordered[ep] );
     if( e == ep ) break;
   }
   p.may_after[e] = local_ordered[e];

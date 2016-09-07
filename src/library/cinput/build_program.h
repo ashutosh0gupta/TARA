@@ -189,7 +189,8 @@ namespace cinput {
                              hb_enc::se_set& prev_events,
                              z3::expr& path_cond,
                              std::vector< z3::expr >& history,
-                             std::map<const llvm::BasicBlock*,z3::expr>& conds );
+                             std::map<const llvm::BasicBlock*,z3::expr>& conds,
+                             z3::expr& branch_cond );
 
     // void post_insertEdge( unsigned, unsigned, z3:expr );
 

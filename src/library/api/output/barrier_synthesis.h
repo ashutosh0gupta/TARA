@@ -195,13 +195,15 @@ private:
   z3::expr get_barr_bit( hb_enc::se_ptr k );
   z3::expr get_lw_barr_bit( hb_enc::se_ptr k );
 
-  z3::expr mk_edge_constraint( hb_enc::se_ptr before,
-                               hb_enc::se_ptr after, z3::expr& e );
+  z3::expr mk_edge_constraint( hb_enc::se_ptr& before,
+                               hb_enc::se_ptr& after, z3::expr& e );
   void gen_max_sat_problem();
   void gen_max_sat_problem_new();
   void print_all_cycles( std::ostream& stream ) const;
 
   std::vector<hb_enc::se_ptr>barrier_where;
+  std::vector<hb_enc::se_ptr>soft_barrier_where;
+
   z3::expr get_fresh_bool();
   void assert_hard_constraints( z3::solver &s,std::vector<z3::expr>& cnstrs);
   void assert_soft_constraints( z3::solver&s ,z3::context& ctx,std::vector<z3::expr>& cnstrs, std::vector<z3::expr>& aux_vars );

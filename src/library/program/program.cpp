@@ -119,22 +119,23 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     instructions.push_back(instr);
   }
 
-  void thread::update_post_events() {
-    for( hb_enc::se_ptr& e : events ) {
-      const auto& e_h= e->history;
-      for( const hb_enc::se_ptr& ep : e->prev_events ) {
-        const auto& ep_h = ep->history;
-        unsigned min_size = std::min( e_h.size(), ep_h.size() );
-        unsigned i =0;
-        for(; i < min_size; i++  ) {
-          if( !z3::eq( e_h[i],ep_h[i] ) ) {
-            break;
-          }
-        }
-        ep->add_post_events( e, e->guard ); // todo : wrong code
-      }
-    }
-  }
+  // void thread::update_post_events() {
+  //   // for( hb_enc::se_ptr& e : events ) {
+  //   //   const auto& e_h= e->history;
+  //   //   for( const hb_enc::se_ptr& ep : e->prev_events ) {
+        
+  //   //     // const auto& ep_h = ep->history;
+  //   //     // unsigned min_size = std::min( e_h.size(), ep_h.size() );
+  //   //     // unsigned i =0;
+  //   //     // for(; i < min_size; i++  ) {
+  //   //     //   if( !z3::eq( e_h[i],ep_h[i] ) ) {
+  //   //     //     break;
+  //   //     //   }
+  //   //     // }
+  //   //     ep->add_post_events( e, e->guard ); // todo : wrong code
+  //   //   }
+  //   // }
+  // }
 
   const tara::thread& program::operator[](unsigned int i) const {
     return *threads[i];
@@ -154,11 +155,11 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     return (*this)[location->thread][location->instr_no];
   }
 
-  void program::update_post_events() {
-    for( auto& t : threads ) {
-      t->update_post_events();
-    }
-  }
+  // void program::update_post_events() {
+  //   for( auto& t : threads ) {
+  //     t->update_post_events();
+  //   }
+  // }
 
 
   void program::print_dot( const std::string& name ) {
@@ -207,20 +208,30 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   void program::print_dependency( std::ostream& os ) {
-      for (unsigned t=0; t<threads.size(); t++) {
-        auto& thread = *threads[t];
-        for( const auto& e : thread.events ) {
-	  hb_enc::depends_set& dep_ses = e->data_dependency;
-	  os << "data" << "|" << e->name() << "|=>\n" << dep_ses << std::endl;
+    os << "============================\n";
+    os << "data dependencies:\n";
+    os << "============================\n";
+    for (unsigned t=0; t<threads.size(); t++) {
+      auto& thread = *threads[t];
+      for( const auto& e : thread.events ) {
+        if( e->is_mem_op() ) {
+          hb_enc::depends_set& dep_ses = e->data_dependency;
+          os << e->name() << "=>\n" << dep_ses << std::endl;
         }
       }
-      for (unsigned t=0; t<threads.size(); t++) {
-        auto& thread = *threads[t];
-        for( const auto& e : thread.events ) {
+    }
+    os << "============================\n";
+    os << "ctrl dependencies:\n";
+    os << "============================\n";
+    for (unsigned t=0; t<threads.size(); t++) {
+      auto& thread = *threads[t];
+      for( const auto& e : thread.events ) {
+        if( e->is_mem_op() ) {
           hb_enc::depends_set& ctrl_ses = e->ctrl_dependency;
-          os << "ctrl" << "|" << e->name() << "|=>\n" << ctrl_ses << std::endl;
+          os << e->name() << " =>\n" << ctrl_ses << std::endl;
         }
       }
+    }
   }
 
   void program::print_dot( std::ostream& os ) {

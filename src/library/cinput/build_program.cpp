@@ -285,12 +285,14 @@ translateBlock( unsigned thr_id,
                 hb_enc::se_set& prev_events,
                 z3::expr& path_cond,
                 std::vector< z3::expr >& history,
-                std::map<const llvm::BasicBlock*,z3::expr>& conds ) {
+                std::map<const llvm::BasicBlock*,z3::expr>& conds,
+                z3::expr& branch_cond ) {
 
   std::string loc_name = "block__" + std::to_string(thr_id)
                              + "__"+ std::to_string(block_to_id[b]);
   auto block = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                         history, loc_name, hb_enc::event_t::block );
+                          history, loc_name, hb_enc::event_t::block,
+                          branch_cond );
   p->add_event( thr_id, block );
   prev_events.clear(); prev_events.insert( block );
 
@@ -623,6 +625,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
     std::vector< split_history > histories; // needs to be ref
     std::vector<llvm::BasicBlock*> preds;
+    z3::expr branch_cond = z3.mk_true();
     for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
@@ -650,6 +653,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           if( succ_num == 1 ) b = !b;
           split_step ss(prev, block_to_id[prev], succ_num, b);
           h.push_back(ss);
+          branch_cond = b; //todo: hack needs streamlining
         }
         ctrl_ses.push_back( ctrl_temp );
       }
@@ -658,6 +662,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
+    if( histories.size() > 1 ) branch_cond = z3.mk_true(); // todo: hack
     hb_enc::join_depends_set( ctrl_ses, ctrl_dep_ses );
     local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
     if( src == &(f.getEntryBlock()) ) {
@@ -680,7 +685,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     std::vector<z3::expr> history_exprs;
     split_history_to_exprs( h, history_exprs );
     z3::expr ssa = translateBlock( thread_id, src, prev_events,
-                                   path_cond, history_exprs, conds);
+                                   path_cond, history_exprs, conds,branch_cond);
     block_to_trailing_events[src] = prev_events;
     if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
       final_prev_events.insert( prev_events.begin(), prev_events.end() );
@@ -709,7 +714,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
                           history_exprs, name+"_final", hb_enc::event_t::barr );
 
   p->set_final_event( thread_id, final, exit_cond );
-  p->update_post_events();
+  // p->update_post_events();
 
   if( o.print_input > 1 ) p->print_dependency( o.out());
 

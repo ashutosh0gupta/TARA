@@ -180,28 +180,47 @@ namespace hb_enc {
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, std::vector<z3::expr>& history_,
+             z3::expr& path_cond, std::vector<z3::expr>& history_,
              const cssa::variable& prog_v, std::string loc,
              event_t _et ) {
     cssa::variable ssa_v = prog_v + "#" + loc;
-    se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, ssa_v,
-                                                 prog_v, loc, _et);
-    e->guard = cond;
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0,
+                                                 ssa_v, prog_v, loc, _et);
+    e->guard = path_cond;
     e->history = history_;
     hb_enc.record_event( e );
+    for(se_ptr ep  : prev_es) {
+      ep->add_post_events( e, hb_enc.ctx.bool_val(true) );
+    }
     return e;
   }
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-             z3::expr& cond, std::vector<z3::expr>& history_,
-             std::string loc, event_t et ) {
+             z3::expr& path_cond, std::vector<z3::expr>& history_,
+             std::string loc, event_t et,
+             z3::expr branch_cond  ) {
     se_ptr e =
       std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, loc, et );
-    e->guard = cond;
+    e->guard = path_cond;
     e->history = history_;
     hb_enc.record_event( e );
+    assert( z3::eq( branch_cond, hb_enc.ctx.bool_val(true) ) ||
+                    prev_es.size() == 1 );
+    for(se_ptr ep  : prev_es) {
+      ep->add_post_events( e, branch_cond );
+    }
     return e;
+  }
+
+
+  inline se_ptr
+  mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
+             z3::expr& path_cond, std::vector<z3::expr>& history_,
+             std::string loc, event_t et ) {
+
+    return mk_se_ptr( hb_enc, tid, prev_es, path_cond, history_, loc, et,
+                      hb_enc.ctx.bool_val(true) );
   }
 
   //--------------------------------------------------------------------------
