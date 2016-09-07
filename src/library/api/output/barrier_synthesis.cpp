@@ -984,7 +984,7 @@ void barrier_synthesis::output(const z3::expr& output) {
       return;
     }
     z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
-    std::cout << m ;
+    // std::cout << m ;
 
     for( auto it=barrier_map.begin(); it != barrier_map.end(); it++ ) {
       hb_enc::se_ptr e = it->first;
