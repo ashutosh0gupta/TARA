@@ -291,10 +291,16 @@ void wmm_event_cons::ses() {
     }
 
     // dependency
-    for( const hb_enc::se_ptr& wr : wrs )
-      for( auto& rd : wr->data_dependency )
-        //todo : should the following be guarded??
-        thin = thin && z3::implies(rd.cond, hb_encoding.mk_hb_thin( rd.e, wr ));
+    for( const hb_enc::se_ptr& wr : wrs ) {
+      for( auto& dep : wr->data_dependency )
+        thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
+      // for( auto& dep : wr->ctrl_dependency )
+      //   thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
+    }
+    // for( const hb_enc::se_ptr& rd : rds ) {
+    //   for( auto& dep : rd->ctrl_dependency )
+    //     thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, rd ));
+    // }
   }
 }
 
@@ -421,19 +427,47 @@ bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
   return false;
 }
 
-bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
+bool wmm_event_cons::check_ppo( mm_t mm,
+                                const hb_enc::se_ptr e1,
                                 const hb_enc::se_ptr e2 ) {
   if( e1->is_barr_type() || e2->is_barr_type() ) {
     return is_barrier_ordered( e1, e2 );
   }
-
-  if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
-  }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
-  }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
-  }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
-  }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
-  }else{    p.unsupported_mm();
+  switch( mm ) {
+  case mm_t::sc   : return is_ordered_sc   ( e1, e2 ); break;
+  case mm_t::tso  : return is_ordered_tso  ( e1, e2 ); break;
+  case mm_t::pso  : return is_ordered_pso  ( e1, e2 ); break;
+  case mm_t::rmo  : return is_ordered_rmo  ( e1, e2 ); break;
+  case mm_t::alpha: return is_ordered_alpha( e1, e2 ); break;
+  default:
+    std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
+    wmm_error( msg );
   }
+//   if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
+//   }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
+//   }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
+//   }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
+//   }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
+//   }else{    p.unsupported_mm();
+//   }
+// // if(flag) return true;
+  return false; // dummy return
+}
+
+bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
+                                const hb_enc::se_ptr e2 ) {
+  return check_ppo( p.get_mm(), e1, e2 );
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
+
+  // if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
+  // }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
+  // }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
+  // }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
+  // }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
+  // }else{    p.unsupported_mm();
+  // }
 // if(flag) return true;
   return false; // dummy return
 }
@@ -452,7 +486,7 @@ void wmm_event_cons::ppo_traverse( const tara::thread& thread ) {
     hb_enc::se_set& ordered = ordered_map[e];
     hb_enc::se_set seen_set;
     while( !tmp_pendings.empty() ) {
-      auto& ep = *tmp_pendings.begin();
+      auto ep = *tmp_pendings.begin();
       tmp_pendings.erase( ep );
       if( helpers::exists( seen_set, ep ) ) continue;
       seen_set.insert( ep );

@@ -303,7 +303,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       for( const auto& e : thread.events ) {
         z3::expr v = m.eval( e->guard );
         if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
-          std::cout << e->name() << "\n" << e->guard << "\n";
+          // std::cout << e->name() << "\n" << e->guard << "\n";
           print_node( stream, e , "gray");
         }else
           print_node( stream, e );

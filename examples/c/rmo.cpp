@@ -24,7 +24,7 @@ void* p0(void *) {
 void* p1(void *) {
   int t2 = 0;
   r1 = y;
-  x = 2;
+  // x = 2;
   return NULL;
 }
 

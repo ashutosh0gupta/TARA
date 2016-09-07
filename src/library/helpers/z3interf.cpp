@@ -271,19 +271,19 @@ vector< expr > z3interf::decompose(expr conj, Z3_decl_kind kind)
 }
 
 
-z3::expr z3interf::get_fresh_bool() {
+z3::expr z3interf::get_fresh_bool( std::string suff ) {
   static unsigned count = 0;
   stringstream b_name;
-  b_name<<"b"<<count;
+  b_name << "b_" << count << "_"<< suff;
   z3::expr b = c.bool_const(b_name.str().c_str());
   count++;
   return b;
 }
 
-z3::expr z3interf::get_fresh_int() {
+z3::expr z3interf::get_fresh_int(  std::string suff ) {
   static unsigned count = 0;
   count++;
-  std::string loc_name = "i_" + std::to_string(count);
+  std::string loc_name = "i_" + std::to_string(count) + "_" + suff;
   z3::expr loc_expr = c.int_const(loc_name.c_str());
   return loc_expr;
 }

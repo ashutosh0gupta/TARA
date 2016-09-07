@@ -268,6 +268,13 @@ inline std::string get_before_hash(const std::string& variable) {
 }
 
 template< class Key >
+bool exists( const std::vector<Key>& v, const Key& k ) {
+  return std::find( v.begin(), v.end(), k ) != v.end();
+  // return set1.find( k ) !=  set1.end();
+}
+
+
+template< class Key >
 bool exists( const std::set<Key>& set1, const Key& k ) {
   return set1.find( k ) !=  set1.end();
 }
@@ -301,7 +308,8 @@ Key pick_and_move( std::set<Key,cmp>& doner,
 }
 
 template< class Key >
-Key pick_and_move( std::set<Key>& doner, std::set<Key>& receiver ) {
+Key pick_and_move( std::set<Key>& doner,
+                   std::set<Key>& receiver ) {
   Key x = pick( doner );
   receiver.insert( x );
   return x;

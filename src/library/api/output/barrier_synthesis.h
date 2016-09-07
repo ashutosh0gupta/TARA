@@ -184,7 +184,17 @@ private:
   std::unordered_map<hb_enc::se_ptr,z3::expr> segment_map;
   // std::map<std::string, hb_enc::se_ptr> rev_segment_map;
 
-  std::map< hb_enc::se_ptr, z3::expr > event_bit_map;
+  std::map< std::pair<hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr > wr_ord_map;
+  std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr >
+  hist_map;
+  std::map< hb_enc::se_ptr, z3::expr > barrier_map;
+  std::map< hb_enc::se_ptr, z3::expr > light_barrier_map;
+
+  z3::expr get_h_var_bit(hb_enc::se_ptr b, hb_enc::se_ptr i, hb_enc::se_ptr j);
+  z3::expr get_write_order_bit( hb_enc::se_ptr b, hb_enc::se_ptr k );
+  z3::expr get_barr_bit( hb_enc::se_ptr k );
+  z3::expr get_lw_barr_bit( hb_enc::se_ptr k );
+
   z3::expr mk_edge_constraint( hb_enc::se_ptr before,
                                hb_enc::se_ptr after, z3::expr& e );
   void gen_max_sat_problem();

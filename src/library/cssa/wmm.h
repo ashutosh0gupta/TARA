@@ -42,6 +42,9 @@ namespace cssa {
     wmm_event_cons( helpers::z3interf&, api::options&,
                     hb_enc::encoding&, tara::program&  );
     void run();
+
+    static bool check_ppo( mm_t, const hb_enc::se_ptr, const hb_enc::se_ptr );
+
   private:
     helpers::z3interf& z3;
     api::options& o;
@@ -50,15 +53,15 @@ namespace cssa {
 
     void distinct_events();
 
-    bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
     z3::expr is_ordered_dependency( const hb_enc::se_ptr,
                                     const hb_enc::se_ptr);
-    bool is_ordered_sc     ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    bool is_ordered_rmo    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    bool is_ordered_alpha  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_sc     ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_rmo    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_alpha  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
 
     void ppo_traverse ( const tara::thread& );
     void ppo_rmo_traverse ( const tara::thread& );

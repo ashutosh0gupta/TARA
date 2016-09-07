@@ -108,8 +108,8 @@ public:
 
   z3::sort get_variable_sort(const input::variable& var);
 
-  z3::expr get_fresh_bool();
-  z3::expr get_fresh_int();
+  z3::expr get_fresh_bool( std::string suff = "" );
+  z3::expr get_fresh_int(  std::string suff = "" );
 
   bool is_false( z3::expr );
   bool is_true( z3::expr );
