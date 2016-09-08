@@ -761,10 +761,10 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
       const hb_enc::se_ptr epp = dep.e;
       hb_enc::depends_set temp;
       z3::expr epp_cond = z3.mk_false();
-      std::cout << e->name() << " "<< ep->name() << " "<< epp->name();
-      std::cout << "\n";
-      tara::debug_print( std::cout, p.may_after[epp] );
-      tara::debug_print( std::cout, local_ordered[epp] );
+      // std::cout << e->name() << " "<< ep->name() << " "<< epp->name();
+      // std::cout << "\n";
+      // tara::debug_print( std::cout, p.may_after[epp] );
+      // tara::debug_print( std::cout, local_ordered[epp] );
       if( check_ppo( e, epp ) ) {
         hb_enc::depends_set temp3;
         hb_enc::join_depends_set( p.may_after[epp], local_ordered[epp], temp3 );
