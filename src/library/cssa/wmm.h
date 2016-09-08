@@ -121,8 +121,8 @@ namespace cssa {
     void update_must_before( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void update_must_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void update_may_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
-    void pointwise_and ( const hb_enc::depends_set, z3::expr cond,
-                         hb_enc::depends_set );
+    void pointwise_and ( const hb_enc::depends_set&, z3::expr cond,
+                         hb_enc::depends_set& );
   };
 
 }}
