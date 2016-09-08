@@ -43,7 +43,7 @@ namespace cssa {
                     hb_enc::encoding&, tara::program&  );
     void run();
 
-    static bool check_ppo( mm_t, const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool check_ppo( mm_t, const hb_enc::se_ptr&, const hb_enc::se_ptr& );
 
   private:
     helpers::z3interf& z3;
@@ -53,15 +53,14 @@ namespace cssa {
 
     void distinct_events();
 
-    static bool is_barrier_ordered( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    z3::expr is_ordered_dependency( const hb_enc::se_ptr,
-                                    const hb_enc::se_ptr);
-    static bool is_ordered_sc     ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    static bool is_ordered_tso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    static bool is_ordered_pso    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    static bool is_ordered_rmo    ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    static bool is_ordered_alpha  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-    static bool is_ordered_power  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    static bool is_barrier_ordered( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    z3::expr is_ordered_dependency( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_sc     ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_tso    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_pso    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_rmo    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_alpha  ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_ordered_power  ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
 
     void ppo_traverse ( const tara::thread& );
     void ppo_rmo_traverse ( const tara::thread& );
@@ -71,7 +70,7 @@ namespace cssa {
     void new_ppo_rmo  ( const tara::thread& );
     void new_ppo_alpha( const tara::thread& );
     void new_ppo_power( const tara::thread& );
-    bool check_ppo( const hb_enc::se_ptr, const hb_enc::se_ptr );
+    bool check_ppo( const hb_enc::se_ptr&, const hb_enc::se_ptr& );
     void sc_ppo   ( const tara::thread& );
     void tso_ppo  ( const tara::thread& );
     void pso_ppo  ( const tara::thread& );

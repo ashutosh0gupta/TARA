@@ -344,8 +344,8 @@ void wmm_event_cons::new_ppo_sc( const tara::thread& thread ) {
 }
 
 
-bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
-                                         const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr& e1,
+                                         const hb_enc::se_ptr& e2  ) {
   if( e1->is_block_head() || e2->is_block_head()  ) return false;
   if( e2->is_barrier() || e2->is_before_barrier() ) return true;
   if( e1->is_barrier() || e1->is_after_barrier()  ) return true;
@@ -354,15 +354,15 @@ bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr e1,
   return false;
 }
 
-bool wmm_event_cons::is_ordered_sc( const hb_enc::se_ptr e1,
-                                    const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_ordered_sc( const hb_enc::se_ptr& e1,
+                                    const hb_enc::se_ptr& e2  ) {
   assert( e1->is_mem_op() && e2->is_mem_op() );
 
   return true;
 }
 
-bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
-                                     const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr& e1,
+                                     const hb_enc::se_ptr& e2  ) {
 
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() ) return true;
@@ -370,8 +370,8 @@ bool wmm_event_cons::is_ordered_tso( const hb_enc::se_ptr e1,
   return false;
 }
 
-bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
-                                     const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr& e1,
+                                     const hb_enc::se_ptr& e2  ) {
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name )) return true;
   if( e1->is_rd() && ( e2->is_wr() || e2->is_rd() ) ) return true;
@@ -380,8 +380,8 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr e1,
 
 // Note: the following function does not check dependency orderings
 // in rmo
-bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
-                                     const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr& e1,
+                                     const hb_enc::se_ptr& e2  ) {
   if( e1->is_barr_type() || e2->is_barr_type() ) {
     return is_barrier_ordered( e1, e2 );
   }
@@ -396,8 +396,8 @@ bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr e1,
 }
 
 
-z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr e1,
-                                                const hb_enc::se_ptr e2  ) {
+z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr& e1,
+                                                const hb_enc::se_ptr& e2  ) {
   
   if( !(e1->is_mem_op() && e2->is_mem_op()) ) return z3.mk_emptyexpr();
 
@@ -417,8 +417,8 @@ z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr e1,
   return ret;
 }
 
-bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
-                                     const hb_enc::se_ptr e2  ) {
+bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr& e1,
+                                       const hb_enc::se_ptr& e2  ) {
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_wr() && e2->is_wr() && (e1->prog_v.name == e2->prog_v.name))
     return true;
@@ -428,8 +428,8 @@ bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr e1,
 }
 
 bool wmm_event_cons::check_ppo( mm_t mm,
-                                const hb_enc::se_ptr e1,
-                                const hb_enc::se_ptr e2 ) {
+                                const hb_enc::se_ptr& e1,
+                                const hb_enc::se_ptr& e2 ) {
   if( e1->is_barr_type() || e2->is_barr_type() ) {
     return is_barrier_ordered( e1, e2 );
   }
@@ -454,8 +454,8 @@ bool wmm_event_cons::check_ppo( mm_t mm,
   return false; // dummy return
 }
 
-bool wmm_event_cons::check_ppo( const hb_enc::se_ptr e1,
-                                const hb_enc::se_ptr e2 ) {
+bool wmm_event_cons::check_ppo( const hb_enc::se_ptr& e1,
+                                const hb_enc::se_ptr& e2 ) {
   return check_ppo( p.get_mm(), e1, e2 );
   // if( e1->is_barr_type() || e2->is_barr_type() ) {
   //   return is_barrier_ordered( e1, e2 );

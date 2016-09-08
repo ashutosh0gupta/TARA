@@ -686,7 +686,7 @@ void barrier_synthesis::gen_max_sat_problem() {
 // constraints for mk_edge( b, a)
 // h_bij means that b~>i~>j and b,j is ordered at i
 // h_bbb => true
-// h_bba => false ( TODO <<------------- check )
+// h_bbj => false   j != b ( TODO <<------------- check )
 // h_bij => /\_{k \in prev(i)} ( h_bkj  \/
 //                               ( h_bkk /\ check_ppo(k,j) ) \/
 //                               ( l_k /\ w_bk /\ is_write(j) ) \/
@@ -768,12 +768,11 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
           // todo: check for the lwsync requirement
           z3::expr lw_k = j->is_wr()? get_lw_barr_bit( k ) : z3.mk_false();
           lw_k = lw_k && get_write_order_bit( b, k );
-          // z3::expr lw_k = z3.mk_false();
           z3::expr b_k = get_barr_bit( k );
           conj = conj && (h_bkj || h_bkk || lw_k || b_k);
         }
       }
-      if( i == b && j == a ) {
+      if( i == b && j != b ) {
         conj = z3.mk_false();
       }
       z3::expr h_bij = get_h_var_bit( b, i, j );;
