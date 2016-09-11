@@ -1,5 +1,3 @@
-// this example is for testing all the reasoning related to branching.
-
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +42,10 @@ int main() {
   pthread_create(&thr_1, NULL, p1, NULL );
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
+<<<<<<< HEAD
+  assert(!((done0 == 1) && (done1 == 1)) || cs == 2);
+=======
   assert(!((flag0 == 0) && (flag1 == 0)) || cs == 2 );
+>>>>>>> 25ec2530a1cd22d031575d97985d0970a77f327b
 }
 

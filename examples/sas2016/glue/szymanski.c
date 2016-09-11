@@ -1,4 +1,3 @@
-
 #include <assert.h>
 #include<pthread.h>
 //volatile int sum1, sum2, 
@@ -13,7 +12,6 @@ int cs; // variable to test mutual exclusion
 //int counter=0;
 
 void* thr1(void * arg) {
-
     flag1 = 1;
 	//fence
     r2 = flag2;
@@ -35,8 +33,7 @@ void* thr1(void * arg) {
          }
      }
 }
-void* thr2(void * arg) { 
-    
+void* thr2(void * arg) {     
     flag2 = 1;
     r3 = flag1;
     if(r3 < 3)
