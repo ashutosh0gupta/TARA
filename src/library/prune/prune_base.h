@@ -21,7 +21,7 @@
 #ifndef TARA_PRUNE_BASE_H
 #define TARA_PRUNE_BASE_H
 
-#include "cssa/program.h"
+#include "program/program.h"
 #include <list>
 
 namespace tara {

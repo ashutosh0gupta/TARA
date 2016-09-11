@@ -742,6 +742,7 @@ void wmm_event_cons::pointwise_and( const hb_enc::depends_set& dep_in,
                                     hb_enc::depends_set& dep_out ) {
   for( const hb_enc::depends& d : dep_in ) {
     z3::expr c = d.cond && cond;
+    c = c.simplify();
     dep_out.insert( hb_enc::depends( d.e, c ));
   }
 }

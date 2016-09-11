@@ -5,7 +5,6 @@
 int turn;
 int flag0 = 0, flag1 = 0;
 int cs = 0;
-int done0 = 0, done1 = 0;
 void assume( bool );
 void assert( bool );
 void fence();
@@ -20,7 +19,6 @@ void* p0(void *) {
     cs = cs + 1;
   //critical section ends
     flag0 = 0;
-    done0 = 1;
   }
   return NULL;
 }
@@ -34,7 +32,6 @@ void* p1(void *) {
     cs = cs + 1;
   //critical section ends
     flag1 = 0;
-    done1 = 1;
   }
   return NULL;
 }
@@ -45,6 +42,10 @@ int main() {
   pthread_create(&thr_1, NULL, p1, NULL );
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
+<<<<<<< HEAD
   assert(!((done0 == 1) && (done1 == 1)) || cs == 2);
+=======
+  assert(!((flag0 == 0) && (flag1 == 0)) || cs == 2 );
+>>>>>>> 25ec2530a1cd22d031575d97985d0970a77f327b
 }
 
