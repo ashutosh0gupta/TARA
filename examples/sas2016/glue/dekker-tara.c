@@ -13,7 +13,7 @@ int cs; // variable to test mutual exclusion
 //int counter=0;
 
 void* thr1(void * arg) {
-
+  
     flag1 = 1;
     r2 = flag2;
     if(r2 != 1)
@@ -26,8 +26,8 @@ void* thr1(void * arg) {
     }
 }
 
-void* thr2(void * arg) { 
-
+void* thr2(void * arg) {
+  
     flag2 = 1;
     r3 = flag1;
     if(r3 != 1)
