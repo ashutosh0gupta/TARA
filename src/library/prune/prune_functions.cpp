@@ -24,6 +24,7 @@
 #include "prune/remove_implied.h"
 #include "prune/unsat_core.h"
 #include "prune/remove_thin.h"
+#include "prune/remove_non_cycled.h"
 #include "helpers/helpers.h"
 #include "api/options.h"
 
@@ -92,7 +93,7 @@ namespace prune {
     for( unsigned i = 0; i < prune_chain.size(); i++ ) {
       hbs = prune_chain[i]->prune( hbs, m );
       if (print_pruning >= 1) {
-        print_out << "Constraint after " << prune_chain[i]->name() << endl;
+        print_out << "--- Constraint after " << prune_chain[i]->name() << endl;
         print_hbs(hbs, print_out);
       }
     }
@@ -124,8 +125,10 @@ namespace prune {
         prune = unique_ptr<prune::prune_base>(new diffvar(z3, program));
       else if (p=="remove_thin")
 	prune = unique_ptr<prune::prune_base>(new remove_thin(z3, program));
+      else if (p=="remove_non_cycled")
+	prune = unique_ptr<prune::prune_base>(new remove_non_cycled(z3, program));
       else {
-        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\",\"remove_thin\"." << endl;
+        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\",\"remove_thin\",\"remove_non_cycled\"." << endl;
         return false;
       }
       prune_chain.push_back(std::move(prune));

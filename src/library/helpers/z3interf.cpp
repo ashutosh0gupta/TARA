@@ -320,11 +320,11 @@ bool z3interf::is_sat( z3::expr f ) const {
   return false; // unreachable code: dummy return
 }
 
-bool z3interf::is_false( z3::expr f ) {
+bool z3interf::is_false( z3::expr f ) const {
   return z3::eq( f, mk_false() );
 }
 
-bool z3interf::is_true( z3::expr f ) {
+bool z3interf::is_true( z3::expr f ) const {
   return z3::eq( f, mk_true() );
 }
 

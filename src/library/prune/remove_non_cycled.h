@@ -18,30 +18,25 @@
  *
  */
 
-#ifndef TARA_PRUNE_DATA_FLOW_H
-#define TARA_PRUNE_DATA_FLOW_H
+#ifndef TARA_PRUNE_REMOVE_NON_CYCLED_H
+#define TARA_PRUNE_REMOVE_NON_CYCLED_H
 
 #include "prune/prune_base.h"
-#include "cssa/program.h"
+#include "hb_enc/cycles.h"
 
 namespace tara {
 namespace prune {
-class data_flow : public prune_base
+class remove_non_cycled : public prune::prune_base
 {
 public:
-  data_flow(const helpers::z3interf& z3, const tara::program& program);
-  virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
-  //todo : remove above and implement befow!!
+  remove_non_cycled(const helpers::z3interf& z3, const tara::program& program);
+  hb_enc::cycles cycle_finder;
+  //todo : remove the code above
   virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m );
 
   virtual std::string name();
 private:
-  const cssa::program* program_old;
-  /**
-   * @brief Checks which one of the disjuncts is true, then inserts only that one.
-   */
-  void insert_disjunct(const z3::expr& disjunction, std::list< z3::expr >& hbs, const z3::model& m);
 };
 }}
 
-#endif // TARA_PRUNE_DATA_FLOW_H
+#endif // PRUNE_REMOVE_NON_CYCLED_H

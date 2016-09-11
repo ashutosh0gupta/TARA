@@ -91,9 +91,10 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       mode = modes::as;
     else if (_mode == "synthesis")
       mode = modes::synthesis;
-    else if (_mode == "wmm_synthesis")
+    else if (_mode == "wmm_synthesis") {
       mode = modes::wmm_synthesis;
-    else if (_mode == "bugs")
+      prune_chain = prune_chain + ",remove_non_cycled";
+    }else if (_mode == "bugs")
       mode = modes::bugs;
     else {
       throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\",\"wmm_synthesis\"");

@@ -1,7 +1,9 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-int r1,r2,r3,r4,r5,r6;
+// int r1,r2,r3,r4,r5,r6;
+int r1; //,r5;//,r6;
+
 int turn = 0;
 int flag0 = 0, flag1 = 0;
 int done0 = 0, done1 = 0;
@@ -13,9 +15,10 @@ int n1 = 0,n2 = 0;
 int cs; // variable to test mutual exclusion
 
 void* p0(void *) {
+  int r3;
     flag0 = 1;
     r1 = n1;
-    r2 = n2;
+    int r2 = n2;
     if(r2 > r1)
     {
 	r3 = r2 + 1;
@@ -43,8 +46,9 @@ void* p0(void *) {
 
 void* p1(void *) {
     flag1 = 1;
-    r4 = n1;
-    r5 = n2;
+    int r4 = n1;
+    int r5 = n2;
+    int r6;
     if(r4 > r5)
     {
 	r6 = r4 + 1;
