@@ -758,7 +758,6 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
     }
   }
 
-  
   for( auto it = found.begin(); it != found.end();it++ ) {
     hb_enc::se_ptr& i = *it;
     auto it2 = it;
@@ -771,8 +770,11 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
           z3::expr h_bkk = cssa::wmm_event_cons::check_ppo(mm,k,j) ?
             get_h_var_bit(b,k,k):z3.mk_false();
           // todo: check for the lwsync requirement
-          z3::expr lw_k = j->is_wr()? get_lw_barr_bit( k ) : z3.mk_false();
-          lw_k = lw_k && get_write_order_bit( b, k );
+          z3::expr lw_k = z3.mk_false();
+          if( enable_lw_fences ) { // disable 
+            z3::expr lw_k = j->is_wr()? get_lw_barr_bit( k ) : z3.mk_false();
+            lw_k = lw_k && get_write_order_bit( b, k );
+          }
           z3::expr b_k = get_barr_bit( k );
           conj = conj && (h_bkj || h_bkk || lw_k || b_k);
         }
@@ -783,19 +785,21 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
       z3::expr h_bij = get_h_var_bit( b, i, j );;
       hard = hard && implies( h_bij, conj );
     }
-    z3::expr conj = z3.mk_true();
-    for( const hb_enc::se_ptr& k : i->prev_events ) {
-      if( helpers::exists( found, k ) ) {
-        conj = conj && get_write_order_bit( b, k );
+    if( enable_lw_fences ) {
+      z3::expr conj = z3.mk_true();
+      for( const hb_enc::se_ptr& k : i->prev_events ) {
+        if( helpers::exists( found, k ) ) {
+          conj = conj && get_write_order_bit( b, k );
+        }
       }
+      // todo: check for the lwsync requirement
+      z3::expr h_bii = i->is_wr() ? get_h_var_bit( b, i, i ) : z3.mk_false();
+      z3::expr w_bi = get_write_order_bit( b, i );
+      hard = hard && implies( w_bi, conj ||  h_bii );
+      z3::expr s_i = get_barr_bit( i );
+      z3::expr lw_i = get_lw_barr_bit( i );
+      hard = hard && implies( s_i, lw_i );
     }
-    // todo: check for the lwsync requirement
-    z3::expr h_bii = i->is_wr() ? get_h_var_bit( b, i, i ) : z3.mk_false();
-    z3::expr w_bi = get_write_order_bit( b, i );
-    hard = hard && implies( w_bi, conj ||  h_bii );
-    z3::expr s_i = get_barr_bit( i );
-    z3::expr lw_i = get_lw_barr_bit( i );
-    hard = hard && implies( s_i, lw_i );
   }
   return get_h_var_bit( b, a, a );
 
@@ -873,7 +877,6 @@ void barrier_synthesis::gen_max_sat_problem_new() {
 // max sat code
 
 void barrier_synthesis::assert_soft_constraints( z3::solver&s ,
-                                                 z3::context& ctx,
                                                  std::vector<z3::expr>& cnstrs,
                                                  std::vector<z3::expr>& aux_vars
                                                  ) {
@@ -900,11 +903,10 @@ z3::expr barrier_synthesis:: at_most_one( z3::expr_vector& vars ) {
 }
 
 int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
-                          z3::context &ctx,
-                          std::vector<z3::expr>& soft_cnstrs,
-                          std::vector<z3::expr>& aux_vars ) {
-    z3::expr_vector assumptions(ctx);
-    z3::expr_vector core(ctx);
+                                              std::vector<z3::expr>& soft_cnstrs,
+                                              std::vector<z3::expr>& aux_vars ) {
+    z3::expr_vector assumptions(z3.c);
+    z3::expr_vector core(z3.c);
     for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
       assumptions.push_back(!aux_vars[i]);
     }
@@ -912,7 +914,8 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
       return 1; // done
     }else {
       core=s.unsat_core();
-      z3::expr_vector block_vars(ctx);
+      std::cout << core.size() << "\n";
+      z3::expr_vector block_vars(z3.c);
       // update soft-constraints and aux_vars
       for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
         unsigned j;
@@ -937,20 +940,19 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
 }
 
 z3::model
-barrier_synthesis::fu_malik_maxsat( z3::context& ctx,
-                                    z3::expr hard,
+barrier_synthesis::fu_malik_maxsat( z3::expr hard,
                                     std::vector<z3::expr>& soft_cnstrs ) {
     unsigned k;
-    z3::solver s(ctx);
+    z3::solver s(z3.c);
     s.add( hard );
     assert( s.check() != z3::unsat );
     assert( soft_cnstrs.size() > 0 );
 
     std::vector<z3::expr> aux_vars;
-    assert_soft_constraints( s,ctx ,soft_cnstrs, aux_vars );
+    assert_soft_constraints( s, soft_cnstrs, aux_vars );
     k = 0;
     for (;;) {
-      if( fu_malik_maxsat_step(s, ctx, soft_cnstrs, aux_vars) ) {
+      if( fu_malik_maxsat_step(s, soft_cnstrs, aux_vars) ) {
     	  z3::model m=s.get_model();
     	  return m;
       }
@@ -990,7 +992,7 @@ void barrier_synthesis::output(const z3::expr& output) {
       throw output_exception( "No relaxed edge found in any cycle!!");
       return;
     }
-    z3::model m =fu_malik_maxsat( sol_bad->ctx(), cut[0], soft );
+    z3::model m =fu_malik_maxsat( cut[0], soft );
     // std::cout << m ;
 
     for( auto it=barrier_map.begin(); it != barrier_map.end(); it++ ) {
