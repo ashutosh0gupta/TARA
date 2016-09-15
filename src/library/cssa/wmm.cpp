@@ -36,23 +36,15 @@ using namespace std;
 // New code
 //----------------------------------------------------------------------------
 
-
-//----------------------------------------------------------------------------
-// hb utilities
-
-// ghb = guarded hb
-// z3::expr wmm_event_cons::wmm_mk_ghb( const hb_enc::se_ptr& before,
-//                                      const hb_enc::se_ptr& after ) {
-//   return implies( before->guard && after->guard,
-//                   hb_encoding.make_hbs( before, after ) );
-// }
-
-// // thin air ghb
-// z3::expr wmm_event_cons::wmm_mk_ghb_thin( const hb_enc::se_ptr& before,
-// 				   const hb_enc::se_ptr& after ) {
-//   return implies( before->guard && after->guard,
-//                   hb_encoding.make_hb_thin( before, after ) );
-// }
+wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
+                                api::options& _o,
+                                hb_enc::encoding& _hb_encoding,
+                                tara::program& _p )
+: z3( _z3 )
+,o( _o )
+,hb_encoding( _hb_encoding )
+,p( _p ) {
+}
 
 //----------------------------------------------------------------------------
 // memory model utilities
@@ -85,45 +77,6 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
 //  - fr;rf   (r->r)   n/n  n/u   n/u   r/u
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
-
-bool wmm_event_cons::anti_ppo_read( const hb_enc::se_ptr& wr,
-                                    const hb_enc::se_ptr& rd ) {
-  // preventing coherence violation - rf
-  // (if rf is local then may not visible to global ordering)
-  assert( wr->tid == p.size() ||
-          rd->tid == p.size() ||
-          wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
-      || p.is_mm_rmo() || p.is_mm_alpha() ) {
-    // should come here for those memory models where rd-wr on
-    // same variables are in ppo
-    if( is_po( rd, wr ) ) {
-      return true;
-    }
-    //
-  }else{
-    p.unsupported_mm();
-  }
-  return false;
-}
-
-bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
-                                     const hb_enc::se_ptr& wr ) {
-  // preventing coherence violation - fr;
-  // (if rf is local then it may not be visible to the global ordering)
-  // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
-  assert( wr->tid == p.size() || rd->tid == p.size() ||
-          wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
-    if( is_po( wr, rd ) ) {
-      return true;
-    }
-    //
-  }else{
-    p.unsupported_mm();
-  }
-  return false;
-}
 
 bool wmm_event_cons::is_rd_rd_coherance_preserved() {
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_alpha()) {
@@ -205,7 +158,7 @@ void wmm_event_cons::ses() {
   // - fr  from read
   // - ws  write serialization
 
-  // z3::context& c = _z3.c;
+  //todo: disable the following code if rd rd coherence not preserved
   hb_enc::se_to_ses_map prev_rds;
   for( unsigned t = 0; t < p.size(); t++ ) {
      const auto& thr = p.get_thread( t );
@@ -222,15 +175,9 @@ void wmm_event_cons::ses() {
   for( const variable& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
-    // unsigned c_tid = 0;
-    // hb_enc::se_set tid_rds; // ??
     for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
-      // if( rd->tid != c_tid ) {
-        // tid_rds.clear();
-      //   c_tid = rd->tid;
-      // }
       for( const hb_enc::se_ptr& wr : wrs ) {
         if( anti_ppo_read_new( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr( v1 );
@@ -238,7 +185,7 @@ void wmm_event_cons::ses() {
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
         // well formed
-        wf = wf && implies( b, wr->guard && eq); // why not rd->guard
+        wf = wf && implies( b, wr->guard && eq);
         // read from
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
@@ -257,7 +204,6 @@ void wmm_event_cons::ses() {
               auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
               if( is_rd_rd_coherance_preserved() ) {
                 for( auto before_rd : prev_rds[rd] ) {
-                  //disable this code for rmo
                   z3::expr anti_coherent_b =
                     get_rf_bvar( v1, after_wr, before_rd, false );
                   new_fr = !anti_coherent_b && new_fr;
@@ -269,7 +215,6 @@ void wmm_event_cons::ses() {
         }
       }
       wf = wf && implies( rd->guard, some_rfs );
-      // tid_rds.insert( rd );
     }
 
     // write serialization
@@ -443,32 +388,12 @@ bool wmm_event_cons::check_ppo( mm_t mm,
     std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
     wmm_error( msg );
   }
-//   if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
-//   }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
-//   }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
-//   }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
-//   }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
-//   }else{    p.unsupported_mm();
-//   }
-// // if(flag) return true;
   return false; // dummy return
 }
 
 bool wmm_event_cons::check_ppo( const hb_enc::se_ptr& e1,
                                 const hb_enc::se_ptr& e2 ) {
   return check_ppo( p.get_mm(), e1, e2 );
-  // if( e1->is_barr_type() || e2->is_barr_type() ) {
-  //   return is_barrier_ordered( e1, e2 );
-  // }
-
-  // if(       p.is_mm_sc ()   ) { return is_ordered_sc ( e1, e2 );
-  // }else if( p.is_mm_tso()   ) { return is_ordered_tso( e1, e2 );
-  // }else if( p.is_mm_pso()   ) { return is_ordered_pso( e1, e2 );
-  // }else if( p.is_mm_rmo()   ) { return is_ordered_rmo( e1, e2 ); // note : half check
-  // }else if( p.is_mm_alpha() ) { return is_ordered_alpha( e1, e2 );
-  // }else{    p.unsupported_mm();
-  // }
-// if(flag) return true;
   return false; // dummy return
 }
 
@@ -521,16 +446,11 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
     hb_enc::depends_set tmp_pendings;
     for( auto& ep : e->prev_events )
       hb_enc::join_depends_set( pending_map[ep], tmp_pendings );
-    // tara::debug_print( std::cerr, tmp_pendings );
     hb_enc::depends_set& pending = pending_map[e];
     hb_enc::depends_set& ordered = ordered_map[e];
     while( !tmp_pendings.empty() ) {
       //todo: does ordered access solve the problem
       auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
-      // auto dep = *tmp_pendings.begin();
-      // tmp_pendings.erase( dep ); // todo : pick the maximal element
-      // if( helpers::exists( seen_set, dep.e ) ) continue;
-      // seen_set.insert( dep.e );
       if( is_ordered_rmo( dep.e, e ) ) {
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
         hb_enc::insert_depends_set( dep, ordered );
@@ -583,6 +503,8 @@ void wmm_event_cons::ppo() {
     }else if( p.is_mm_power() ) { power_ppo( thr );
     }else{                      p.unsupported_mm();
     }
+    // ordering with the final events of the thread
+    // and theor join points
     const auto& it = p.join_map.find( thr.name );
     if( it != p.join_map.end() ) {
       const auto& jp_pair = it->second;
@@ -611,43 +533,6 @@ void wmm_event_cons::ppo() {
 // }
 
 
-wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
-                                api::options& _o,
-                                hb_enc::encoding& _hb_encoding,
-                                tara::program& _p )
-: z3( _z3 )
-,o( _o )
-,hb_encoding( _hb_encoding )
-,p( _p ) {
-}
-
-void wmm_event_cons::run() {
-  update_orderings();
-
-  distinct_events(); // Rd/Wr events on globals are distinct
-  ppo(); // build hb formulas to encode the preserved program order
-  ses();
-  // old_ses(); // build symbolic event structure
-  // barrier(); // build barrier// ppo already has the code
-
-  if ( o.print_phi ) {
-    o.out() << "(" << endl
-            << "phi_po : \n" << (po && dist) << endl
-            << "wf     : \n" << wf           << endl
-            << "rf     : \n" << rf           << endl
-            << "grf    : \n" << grf          << endl
-            << "fr     : \n" << fr           << endl
-            << "ws     : \n" << ws           << endl
-            << "thin   : \n" << thin         << endl
-            << "phi_prp: \n" << p.phi_prp    << endl
-            << ")" << endl;
-  }
-
-  p.phi_po  = po && dist;
-  p.phi_ses = wf && grf && fr && ws ;
-  p.phi_ses = p.phi_ses && thin; //todo : undo this update
-
-}
 
 void wmm_event_cons::update_orderings() {
   for( unsigned i = 0; i < p.size(); i ++ ) {
@@ -785,9 +670,80 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
   p.may_after[e] = local_ordered[e];
 }
 
-//------------------------------------------------------------------------
-// to be removed ------------------------
 
+void wmm_event_cons::run() {
+  update_orderings();
+
+  distinct_events(); // Rd/Wr events on globals are distinct
+  ppo(); // build hb formulas to encode the preserved program order
+  ses();
+  // old_ses(); // build symbolic event structure
+  // barrier(); // build barrier// ppo already has the code
+
+  if ( o.print_phi ) {
+    o.out() << "(" << endl
+            << "phi_po : \n" << (po && dist) << endl
+            << "wf     : \n" << wf           << endl
+            << "rf     : \n" << rf           << endl
+            << "grf    : \n" << grf          << endl
+            << "fr     : \n" << fr           << endl
+            << "ws     : \n" << ws           << endl
+            << "thin   : \n" << thin         << endl
+            << "phi_prp: \n" << p.phi_prp    << endl
+            << ")" << endl;
+  }
+
+  p.phi_po  = po && dist;
+  p.phi_ses = wf && grf && fr && ws ;
+  p.phi_ses = p.phi_ses && thin; //todo : undo this update
+
+}
+
+
+//------------------------------------------------------------------------
+//                                                                      //
+//                              TO BE REMOVED                           //
+//                                                                      //
+//------------------------------------------------------------------------
+
+bool wmm_event_cons::anti_ppo_read_old( const hb_enc::se_ptr& wr,
+                                    const hb_enc::se_ptr& rd ) {
+  // preventing coherence violation - rf
+  // (if rf is local then may not visible to global ordering)
+  assert( wr->tid == p.size() ||
+          rd->tid == p.size() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
+      || p.is_mm_rmo() || p.is_mm_alpha() ) {
+    // should come here for those memory models where rd-wr on
+    // same variables are in ppo
+    if( is_po( rd, wr ) ) {
+      return true;
+    }
+    //
+  }else{
+    p.unsupported_mm();
+  }
+  return false;
+}
+
+bool wmm_event_cons::anti_po_loc_fr_old( const hb_enc::se_ptr& rd,
+                                     const hb_enc::se_ptr& wr ) {
+  // preventing coherence violation - fr;
+  // (if rf is local then it may not be visible to the global ordering)
+  // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
+  assert( wr->tid == p.size() || rd->tid == p.size() ||
+          wr->prog_v.name == rd->prog_v.name );
+  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
+    if( is_po( wr, rd ) ) {
+      return true;
+    }
+    //
+  }else{
+    p.unsupported_mm();
+  }
+  return false;
+}
 
 void wmm_event_cons::old_ses() {
   // For each global variable we need to construct
@@ -812,7 +768,7 @@ void wmm_event_cons::old_ses() {
         c_tid = rd->tid;
       }
       for( const hb_enc::se_ptr& wr : wrs ) {
-        if( anti_ppo_read( wr, rd ) ) continue;
+        if( anti_ppo_read_old( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
@@ -831,7 +787,7 @@ void wmm_event_cons::old_ses() {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
                           && after_wr->guard;
-            if( anti_po_loc_fr( rd, after_wr ) ) {
+            if( anti_po_loc_fr_old( rd, after_wr ) ) {
               fr = fr && !cond;
             }else{
               auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
@@ -906,7 +862,6 @@ void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
       last_rds = last_wrs = thread[j].barr;
       rd_occured = false;
     }else{
-      // if(!is_barrier( thread[j].type )){
       auto& rds = thread[j].rds; auto& wrs = thread[j].wrs;
       if( !rds.empty() ) {
         po = po && hb_encoding.mk_hbs( last_rds, rds );

@@ -88,8 +88,8 @@ namespace cssa {
                              const hb_enc::se_ptr& wr );
 
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_ppo_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_po_loc_fr( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
+    bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_po_loc_fr_old( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
     bool is_rd_rd_coherance_preserved();
 
     // z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);

@@ -914,7 +914,7 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
       return 1; // done
     }else {
       core=s.unsat_core();
-      std::cout << core.size() << "\n";
+      // std::cout << core.size() << "\n";
       z3::expr_vector block_vars(z3.c);
       // update soft-constraints and aux_vars
       for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
