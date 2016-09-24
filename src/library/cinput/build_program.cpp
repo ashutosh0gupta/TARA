@@ -300,8 +300,7 @@ translateBlock( unsigned thr_id,
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   z3::expr join_conds = z3.mk_true();
-  hb_enc::depends_set data_dep_ses;
-  hb_enc::depends_set ctrl;
+  // hb_enc::depends_set ctrl;
   // std::vector<typename EHandler::expr> blockTerms;
   // //iterate over instructions
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
@@ -315,16 +314,13 @@ translateBlock( unsigned thr_id,
       hb_enc::se_set new_events;
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
-        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond, history,
-                             gv, loc_name, hb_enc::event_t::w );
+        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                             history, gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
-        // data_dep_ses.clear();
-        // data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
-        hb_enc::depends_set data_dep_ses = get_depends( store->getOperand(0) );
-        local_map.insert( std::make_pair( I, data_dep_ses ));
-	wr->data_dependency.insert( data_dep_ses.begin(), data_dep_ses.end() );
-	ctrl = get_ctrl(b);
-	wr->ctrl_dependency.insert( ctrl.begin(), ctrl.end() );
+        const auto& data_dep_set = get_depends( store->getOperand(0) );
+        local_map.insert( std::make_pair( I, data_dep_set ));
+	wr->set_data_dependency( data_dep_set );
+	wr->set_ctrl_dependency( get_ctrl(b) );
 	block_ssa = block_ssa && ( wr->v == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -361,18 +357,16 @@ translateBlock( unsigned thr_id,
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r );
-          data_dep_ses.clear();
-          data_dep_ses.insert( hb_enc::depends( rd, path_cond ) ); // << replace path cond ~> true??
-          local_map.insert( std::make_pair( I, data_dep_ses ));
-          ctrl = get_ctrl(b);
-          rd->ctrl_dependency.insert( ctrl.begin(), ctrl.end() );
+          // todo: << replace path cond ~> true??
+          local_map[I].insert( hb_enc::depends( rd, path_cond ) );
+          rd->set_ctrl_dependency( get_ctrl(b) );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
             cinput_error( "non pointer dereferenced!" );
           auto& potinted_set = points_to.at(addr).p_set;
-          for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ){
+          for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ) {
             z3::expr c = a_pair.first;
             cssa::variable gv = a_pair.second;
             z3::expr path_cond_c = path_cond && c;
@@ -410,8 +404,8 @@ translateBlock( unsigned thr_id,
     }
 
     if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
-      hb_enc::depends_set dep_ses0;
-      hb_enc::depends_set dep_ses1;
+      //  dep_ses0;
+      // hb_enc::depends_set dep_ses1;
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
       z3::expr a = getTerm( op0, m );
@@ -429,16 +423,13 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-         dep_ses0 = get_depends( op0 );
-         dep_ses1 = get_depends( op1 );
-         hb_enc::join_depends_set( dep_ses0, dep_ses1, data_dep_ses );
-         local_map.insert( std::make_pair( I, data_dep_ses ));
-         assert( !recognized );recognized = true;
-       }
+      hb_enc::depends_set dep_ses0 = get_depends( op0 );
+      hb_enc::depends_set dep_ses1 = get_depends( op1 );
+      hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
+      assert( !recognized );recognized = true;
+    }
 
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
-      hb_enc::depends_set dep_ses0;
-      hb_enc::depends_set dep_ses1;
       llvm::Value* lhs = cmp->getOperand( 0 );
       llvm::Value* rhs = cmp->getOperand( 1 );
       z3::expr l = getTerm( lhs, m );
@@ -460,14 +451,12 @@ translateBlock( unsigned thr_id,
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
-      dep_ses0 = get_depends( lhs );
-      dep_ses1 = get_depends( rhs );
-      hb_enc::join_depends_set( dep_ses0, dep_ses1, data_dep_ses );
-      local_map.insert( std::make_pair( I, data_dep_ses ));
+      hb_enc::depends_set dep_ses0 = get_depends( lhs );
+      hb_enc::depends_set dep_ses1 = get_depends( rhs );
+      hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
-      hb_enc::depends_set temp;
       std::vector<hb_enc::depends_set> dep_ses;
       assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
@@ -479,16 +468,12 @@ translateBlock( unsigned thr_id,
           const llvm::BasicBlock* b = phi->getIncomingBlock(i);
           const llvm::Value* v_ = phi->getIncomingValue(i);
           z3::expr v = getTerm (v_, m );
-          temp = get_depends( v_ );
-	  for(std::set<hb_enc::depends>::iterator it = temp.begin(); it != temp.end(); it++) {
-	    hb_enc::depends element = *it;
-	    element.cond = element.cond && conds.at(b);
-	  }
-	  dep_ses.push_back( temp );
           phi_cons = phi_cons || (conds.at(b) && ov == v);
+          hb_enc::depends_set temp;
+          hb_enc::pointwise_and( get_depends( v_ ), conds.at(b), temp );
+	  dep_ses.push_back( temp );
         }
-        hb_enc::join_depends_set( dep_ses, data_dep_ses );
-        local_map.insert( std::make_pair( I, data_dep_ses ));
+        hb_enc::join_depends_set( dep_ses, local_map[I] );
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
       }else{
@@ -696,9 +681,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
 
-    hb_enc::depends_set ctrl_dep_ses;
-    join_depends_set( ctrl_ses, conds, ctrl_dep_ses );
-    local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
+    join_depends_set( ctrl_ses, conds, local_ctrl[src] );
 
     if( src->hasName() && (src->getName() == "err") ) {
       p->append_property( thread_id, !path_cond );

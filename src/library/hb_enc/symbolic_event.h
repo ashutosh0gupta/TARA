@@ -140,6 +140,7 @@ namespace hb_enc {
     void add_post_events( se_ptr&, z3::expr );
 
     void set_data_dependency( const hb_enc::depends_set& deps );
+    void set_ctrl_dependency( const hb_enc::depends_set& deps );
 
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {

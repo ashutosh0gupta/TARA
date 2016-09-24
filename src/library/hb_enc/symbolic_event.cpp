@@ -137,6 +137,17 @@ void symbolic_event::add_post_events( se_ptr& e, z3::expr cond ) {
   post_events.insert( hb_enc::depends( e, cond) );
 }
 
+
+void symbolic_event::set_data_dependency( const hb_enc::depends_set& deps ) {
+  data_dependency.clear();
+  data_dependency.insert( deps.begin(), deps.end() );
+}
+
+void symbolic_event::set_ctrl_dependency( const hb_enc::depends_set& deps ) {
+  ctrl_dependency.clear();
+  ctrl_dependency.insert( deps.begin(), deps.end() );
+}
+
 void symbolic_event::debug_print( std::ostream& stream ) {
   stream << *this << "\n";
   if( et == event_t::r || et == event_t::w ) {
@@ -219,8 +230,8 @@ hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
   // return data_dep_ses;
 }
 
-  //todo : make depends set efficient
-  //       make it a well implemented class
+//todo : make depends set efficient
+//       make it a well implemented class
 
 void hb_enc::insert_depends_set( const hb_enc::se_ptr& e1,
                                  const z3::expr cond1,
@@ -242,8 +253,6 @@ void hb_enc::insert_depends_set( const hb_enc::se_ptr& e1,
 
 void hb_enc::insert_depends_set( const hb_enc::depends& dep,
                                  hb_enc::depends_set& set ) {
-  // hb_enc::se_ptr e1 = dep.e;
-  // z3::expr cond = dep.cond;
   insert_depends_set( dep.e, dep.cond, set );
 }
 
@@ -251,6 +260,7 @@ void hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
                                hb_enc::depends_set& dep1 ) {
   for( auto element0 : dep0 )
     hb_enc::insert_depends_set( element0, dep1 );
+  tara::debug_print( std::cout, dep1 );
 }
 
 
