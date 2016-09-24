@@ -136,8 +136,6 @@ namespace tara {
     instruction& operator [](unsigned i);
     const instruction& operator [](unsigned i) const;
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
-  // private:
-    // void update_post_events();
   };
 
   enum class prog_t {
@@ -332,7 +330,6 @@ namespace tara {
     void print_dot( const std::string& );
 
     void gather_statistics(api::metric& metric);
-    // void update_post_events();
 
     void print_execution( const std::string& name, z3::model m );
     void print_execution( std::ostream& stream, z3::model m ) const;

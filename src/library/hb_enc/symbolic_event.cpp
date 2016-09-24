@@ -170,46 +170,35 @@ bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
   return false;
 }
 
-// todo: no need for this remove the following functions
-// bool tara::hb_enc::is_must_before( const se_ptr& x, const se_ptr& y ) {
-//   if( x == y ) return true;
-//   if( x->is_pre()  || y->is_post() ) return true;
-//   if( x->is_post() || y->is_pre()  ) return false;
-//   if( x->tid != y->tid ) return false;
-//   if( x->get_topological_order() >= y->get_topological_order() ) return false;
-//   se_set visited, pending = x->post_events;
-//   while( !pending.empty() ) {
-//     se_ptr xp = helpers::pick_and_move( pending, visited );
-//     if( y == xp ) continue;
-//     if(xp->get_topological_order() >= y->get_topological_order() ) return false;
-//     for( auto& xpp : xp->post_events ) {
-//       if( helpers::exists( visited, xpp ) ) pending.insert( xpp );
-//     }
-//   }
-//   return true;
-// }
-
-// bool tara::hb_enc::is_must_after( const se_ptr& x, const se_ptr& y ) {
-//   if( x == y ) return true;
-//   if( x->is_pre()  || y->is_post() ) return true;
-//   if( x->is_post() || y->is_pre()  ) return false;
-//   if( x->tid != y->tid ) return false;
-//   if( x->get_topological_order() >= y->get_topological_order() ) return false;
-//   se_set visited, pending = y->prev_events;
-//   while( !pending.empty() ) {
-//     se_ptr yp = helpers::pick_and_move( pending, visited );
-//     if( x == yp ) continue;
-//     if( x->get_topological_order() >= yp->get_topological_order()) return false;
-//     for( auto& ypp : yp->prev_events ) {
-//       if( helpers::exists( visited, ypp ) ) pending.insert( ypp );
-//     }
-//   }
-//   return true;
-// }
-
 
 //------------------------------------------------------------------------
 // depends set utilities
+
+void
+hb_enc::pointwise_and( const hb_enc::depends_set& dep_in,
+                       z3::expr cond,
+                       hb_enc::depends_set& dep_out ) {
+  dep_out.clear();
+  for( const hb_enc::depends& d : dep_in ) {
+    z3::expr c = d.cond && cond;
+    c = c.simplify();
+    dep_out.insert( hb_enc::depends( d.e, c ));
+  }
+}
+
+void
+hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
+                          const std::vector<z3::expr>& conds,
+                          hb_enc::depends_set& result ) {
+  result.clear();
+  unsigned num = dep.size();
+  if( num >= 1 ) pointwise_and( dep.at(0), conds.at(0), result );
+  for( unsigned i = 1 ; i < num ; i++ ) {
+    hb_enc::depends_set tmp;
+    pointwise_and( dep.at(i), conds.at(i), tmp );
+    join_depends_set( tmp, result );
+  }
+}
 
 void
 hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,

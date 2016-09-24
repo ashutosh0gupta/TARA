@@ -109,7 +109,7 @@ namespace cinput {
     //-----------------------------------
     // local data structure of dependency
     //hb_enc::depends_set data_dep_ses;
-    hb_enc::depends_set ctrl_dep_ses;
+    //hb_enc::depends_set ctrl_dep_ses;
     build_program::local_data_dependency local_map;
     build_program::local_ctrl_dependency local_ctrl;
     //-----------------------------------

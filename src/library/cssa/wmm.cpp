@@ -641,7 +641,7 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
     auto ep = *rit;
     if( ep->get_topological_order() < e->get_topological_order() )
       continue;
-    std::vector<hb_enc::depends_set> temp_vector; //( ep->post_events.size() );
+    std::vector<hb_enc::depends_set> temp_vector;
     // unsigned i = 0;
     for( const hb_enc::depends& dep : ep->post_events ){
       const hb_enc::se_ptr epp = dep.e;

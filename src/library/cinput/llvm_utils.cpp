@@ -158,6 +158,7 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     auto bit = f.begin(), end = f.end();
     for( ; bit != end; ++bit ) {
       llvm::BasicBlock* bb = bit;
+      bb->print( llvm::outs() );
       auto iit = bb->begin(), iend = bb->end();
       size_t bb_sz = bb->size();
       for( unsigned i = 0; iit != iend; ++iit ) {
@@ -170,10 +171,12 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
                 fp->getName() == "_Z6assertb" ) &&
               i < bb_sz ) {
 	    splitBBs.push_back( bb );
-            auto arg_iit = iit;
-	    llvm::Instruction* arg = --arg_iit;
             llvm::Value * arg0 = call->getArgOperand(0);
-	    if( arg != arg0 ) std::cerr << "last out not passed!!";
+            if( 1 ) { // todo: add constant condition
+              auto arg_iit = iit;
+              llvm::Instruction* arg = --arg_iit;
+              if( arg != arg0 ) std::cerr << "last out not passed!!\n";
+            }
             calls.push_back( call );
             args.push_back( arg0 );
 	    auto local_iit = iit;
@@ -188,12 +191,15 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
       llvm::BasicBlock* head = splitBBs[i];
       llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
+      llvm::BasicBlock* elseBlock = isAssume[i] ? dum : err;
       llvm::Instruction* cmp;
+      llvm::BranchInst *branch;
       if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
         cmp = c;
-      }else{ std::cerr << "instruction expected here!!"; }
-      llvm::BasicBlock* elseBlock = isAssume[i] ? dum : err;
-      llvm::BranchInst *branch =llvm::BranchInst::Create( tail, elseBlock, cmp);
+        branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
+      }else{
+        std::cerr << "instruction expected here!!\n";
+      }
       llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       calls[i]->eraseFromParent();
       if( llvm::isa<llvm::PHINode>(cmp) ) {

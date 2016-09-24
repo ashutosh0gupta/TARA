@@ -119,24 +119,6 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     instructions.push_back(instr);
   }
 
-  // void thread::update_post_events() {
-  //   // for( hb_enc::se_ptr& e : events ) {
-  //   //   const auto& e_h= e->history;
-  //   //   for( const hb_enc::se_ptr& ep : e->prev_events ) {
-        
-  //   //     // const auto& ep_h = ep->history;
-  //   //     // unsigned min_size = std::min( e_h.size(), ep_h.size() );
-  //   //     // unsigned i =0;
-  //   //     // for(; i < min_size; i++  ) {
-  //   //     //   if( !z3::eq( e_h[i],ep_h[i] ) ) {
-  //   //     //     break;
-  //   //     //   }
-  //   //     // }
-  //   //     ep->add_post_events( e, e->guard ); // todo : wrong code
-  //   //   }
-  //   // }
-  // }
-
   const tara::thread& program::operator[](unsigned int i) const {
     return *threads[i];
   }
@@ -154,12 +136,6 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   program::lookup_location(const hb_enc::location_ptr& location) const {
     return (*this)[location->thread][location->instr_no];
   }
-
-  // void program::update_post_events() {
-  //   for( auto& t : threads ) {
-  //     t->update_post_events();
-  //   }
-  // }
 
 
   void program::print_dot( const std::string& name ) {

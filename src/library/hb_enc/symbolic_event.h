@@ -139,6 +139,8 @@ namespace hb_enc {
     void set_pre_events( se_set& );
     void add_post_events( se_ptr&, z3::expr );
 
+    void set_data_dependency( const hb_enc::depends_set& deps );
+
     friend std::ostream& operator<< (std::ostream& stream,
                                      const symbolic_event& var) {
       stream << var.name();
@@ -282,7 +284,10 @@ namespace hb_enc {
   void join_depends_set( const depends_set& , depends_set& );
   void join_depends_set( const depends_set& , const depends_set&, depends_set& );
   void join_depends_set( const std::vector<depends_set>&, depends_set& );
-
+  void join_depends_set( const std::vector<depends_set>&,
+                         const std::vector<z3::expr>& conds,
+                         hb_enc::depends_set& result );
+  void pointwise_and( const depends_set&, z3::expr, depends_set& );
   inline bool is_po( const se_ptr& x, const se_ptr& y ) {
     if( x == y ) return true;
     if( x->tid != y->tid ) return false;

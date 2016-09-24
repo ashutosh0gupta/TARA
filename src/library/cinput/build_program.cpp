@@ -110,14 +110,15 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
   if(hs.size() == 1 ) {
     h = hs[0];
     for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
-    // auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
-    // conds.insert( pr );
+    if( preds.size() == 1 ) {
+      auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
+      conds.insert( pr );
+    }
     return;
   }
   if( o.print_input > 3 ) for( auto& hp : hs ) cinput::print( std::cerr, hp );
   auto sz = hs[0].size();
   for( auto& old_h: hs ) sz = std::min(sz, old_h.size());
-  // unsigned sz = min( h1.size(), h2.size() );
   unsigned i=0;
   for( ; i < sz; i++ ) {
     const split_step& s = hs[0][i];
@@ -317,8 +318,8 @@ translateBlock( unsigned thr_id,
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond, history,
                              gv, loc_name, hb_enc::event_t::w );
         new_events.insert( wr );
-        data_dep_ses.clear();
-        data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
+        // data_dep_ses.clear();
+        // data_dep_ses.insert( hb_enc::depends( wr, path_cond ) );
         hb_enc::depends_set data_dep_ses = get_depends( store->getOperand(0) );
         local_map.insert( std::make_pair( I, data_dep_ses ));
 	wr->data_dependency.insert( data_dep_ses.begin(), data_dep_ses.end() );
@@ -361,7 +362,7 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r );
           data_dep_ses.clear();
-          data_dep_ses.insert( hb_enc::depends( rd, path_cond ) );
+          data_dep_ses.insert( hb_enc::depends( rd, path_cond ) ); // << replace path cond ~> true??
           local_map.insert( std::make_pair( I, data_dep_ses ));
           ctrl = get_ctrl(b);
           rd->ctrl_dependency.insert( ctrl.begin(), ctrl.end() );
@@ -586,6 +587,24 @@ translateBlock( unsigned thr_id,
   return block_ssa;
 }
 
+void
+join_depends_set( const std::map<const llvm::BasicBlock*, hb_enc::depends_set>& deps,
+                  const std::map<const llvm::BasicBlock*,z3::expr>& conds,
+                  hb_enc::depends_set& result ) {
+  result.clear();
+  for( auto& pr : deps ) {
+    const llvm::BasicBlock* b = pr.first;
+    const hb_enc::depends_set& dep = pr.second;
+    // tara::debug_print( std::cout, dep );
+    z3::expr cond = conds.at(b);
+    hb_enc::depends_set tmp;
+    hb_enc::pointwise_and( dep, cond, tmp );
+    hb_enc::join_depends_set( tmp, result );
+  }
+  // std::cout << "--- >> ";
+  tara::debug_print( std::cout, result );
+}
+
 bool build_program::runOnFunction( llvm::Function &f ) {
   std::string name = (std::string)f.getName();
   unsigned thread_id = p->add_thread( name );
@@ -614,7 +633,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
-    std::vector<hb_enc::depends_set> ctrl_ses;
+    std::map<const llvm::BasicBlock*,hb_enc::depends_set> ctrl_ses;
     if( o.print_input > 0 ) {
       std::cout << "=====================================================\n";
       std::cout << "Processing block" << " block__" << thread_id << "__"
@@ -630,18 +649,16 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
-        hb_enc::depends_set ctrl_temp0;
-        hb_enc::depends_set ctrl_temp1;
-        hb_enc::depends_set ctrl_temp;
         z3::expr b = block_to_exit_bit.at(prev);
         // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
         // assert( succ_num );
         llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
+        hb_enc::depends_set ctrl_temp;
         if( !br->isUnconditional() ) {
           llvm::Value* op = prev->getTerminator()->getOperand(0);
-          ctrl_temp0 = get_depends( op );
-          ctrl_temp1 = get_ctrl(prev);
+          const auto& ctrl_temp0 = get_depends( op );
+          const auto& ctrl_temp1 = get_ctrl(prev);
           hb_enc::join_depends_set( ctrl_temp1 , ctrl_temp0, ctrl_temp );
           //todo : is it correct? Should the above be intersection
         }else if( br->isUnconditional()) {
@@ -655,16 +672,18 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           h.push_back(ss);
           branch_cond = b; //todo: hack needs streamlining
         }
-        ctrl_ses.push_back( ctrl_temp );
+        ctrl_ses[prev] = ctrl_temp;
       }
       histories.push_back(h);
       hb_enc::se_set& prev_trail = block_to_trailing_events.at(prev);
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       preds.push_back( prev );
     }
-    if( histories.size() > 1 ) branch_cond = z3.mk_true(); // todo: hack
-    hb_enc::join_depends_set( ctrl_ses, ctrl_dep_ses );
-    local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
+    if( histories.size() > 1 ) {
+      // todo: hack
+      // none of the prev were 
+      branch_cond = z3.mk_true();
+    }
     if( src == &(f.getEntryBlock()) ) {
       split_history h;
       split_step ss( NULL, 0, 0, start_bit ); // todo : second param??
@@ -676,6 +695,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     z3::expr path_cond = z3.mk_true();
     join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
+
+    hb_enc::depends_set ctrl_dep_ses;
+    join_depends_set( ctrl_ses, conds, ctrl_dep_ses );
+    local_ctrl.insert( std::make_pair( src, ctrl_dep_ses ));
 
     if( src->hasName() && (src->getName() == "err") ) {
       p->append_property( thread_id, !path_cond );
@@ -714,7 +737,6 @@ bool build_program::runOnFunction( llvm::Function &f ) {
                           history_exprs, name+"_final", hb_enc::event_t::barr );
 
   p->set_final_event( thread_id, final, exit_cond );
-  // p->update_post_events();
 
   if( o.print_input > 1 ) p->print_dependency( o.out());
 

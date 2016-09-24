@@ -803,35 +803,6 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
   }
   return get_h_var_bit( b, a, a );
 
-  // pending.insert( before );
-  // while( !pending.empty() ) {
-  //   hb_enc::se_ptr e = helpers::pick_and_move( pending, visited );
-
-  //   if( e->get_topological_order() > after->get_topological_order() )
-  //     continue;
-
-  //   z3::expr h = z3.get_fresh_bool("h");
-  //   std::make_triple<b,>
-  //   history_map.insert( std::make_pair( {b, }, h ) );
-  //   // z3::expr f = z3.get_fresh_bool("f");
-  //   // forced_map.insert( std::make_pair( e, f ) );
-  //   z3::expr conj =  z3.mk_true();
-  //   for( const hb_enc::se_ptr& ep : e->prev_events ) {
-  //     if( history_map.find( ep ) != history_map.end() ) {
-  //       conj = conj && history_map.at(ep);
-  //     }
-  //   }
-
-  //   if( after == e ) {
-  //     hard = hard && implies( h, conj );
-  //     return h;
-  //   }else{
-  //     hard = hard && implies( h, ( conj || event_bit_map.at(e) ) );
-  //   }
-  //   for( auto& xpp : e->post_events ) {
-  //     if( !helpers::exists( visited, xpp.e ) ) pending.insert( xpp.e );
-  //   }
-  // }
   assert( false );
   return z3.mk_false(); //todo : may be reachable for unreachable pairs
 }
