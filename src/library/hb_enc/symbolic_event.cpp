@@ -260,7 +260,7 @@ void hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
                                hb_enc::depends_set& dep1 ) {
   for( auto element0 : dep0 )
     hb_enc::insert_depends_set( element0, dep1 );
-  tara::debug_print( std::cout, dep1 );
+  // tara::debug_print( std::cout, dep1 );
 }
 
 

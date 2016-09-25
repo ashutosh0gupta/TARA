@@ -358,7 +358,8 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r );
           // todo: << replace path cond ~> true??
-          local_map[I].insert( hb_enc::depends( rd, path_cond ) );
+          // local_map[I].insert( hb_enc::depends( rd, path_cond ) );
+          local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->v == l_v);
@@ -587,7 +588,7 @@ join_depends_set( const std::map<const llvm::BasicBlock*, hb_enc::depends_set>& 
     hb_enc::join_depends_set( tmp, result );
   }
   // std::cout << "--- >> ";
-  tara::debug_print( std::cout, result );
+  // tara::debug_print( std::cout, result );
 }
 
 bool build_program::runOnFunction( llvm::Function &f ) {
@@ -681,7 +682,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
 
-    join_depends_set( ctrl_ses, conds, local_ctrl[src] );
+    local_ctrl[src].clear();
+    // join_depends_set( ctrl_ses, conds, local_ctrl[src] );
 
     if( src->hasName() && (src->getName() == "err") ) {
       p->append_property( thread_id, !path_cond );

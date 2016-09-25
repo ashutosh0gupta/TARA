@@ -158,7 +158,7 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     auto bit = f.begin(), end = f.end();
     for( ; bit != end; ++bit ) {
       llvm::BasicBlock* bb = bit;
-      bb->print( llvm::outs() );
+      // bb->print( llvm::outs() );
       auto iit = bb->begin(), iend = bb->end();
       size_t bb_sz = bb->size();
       for( unsigned i = 0; iit != iend; ++iit ) {
