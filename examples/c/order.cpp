@@ -7,7 +7,7 @@ void fence();
 int x1 = 0, x2 = 0, x3 = 0;
 int x4 = 0, x5 = 0, x6 = 0;
 int x7 = 0, x8 = 0, x9 = 0;
-int x10 = 0,
+int x10 = 0;
 int z = 0;
 void* p0(void *) {
   x1 = 1;
@@ -25,14 +25,6 @@ void* p0(void *) {
 
 void* p1(void *) {
   int t0 = 0;
-  // if( x2 == 0 )
-  //   if( x2 == 1 )
-  //     if( x1 == 0 )
-  //       if( x1 == 1 )
-  //         if( x3 == 0 )
-  //           if( x3 == 1 )
-  //             if( x4 == 0 )
-  //       	if( x4 == 1 )
 
   if( x3 == 0 )
     if( x3 == 1 )

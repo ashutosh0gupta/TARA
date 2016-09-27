@@ -202,16 +202,16 @@ namespace hb_enc {
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
              std::string loc, event_t et,
-             z3::expr branch_cond  ) {
+             std::map<const hb_enc::se_ptr, z3::expr>& branch_conds  ) {
     se_ptr e =
       std::make_shared<symbolic_event>( hb_enc, tid, prev_es, 0, loc, et );
     e->guard = path_cond;
     e->history = history_;
     hb_enc.record_event( e );
-    assert( z3::eq( branch_cond, hb_enc.ctx.bool_val(true) ) ||
-                    prev_es.size() == 1 );
-    for(se_ptr ep  : prev_es) {
-      ep->add_post_events( e, branch_cond );
+    // assert( z3::eq( branch_cond, hb_enc.ctx.bool_val(true) ) ||
+    //                 prev_es.size() == 1 );
+    for( se_ptr ep  : prev_es ) {
+      ep->add_post_events( e, branch_conds.at(ep) );
     }
     return e;
   }
@@ -221,9 +221,12 @@ namespace hb_enc {
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
              std::string loc, event_t et ) {
-
+    std::map<const hb_enc::se_ptr, z3::expr> branch_conds;
+    for( auto& ep : prev_es ) {
+      branch_conds.insert( std::make_pair( ep, hb_enc.ctx.bool_val(true) ) );
+    }
     return mk_se_ptr( hb_enc, tid, prev_es, path_cond, history_, loc, et,
-                      hb_enc.ctx.bool_val(true) );
+                       branch_conds );
   }
 
   //--------------------------------------------------------------------------
@@ -280,12 +283,20 @@ namespace hb_enc {
 
 
   depends pick_maximal_depends_set( hb_enc::depends_set& set );
-  void insert_depends_set( const se_ptr&, const z3::expr, depends_set& set );
-  void insert_depends_set( const depends& dep, depends_set& set );
+  void join_depends_set( const se_ptr&, const z3::expr, depends_set& set );
+  void join_depends_set( const depends& dep, depends_set& set );
   void join_depends_set( const depends_set& , depends_set& );
-  void join_depends_set( const depends_set& , const depends_set&, depends_set& );
+  void join_depends_set( const depends_set& , const depends_set&, depends_set&);
   void join_depends_set( const std::vector<depends_set>&, depends_set& );
   void join_depends_set( const std::vector<depends_set>&,
+                         const std::vector<z3::expr>& conds,
+                         hb_enc::depends_set& result );
+  void meet_depends_set( const se_ptr&, const z3::expr, depends_set& set );
+  void meet_depends_set( const depends& dep, depends_set& set );
+  void meet_depends_set( const depends_set& , depends_set& );
+  void meet_depends_set( const depends_set& , const depends_set&, depends_set&);
+  void meet_depends_set( const std::vector<depends_set>&, depends_set& );
+  void meet_depends_set( const std::vector<depends_set>&,
                          const std::vector<z3::expr>& conds,
                          hb_enc::depends_set& result );
   void pointwise_and( const depends_set&, z3::expr, depends_set& );

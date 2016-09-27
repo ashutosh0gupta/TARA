@@ -215,6 +215,7 @@ namespace tara {
     hb_enc::se_to_ses_map must_after;
     hb_enc::se_to_ses_map must_before;
     hb_enc::se_to_depends_map may_after;
+    hb_enc::se_to_depends_map ppo_before;
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;

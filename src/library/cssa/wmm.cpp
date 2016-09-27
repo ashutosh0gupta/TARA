@@ -453,19 +453,19 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
       auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
       if( is_ordered_rmo( dep.e, e ) ) {
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
-        hb_enc::insert_depends_set( dep, ordered );
+        hb_enc::join_depends_set( dep, ordered );
       }else if( z3::expr cond = is_ordered_dependency( dep.e, e ) ) {
         z3::expr c = cond && dep.cond;
         c = c.simplify();
       // tara::debug_print( std::cerr, c );
         if( !z3.is_false( c ) ) {
           po = po && implies( c, hb_encoding.mk_ghbs( dep.e, e ) );
-          hb_enc::insert_depends_set( dep.e, c, ordered );
+          hb_enc::join_depends_set( dep.e, c, ordered );
         }
         if( !z3.is_true( c ) ) {
-          hb_enc::insert_depends_set( dep.e, dep.cond && !cond, pending );
+          hb_enc::join_depends_set( dep.e, dep.cond && !cond, pending );
           for( auto& depp : ordered_map[dep.e] )
-            hb_enc::insert_depends_set(depp.e,depp.cond && !cond, tmp_pendings);
+            hb_enc::join_depends_set(depp.e,depp.cond && !cond, tmp_pendings);
         }
       }else{
         pending.insert( dep );
@@ -533,7 +533,7 @@ void wmm_event_cons::ppo() {
 // }
 
 
-
+// collecting stats about the events
 void wmm_event_cons::update_orderings() {
   for( unsigned i = 0; i < p.size(); i ++ ) {
     for( auto& e : p.get_thread(i).events ) {
@@ -547,10 +547,17 @@ void wmm_event_cons::update_orderings() {
       update_must_after( p.get_thread(i).events, *rit );
   }
   for( unsigned i = 0; i < p.size(); i ++ ) {
-    auto rit = p.get_thread(i).events.rbegin();
-    auto rend = p.get_thread(i).events.rend();
-    for (; rit!= rend; ++rit)
-      update_may_after( p.get_thread(i).events, *rit );
+    for( auto& e : p.get_thread(i).events ) {
+      update_ppo_before( p.get_thread(i).events, e );
+    }
+  }
+  if(0) { // todo : may after disabled for now
+    for( unsigned i = 0; i < p.size(); i ++ ) {
+      auto rit = p.get_thread(i).events.rbegin();
+      auto rend = p.get_thread(i).events.rend();
+      for (; rit!= rend; ++rit)
+        update_may_after( p.get_thread(i).events, *rit );
+    }
   }
   if( o.print_input > 2 ) {
     o.out() << "============================\n";
@@ -565,6 +572,8 @@ void wmm_event_cons::update_orderings() {
         // o.out() << "\n";
         o.out() << "may after: ";
         tara::debug_print( o.out(), p.may_after [e] );
+        o.out() << "ppo before: ";
+        tara::debug_print( o.out(), p.ppo_before [e] );
         o.out() << "\n";
       }
     }
@@ -651,6 +660,8 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
       // std::cout << "\n";
       // tara::debug_print( std::cout, p.may_after[epp] );
       // tara::debug_print( std::cout, local_ordered[epp] );
+      //todo: rmo support is to be added
+      //      check_ppo does the half work for rmo
       if( check_ppo( e, epp ) ) {
         hb_enc::depends_set temp3;
         hb_enc::join_depends_set( p.may_after[epp], local_ordered[epp], temp3 );
@@ -670,6 +681,30 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
   p.may_after[e] = local_ordered[e];
 }
 
+void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
+                                       hb_enc::se_ptr e ) {
+  hb_enc::se_to_depends_map local_ordered;
+  for( auto& ep : es ) {
+    if( ep->get_topological_order() > e->get_topological_order() ) continue;
+    std::vector<hb_enc::depends_set> ord_sets( ep->prev_events.size() );
+    unsigned i = 0;
+    for( auto& epp : ep->prev_events ) {
+      ord_sets[i] = local_ordered[epp];
+      if( check_ppo( epp, e ) ) {
+        if( epp->is_mem_op() )
+                hb_enc::join_depends_set(  epp, z3.mk_true(), ord_sets[i] );
+        hb_enc::join_depends_set(   p.ppo_before[epp], ord_sets[i] );
+      }else{
+        if( epp->is_mem_op() )
+          hb_enc::join_depends_set( epp, z3.mk_false(), ord_sets[i] );
+      }
+      i++;
+    }
+    hb_enc::meet_depends_set( ord_sets, local_ordered[ep] );
+    if( e == ep ) break;
+  }
+  p.ppo_before[e] = local_ordered[e];
+}
 
 void wmm_event_cons::run() {
   update_orderings();

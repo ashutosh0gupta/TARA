@@ -23,8 +23,12 @@
 namespace tara {
 namespace hb_enc {
 
-cycle_edge::cycle_edge( hb_enc::se_ptr _before, hb_enc::se_ptr _after, edge_type _type )
-    :before(_before),after(_after),type(_type) {}
+cycle_edge::cycle_edge( hb_enc::se_ptr _before,
+                        hb_enc::se_ptr _after,
+                        edge_type _type )
+  : before( _before )
+  , after( _after )
+  , type( _type ) {}
 
 
 cycle::cycle( cycle& _c, unsigned i ) {
@@ -175,16 +179,28 @@ void cycles::succ( hb_enc::se_ptr e,
       next_set.push_back( {it.second,edge_type::hb} );
     }
   }
-  const hb_enc::depends_set after = program->may_after.at(e);
-  for(std::set<hb_enc::depends>::iterator it = after.begin(); it != after.end(); it++) {
-    hb_enc::depends dep = *it;
-    z3::expr cond = dep.cond;
-    if( filter.find( dep.e ) == filter.end() ) continue;
-    if( z3.is_true( dep.cond )  )
-      next_set.push_back( {dep.e, edge_type::ppo } );
-    else
-      next_set.push_back( {dep.e, edge_type::rpo } );
+
+  //todo: ineffient code... needs a fix
+  for( auto& ep: program->get_thread(e->tid).events ) {
+    if( filter.find( ep ) == filter.end() ) continue;
+    for( const hb_enc::depends& dep : program->ppo_before.at(ep) ) {
+      if( dep.e != e ) continue;
+      if( z3.is_true( dep.cond )  )
+        next_set.push_back( {ep, edge_type::ppo } );
+      else
+        next_set.push_back( {ep, edge_type::rpo } );
+    }
   }
+
+  // const hb_enc::depends_set& after = program->may_after.at(e);
+  // for( const hb_enc::depends& dep : after ) {
+  //   z3::expr cond = dep.cond;
+  //   if( filter.find( dep.e ) == filter.end() ) continue;
+  //   if( z3.is_true( dep.cond )  )
+  //     next_set.push_back( {dep.e, edge_type::ppo } );
+  //   else
+  //     next_set.push_back( {dep.e, edge_type::rpo } );
+  // }
     // break; // todo <- do we miss anything
 }
 
@@ -273,7 +289,8 @@ bool cycles::is_relaxed_dominated( cycle& c , std::vector<cycle>& cs ) {
   return false;
 }
 
-bool cycles::find_true_cycles_rec( hb_enc::se_ptr e, const hb_enc::se_set& scc,
+bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
+                                   const hb_enc::se_set& scc,
                                    std::vector<cycle>& found_cycles ) {
   bool f = false;
   blocked[e] = true;
@@ -321,7 +338,8 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e, const hb_enc::se_set& scc,
   return f;
 }
 
-void cycles::find_true_cycles( hb_enc::se_ptr e, const hb_enc::se_set& scc,
+void cycles::find_true_cycles( hb_enc::se_ptr e,
+                               const hb_enc::se_set& scc,
                                std::vector<cycle>& found_cycles ) {
   ancestor_stack.clear();
   ancestor_stack.add_edge(e,edge_type::hb);
@@ -368,7 +386,8 @@ void cycles::find_true_cycles( hb_enc::se_ptr e, const hb_enc::se_set& scc,
 
 }
 
-  void cycles::find_cycles( const std::list<hb>& c,std::vector<cycle>& found_cycles) {
+  void cycles::find_cycles( const std::list<hb>& c,
+                            std::vector<cycle>& found_cycles ) {
     hb_enc::hb_vec vec_c;
     for( auto& h : c ) {
       hb_enc::hb_ptr h_ptr = std::make_shared<hb_enc::hb>(h);

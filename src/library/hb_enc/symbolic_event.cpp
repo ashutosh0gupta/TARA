@@ -233,9 +233,8 @@ hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
 //todo : make depends set efficient
 //       make it a well implemented class
 
-void hb_enc::insert_depends_set( const hb_enc::se_ptr& e1,
-                                 const z3::expr cond1,
-                                 depends_set& set ) {
+void hb_enc::join_depends_set( const hb_enc::se_ptr& e1, const z3::expr cond1,
+                               depends_set& set ) {
   z3::expr cond = cond1;
   for( auto it1 = set.begin(); it1 != set.end(); it1++) {
     const hb_enc::depends& dep2 = *it1;
@@ -251,27 +250,72 @@ void hb_enc::insert_depends_set( const hb_enc::se_ptr& e1,
 
 }
 
-void hb_enc::insert_depends_set( const hb_enc::depends& dep,
-                                 hb_enc::depends_set& set ) {
-  insert_depends_set( dep.e, dep.cond, set );
+void hb_enc::join_depends_set( const hb_enc::depends& dep,
+                               hb_enc::depends_set& set ) {
+  join_depends_set( dep.e, dep.cond, set );
 }
 
 void hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
                                hb_enc::depends_set& dep1 ) {
   for( auto element0 : dep0 )
-    hb_enc::insert_depends_set( element0, dep1 );
+    hb_enc::join_depends_set( element0, dep1 );
   // tara::debug_print( std::cout, dep1 );
 }
 
 
-void
-hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
-                          const hb_enc::depends_set& dep1,
-                          hb_enc::depends_set& set ) {
+void hb_enc::join_depends_set( const hb_enc::depends_set& dep0,
+                               const hb_enc::depends_set& dep1,
+                               hb_enc::depends_set& set ) {
   set = dep1;
   join_depends_set( dep0, set );
 }
 
+void hb_enc::meet_depends_set( const hb_enc::se_ptr& e1, const z3::expr cond1,
+                               depends_set& set ) {
+  z3::expr cond = cond1;
+  for( auto it1 = set.begin(); it1 != set.end(); it1++) {
+    const hb_enc::depends& dep2 = *it1;
+    hb_enc::se_ptr e2 = dep2.e;
+    if( e1 == e2 ) {
+      cond = ( cond && dep2.cond );
+      cond = cond.simplify();
+      set.erase(it1);
+      break;
+    }
+  }
+  set.insert( hb_enc::depends( e1, cond ) );
+}
+
+void hb_enc::meet_depends_set( const hb_enc::depends& dep,
+                               hb_enc::depends_set& set ) {
+  meet_depends_set( dep.e, dep.cond, set );
+}
+
+void hb_enc::meet_depends_set( const hb_enc::depends_set& dep0,
+                               hb_enc::depends_set& dep1 ) {
+  for( auto element0 : dep0 )
+    hb_enc::meet_depends_set( element0, dep1 );
+}
+
+void hb_enc::meet_depends_set( const hb_enc::depends_set& dep0,
+                               const hb_enc::depends_set& dep1,
+                               hb_enc::depends_set& set ) {
+  set = dep1;
+  meet_depends_set( dep0, set );
+}
+
+
+void hb_enc::meet_depends_set( const std::vector<hb_enc::depends_set>& dep,
+                               hb_enc::depends_set& result ) {
+  result.clear();
+  unsigned num = dep.size();
+  if( num >= 1 ) result =  dep.at(0);
+  for( unsigned i = 1 ; i < num ; i++ )
+    meet_depends_set( dep.at(i), result );
+  // return data_dep_ses;
+}
+
+//-------------------------------------------------------------------------
 
 hb_enc::depends
 hb_enc::pick_maximal_depends_set( hb_enc::depends_set& set ) {

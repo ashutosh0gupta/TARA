@@ -6,6 +6,7 @@ void assert( bool );
 void fence();
 int x1 = 0, x2 = 0, x3 = 0;
 int x4 = 0, x5 = 0, x6 = 0;
+int x7 = 0;
 int z = 0;
 void* p0(void *) {
   x1 = 1;
@@ -14,25 +15,27 @@ void* p0(void *) {
   x4 = 1;
   x5 = 1;
   x6 = 1;
+  x7 = 1;
   return NULL;
 }
 
 void* p1(void *) {
-  int t0 = 0;
 
-  if( x5 == 0 )
-    if( x5 == 1 )
+  if( x3 == 0 )
+    if( x3 == 1 )
       if( x2 == 0 )
         if( x2 == 1 )
-          if( x4 == 0 )
-            if( x4 == 1 )
-              if( x6 == 0 )
-                if( x6 == 1 )
-                  if( x3 == 0 )
-                    if( x3 == 1 )
+          if( x6 == 0 )
+            if( x6 == 1 )
+              if( x7 == 0 )
+                if( x7 == 1 )
+		  if( x5 == 0 )
+		    if( x5 == 1 )
                       if( x1 == 0 )
                         if( x1 == 1 )
-                          z = 1;
+                          if( x4 == 0 )
+                            if( x4 == 1 )
+                              z = 1;
   return NULL;
 }
 
