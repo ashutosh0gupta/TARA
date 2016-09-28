@@ -51,7 +51,7 @@ void* p3(void *) {
       w = 1;
     else if( x == 0 )
       z = 1;
-    else 
+    else
       x = 1;
   }
   return NULL;
@@ -63,7 +63,7 @@ void* p4(void *) {
       y = 1;
     else if( z == 0 )
       x = 1;
-    else 
+    else
       z = 1;
   }
   return NULL;
