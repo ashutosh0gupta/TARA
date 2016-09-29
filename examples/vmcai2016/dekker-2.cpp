@@ -1,7 +1,6 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-int turn = 0;
 void assume( bool );
 void assert( bool );
 void fence();
@@ -51,6 +50,7 @@ void* p0(void * arg) {
 	      }
 	  }
       }
+    return NULL;
 }
 
 void* p1(void * arg) { 
@@ -105,6 +105,7 @@ void* p1(void * arg) {
     	  }
        }
    }
+   return NULL;
 }
 int main() {
   pthread_t thr_0;
