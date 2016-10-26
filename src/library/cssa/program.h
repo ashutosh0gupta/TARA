@@ -100,7 +100,7 @@ public:
   bool has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                              unsigned end_inst_num ) const;
 
-  void gather_statistics(api::metric& metric);
+  // void gather_statistics(api::metric& metric);
 
   //--------------------------------------------------------------------------
   //end of wmm support
@@ -124,8 +124,8 @@ public: /* functions */
                   std::vector<hb_enc::hb>& hbs ) const;
 
   // bool is_global(const variable& name) const;
-  std::vector< std::shared_ptr<const instruction> >
-  get_assignments_to_variable(const cssa::variable& variable) const;
+  // std::vector< std::shared_ptr<const instruction> >
+  // get_assignments_to_variable(const cssa::variable& variable) const;
 };
 }}
 

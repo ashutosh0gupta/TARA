@@ -56,7 +56,6 @@ private:
   bool verbose;
   nf normal_form;
 
-  // std::shared_ptr<const cssa::program> program;
   std::vector< std::vector<cycle> > all_cycles;
   // z3::expr maxsat_hard;
   // std::vector<z3::expr> maxsat_soft;

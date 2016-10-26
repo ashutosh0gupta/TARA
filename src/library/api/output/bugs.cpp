@@ -235,8 +235,7 @@ bool bugs::first_assignment(const cssa::variable& variable, hb_enc::location_ptr
   // gather locations (other than loc) and assert they come later
   z3::expr hb_other_later = phi_po.ctx().bool_val(true);
   if( program->is_original() ) {
-    auto p = (cssa::program*)(program.get());
-    auto assignments = p->get_assignments_to_variable(variable);
+    auto assignments = program->get_assignments_to_variable(variable);
     assert (assignments.size() > 0);
     for (shared_ptr<const tara::instruction> instr : assignments) {
       if (instr->loc != loc) {

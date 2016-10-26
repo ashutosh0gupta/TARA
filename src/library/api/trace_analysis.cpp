@@ -137,14 +137,7 @@ void trace_analysis::gather_statistics(metric& metric)
 {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
-  if( program->is_original() ) {
-    auto p = (cssa::program*)(program.get());
-    p->gather_statistics( metric );
-  }else{
-    program->gather_statistics( metric );
-    //trace_error( "no stats for new programs!!" );
-  }
-
+  program->gather_statistics( metric );
 }
 
 //--------------------------------------------------------------------------

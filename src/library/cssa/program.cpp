@@ -18,6 +18,9 @@
  */
 
 
+#include <iostream>
+#include <fstream>
+
 #include "program/program.h"
 #include "program.h"
 #include "cssa_exception.h"
@@ -144,15 +147,6 @@ void cssa::program::build_threads(const input::program& input)
   }
   build_pis(pis, input);
 }
-
-// unsigned cssa::program::no_of_threads() const
-// {
-// 	return threads.size();
-// }
-
-// const tara::thread& cssa::program::get_thread( unsigned tid ) const {
-//   return *threads[tid];
-// }
 
 
 void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const input::program& input)
@@ -303,6 +297,99 @@ void cssa::program::build_pre(const input::program& input)
 }
 
 
+
+void cssa::program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
+{  if( is_mm_declared() ) { wmm_print_dot( m ); return; } //wmm support
+  if (!machine_readable){
+    // initial values
+    auto git = initial_variables.begin();
+    if (git!=initial_variables.end()) {
+      out << "init: [ ";
+      bool first = true;
+      for(; git!=initial_variables.end(); git++) {
+        if (!first) {
+          out << "; ";
+        }
+        first = false;
+        out << (string)*git << "=" << m.eval(*git);
+      }
+      out << " ]" << endl;
+    }
+  }
+  
+  // get into right order
+  vector<instruction> ordered;
+  for (unsigned t=0; t<threads.size(); t++) {
+    auto& thread = *threads[t];
+    for (unsigned i=0; i<thread.instructions.size(); i++) {
+      std::vector<instruction>::iterator it;
+      for (it = ordered.begin() ; it != ordered.end(); ++it) {
+        if (!_hb_encoding.eval_hb(m, it->loc, thread[i].loc)) {
+          // insert here when the new instruction is not after *it
+          break;
+        }
+      }
+      ordered.insert(it, thread[i]);
+      // terminate if assumption fails
+      if (thread[i].type==instruction_type::assume && !m.eval(thread[i].instr).get_bool())
+        break;
+    }
+  }
+  
+  // output with variables
+  for (instruction i: ordered) {
+    if (!machine_readable) {
+      out << i;
+      auto vit = i.variables_write.begin();
+      if (vit!=i.variables_write.end()) {
+        out << " [ ";
+        bool first = true;
+        for(; vit!=i.variables_write.end(); vit++) {
+          if (!first) {
+            out << "; ";
+          }
+          first = false;
+          out << get_before_hash(*vit) << ".=" << m.eval(*vit);
+        }
+        out << " ]";
+      }
+      // if this is a failing assumption
+      if (i.type==instruction_type::assume || i.type==instruction_type::assert)
+        if (!m.eval(i.instr).get_bool())
+          out << " (fails)";
+      out << endl;
+    } else {
+      out << i.loc << " ";
+    }
+  }
+  out << endl;
+}
+
+void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
+{
+  // output the program as a dot file
+  stream << "digraph hbs {" << endl;
+  // output labels
+  for (unsigned t=0; t<threads.size(); t++) {
+    auto& thread = *threads[t];
+    for (unsigned i=0; i<thread.instructions.size(); i++) {
+      stream << thread[i].loc->name << "[label=\"" << thread[i] << "\"]" << endl;
+    }
+  }
+  // add white edges between instructions
+  for (unsigned t=0; t<threads.size(); t++) {
+    auto& thread = *threads[t];
+    for (unsigned i=0; i<thread.instructions.size()-1; i++) {
+      stream << thread[i].loc->name << "->" << thread[i+1].loc->name << " [color=white]" << endl;
+    }
+  }
+  for (hb_enc::hb hb : hbs) {
+    stream << hb.loc1->name << "->" << hb.loc2->name << " [constraint = false]" << endl;
+  }
+  stream << "}" << endl;
+}
+
+
 cssa::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,o, hb_encoding)
 {
   prog_type = prog_t::original;// when is it ctrc // todo: ctrc type
@@ -331,45 +418,8 @@ cssa::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encod
 
 }
 
-// const tara::thread& cssa::program::operator[](unsigned int i) const
-// {
-//   return *threads[i];
-// }
-
-// unsigned int cssa::program::size() const
-// {
-//   return threads.size();
-// }
-
-// bool cssa::program::is_global(const variable& name) const
-// {
-//   return globals.find(variable(name))!=globals.end();
-// }
-
-// const tara::instruction& cssa::program::lookup_location(const hb_enc::location_ptr& location) const
-// {
-//   return (*this)[location->thread][location->instr_no];
-// }
-
-
-std::vector< std::shared_ptr<const tara::instruction> > cssa::program::get_assignments_to_variable(const variable& variable) const
-{
-  string name = (get_unprimed(variable)).name;
-  vector<std::shared_ptr<const instruction>> result;
-  for (unsigned i = 0; i<this->size(); i++) {
-    const tara::thread& t = (*this)[i];
-    
-    auto find = t.global_var_assign.find(name);
-    if (find != t.global_var_assign.end()) {
-      const auto& instrs = get<1>(*find);
-      result.insert(result.end(), instrs.begin(), instrs.end());
-    }
-  }
-  return result;
-}
-
 //----------------------------------------------------------------------------
-// WMM support
+// ctrc WMM support
 
 // populate content of threads
 void cssa::program::wmm_build_cssa_thread(const input::program& input) {
@@ -704,78 +754,171 @@ bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
   }
   return false;
 }
+//--------------------------------------------------------------------------
+//start of wmm support
+//--------------------------------------------------------------------------
 
+void cssa::program::wmm_print_dot( z3::model m ) const {
+  boost::filesystem::path fname = _o.output_dir;
+  fname += ".iteration-sat-dump";
+  std::cerr << "dumping dot file : " << fname << std::endl;
+  std::ofstream myfile;
+  // std::string fname =  (std::string)(_o.output_dir) + ;
+  myfile.open( fname.c_str() );
+  if( myfile.is_open() ) {
+    wmm_print_dot( myfile, m );
+  }else{
+    cssa_error( "failed to open " << fname.c_str() );
+  }
+  myfile.close();
+}
 
-//----------------------------------------------------------------------------
-// To be deleted
-//----------------------------------------------------------------------------
+void cssa::program::wmm_print_dot( ostream& stream, z3::model m ) const {
+    // output the program as a dot file
+  stream << "digraph hbs {" << endl;
+  // output labels
 
-// bool cssa::program::is_mm_declared() const {  return mm != mm_t::none; }
-// bool cssa::program::is_wmm()         const {  return mm != mm_t::sc;   }
-// bool cssa::program::is_mm_sc()       const {  return mm == mm_t::sc;   }
-// bool cssa::program::is_mm_tso()      const {  return mm == mm_t::tso;  }
-// bool cssa::program::is_mm_pso()      const {  return mm == mm_t::pso;  }
-// bool cssa::program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
-// bool cssa::program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
-// bool cssa::program::is_mm_power()    const {  return mm == mm_t::power;}
+  for (unsigned t=0; t<threads.size(); t++) {
+    auto& thread = *threads[t];
+    stream << "subgraph cluster_" << t << " {\n";
+    stream << "color=lightgrey;\n";
+    stream << "label = \"" << thread.name << "\"\n";
+    for (unsigned i=0; i < thread.instructions.size(); i++) {
+      stream << "\"" << thread[i].loc->name << "\""
+             << " [label=\"" << thread[i] << "\"";
+      z3::expr v = m.eval( thread[i].path_constraint );
+      if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
+        stream << ",color=gray";
+      }
+      stream << "]"<< endl;
+    }
+    stream << " }\n";
+  }
 
-// mm_t cssa::program::get_mm()         const { return mm; }
-// void cssa::program::set_mm(mm_t _mm)       { mm = _mm;  }
+  stream << "pre" << " [label=\""  << phi_pre << "\"]" << endl;
+  stream << "post" << " [label=\"" << phi_post << "\"]" << endl;
 
-// void cssa::program::unsupported_mm() const {
-//   std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
-//   throw cssa_exception( msg.c_str() );
-// }
+  // add white edges between instructions
+  for (unsigned t=0; t<threads.size(); t++) {
+    auto& thread = *threads[t];
+    if( thread.instructions.size() > 0 ) {
+      stream << "pre ->" << "\"" << thread[0].loc->name << "\""
+             << " [color=white]" << endl;
+    }
+    for (unsigned i=0; i<thread.instructions.size()-1; i++) {
+      stream << "\"" << thread[i].loc->name << "\""  << "->"
+             << "\"" << thread[i+1].loc->name << "\""
+             << " [color=white]" << endl;
+    }
+    if( thread.instructions.size() > 0 ) {
+      stream << "\"" << thread[thread.instructions.size()-1].loc->name << "\""
+             << "-> post [color=white]" << endl;
+    }
+  }
 
-// void cssa::program::wmm_event_cons() {
-  // wmm_mk_distinct_events(); // Rd/Wr events on globals are distinct
-  // wmm_build_ppo(); // build hb formulas to encode the preserved program order
-  // wmm_build_ses(); // build symbolic event structure
-  // wmm_build_barrier(); // build barrier// ppo already has the code
-// }
+  for( auto& it : reading_map ) {
+    std::string bname = std::get<0>(it);
+    z3::expr b = _z3.c.bool_const(  bname.c_str() );
+    z3::expr bv = m.eval( b );
+    if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+      hb_enc::se_ptr wr = std::get<1>(it);
+      hb_enc::se_ptr rd = std::get<2>(it);
+      unsigned wr_tid      = wr->e_v->thread;
+      std::string wr_name;
+      if( wr_tid == threads.size() ) {
+        wr_name = "pre";
+      }else{
+        auto& wr_thread = *threads[wr_tid];
+        unsigned wr_instr_no = wr->e_v->instr_no;
+        wr_name = wr_thread[wr_instr_no].loc->name;
+      }
+      unsigned rd_tid      = rd->e_v->thread;
+      std::string rd_name;
+      if( rd_tid == threads.size() ) {
+        rd_name = "post";
+      }else{
+        auto& rd_thread = *threads[rd_tid];
+        unsigned rd_instr_no = rd->e_v->instr_no;
+        rd_name = rd_thread[rd_instr_no].loc->name;
+      }
+      stream << "\"" << wr_name  << "\" -> \"" << rd_name << "\""
+             << "[color=blue]"<< endl;
+      //fr
+      std::set< hb_enc::se_ptr > fr_wrs;
+      auto it = wr_events.find(rd->prog_v);
+      if( it != wr_events.end() ) { // fails for dummy variable
+        for( const auto& after_wr : it->second ) {
+          z3::expr v = m.eval( after_wr->guard );
+          if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
+            if( _hb_encoding.eval_hb( m, wr, after_wr ) ) {
+              unsigned after_wr_tid      = after_wr->e_v->thread;
+              auto& after_wr_thread = *threads[after_wr_tid];
+              unsigned after_wr_instr_no = after_wr->e_v->instr_no;
+              std::string after_wr_name =
+                after_wr_thread[after_wr_instr_no].loc->name;
+              stream << "\"" << rd_name  << "\" -> \"" << after_wr_name << "\""
+                     << "[color=orange,constraint=false]"<< endl;
+            }
+          }
+        }
+      }
+    }
+  }
 
-// unsigned cssa::program:: no_of_instructions(unsigned tid) const
-// {
-// 	return threads[tid]->instructions.size();
-// }
+  for(const variable& v1 : globals ) {
+    std::set< hb_enc::se_ptr > wrs;
+    auto it = wr_events.find( v1 );
+    for( const auto& wr : it->second ) {
+      z3::expr v = m.eval( wr->guard );
+      if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE)
+        wrs.insert( wr );
+    }
+    hb_enc::se_vec ord_wrs;
+    while( !wrs.empty() ) {
+      hb_enc::se_ptr min;
+      for ( auto wr : wrs ) {
+        if( min ) {
+          if( _hb_encoding.eval_hb( m, wr, min ) ) {
+            min = wr;
+          }
+        }else{
+          min = wr;
+        }
+      }
+      ord_wrs.push_back(min);
+      wrs.erase( min );
+    }
 
-// std::string cssa::program::instr_name(unsigned tid, unsigned instr_no) const
-// {
-// 	return threads[tid]->instructions[instr_no]->loc->name;
-// }
+    for( unsigned i = 1; i < ord_wrs.size(); i++  ) {
+      unsigned wr_tid      = ord_wrs[i-1]->e_v->thread;
+      std::string wr_name;
+      if( wr_tid == threads.size() ) {
+        wr_name = "pre";
+      }else{
+        auto& wr_thread = *threads[wr_tid];
+        unsigned wr_instr_no = ord_wrs[i-1]->e_v->instr_no;
+        wr_name = wr_thread[wr_instr_no].loc->name;
+      }
 
-// unsigned cssa::program::total_instructions() const
-// {
-// 	unsigned count=0;
-// 	for(unsigned i=0; i < threads.size(); i++)
-// 	{
-// 		count+=no_of_instructions(i);
-// 	}
-// 	return count;
-// }
+      unsigned wr1_tid = ord_wrs[i]->e_v->thread;
+      unsigned wr1_instr_no = ord_wrs[i]->e_v->instr_no;
+      assert( wr1_tid != threads.size() );
+      auto& wr1_thread = *threads[wr1_tid];
+      std::string wr1_name = wr1_thread[wr1_instr_no].loc->name;
 
-// std::vector< vector < bool > > cssa::program::build_po() const
-// {
-// 	unsigned count=0,temp=0;
-// 	for (unsigned t=0; t<threads.size(); t++)
-// 	{
-// 		thread& thread = *threads[t];
-// 		count+=thread.size();
-// 	}
+      stream << "\"" << wr_name << "\" -> \"" << wr1_name << "\""
+             << "[color=green]" <<  endl;
+    }
+  }
 
-// 	std::vector < std::vector <bool> > Adjacency_Matrix(count,std::vector <bool>(count,0));
+  // for (hb_enc::hb hb : hbs) {
+  //   stream << hb.loc1->name << "->" << hb.loc2->name << " [constraint = false]" << endl;
+  // }
+  stream << "}" << endl;
 
-// 	for (unsigned t=0; t<threads.size(); t++)
-// 	{
-// 		thread& thread = *threads[t];
-// 		for (unsigned i=0; i<thread.size(); i++)
-// 		{
-// 			if(i!=thread.size()-1)
-// 			{
-// 				Adjacency_Matrix[temp][temp+1]=true;
-// 			}
-// 			temp=temp+1;
-// 		}
-// 	}
-// 	return Adjacency_Matrix;
-// }
+}
+
+//--------------------------------------------------------------------------
+//end of wmm support
+//--------------------------------------------------------------------------
+

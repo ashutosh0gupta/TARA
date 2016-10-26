@@ -65,7 +65,6 @@ public:
   //--------------------------------------------------------------------------
   //start of wmm support
   //--------------------------------------------------------------------------
-  void get_cycles(const result_type& result,const cssa::program& prog, bool machine_readable, bool dnf_not_cnf) const;
   static void sort_result( nf::result_type& result );
   //--------------------------------------------------------------------------
   //end of wmm support

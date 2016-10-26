@@ -137,6 +137,23 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     return (*this)[location->thread][location->instr_no];
   }
 
+  std::vector< std::shared_ptr<const tara::instruction> >
+  program::get_assignments_to_variable(const cssa::variable& variable) const
+  {
+    assert( prog_type == prog_t::original );
+    std::string name = (get_unprimed(variable)).name;
+    std::vector<std::shared_ptr<const instruction>> result;
+    for (unsigned i = 0; i<this->size(); i++) {
+      const tara::thread& t = (*this)[i];
+
+      auto find = t.global_var_assign.find(name);
+      if (find != t.global_var_assign.end()) {
+        const auto& instrs = std::get<1>(*find);
+        result.insert(result.end(), instrs.begin(), instrs.end());
+      }
+    }
+    return result;
+  }
 
   void program::print_dot( const std::string& name ) {
     boost::filesystem::path fname = _o.output_dir;
@@ -256,7 +273,19 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   void program::gather_statistics( api::metric& metric ) {
     metric.threads = size();
     for(unsigned i = 0; i < size(); i++) {
-      metric.instructions += (threads)[i]->events_size();
+      if( is_original() )
+        metric.instructions += (threads)[i]->size();
+      else
+        metric.instructions += (threads)[i]->events_size();
+    }
+    if( is_original() ) {
+      //todo: we should add more stats
+      //   // count pi functions
+      //   for (auto pi : pi_functions) {
+      //     metric.shared_reads++;
+      //     metric.sum_reads_from += get<1>(pi).size();
+      //   }
+      std::cerr << "Warning: pi function counting has been removed programatic reasons!!";
     }
   }
 

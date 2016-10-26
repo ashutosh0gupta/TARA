@@ -136,6 +136,7 @@ namespace tara {
     instruction& operator [](unsigned i);
     const instruction& operator [](unsigned i) const;
     void add_instruction(const std::shared_ptr< tara::instruction >& instr);
+
   };
 
   enum class prog_t {
@@ -334,6 +335,10 @@ namespace tara {
 
     void print_execution( const std::string& name, z3::model m );
     void print_execution( std::ostream& stream, z3::model m ) const;
+
+    //todo : used in bug detecting -- from old code needs removal
+    std::vector< std::shared_ptr<const instruction> >
+    get_assignments_to_variable(const cssa::variable& variable) const;
 
     friend cssa::program;
   };
