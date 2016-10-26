@@ -176,4 +176,5 @@ Known issues
 
 - unsat_core pruning needs guards
 - can thin be removed without worry
-- 
+- C parsing: bool types are declared as 8bit 
+- assert(false) support

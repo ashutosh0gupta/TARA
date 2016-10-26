@@ -34,6 +34,20 @@ namespace hb_enc {
 
   class location;
 
+  //todo: the following two enums must be merged
+
+  // C++ specifies ordering tags
+  // this notion is not language independent
+  enum class o_tag_t {
+    na = 0,
+      uo = 1,   //unordered
+      mon = 2, // monotonic
+      acq = 4, // acquire
+      rls = 5, // release
+      acqrls = 6, //acquire release
+      sc = 7, // sequentially consistent
+      };
+
   enum class event_t {
     pre,  // initialization event
       r,    // read events
@@ -84,7 +98,10 @@ namespace hb_enc {
   public:
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
+
     event_t et;
+    o_tag_t o_tag; //merge et and o_tag
+
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
     hb_enc::depends_set post_events;

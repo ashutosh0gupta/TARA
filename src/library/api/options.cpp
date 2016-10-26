@@ -106,10 +106,12 @@ void options::interpret_options(po::variables_map& vm) {
       mm = mm_t::rmo;
     else if (_mode == "alpha")
       mm = mm_t::alpha;
+    else if (_mode == "c11")
+      mm = mm_t::c11;
     else if (_mode == "none")
       mm = mm_t::none;
     else {
-      throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\"");
+      throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
     }
   }
 

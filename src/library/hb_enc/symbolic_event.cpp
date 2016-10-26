@@ -50,7 +50,7 @@ symbolic_event::create_internal_event( hb_enc::encoding& _hb_enc,
   for( const se_ptr e : prev_events)
     if( max < e->get_topological_order() ) max = e->get_topological_order();
   topological_order = max + 1;
-
+  o_tag = o_tag_t::na;
   return e_v;
 }
 

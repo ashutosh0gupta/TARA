@@ -250,6 +250,98 @@ void wmm_event_cons::ses() {
 }
 
 
+void wmm_event_cons::ses_c11() {
+  // For each global variable we need to construct
+  // - wf  well formed
+  // - rf  read from
+  // - grf global read from
+  // - fr  from read
+  // - ws  write serialization
+
+  //todo: disable the following code if rd rd coherence not preserved
+  hb_enc::se_to_ses_map prev_rds;
+  for( unsigned t = 0; t < p.size(); t++ ) {
+    // const auto& thr = p.get_thread( t );
+    for( auto e : p.get_thread( t ).events ) {
+      hb_enc::se_set& rds = prev_rds[e];
+      for( auto ep : e->prev_events ) {
+        rds.insert( prev_rds[ep].begin(), prev_rds[ep].end() );
+        if( ep->is_rd() ) rds.insert( ep );
+      }
+    }
+  }
+
+  for( const variable& v1 : p.globals ) {
+    const auto& rds = p.rd_events[v1];
+    const auto& wrs = p.wr_events[v1];
+    for( const hb_enc::se_ptr& rd : rds ) {
+      z3::expr some_rfs = z3.c.bool_val(false);
+      z3::expr rd_v = rd->get_var_expr(v1);
+      for( const hb_enc::se_ptr& wr : wrs ) {
+        if( anti_ppo_read_new( wr, rd ) ) continue;
+        z3::expr wr_v = wr->get_var_expr( v1 );
+        z3::expr b = get_rf_bvar( v1, wr, rd );
+        some_rfs = some_rfs || b;
+        z3::expr eq = ( rd_v == wr_v );
+        // well formed
+        wf = wf && implies( b, wr->guard && eq);
+        // read from
+        z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
+        rf = rf && new_rf;
+        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
+        thin = thin && new_thin;
+        //global read from
+        if( in_grf( wr, rd ) ) grf = grf && new_rf;
+        // from read
+        for( const hb_enc::se_ptr& after_wr : wrs ) {
+          if( after_wr->name() != wr->name() ) {
+            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+                          && after_wr->guard;
+            if( anti_po_loc_fr_new( rd, after_wr ) ) {
+              fr = fr && !cond;
+            }else{
+              auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
+              if( is_rd_rd_coherance_preserved() ) {
+                for( auto before_rd : prev_rds[rd] ) {
+                  z3::expr anti_coherent_b =
+                    get_rf_bvar( v1, after_wr, before_rd, false );
+                  new_fr = !anti_coherent_b && new_fr;
+                }
+              }
+              fr = fr && implies( cond , new_fr );
+            }
+          }
+        }
+      }
+      wf = wf && implies( rd->guard, some_rfs );
+    }
+
+    // write serialization
+    // todo: what about ws;rf
+    auto it1 = wrs.begin();
+    for( ; it1 != wrs.end() ; it1++ ) {
+      const hb_enc::se_ptr& wr1 = *it1;
+      auto it2 = it1;
+      it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const hb_enc::se_ptr& wr2 = *it2;
+        if( wr1->tid != wr2->tid && // Why this condition?
+            !wr1->is_pre() && !wr2->is_pre() // no initializations
+            ) {
+          ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
+                       hb_encoding.mk_ghbs( wr2, wr1 ) );
+        }
+      }
+    }
+
+    // dependency
+    // for( const hb_enc::se_ptr& wr : wrs ) {
+    //   for( auto& dep : wr->data_dependency )
+    //     thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
+    // }
+  }
+}
+
 //----------------------------------------------------------------------------
 // declare all events happen at different time points
 
@@ -482,7 +574,7 @@ void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
   }
 }
 
-void wmm_event_cons::power_ppo( const tara::thread& thread ) {
+void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   p.unsupported_mm();
 }
 
@@ -500,7 +592,7 @@ void wmm_event_cons::ppo() {
     }else if( p.is_mm_pso()   ) { ppo_traverse( thr );
     }else if( p.is_mm_rmo()   ) { ppo_rmo_traverse( thr );
     }else if( p.is_mm_alpha() ) { ppo_traverse( thr );
-    }else if( p.is_mm_power() ) { power_ppo( thr );
+    }else if( p.is_mm_power() ) { ppo_power( thr );
     }else{                      p.unsupported_mm();
     }
     // ordering with the final events of the thread
@@ -518,19 +610,6 @@ void wmm_event_cons::ppo() {
   // po = po && dist;
   //phi_po = phi_po && barriers;
 }
-
-// void wmm_event_cons::wmm_test_ppo() {
-//   unsigned t;
-//   po = z3.mk_true();
-//   for(t=0;t<p.size();t++){sc_ppo(p.get_thread(t));}
-//   std::cerr << "\nsc" << po; po = z3.mk_true();
-//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
-//   std::cerr << "\ntso" << po; po = z3.mk_true();
-//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
-//   std::cerr << "\npso" << po; po = z3.mk_true();
-//   for(t=0;t<p.size();t++){ppo_traverse(p.get_thread(t));}
-//   std::cerr << "\nrmo" << po; po = z3.mk_true();
-// }
 
 
 // collecting stats about the events
@@ -871,7 +950,7 @@ void wmm_event_cons::old_ses() {
   }
 }
 
-void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
+void wmm_event_cons::sc_ppo_old( const tara::thread& thread ) {
   unsigned tsize = thread.size();
   hb_enc::se_set last = {p.init_loc};
 
@@ -886,7 +965,7 @@ void wmm_event_cons::sc_ppo( const tara::thread& thread ) {
   po = po && hb_encoding.mk_hbs( last, p.post_loc);
 }
 
-void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
+void wmm_event_cons::tso_ppo_old( const tara::thread& thread ) {
   hb_enc::se_set last_rds = {p.init_loc}, last_wrs = {p.init_loc};
   bool rd_occured = false;
   hb_enc::se_set barr_events = {p.init_loc};
@@ -916,7 +995,7 @@ void wmm_event_cons::tso_ppo( const tara::thread& thread ) {
   po = po && hb_encoding.mk_hbs(last_wrs, p.post_loc);
 }
 
-void wmm_event_cons::pso_ppo( const tara::thread& thread ) {
+void wmm_event_cons::pso_ppo_old( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr;
   assert( p.init_loc);
   hb_enc::se_ptr init_l = p.init_loc;
@@ -962,7 +1041,7 @@ void wmm_event_cons::pso_ppo( const tara::thread& thread ) {
   //po = po && barriers;
 }
 
-void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
+void wmm_event_cons::rmo_ppo_old( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_rd, last_wr;
   hb_enc::se_set collected_rds;
 
@@ -1013,7 +1092,7 @@ void wmm_event_cons::rmo_ppo( const tara::thread& thread ) {
       po = po && hb_encoding.mk_hbs( last_wr[g], p.post_loc );
 }
 
-void wmm_event_cons::alpha_ppo( const tara::thread& thread ) {
+void wmm_event_cons::alpha_ppo_old( const tara::thread& thread ) {
   hb_enc::var_to_se_map last_wr, last_rd;
   assert( p.init_loc);
   hb_enc::se_ptr barr = p.init_loc;

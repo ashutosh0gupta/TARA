@@ -43,7 +43,10 @@ namespace tara {
 namespace cinput {
 
   //----------------------------------
-  // should be moved to its own file
+  // todo: should be moved to its own file
+  int readInt( const llvm::ConstantInt* );
+  bool is_llvm_false( llvm::Value* );
+  bool is_llvm_true( llvm::Value* );
   z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t );
   std::string getInstructionLocationName(const llvm::Instruction* I );
   void initBlockCount( llvm::Function &f,
@@ -224,13 +227,6 @@ namespace cinput {
       return true;
     }
 
-    static int readInt( const llvm::ConstantInt* c ) {
-      const llvm::APInt& n = c->getUniqueInteger();
-      unsigned len = n.getNumWords();
-      if( len > 1 ) cinput_error( "long integers not supported!!" );
-      const uint64_t *v = n.getRawData();
-      return *v;
-    }
 
   public:
     static z3::expr get_term( helpers::z3interf& z3_,

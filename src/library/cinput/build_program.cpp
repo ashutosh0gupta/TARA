@@ -279,6 +279,23 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
   return z3_.mk_true(); // dummy return to avoid warning
 }
 
+
+hb_enc::o_tag_t
+translate_ordering_tags( llvm::AtomicOrdering ord ) {
+  switch( ord ) {
+  case llvm::AtomicOrdering::NotAtomic: return hb_enc::o_tag_t::na; break;
+  case llvm::AtomicOrdering::Unordered: return hb_enc::o_tag_t::uo; break;
+  case llvm::AtomicOrdering::Monotonic: return hb_enc::o_tag_t::mon; break;
+  case llvm::AtomicOrdering::Acquire: return hb_enc::o_tag_t::acq; break;
+  case llvm::AtomicOrdering::Release: return hb_enc::o_tag_t::rls; break;
+  case llvm::AtomicOrdering::AcquireRelease: return hb_enc::o_tag_t::acqrls; break;
+  case llvm::AtomicOrdering::SequentiallyConsistent: return hb_enc::o_tag_t::sc; break;
+  default:
+    cinput_error( "unrecognized C++ ordering returned!!" );
+  }
+  return hb_enc::o_tag_t::na; // dummy return;
+}
+
 z3::expr
 build_program::
 translateBlock( unsigned thr_id,
@@ -316,6 +333,7 @@ translateBlock( unsigned thr_id,
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              history, gv, loc_name, hb_enc::event_t::w );
+        wr->o_tag = translate_ordering_tags( store->getOrdering());
         new_events.insert( wr );
         const auto& data_dep_set = get_depends( store->getOperand(0) );
         local_map.insert( std::make_pair( I, data_dep_set ));
@@ -331,8 +349,9 @@ translateBlock( unsigned thr_id,
           z3::expr c = a_pair.first;
           cssa::variable gv = a_pair.second;
           z3::expr path_cond_c = path_cond && c;
-          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,history,
-                               gv, loc_name, hb_enc::event_t::w );
+          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,
+                               history, gv, loc_name, hb_enc::event_t::w );
+          wr->o_tag = translate_ordering_tags( store->getOrdering());
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
         }
@@ -357,6 +376,7 @@ translateBlock( unsigned thr_id,
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r );
+          rd->o_tag = translate_ordering_tags( load->getOrdering());
           // todo: << replace path cond ~> true??
           // local_map[I].insert( hb_enc::depends( rd, path_cond ) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
@@ -373,6 +393,7 @@ translateBlock( unsigned thr_id,
             z3::expr path_cond_c = path_cond && c;
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
                                  history, gv, loc_name, hb_enc::event_t::r );
+            rd->o_tag = translate_ordering_tags( load->getOrdering());
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
           }

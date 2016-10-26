@@ -67,6 +67,37 @@ using namespace tara::helpers;
 //----------------------------------------------------------------------------
 // LLVM utils
 
+
+int cinput::readInt( const llvm::ConstantInt* c ) {
+  const llvm::APInt& n = c->getUniqueInteger();
+  unsigned len = n.getNumWords();
+  if( len > 1 ) cinput_error( "long integers not supported!!" );
+  const uint64_t *v = n.getRawData();
+  return *v;
+}
+
+bool cinput::is_llvm_false( llvm::Value* v ) {
+  if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(v) ) {
+    // unsigned bw = c->getBitWidth();
+    // if( bw == 1 ) {
+      int i = readInt( c );
+      if( i == 0 ) return true;
+    // }
+  }
+  return false;
+}
+
+bool cinput::is_llvm_true( llvm::Value* v ) {
+  if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(v) ) {
+    unsigned bw = c->getBitWidth();
+    if( bw == 1 ) {
+      int i = readInt( c );
+      if( i == 1 ) return true;
+    }
+  }
+  return false;
+}
+
 z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
   if( t->isIntegerTy() ) {
     if( t->isIntegerTy( 32 ) ) return c.int_sort();
@@ -172,10 +203,11 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
               i < bb_sz ) {
 	    splitBBs.push_back( bb );
             llvm::Value * arg0 = call->getArgOperand(0);
-            if( 1 ) { // todo: add constant condition
+            if( !llvm::isa<llvm::Constant>(arg0) ) {
               auto arg_iit = iit;
               llvm::Instruction* arg = --arg_iit;
-              if( arg != arg0 ) std::cerr << "last out not passed!!\n";
+              if( arg != arg0 )
+                cinput_error( "previous instruction not passed!!\n" );
             }
             calls.push_back( call );
             args.push_back( arg0 );
@@ -190,19 +222,27 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     // one assumes in one basic block
     for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
       llvm::BasicBlock* head = splitBBs[i];
-      llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
       llvm::BasicBlock* elseBlock = isAssume[i] ? dum : err;
-      llvm::Instruction* cmp;
+      llvm::Instruction* cmp = NULL;
       llvm::BranchInst *branch;
       if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
         cmp = c;
+        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
         branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
+        llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+      } else if( is_llvm_false(args[i]) ) { // jump to else block
+        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
+        //todo: remove tail block and any other block that is unreachable now
+        branch = llvm::BranchInst::Create( elseBlock );
+        llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+      } else if( is_llvm_true(args[i]) ) { // in case of true
+        // do nothing and delete the call
       }else{
-        std::cerr << "instruction expected here!!\n";
+        head->print( llvm::outs() );
+        cinput_error( "instruction expected here!!\n" );
       }
-      llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       calls[i]->eraseFromParent();
-      if( llvm::isa<llvm::PHINode>(cmp) ) {
+      if( cmp != NULL && llvm::isa<llvm::PHINode>(cmp) ) {
 	removeBranchingOnPHINode( branch );
       }
     }

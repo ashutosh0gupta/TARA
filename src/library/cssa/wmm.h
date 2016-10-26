@@ -27,7 +27,7 @@
 #include "helpers/z3interf.h"
 #include <vector>
 #include <list>
-#include "cssa/thread.h"
+// #include "cssa/thread.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/concept_check.hpp>
@@ -69,14 +69,8 @@ namespace cssa {
     void new_ppo_pso  ( const tara::thread& );
     void new_ppo_rmo  ( const tara::thread& );
     void new_ppo_alpha( const tara::thread& );
-    void new_ppo_power( const tara::thread& );
+    void ppo_power( const tara::thread& );
     bool check_ppo( const hb_enc::se_ptr&, const hb_enc::se_ptr& );
-    void sc_ppo   ( const tara::thread& );
-    void tso_ppo  ( const tara::thread& );
-    void pso_ppo  ( const tara::thread& );
-    void rmo_ppo  ( const tara::thread& );
-    void alpha_ppo( const tara::thread& );
-    void power_ppo( const tara::thread& );
     void ppo();
 
     // void wmm_test_ppo(); // TODO: remove when confident
@@ -88,8 +82,6 @@ namespace cssa {
                              const hb_enc::se_ptr& wr );
 
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_po_loc_fr_old( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
     bool is_rd_rd_coherance_preserved();
 
     // z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
@@ -99,13 +91,8 @@ namespace cssa {
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                           bool record=true );
 
-    void old_ses();
     void ses();
-
-    z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_rmo_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_barrier( unsigned tid, unsigned instr );
+    void ses_c11();
 
     z3::expr dist = z3.mk_true();
     z3::expr po   = z3.mk_true();
@@ -124,6 +111,25 @@ namespace cssa {
     void update_ppo_before( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void pointwise_and ( const hb_enc::depends_set&, z3::expr cond,
                          hb_enc::depends_set& );
+
+    // Set for deletion
+
+    void sc_ppo_old   ( const tara::thread& );
+    void tso_ppo_old  ( const tara::thread& );
+    void pso_ppo_old  ( const tara::thread& );
+    void rmo_ppo_old  ( const tara::thread& );
+    void alpha_ppo_old( const tara::thread& );
+    void power_ppo_old( const tara::thread& );
+
+    z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    z3::expr insert_rmo_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    z3::expr insert_barrier( unsigned tid, unsigned instr );
+
+    void old_ses();
+    bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_po_loc_fr_old( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
+
   };
 
 }}

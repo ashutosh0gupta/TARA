@@ -344,15 +344,17 @@ vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
     z3::expr atom = asserted[i];
     unique_ptr<hb_enc::hb> hb = get_hb( atom );
     if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
-      z3::expr v1 = m.eval( hb->e1->guard );
-      z3::expr v2 = m.eval( hb->e2->guard );
-      if( Z3_get_bool_value( v1.ctx(), v1)  != Z3_L_TRUE ||
-          Z3_get_bool_value( v2.ctx(), v2)  != Z3_L_TRUE ) {
-        std::cout << "=========== experimental code triggered!!";
-        continue;
-        // std::cout << hb->e1->name() << "\n";
-        // std::cout << hb->e2->name() << "\n";
-        // hb_enc_error( "failed atom");
+      if( hb->e1 && hb->e2 ) { // for compatibility of the earlier version of tara
+        z3::expr v1 = m.eval( hb->e1->guard );
+        z3::expr v2 = m.eval( hb->e2->guard );
+        if( Z3_get_bool_value( v1.ctx(), v1)  != Z3_L_TRUE ||
+            Z3_get_bool_value( v2.ctx(), v2)  != Z3_L_TRUE ) {
+          // std::cout << "=========== experimental code triggered!!\n";
+          continue;
+          // std::cout << hb->e1->name() << "\n";
+          // std::cout << hb->e2->name() << "\n";
+          // hb_enc_error( "failed atom");
+        }
       }
       assert(eval_hb(m, hb->loc1, hb->loc2));
       hb_ptr h = make_shared<hb_enc::hb>(*hb);
