@@ -754,6 +754,7 @@ bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
   }
   return false;
 }
+
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
