@@ -22,7 +22,7 @@
 #include <fstream>
 
 #include "program/program.h"
-#include "program.h"
+#include "input/ctrc_program.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
 #include <vector>

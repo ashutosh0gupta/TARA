@@ -22,7 +22,7 @@
 #define TARA_PRUNE_DATA_FLOW_H
 
 #include "prune/prune_base.h"
-#include "cssa/program.h"
+#include "input/ctrc_program.h"
 
 namespace tara {
 namespace prune {

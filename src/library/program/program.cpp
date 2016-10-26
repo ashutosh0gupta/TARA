@@ -285,7 +285,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       //     metric.shared_reads++;
       //     metric.sum_reads_from += get<1>(pi).size();
       //   }
-      std::cerr << "Warning: pi function counting has been removed programatic reasons!!";
+      // std::cerr << "Warning: pi function counting has been removed programatic reasons!!";
     }
   }
 

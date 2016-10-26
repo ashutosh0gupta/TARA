@@ -22,7 +22,7 @@
 #ifndef TARA_HB_ENC_CYCLES_H
 #define TARA_HB_ENC_CYCLES_H
 
-#include "cssa/program.h"
+// #include "cssa/program.h"
 #include "hb_enc/symbolic_event.h"
 #include "api/output/nf.h"
 #include <boost/bimap.hpp>

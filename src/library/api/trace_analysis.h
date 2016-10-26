@@ -25,7 +25,7 @@
 #include "api/metric.h"
 #include "api/output/output_base.h"
 #include "input/program.h"
-#include "cssa/program.h"
+// #include "cssa/program.h"
 #include "hb_enc/encoding.h"
 #include "hb_enc/integer.h"
 

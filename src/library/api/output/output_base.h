@@ -25,7 +25,6 @@
 #include <z3++.h>
 #include "hb_enc/encoding.h"
 #include "program/program.h"
-#include "cssa/program.h"
 #include <memory>
 #include "api/metric.h"
 

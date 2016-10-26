@@ -21,7 +21,6 @@
 #ifndef TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
 #define TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
 
-#include "cssa/program.h"
 #include "hb_enc/symbolic_event.h"
 #include "hb_enc/cycles.h"
 #include "api/output/nf.h"

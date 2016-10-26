@@ -21,7 +21,7 @@
 #include "trace_analysis.h"
 #include "helpers/z3interf.h"
 #include "input/parse.h"
-#include "cssa/program.h"
+#include "input/ctrc_program.h"
 #include "cssa/wmm.h"
 #include "api/options.h"
 #include "api/output/nf.h"
