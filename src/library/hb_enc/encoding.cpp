@@ -263,6 +263,10 @@ z3::expr encoding::mk_ghb_thin( const se_ptr& before, const se_ptr& after ) {
   return implies( before->guard && after->guard, mk_hb_thin( before, after ) );
 }
 
+z3::expr encoding::mk_ghb_ws( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hb_ws( before, after ) );
+}
+
 z3::expr encoding::mk_hbs( const se_set& before, const se_ptr& after) {
   z3::expr hbs = ctx.bool_val(true);
   for( auto& bf : before ) {
@@ -291,6 +295,10 @@ z3::expr encoding::mk_hbs(const se_set& before, const se_set& after) {
 }
 
 hb encoding::mk_hb_thin(const se_ptr& before, const se_ptr& after) {
+  return make_hb( before->thin_v, after->thin_v );
+}
+
+hb encoding::mk_hb_ws(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->thin_v, after->thin_v );
 }
 

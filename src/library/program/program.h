@@ -212,11 +212,13 @@ namespace tara {
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
+    std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > rel_seq_map;
     // pre calculation of ordering
     hb_enc::se_to_ses_map must_after;
     hb_enc::se_to_ses_map must_before;
     hb_enc::se_to_depends_map may_after;
     hb_enc::se_to_depends_map ppo_before;
+    hb_enc::se_to_depends_map c11_rs_heads; // c11 release sequence heads
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;

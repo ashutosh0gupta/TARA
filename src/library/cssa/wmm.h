@@ -91,6 +91,9 @@ namespace cssa {
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                           bool record=true );
 
+    z3::expr get_rel_seq_bvar( hb_enc::se_ptr wrp, hb_enc::se_ptr wr,
+                               bool record=true );
+
     void ses();
     void ses_c11();
 
@@ -102,6 +105,9 @@ namespace cssa {
     z3::expr fr   = z3.mk_true();
     z3::expr ws   = z3.mk_true();
     z3::expr thin = z3.mk_true();
+
+    //c11 support
+    z3::expr rel_seq = z3.mk_true();
 
     bool is_ordered( hb_enc::se_ptr x, hb_enc::se_ptr y );
     void update_orderings();

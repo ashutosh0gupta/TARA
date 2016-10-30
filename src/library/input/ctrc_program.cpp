@@ -23,7 +23,7 @@
 
 #include "program/program.h"
 #include "input/ctrc_program.h"
-#include "cssa_exception.h"
+#include "cssa/cssa_exception.h" // todo: remove this include and exception calls
 #include "helpers/helpers.h"
 #include <vector>
 using namespace tara;
@@ -148,7 +148,7 @@ void cssa::program::build_threads(const input::program& input)
   build_pis(pis, input);
 }
 
-
+//todo: move the following function in cssa folder
 void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const input::program& input)
 {
   z3::context& c = _z3.c;

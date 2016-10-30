@@ -39,7 +39,7 @@ namespace hb_enc {
   // C++ specifies ordering tags
   // this notion is not language independent
   enum class o_tag_t {
-    na = 0,
+      na = 0,
       uo = 1,   //unordered
       mon = 2, // monotonic
       acq = 4, // acquire
@@ -49,9 +49,10 @@ namespace hb_enc {
       };
 
   enum class event_t {
-    pre,  // initialization event
+      pre,  // initialization event
       r,    // read events
       w,    // write events
+      u,    // update events encodes both successful and failed events
       barr, // barrier events
       barr_b, // only order before events
       barr_a, // only order after events
@@ -115,8 +116,11 @@ namespace hb_enc {
     }
 
     inline bool is_pre()            const { return et == event_t::pre;    }
-    inline bool is_rd()             const { return et == event_t::r;      }
-    inline bool is_wr()             const { return et == event_t::w;      }
+    inline bool is_rd()             const { return et == event_t::r ||
+                                                   et == event_t::u;      }
+    inline bool is_wr()             const { return et == event_t::w ||
+                                                   et == event_t::u;      }
+    inline bool is_update()         const { return et == event_t::u;      }
     inline bool is_barrier()        const { return et == event_t::barr;   }
     inline bool is_before_barrier() const { return et == event_t::barr_b; }
     inline bool is_after_barrier () const { return et == event_t::barr_a; }
@@ -127,6 +131,24 @@ namespace hb_enc {
     inline bool is_block_head ()    const { return et == event_t::block;  }
     inline bool is_post()           const { return et == event_t::post;   }
     inline bool is_mem_op()         const { return is_rd() || is_wr();    }
+
+
+    inline bool is_na()     const { return o_tag == o_tag_t::na;  }
+    inline bool is_rlx()    const { return o_tag == o_tag_t::mon; }
+    inline bool is_rls()    const { return o_tag == o_tag_t::rls; }
+    inline bool is_acq()    const { return o_tag == o_tag_t::acq; }
+    inline bool is_rlsacq() const { return o_tag == o_tag_t::acqrls; }
+    inline bool is_sc()     const { return o_tag == o_tag_t::sc;  }
+
+    inline bool is_at_least_rls() const {
+      assert( is_wr() );
+      return is_rls() || is_rlsacq() || is_sc();
+    }
+
+    inline bool is_at_least_acq() const {
+      assert( is_rd() );
+      return is_acq() || is_rlsacq() || is_sc();
+    }
 
     inline unsigned get_instr_no() const {
       return e_v->instr_no;

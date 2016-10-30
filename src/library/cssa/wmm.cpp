@@ -17,11 +17,9 @@
  * along with TARA.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// #include "program.h"
 #include "wmm.h"
 #include "cssa_exception.h"
 #include "helpers/helpers.h"
-// #include "helpers/int_to_string.h"
 #include <string.h>
 #include "helpers/z3interf.h"
 #include <utility>
@@ -100,6 +98,16 @@ z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
   z3::expr b = z3.c.bool_const(  bname.c_str() );
   if( record ) p.reading_map.insert( std::make_tuple(bname,wr,rd) );
+  return b;
+}
+
+z3::expr wmm_event_cons::get_rel_seq_bvar( hb_enc::se_ptr wrp,
+                                           hb_enc::se_ptr wr,
+                                           bool record ) {
+  std::string bname = "res-seq-"+wrp->name()+"-"+wr->name();
+  z3::expr b = z3.c.bool_const(  bname.c_str() );
+  // todo: do need to record the interupption bit
+  if( record ) p.rel_seq_map.insert( std::make_tuple(bname,wrp,wr) );
   return b;
 }
 
@@ -271,9 +279,40 @@ void wmm_event_cons::ses_c11() {
     }
   }
 
+  
   for( const variable& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
+    for( const hb_enc::se_ptr& wr : wrs ) {
+      hb_enc::depends_set& deps = p.c11_rs_heads[wr];
+      for( auto& dep : deps ) { // empty set if wr is a release
+        z3::expr no_interup = z3.mk_true();
+        for( auto& wrpp : wrs ) {
+          if( wrpp->tid != wr->tid && !wrpp->is_update() ) {
+            no_interup = no_interup && ( hb_encoding.mk_ghb_ws( wrpp, dep.e) ||
+                                         hb_encoding.mk_ghb_ws( wr,wrpp ) );
+          }
+        }
+        z3::expr b = get_rel_seq_bvar( dep.e, wr );
+        rel_seq = rel_seq && implies( wr->guard && dep.cond && no_interup, b );
+      }
+      if( wr->is_update() ) {
+        for( auto& wrp : wrs ) {
+          if( wrp->is_at_least_rls() && wrp->tid != wr->tid ) {
+            z3::expr no_interup = z3.mk_true();
+            for( auto& wrpp : wrs ) {
+              if( wrpp->tid != wrp->tid && !wrpp->is_update() ) {
+                no_interup = no_interup && ( hb_encoding.mk_ghb_ws(wrpp, wrp) ||
+                                             hb_encoding.mk_ghb_ws( wr, wrpp) );
+              }
+            }
+            z3::expr b = get_rel_seq_bvar( wrp, wr );
+            rel_seq = rel_seq && implies(wr->guard && wrp->guard && no_interup, b );
+          }
+        }
+      }
+    }
+
     for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = z3.c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
@@ -285,13 +324,33 @@ void wmm_event_cons::ses_c11() {
         z3::expr eq = ( rd_v == wr_v );
         // well formed
         wf = wf && implies( b, wr->guard && eq);
+
+        //sw due to rf
+        // if( rd->is_at_least_acq() ) {
+        //   if( wr->is_at_least_rls() ) {
+        //     rf = rf && implies( b, hb_encoding.mk_ghbs( wr, rd ) );
+        //   }else{
+        //     for( auto& it : rel_seq_map[wr] ) {
+        //       std::string bname = std::get<0>(it);
+        //       hb_enc::se_ptr wrp = std::get<1>(it);
+        //       z3::expr b_wrp_wr = _z3.c.bool_const(  bname.c_str() );
+        //       rf = rf && implies( b && b_wrp_wr, hb_encoding.mk_ghbs( wrp, rd ) );
+        //     }
+        //   }
+        // }else if( ) {
+          
+        // }else{
+          
+        // }
         // read from
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
-        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
-        thin = thin && new_thin;
-        //global read from
-        if( in_grf( wr, rd ) ) grf = grf && new_rf;
+
+        // z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
+        // thin = thin && new_thin;
+        // //global read from
+        // if( in_grf( wr, rd ) ) grf = grf && new_rf;
+
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
@@ -328,8 +387,8 @@ void wmm_event_cons::ses_c11() {
         if( wr1->tid != wr2->tid && // Why this condition?
             !wr1->is_pre() && !wr2->is_pre() // no initializations
             ) {
-          ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
-                       hb_encoding.mk_ghbs( wr2, wr1 ) );
+          ws = ws && ( hb_encoding.mk_ghb_ws( wr1, wr2 ) ||
+                       hb_encoding.mk_ghb_ws( wr2, wr1 ) );
         }
       }
     }
