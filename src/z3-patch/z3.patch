@@ -165,6 +165,95 @@ index 1144900..9a86c03 100644
  #ifdef __cplusplus
  }
  #endif // __cplusplus
+diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
+index f55945c..d54e4b6 100644
+--- a/src/smt/diff_logic.h
++++ b/src/smt/diff_logic.h
+@@ -296,6 +296,9 @@ public:
+ 
+     numeral const& get_weight(edge_id id) const { return m_edges[id].get_weight(); }
+ 
++    edge_id_vector const& get_out_edges(dl_var v) const { return m_out_edges[v]; }
++
++    edge_id_vector const& get_in_edges(dl_var v) const { return m_in_edges[v]; }
+ 
+ private:
+     // An assignment is almost feasible if all but edge with idt edge are feasible.
+@@ -739,7 +742,7 @@ public:
+         if (idx2 < idx1) {
+             std::swap(idx1,idx2);
+         }        
+-        (void) max_idx;
++        // (void) max_idx;
+         SASSERT(idx1 < idx2 && idx2 < edges.size());
+         SASSERT(max_idx < edges.size());
+         dst = get_source(edges[idx2]);
+@@ -1016,7 +1019,39 @@ public:
+ 	    threads[prev] = start;
+     }
+ 
+-    void bfs_undirected(dl_var start, svector<dl_var> & parents, svector<dl_var> & depths) {
++    bool can_reach(dl_var src, dl_var dst) {
++        uint_set target, visited;
++        target.insert(dst);
++        return reachable(src, target, visited, dst);
++    }
++
++    bool reachable(dl_var start, uint_set const& target, uint_set& visited, dl_var& dst) {
++        visited.reset();
++        svector<dl_var> nodes;
++        nodes.push_back(start);
++        for (unsigned i = 0; i < nodes.size(); ++i) {
++            dl_var n = nodes[i];
++            if (visited.contains(n)) continue;
++            visited.insert(n);
++            edge_id_vector & edges = m_out_edges[n];
++            typename edge_id_vector::iterator it  = edges.begin();
++            typename edge_id_vector::iterator end = edges.end();
++            for (; it != end; ++it) {
++                edge_id e_id = *it;
++                edge & e     = m_edges[e_id];
++                if (e.is_enabled()) {
++                    dst = e.get_target();
++                    if (target.contains(dst)) {
++                        return true;
++                    }
++                    nodes.push_back(dst);
++                }
++            }
++        }
++        return false;
++    }
++
++    void bfs_undirected(dl_var start, svector<dl_var> & parents, svector<unsigned> & depths) {
+         parents.reset();
+         parents.resize(get_num_nodes());
+         parents[start] = -1;
+@@ -1276,6 +1311,15 @@ public:
+     // Return true if the path exists, false otherwise.
+     template<typename Functor>
+     bool find_shortest_zero_edge_path(dl_var source, dl_var target, unsigned timestamp, Functor & f) {
++      return find_shortest_path_aux(source, target, timestamp, f, true);
++    }
++    template<typename Functor>
++    bool find_shortest_reachable_path(dl_var source, dl_var target, unsigned timestamp, Functor & f) {
++      return find_shortest_path_aux(source, target, timestamp, f, false);
++    }
++
++    template<typename Functor>
++    bool find_shortest_path_aux(dl_var source, dl_var target, unsigned timestamp, Functor & f, bool zero_edge) {
+         svector<bfs_elem> bfs_todo;
+         svector<char>     bfs_mark;
+         bfs_mark.resize(m_assignment.size(), false);
+@@ -1303,7 +1347,7 @@ public:
+                 }
+                 set_gamma(e, gamma);
+                 TRACE("dl_bfs", tout << "processing edge: "; display_edge(tout, e); tout << "gamma: " << gamma << "\n";);
+-                if (gamma.is_zero() && e.get_timestamp() < timestamp) {
++                if ((gamma.is_zero() || (!zero_edge && gamma.is_neg())) && e.get_timestamp() < timestamp) {
+                     dl_var curr_target = e.get_target();
+                     TRACE("dl_bfs", tout << "curr_target: " << curr_target << 
+                           ", mark: " << static_cast<int>(bfs_mark[curr_target]) << "\n";);
 diff --git a/src/smt/smt_context.cpp b/src/smt/smt_context.cpp
 index 07f4440..6eece6d 100644
 --- a/src/smt/smt_context.cpp
@@ -333,6 +422,49 @@ index 6017176..92faf30 100644
      };
  };
  
+diff --git a/src/smt/smt_setup.cpp b/src/smt/smt_setup.cpp
+index 9f76564..1f0a164 100644
+--- a/src/smt/smt_setup.cpp
++++ b/src/smt/smt_setup.cpp
+@@ -33,6 +33,7 @@ Revision History:
+ #include"theory_seq.h"
+ #include"theory_pb.h"
+ #include"theory_fpa.h"
++#include"theory_special_relations.h"
+ 
+ namespace smt {
+ 
+@@ -827,6 +828,10 @@ namespace smt {
+         m_context.register_plugin(alloc(theory_fpa, m_manager));
+     }
+ 
++    void setup::setup_special_relations() {
++        m_context.register_plugin(alloc(theory_special_relations, m_manager));
++    }
++
+     void setup::setup_unknown() {
+         setup_arith();
+         setup_arrays();
+@@ -836,6 +841,7 @@ namespace smt {
+         setup_seq();
+         setup_card();
+         setup_fpa();
++        setup_special_relations();
+     }
+ 
+     void setup::setup_unknown(static_features & st) {
+diff --git a/src/smt/smt_setup.h b/src/smt/smt_setup.h
+index 68cd570..ea7e777 100644
+--- a/src/smt/smt_setup.h
++++ b/src/smt/smt_setup.h
+@@ -98,6 +98,7 @@ namespace smt {
+         void setup_i_arith();
+         void setup_mi_arith();
+         void setup_fpa();
++        void setup_special_relations();
+ 
+     public:
+         setup(context & c, smt_params & params);
 diff --git a/src/smt/smt_solver.cpp b/src/smt/smt_solver.cpp
 index 1778ce0..4b5e472 100644
 --- a/src/smt/smt_solver.cpp
