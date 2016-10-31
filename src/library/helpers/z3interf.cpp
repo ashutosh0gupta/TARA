@@ -31,6 +31,7 @@ z3interf::z3interf(context& ctx) : c(ctx)
   Z3_update_param_value(ctx, "unsat_core", "true");
   Z3_enable_trace( "rewriter");
   Z3_enable_trace( "rewriter_step");
+  z3::sort hb_sort = ctx.uninterpreted_sort("HB");
 }
 
 z3interf::~z3interf()

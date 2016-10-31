@@ -63,7 +63,7 @@ NEW_Z3_FILES =  src/z3-patch/smt_model_reporter.cpp \
 		src/z3-patch/special_relations_decl_plugin.h \
 		src/z3-patch/theory_special_relations.cpp \
 		src/z3-patch/theory_special_relations.h \
-		src/z3-patch/api_special_relations.h
+		src/z3-patch/api_special_relations.cpp
 
 
 build/z3/patched : src/z3-patch/z3.patch $(NEW_Z3_FILES) build/z3/README.md
