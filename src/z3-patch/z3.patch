@@ -1,3 +1,67 @@
+diff --git a/src/api/api_context.cpp b/src/api/api_context.cpp
+index bc48874..37a8e1b 100644
+--- a/src/api/api_context.cpp
++++ b/src/api/api_context.cpp
+@@ -74,6 +74,7 @@ namespace api {
+         m_fpa_util(m()),
+         m_dtutil(m()),
+         m_sutil(m()),
++        m_sr_util(m()),  //ASHU: addition
+         m_last_result(m()),
+         m_ast_trail(m()),
+         m_pmanager(m_limit) {
+@@ -98,6 +99,7 @@ namespace api {
+         m_datalog_fid = m().mk_family_id("datalog_relation");
+         m_fpa_fid   = m().mk_family_id("fpa");
+         m_seq_fid   = m().mk_family_id("seq");
++        m_sr_fid    = m().mk_family_id("special_relations"); //ASHU: addition
+         m_dt_plugin = static_cast<datatype_decl_plugin*>(m().get_plugin(m_dt_fid));
+     
+         install_tactics(*this);
+diff --git a/src/api/api_context.h b/src/api/api_context.h
+index fa67541..0166e41 100644
+--- a/src/api/api_context.h
++++ b/src/api/api_context.h
+@@ -35,6 +35,7 @@ Revision History:
+ #include"tactic_manager.h"
+ #include"context_params.h"
+ #include"api_polynomial.h"
++#include"special_relations_decl_plugin.h" //ASHU: addition
+ 
+ namespace smtlib {
+     class parser;
+@@ -60,6 +61,7 @@ namespace api {
+         fpa_util                   m_fpa_util;
+         datatype_util              m_dtutil;
+         seq_util                   m_sutil;
++        special_relations_util     m_sr_util; //ASHU: addition
+ 
+         // Support for old solver API
+         smt_params                 m_fparams;
+@@ -79,6 +81,7 @@ namespace api {
+         family_id                  m_pb_fid;
+         family_id                  m_fpa_fid;
+         family_id                  m_seq_fid;
++        family_id                  m_sr_fid; //ASHU: addition
+         datatype_decl_plugin *     m_dt_plugin;
+         
+         std::string                m_string_buffer; // temporary buffer used to cache strings sent to the "external" world.
+@@ -123,6 +126,7 @@ namespace api {
+         fpa_util & fpautil() { return m_fpa_util; }
+         datatype_util& dtutil() { return m_dtutil; }
+         seq_util& sutil() { return m_sutil; }
++        special_relations_util& sr_util() { return m_sr_util; } //ASHU: added
+         family_id get_basic_fid() const { return m_basic_fid; }
+         family_id get_array_fid() const { return m_array_fid; }
+         family_id get_arith_fid() const { return m_arith_fid; }
+@@ -132,6 +136,7 @@ namespace api {
+         family_id get_pb_fid() const { return m_pb_fid; }
+         family_id get_fpa_fid() const { return m_fpa_fid; }
+         family_id get_seq_fid() const { return m_seq_fid; }
++        family_id get_special_relations_fid() const { return m_sr_fid; } //ASHU: added
+         datatype_decl_plugin * get_dt_plugin() const { return m_dt_plugin; }
+ 
+         Z3_error_code get_error_code() const { return m_error_code; }
 diff --git a/src/api/api_solver.cpp b/src/api/api_solver.cpp
 index be03e5d..14f0202 100644
 --- a/src/api/api_solver.cpp
@@ -165,6 +229,26 @@ index 1144900..9a86c03 100644
  #ifdef __cplusplus
  }
  #endif // __cplusplus
+diff --git a/src/cmd_context/cmd_context.cpp b/src/cmd_context/cmd_context.cpp
+index cfad0d3..1b1425c 100644
+--- a/src/cmd_context/cmd_context.cpp
++++ b/src/cmd_context/cmd_context.cpp
+@@ -26,6 +26,7 @@ Notes:
+ #include"seq_decl_plugin.h"
+ #include"pb_decl_plugin.h"
+ #include"fpa_decl_plugin.h"
++#include"special_relations_decl_plugin.h"
+ #include"ast_pp.h"
+ #include"var_subst.h"
+ #include"pp.h"
+@@ -640,6 +641,7 @@ void cmd_context::init_manager_core(bool new_manager) {
+         register_plugin(symbol("pb"),     alloc(pb_decl_plugin), !has_logic());
+         register_plugin(symbol("fpa"),      alloc(fpa_decl_plugin), logic_has_fpa());
+         register_plugin(symbol("datalog_relation"), alloc(datalog::dl_decl_plugin), !has_logic());
++        register_plugin(symbol("special_relations"), alloc(special_relations_decl_plugin), !has_logic());
+     }
+     else {
+         // the manager was created by an external module
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
 index f55945c..d54e4b6 100644
 --- a/src/smt/diff_logic.h

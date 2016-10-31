@@ -481,7 +481,7 @@ namespace smt {
     }
 
     expr_ref theory_special_relations::mk_inj(relation& r, model_generator& mg) {
-        context& ctx = get_context();
+      // context& ctx = get_context();
         ast_manager& m = get_manager();
         r.push();
         ensure_strict(r.m_graph);
@@ -506,7 +506,7 @@ namespace smt {
     }
 
     expr_ref theory_special_relations::mk_class(relation& r, model_generator& mg) {
-        context& ctx = get_context();
+      //context& ctx = get_context();
         ast_manager& m = get_manager();
         expr_ref result(m);
         func_decl_ref fn(m);
@@ -528,7 +528,7 @@ namespace smt {
 
     expr_ref theory_special_relations::mk_interval(relation& r, model_generator& mg, unsigned_vector & lo, unsigned_vector& hi) {
         graph const& g = r.m_graph;
-        context& ctx = get_context();
+        //context& ctx = get_context();
         ast_manager& m = get_manager();
         expr_ref result(m);
         func_decl_ref lofn(m), hifn(m);
@@ -709,6 +709,8 @@ namespace smt {
             case sr_po:
                 init_model_po(*it->m_value, m);
                 break;
+            default:
+              UNREACHABLE(); //ASHU: added to remove warning! Should be supported!
             }
         }
     }

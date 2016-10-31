@@ -34,7 +34,7 @@ clean :
 # Z3 fetch and patch generation
 
 patch :
-	mkdir -p z3-patch
+	mkdir -p src/z3-patch
 	cd $(BUILDDIR)/z3; $(git) diff > ../../src/z3-patch/z3.patch
 
 build/z3/README.md : 
@@ -62,13 +62,15 @@ NEW_Z3_FILES =  src/z3-patch/smt_model_reporter.cpp \
 		src/z3-patch/special_relations_decl_plugin.cpp \
 		src/z3-patch/special_relations_decl_plugin.h \
 		src/z3-patch/theory_special_relations.cpp \
-		src/z3-patch/theory_special_relations.h
+		src/z3-patch/theory_special_relations.h \
+		src/z3-patch/api_special_relations.h
 
 
 build/z3/patched : src/z3-patch/z3.patch $(NEW_Z3_FILES) build/z3/README.md
 	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
 	cd $(BUILDDIR)/z3/src/smt; ln -sf $(SRCDIR)/z3-patch/smt_model_reporter.cpp smt_model_reporter.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.cpp theory_special_relations.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.h theory_special_relations.h
 	cd $(BUILDDIR)/z3/src/ast; ln -sf $(SRCDIR)/z3-patch/special_relations_decl_plugin.cpp special_relations_decl_plugin.cpp; ln -sf $(SRCDIR)/z3-patch/special_relations_decl_plugin.h special_relations_decl_plugin.h
+	cd $(BUILDDIR)/z3/src/api; ln -sf $(SRCDIR)/z3-patch/api_special_relations.cpp api_special_relations.cpp
 	touch $(BUILDDIR)/z3/patched
 
 build/z3/buildr/libz3.so : build/z3/patched

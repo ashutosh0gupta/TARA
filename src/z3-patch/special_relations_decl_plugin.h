@@ -75,6 +75,19 @@ public:
     bool is_special_relation(app* e) const { return is_special_relation(e->get_decl()); }
     sr_property get_property(func_decl* f) const;
     sr_property get_property(app* e) const { return get_property(e->get_decl()); }
+  //Start: code added by ASHU
+
+  bool is_lo(expr const * e) const { return is_app_of(e, m_fid, OP_SPECIAL_RELATION_LO); }
+  bool is_po(expr const * e) const { return is_app_of(e, m_fid, OP_SPECIAL_RELATION_PO); }
+  bool is_plo(expr const * e) const { return is_app_of(e, m_fid, OP_SPECIAL_RELATION_PLO); }
+  bool is_to(expr const * e) const { return is_app_of(e, m_fid, OP_SPECIAL_RELATION_TO); }
+
+    app * mk_lo (expr * arg1, expr * arg2) { return m.mk_app( m_fid, OP_SPECIAL_RELATION_LO,  arg1, arg2); }
+    app * mk_po (expr * arg1, expr * arg2) { return m.mk_app( m_fid, OP_SPECIAL_RELATION_PO,  arg1, arg2); }
+    app * mk_plo(expr * arg1, expr * arg2) { return m.mk_app( m_fid, OP_SPECIAL_RELATION_PLO, arg1, arg2); }
+    app * mk_to (expr * arg1, expr * arg2) { return m.mk_app( m_fid, OP_SPECIAL_RELATION_TO,  arg1, arg2); }
+  //End:  code added by ASHU
+
 };
 
 
