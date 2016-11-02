@@ -45,7 +45,7 @@ using namespace tara::helpers;
 using namespace std;
 
 trace_analysis::trace_analysis(options options, helpers::z3interf& _z3) :
-  _options(options), z3(_z3), hb_encoding(_z3.c)
+  _options(options), z3(_z3), hb_encoding(_z3)
 {
 }
 

@@ -569,7 +569,7 @@ namespace smt {
     }
 
     void theory_special_relations::init_model_po(relation& r, model_generator& mg) {
-        NOT_IMPLEMENTED_YET();
+        // NOT_IMPLEMENTED_YET();
     }
 
     /**

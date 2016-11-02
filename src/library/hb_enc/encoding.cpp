@@ -32,7 +32,6 @@ namespace hb_enc {
  *************************/
   
 location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
-//location::location(z3::context& ctx, string name ,bool special) : expr(z3::expr(ctx)), name(name),special(special) {}
 
 bool location::operator==(const location &other) const {
   // if expr is empty fall back to name
@@ -211,8 +210,11 @@ ostream& operator<< (std::ostream& stream, const as& as) {
  * encoding
  *************************/
 
-encoding::encoding(z3::context& _ctx) :ctx(_ctx)
+encoding::encoding(helpers::z3interf& _z3) :z3(_z3)
 {}
+
+// encoding::encoding(z3::context& _ctx) :ctx(_ctx)
+// {}
 
 encoding::~encoding()
 {}
@@ -247,13 +249,13 @@ z3::expr encoding::mk_ghbs( const se_ptr& before, const se_ptr& after ) {
 }
 
 z3::expr encoding::mk_ghbs( const se_ptr& before, const se_set& after ) {
-  z3::expr hbs = ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();// ctx.bool_val(true);
   for( auto& af : after ) hbs = hbs && mk_ghbs( before, af );
   return hbs;
 }
 
 z3::expr encoding::mk_ghbs( const se_set& before, const se_ptr& after ) {
-  z3::expr hbs = ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();
   for( auto& bf : before ) hbs = hbs && mk_ghbs( bf, after );
   return hbs;
 }
@@ -268,7 +270,7 @@ z3::expr encoding::mk_ghb_ws( const se_ptr& before, const se_ptr& after ) {
 }
 
 z3::expr encoding::mk_hbs( const se_set& before, const se_ptr& after) {
-  z3::expr hbs = ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();
   for( auto& bf : before ) {
       hbs = hbs && mk_hbs( bf, after );
   }
@@ -276,7 +278,7 @@ z3::expr encoding::mk_hbs( const se_set& before, const se_ptr& after) {
 }
 
 z3::expr encoding::mk_hbs(const se_ptr& before, const se_set& after) {
-  z3::expr hbs = ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();
   for( auto& af : after ) {
       hbs = hbs && mk_hbs( before, af );
   }
@@ -285,7 +287,7 @@ z3::expr encoding::mk_hbs(const se_ptr& before, const se_set& after) {
 
 
 z3::expr encoding::mk_hbs(const se_set& before, const se_set& after) {
-  z3::expr hbs = ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();
   for( auto& bf : before ) {
     for( auto& af : after ) {
       hbs = hbs && mk_hbs( bf, af );
@@ -303,7 +305,7 @@ hb encoding::mk_hb_ws(const se_ptr& before, const se_ptr& after) {
 }
 
   z3::expr encoding::mk_guarded_forbid_expr( const hb_enc::hb_vec& vec ) {
-    z3::expr hbs = ctx.bool_val(true);
+    z3::expr hbs = z3.mk_true();
     for( auto& hb : vec ) {
       hbs = hbs && hb->get_guarded_forbid_expr();
     }
@@ -311,7 +313,7 @@ hb encoding::mk_hb_ws(const se_ptr& before, const se_ptr& after) {
   }
 
   z3::expr encoding::mk_expr( const hb_enc::hb_vec& vec ) {
-    z3::expr hbs = ctx.bool_val(true);
+    z3::expr hbs = z3.mk_true();
     for( auto& hb : vec ) {
       hbs = hbs && *hb;
     }
@@ -326,7 +328,7 @@ bool encoding::eval_hb( const z3::model& m,
 list<z3::expr> encoding::get_hbs( z3::model& m ) const
 {
   list<z3::expr> result;
-  z3::expr_vector asserted = ctx.collect_last_asserted_linear_constr();
+  z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
   
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];
@@ -346,7 +348,7 @@ list<z3::expr> encoding::get_hbs( z3::model& m ) const
 vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
 {
   vector<hb_ptr> result;
-  z3::expr_vector asserted = ctx.collect_last_asserted_linear_constr();
+  z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
 
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];

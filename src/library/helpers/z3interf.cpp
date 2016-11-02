@@ -29,16 +29,32 @@ using namespace tara::helpers;
 z3interf::z3interf(context& ctx) : c(ctx)
 {
   Z3_update_param_value(ctx, "unsat_core", "true");
-  Z3_enable_trace( "rewriter");
-  Z3_enable_trace( "rewriter_step");
-  z3::sort hb_sort = ctx.uninterpreted_sort("HB");
+  // Z3_enable_trace( "rewriter");
+  // Z3_enable_trace( "rewriter_step");
+  Z3_enable_trace( "special_relations");
+
+  // z3::expr x = c.fresh_constant( "test_x", hb_sort );
+  // z3::expr y = c.fresh_constant( "test_y", hb_sort );
+  // z3::expr z = c.fresh_constant( "test_z", hb_sort );
+  // z3::expr u = c.fresh_constant( "test_u", hb_sort );
+  // z3::expr_vector v( c );
+  // v.push_back( x );
+  // v.push_back( y );
+  // v.push_back( z );
+  // v.push_back( u );
+  // z3::expr dist = distinct( v );
+  // z3::expr po1 = sr_po ( x , y );
+  // z3::expr po2 = sr_po ( z , u );
+  // z3::expr po3 = !sr_po( x , u );
+  // z3::expr po4 = !sr_po( z , y );
+  // // z3::expr po3 = sr_po( u , x );
+  // // z3::expr po4 = sr_po( y , z );
+  // bool bi = is_sat( dist && po1 && po2 && po3 && po4 );
+  // std::cerr << "is_sat " << bi << "\n";
+
 }
 
-z3interf::~z3interf()
-{
-  
-}
-
+z3interf::~z3interf() {}
 
 solver z3interf::create_solver() const
 {
@@ -311,6 +327,7 @@ z3::sort z3interf::get_variable_sort(const input::variable& var) {
   throw "unsupported";
 }
 
+// todo: should be called is unsat
 bool z3interf::is_sat( z3::expr f ) const {
   auto s = create_solver();
   s.add( f );
@@ -330,6 +347,7 @@ bool z3interf::is_true( z3::expr f ) const {
 }
 
 bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
+  // if e1 /\ !e2 is unsat then e1 => e2 is valid
   return is_sat( e1 && !e2 );
 }
 

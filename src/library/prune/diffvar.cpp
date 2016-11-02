@@ -40,26 +40,6 @@ string diffvar::name()
   return string("diffvar");
 }
 
-list< z3::expr > diffvar::prune( const list< z3::expr >& hbs,
-                                 const z3::model& m )
-{
-  assert( program.is_mm_declared() );
-  list<z3::expr> result = hbs;
-  for (auto it = result.begin() ; it != result.end(); ) {
-    unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
-    auto& l1 = hb1->loc1;
-    auto& l2 = hb1->loc2;
-    bool remove = false;
-    if( !l1->special && !l2->special && l1->thread != l2->thread ) {
-      if( l1->prog_v_name != l2->prog_v_name ) remove = true;
-      if( l1->is_read && l2->is_read ) remove = true; // todo: is_it_correct
-    }
-    if( remove ) it = result.erase(it); else ++it;
-  }
-
-  return result;
-}
-
 hb_enc::hb_vec diffvar::prune( const hb_enc::hb_vec& hbs,
                                const z3::model& m )
 {
@@ -67,13 +47,17 @@ hb_enc::hb_vec diffvar::prune( const hb_enc::hb_vec& hbs,
   hb_enc::hb_vec result = hbs;
   for (auto it = result.begin() ; it != result.end(); ) {
     shared_ptr<hb_enc::hb> hb1 = *it;
-    auto& l1 = hb1->loc1;
-    auto& l2 = hb1->loc2;
+    auto& l1 = hb1->e1;
+    auto& l2 = hb1->e2;
     bool remove = false;
-    if( !l1->special && !l2->special && l1->thread != l2->thread ) {
-      if( l1->prog_v_name != l2->prog_v_name ) remove = true;
-      if( l1->is_read && l2->is_read ) remove = true; // todo: is_it_correct
+    if( l1->is_mem_op() && l2->is_mem_op() && l1->tid != l2->tid ) {
+      if( l1->prog_v != l2->prog_v ) remove = true;
+      if( l1->is_rd() && l2->is_rd() ) remove = true; // todo: is_it_correct
     }
+    // if( !l1->special && !l2->special && l1->thread != l2->thread ) {
+    //   if( l1->prog_v_name != l2->prog_v_name ) remove = true;
+    //   if( l1->is_read && l2->is_read ) remove = true; // todo: is_it_correct
+    // }
     if( remove ) it = result.erase(it); else ++it;
   }
 

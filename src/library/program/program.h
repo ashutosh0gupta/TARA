@@ -42,7 +42,7 @@ namespace tara {
 
   class instruction {
   public:
-    hb_enc::location_ptr loc;
+    hb_enc::location_ptr loc; // todo : remove it
     z3::expr instr;
     z3::expr path_constraint;
     thread* in_thread;

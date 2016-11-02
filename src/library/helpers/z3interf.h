@@ -102,6 +102,9 @@ public:
   static std::vector<z3::expr> decompose(z3::expr conj, Z3_decl_kind kind);
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);
   
+
+  z3::sort mk_sort(const char* s) const { return c.uninterpreted_sort(s); }
+
   z3::expr mk_true() const { return c.bool_val(true ); }
   z3::expr mk_false() const { return c.bool_val(false); }
   z3::expr mk_emptyexpr(){ return z3::expr(c); }

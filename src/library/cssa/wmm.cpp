@@ -406,21 +406,21 @@ void wmm_event_cons::ses_c11() {
 
 void wmm_event_cons::distinct_events() {
 
-  z3::expr_vector loc_vars( z3.c );
+  z3::expr_vector es( z3.c );
 
-  loc_vars.push_back( p.init_loc->get_solver_symbol() );
+  es.push_back( p.init_loc->get_solver_symbol() );
 
   if( p.post_loc )
-    loc_vars.push_back( p.post_loc->get_solver_symbol() );
+    es.push_back( p.post_loc->get_solver_symbol() );
 
   for( unsigned t=0; t < p.size(); t++ ) {
     auto& thread = p.get_thread(t);
     for(auto& e : thread.events )
-      loc_vars.push_back( e->get_solver_symbol() );
-    loc_vars.push_back( thread.start_event->get_solver_symbol() );
-    loc_vars.push_back( thread.final_event->get_solver_symbol() );
+      es.push_back( e->get_solver_symbol() );
+    es.push_back( thread.start_event->get_solver_symbol() );
+    es.push_back( thread.final_event->get_solver_symbol() );
   }
-  dist = distinct(loc_vars);
+  dist = distinct(es);
 
 }
 

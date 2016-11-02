@@ -28,8 +28,11 @@ using namespace tara;
 
 using namespace std;
 
-integer::integer(z3::context& ctx) : encoding(ctx) //, ctx(ctx)
+integer::integer(helpers::z3interf& z3) : encoding(z3)
 {}
+
+// integer::integer(z3::context& ctx) : encoding(ctx)
+// {}
 
 void integer::record_event( se_ptr& e ) {
   make_location( e->e_v );
@@ -47,16 +50,23 @@ void integer::make_location( std::shared_ptr< location > loc )
 
 void integer::make_locations(vector< std::shared_ptr< location > > locations)
 {
-  // todo: should the following be static??
-  uint16_t counter = 0;
   for (unsigned i=0; i<locations.size(); i++) {
     counter++;
     locations[i]->_serial = counter;
-    z3::expr loc_expr = ctx.int_const(locations[i]->name.c_str());
+    z3::expr loc_expr = z3.c.int_const(locations[i]->name.c_str());
     locations[i]->expr = loc_expr;
     location_lookup.insert(make_pair(loc_expr, locations[i]));
   }
   save_locations(locations);
+}
+
+void integer::make_po_location( std::shared_ptr< location > loc )
+{
+  counter++;
+  loc->_serial = counter;
+  z3::expr loc_expr = z3.c.int_const(loc->name.c_str());
+  loc->expr = loc_expr;
+  location_lookup.insert(make_pair(loc_expr, loc));
 }
 
 

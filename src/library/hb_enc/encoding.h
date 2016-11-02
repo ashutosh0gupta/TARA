@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <set>
 #include "../helpers/helpers.h"
+#include "helpers/z3interf.h"
 
 namespace tara {
 namespace hb_enc {
@@ -56,16 +57,6 @@ public:
   bool special;  //todo: rename to a meaningful name
   int thread; // number of the thread of this location
   int instr_no; // number of this instruction
-//--------------------------------------------------------------------------
-//start of wmm support
-//--------------------------------------------------------------------------
-  std::string prog_v_name;
-  //std::shared_ptr<cssa::variable> vari;
-  bool is_read;
-  
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
   /**
    * @brief The previous location in the same thread
    * 
@@ -154,7 +145,8 @@ private:
 class encoding
 {
 public:
-  encoding(z3::context& ctx);
+  encoding(helpers::z3interf& z3);
+  // encoding(z3::context& ctx);
   virtual ~encoding();
   
   virtual void record_event( se_ptr& ) = 0;
@@ -192,7 +184,8 @@ public:
   virtual std::vector<hb_enc::location_ptr> get_trace(const z3::model& m) const = 0;
   std::list<z3::expr> get_hbs( z3::model& m ) const;
   std::vector<hb_ptr> get_hbs_new( z3::model& m ) const;
-  z3::context& ctx;
+  helpers::z3interf& z3;
+  // z3::context& ctx;
 protected:
   std::unordered_map<std::string, location_ptr> location_map;
   void save_locations(const std::vector<std::shared_ptr<hb_enc::location>>& locations);

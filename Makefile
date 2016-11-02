@@ -76,14 +76,14 @@ build/z3/patched : src/z3-patch/z3.patch $(NEW_Z3_FILES) build/z3/README.md
 build/z3/buildr/libz3.so : build/z3/patched
 	rm -rf $(BUILDDIR)/z3/buildr
 	cd $(BUILDDIR)/z3; python scripts/mk_make.py --staticlib -b buildr
-	make -C $(BUILDDIR)/z3/buildr
+	+make -C $(BUILDDIR)/z3/buildr
 
 build/z3/buildr/libz3.a : build/z3/buildr/libz3.so
 
 build/z3/buildd/libz3.so : build/z3/patched
 	rm -rf $(BUILDDIR)/z3/buildd
 	cd $(BUILDDIR)/z3; python scripts/mk_make.py --staticlib -d -b buildd
-	make -C $(BUILDDIR)/z3/buildd
+	+make -C $(BUILDDIR)/z3/buildd
 
 
 runtest:

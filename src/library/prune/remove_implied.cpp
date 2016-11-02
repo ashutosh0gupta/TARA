@@ -70,29 +70,6 @@ bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
   return helpers::exists( program.must_before.at(e2), e1 );
 }
 
-// bool remove_implied::must_happen_before( const hb_enc::se_ptr e1,
-//                                          const hb_enc::se_ptr e2 ) {
-//   // check if these edge is between the same thread
-//   if( e1 == e2 ) return true;
-//   if( e1->get_tid() != e2->get_tid() ) return false;
-//   // e1 must be ordered before e2 in order to "must occur before"
-//   if( e1->get_topological_order() > e2->get_topological_order() )
-//     return false;
-
-//   switch( program.get_mm() ) {
-//   case mm_t::sc   : return must_happen_before_sc   ( e1, e2 ); break;
-//   case mm_t::tso  : return must_happen_before_tso  ( e1, e2 ); break;
-//   case mm_t::pso  : return must_happen_before_pso  ( e1, e2 ); break;
-//   case mm_t::rmo  : return must_happen_before_rmo  ( e1, e2 ); break;
-//   case mm_t::alpha: return must_happen_before_alpha( e1, e2 ); break;
-//   default:
-//       throw std::runtime_error("remove_implied does not support memory model!");
-//   }
-
-// }
-
-
-
 
 hb_enc::hb_vec remove_implied::prune( const hb_enc::hb_vec& hbs,
                                       const z3::model& m )
@@ -159,169 +136,169 @@ hb_enc::hb_vec remove_implied::prune( const hb_enc::hb_vec& hbs,
 //------------------------------------------------------------------
 // old code ready for deletetion.
 
-list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
-                                        const z3::model& m )
-{
-  list<z3::expr> result = hbs;
-//--------------------------------------------------------------------------
-//start of wmm support
-//--------------------------------------------------------------------------
-  if( program.is_mm_declared() ) {
-    for (auto it = result.begin() ; it != result.end(); ) {
-      bool remove = false;
-      for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
-        // ensure that we do not compare with ourselves
-        if (it != it2) {
-          // find duplicate
-          if ((Z3_ast)*it == (Z3_ast)*it2) {
-            remove = true;
-            break;
-          }
-          unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
-          unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
-          assert( hb1 && hb2 );
-          assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
-          if( must_happen_before( hb1->e1, hb2->e1 ) &&
-              must_happen_after( hb2->e2, hb1->e2 ) ) {
-            remove = true;
-            break;
-          }
-        }
-      }
-      if (remove) {
-        //cerr << *it << endl;
-        it = result.erase(it);
-      }else 
-        ++it;
-    }
+// list< z3::expr > remove_implied::prune( const list< z3::expr >& hbs,
+//                                         const z3::model& m )
+// {
+//   list<z3::expr> result = hbs;
+// //--------------------------------------------------------------------------
+// //start of wmm support
+// //--------------------------------------------------------------------------
+//   if( program.is_mm_declared() ) {
+//     for (auto it = result.begin() ; it != result.end(); ) {
+//       bool remove = false;
+//       for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+//         // ensure that we do not compare with ourselves
+//         if (it != it2) {
+//           // find duplicate
+//           if ((Z3_ast)*it == (Z3_ast)*it2) {
+//             remove = true;
+//             break;
+//           }
+//           unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
+//           unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
+//           assert( hb1 && hb2 );
+//           assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
+//           if( must_happen_before( hb1->e1, hb2->e1 ) &&
+//               must_happen_after( hb2->e2, hb1->e2 ) ) {
+//             remove = true;
+//             break;
+//           }
+//         }
+//       }
+//       if (remove) {
+//         //cerr << *it << endl;
+//         it = result.erase(it);
+//       }else 
+//         ++it;
+//     }
     
-    return result;
-  }
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
-  for (auto it = result.begin() ; it != result.end(); ) {
-    bool remove = false;
-    for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
-      // ensure that we do not compare with ourselves
-      if (it != it2) {
-        // find duplicate
-        if ((Z3_ast)*it == (Z3_ast)*it2) {
-          remove = true;
-          break;
-        }
-        unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
-        unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
-        assert (hb1 && hb2);
-        // check if these edge is between the same thread
-        if (hb1->loc1->thread == hb2->loc1->thread && hb1->loc2->thread == hb2->loc2->thread) {
-          // check if the other one is more specific
-          if (hb1->loc1->instr_no <= hb2->loc1->instr_no && hb1->loc2->instr_no >= hb2->loc2->instr_no)
-          {
-            remove = true;
-            break;
-          }
-        }
-      }
-    }
-    if (remove) {
-      //cerr << *it << endl;
-      it = result.erase(it);
-    }else 
-      ++it;
-  }
-  return result;
-}
+//     return result;
+//   }
+// //--------------------------------------------------------------------------
+// //end of wmm support
+// //--------------------------------------------------------------------------
+//   for (auto it = result.begin() ; it != result.end(); ) {
+//     bool remove = false;
+//     for (auto it2 = result.begin() ; it2 != result.end(); ++it2) {
+//       // ensure that we do not compare with ourselves
+//       if (it != it2) {
+//         // find duplicate
+//         if ((Z3_ast)*it == (Z3_ast)*it2) {
+//           remove = true;
+//           break;
+//         }
+//         unique_ptr<hb_enc::hb> hb1 = hb_enc.get_hb(*it);
+//         unique_ptr<hb_enc::hb> hb2 = hb_enc.get_hb(*it2);
+//         assert (hb1 && hb2);
+//         // check if these edge is between the same thread
+//         if (hb1->loc1->thread == hb2->loc1->thread && hb1->loc2->thread == hb2->loc2->thread) {
+//           // check if the other one is more specific
+//           if (hb1->loc1->instr_no <= hb2->loc1->instr_no && hb1->loc2->instr_no >= hb2->loc2->instr_no)
+//           {
+//             remove = true;
+//             break;
+//           }
+//         }
+//       }
+//     }
+//     if (remove) {
+//       //cerr << *it << endl;
+//       it = result.erase(it);
+//     }else 
+//       ++it;
+//   }
+//   return result;
+// }
 
 
-bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
-                                            const hb_enc::se_ptr e2 ) {
-  if( z3.entails( e2->guard, e1->guard ) ) return true;
+// bool remove_implied::must_happen_before_sc( const hb_enc::se_ptr e1,
+//                                             const hb_enc::se_ptr e2 ) {
+//   if( z3.entails( e2->guard, e1->guard ) ) return true;
 
-  // return false;
-  // check if the other is from earlier instruction
-  if( e1->get_topological_order() < e2->get_topological_order() ) return true;
+//   // return false;
+//   // check if the other is from earlier instruction
+//   if( e1->get_topological_order() < e2->get_topological_order() ) return true;
 
-  auto loc1 = e1->e_v;
-  auto loc2 = e2->e_v;
-  // // if they are from same instruction then they must be Rd-Wr
-  // if( loc1->instr_no == loc2->instr_no ) {
-  //   if( loc1->is_read && !loc2->is_read ) return true;
-  // }
-  return false;
-}
+//   auto loc1 = e1->e_v;
+//   auto loc2 = e2->e_v;
+//   // // if they are from same instruction then they must be Rd-Wr
+//   // if( loc1->instr_no == loc2->instr_no ) {
+//   //   if( loc1->is_read && !loc2->is_read ) return true;
+//   // }
+//   return false;
+// }
 
-bool remove_implied::must_happen_before_tso( const hb_enc::se_ptr e1,
-                                             const hb_enc::se_ptr e2 ) {
-  auto loc1 = e1->e_v;
-  auto loc2 = e2->e_v;
-  // check if the other one is more specific
-  if( !loc1->is_read && loc2->is_read ) return false;
+// bool remove_implied::must_happen_before_tso( const hb_enc::se_ptr e1,
+//                                              const hb_enc::se_ptr e2 ) {
+//   auto loc1 = e1->e_v;
+//   auto loc2 = e2->e_v;
+//   // check if the other one is more specific
+//   if( !loc1->is_read && loc2->is_read ) return false;
 
-  if( loc1->instr_no < loc2-> instr_no ) return true;
-  if( loc1->instr_no == loc2->instr_no ) {
-    if( loc1->is_read && !loc2->is_read ) return true;
-  }
-  return false;
-}
-
-
-bool remove_implied::must_happen_before_pso( const hb_enc::se_ptr e1,
-                                             const hb_enc::se_ptr e2 ) {
-  auto loc1 = e1->e_v;
-  auto loc2 = e2->e_v;
-  // check if the other one is more specific
-  if( !loc1->is_read && loc2->is_read ) return false;
-  if( !loc1->is_read && !loc2->is_read)
-  {
-    if( loc1->prog_v_name != loc2->prog_v_name )
-      {
-        return false;
-      }
-  }
-  if( loc1->instr_no < loc2-> instr_no ) return true;
-  if( loc1->instr_no == loc2->instr_no ) {
-    // if( loc1 == loc2 ) return true;
-    if( loc1->is_read && !loc2->is_read ) return true;
-  }
-  return false;
-}
+//   if( loc1->instr_no < loc2-> instr_no ) return true;
+//   if( loc1->instr_no == loc2->instr_no ) {
+//     if( loc1->is_read && !loc2->is_read ) return true;
+//   }
+//   return false;
+// }
 
 
-bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
-                                             const hb_enc::se_ptr e2 ) {
-  if( e2->is_rd() ) return false;
+// bool remove_implied::must_happen_before_pso( const hb_enc::se_ptr e1,
+//                                              const hb_enc::se_ptr e2 ) {
+//   auto loc1 = e1->e_v;
+//   auto loc2 = e2->e_v;
+//   // check if the other one is more specific
+//   if( !loc1->is_read && loc2->is_read ) return false;
+//   if( !loc1->is_read && !loc2->is_read)
+//   {
+//     if( loc1->prog_v_name != loc2->prog_v_name )
+//       {
+//         return false;
+//       }
+//   }
+//   if( loc1->instr_no < loc2-> instr_no ) return true;
+//   if( loc1->instr_no == loc2->instr_no ) {
+//     // if( loc1 == loc2 ) return true;
+//     if( loc1->is_read && !loc2->is_read ) return true;
+//   }
+//   return false;
+// }
 
-  if( e1->is_rd() ) {
-    // e1 read - e2 write
-    // todo: check if dep relation contains intr internal relations
-    // todo: add control dep also
-    for( const auto& dep_pair : e2->data_dependency ) {
-      if( dep_pair.e == e1 ) return true;
-    }
-  }
 
-  auto loc1 = e1->e_v;
-  auto loc2 = e2->e_v;
+// bool remove_implied::must_happen_before_rmo( const hb_enc::se_ptr e1,
+//                                              const hb_enc::se_ptr e2 ) {
+//   if( e2->is_rd() ) return false;
 
-  if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
+//   if( e1->is_rd() ) {
+//     // e1 read - e2 write
+//     // todo: check if dep relation contains intr internal relations
+//     // todo: add control dep also
+//     for( const auto& dep_pair : e2->data_dependency ) {
+//       if( dep_pair.e == e1 ) return true;
+//     }
+//   }
 
-  if( loc1->instr_no < loc2-> instr_no ) return true;
-  return false;
-}
+//   auto loc1 = e1->e_v;
+//   auto loc2 = e2->e_v;
 
-bool remove_implied::must_happen_before_alpha( const hb_enc::se_ptr e1,
-                                               const hb_enc::se_ptr e2 ) {
-  auto loc1 = e1->e_v;
-  auto loc2 = e2->e_v;
+//   if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
 
-    if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
-    if( !loc1->is_read && loc2->is_read ) return false;
+//   if( loc1->instr_no < loc2-> instr_no ) return true;
+//   return false;
+// }
 
-    if( loc1->instr_no < loc2-> instr_no ) return true;
-    if( loc1->instr_no == loc2->instr_no ) {
-	if( loc1->is_read && !loc2->is_read ) return true;
-  }
+// bool remove_implied::must_happen_before_alpha( const hb_enc::se_ptr e1,
+//                                                const hb_enc::se_ptr e2 ) {
+//   auto loc1 = e1->e_v;
+//   auto loc2 = e2->e_v;
 
-    return false;
-}
+//     if ( loc1->prog_v_name != loc2->prog_v_name ) return false;
+//     if( !loc1->is_read && loc2->is_read ) return false;
+
+//     if( loc1->instr_no < loc2-> instr_no ) return true;
+//     if( loc1->instr_no == loc2->instr_no ) {
+// 	if( loc1->is_read && !loc2->is_read ) return true;
+//   }
+
+//     return false;
+// }

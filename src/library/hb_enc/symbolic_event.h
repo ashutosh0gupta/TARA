@@ -75,9 +75,10 @@ namespace hb_enc {
   {
   private:
     std::shared_ptr<tara::hb_enc::location>
-    create_internal_event( hb_enc::encoding& _hb_enc, std::string& event_name,
-                           unsigned tid, unsigned instr_no, bool special,
-                           bool is_read, std::string& prog_v_name );
+    create_internal_event( helpers::z3interf& _hb_enc, std::string& event_name,
+                           unsigned tid, unsigned instr_no, bool special);
+                           // bool is_read, std::string& prog_v_name );
+    void update_topological_order();
   public:
     symbolic_event( hb_enc::encoding& hb_encoding,
                     unsigned _tid, se_set& _prev_events, unsigned i,
@@ -95,13 +96,17 @@ namespace hb_enc {
     std::string loc_name;
   private:
     unsigned topological_order;
-  //   hb_enc::location_ptr loc; // location in
   public:
     std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
     std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
 
-    event_t et;
-    o_tag_t o_tag; //merge et and o_tag
+    // c11 variables
+    std::shared_ptr<tara::hb_enc::location> c11_hb_v; // po hb variable
+    std::shared_ptr<tara::hb_enc::location> c11_ws_v; // write cs variable
+    std::shared_ptr<tara::hb_enc::location> c11_sc_v; // sc variable
+
+    event_t et;    // type of the event
+    o_tag_t o_tag; // ordering tag on the event
 
     se_set prev_events; // in straight line programs it will be singleton
                         // we need to remove access to  pointer
@@ -200,7 +205,7 @@ namespace hb_enc {
     cssa::variable n_v = prefix + prog_v + "#" + loc;
     se_ptr e = std::make_shared<symbolic_event>( hb_enc, tid, prev_es, instr_no,
                                                  n_v, prog_v, loc, et );
-    e->guard = hb_enc.ctx.bool_val(true);
+    e->guard = hb_enc.z3.mk_true();
     hb_enc.record_event( e );
     return e;
   }
@@ -211,7 +216,7 @@ namespace hb_enc {
                  std::string loc, event_t et, se_set& prev_es ) {
     se_ptr e =
       std::make_shared<symbolic_event>(hb_enc, tid, prev_es, instr_no, loc, et);
-    e->guard = hb_enc.ctx.bool_val(true);
+    e->guard = hb_enc.z3.mk_true();
     hb_enc.record_event( e );
     return e;
   }
@@ -232,7 +237,7 @@ namespace hb_enc {
     e->history = history_;
     hb_enc.record_event( e );
     for(se_ptr ep  : prev_es) {
-      ep->add_post_events( e, hb_enc.ctx.bool_val(true) );
+      ep->add_post_events( e, hb_enc.z3.mk_true() );
     }
     return e;
   }
@@ -247,7 +252,7 @@ namespace hb_enc {
     e->guard = path_cond;
     e->history = history_;
     hb_enc.record_event( e );
-    // assert( z3::eq( branch_cond, hb_enc.ctx.bool_val(true) ) ||
+    // assert( z3::eq( branch_cond, hb_enc.z3.mk_true() ) ||
     //                 prev_es.size() == 1 );
     for( se_ptr ep  : prev_es ) {
       ep->add_post_events( e, branch_conds.at(ep) );
@@ -262,7 +267,7 @@ namespace hb_enc {
              std::string loc, event_t et ) {
     std::map<const hb_enc::se_ptr, z3::expr> branch_conds;
     for( auto& ep : prev_es ) {
-      branch_conds.insert( std::make_pair( ep, hb_enc.ctx.bool_val(true) ) );
+      branch_conds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
     }
     return mk_se_ptr( hb_enc, tid, prev_es, path_cond, history_, loc, et,
                        branch_conds );

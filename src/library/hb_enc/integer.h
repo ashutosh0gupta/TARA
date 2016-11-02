@@ -32,7 +32,8 @@ namespace hb_enc {
   class integer : public hb_enc::encoding
   {
   public:
-    integer(z3::context& ctx);
+    integer(helpers::z3interf& z3);
+    // integer(z3::context& ctx);
     virtual void record_event( se_ptr& e ) override;
     virtual void make_location( std::shared_ptr< location > locations ) override;
     virtual void make_locations(std::vector< std::shared_ptr< location > > locations) override;
@@ -41,14 +42,18 @@ namespace hb_enc {
     virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const override;
     virtual std::unique_ptr<hb_enc::hb> get_hb(const z3::expr& hb, bool allow_equal = false) const override;
     virtual std::vector<location_ptr> get_trace(const z3::model& m) const override;
+    void make_po_location( std::shared_ptr< location > loc );
   protected:
     std::unordered_map< z3::expr, std::shared_ptr<hb_enc::location> > location_lookup;
     std::unordered_map< z3::expr, se_ptr, helpers::z3interf::expr_hash, helpers::z3interf::expr_equal > event_lookup;
   // map location to instruction
     typedef std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>>::const_iterator mapit;
     std::pair<mapit,mapit> get_locs(const z3::expr& hb, bool& possibly_equal) const;
-    
-    // z3::context& ctx;
+  private:
+    // todo: should the following be static??
+    uint16_t counter = 0;
+    z3::sort hb_sort = z3.mk_sort( "HB" );
+
   };
 }}
 

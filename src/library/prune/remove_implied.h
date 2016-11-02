@@ -29,7 +29,7 @@ class remove_implied : public prune::prune_base
 {
 public:
   remove_implied(const helpers::z3interf& z3, const tara::program& program);
-  virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
+  // virtual std::list< z3::expr > prune(const std::list< z3::expr >& hbs, const z3::model& m);
   //todo : remove the code above
   virtual hb_enc::hb_vec prune( const hb_enc::hb_vec& hbs, const z3::model& m );
   virtual std::string name();
@@ -39,11 +39,11 @@ private:
 //--------------------------------------------------------------------------
   bool must_happen_before      ( const hb_enc::se_ptr, const hb_enc::se_ptr );
   bool must_happen_after       ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-  bool must_happen_before_sc   ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-  bool must_happen_before_tso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-  bool must_happen_before_pso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-  bool must_happen_before_rmo  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
-  bool must_happen_before_alpha( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  // bool must_happen_before_sc   ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  // bool must_happen_before_tso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  // bool must_happen_before_pso  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  // bool must_happen_before_rmo  ( const hb_enc::se_ptr, const hb_enc::se_ptr );
+  // bool must_happen_before_alpha( const hb_enc::se_ptr, const hb_enc::se_ptr );
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------
