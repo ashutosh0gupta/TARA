@@ -65,10 +65,11 @@ namespace cssa {
     void ppo_traverse ( const tara::thread& );
     void ppo_rmo_traverse ( const tara::thread& );
 
-    void new_ppo_sc   ( const tara::thread& );
-    void new_ppo_pso  ( const tara::thread& );
-    void new_ppo_rmo  ( const tara::thread& );
-    void new_ppo_alpha( const tara::thread& );
+    void ppo_c11( const tara::thread& thread );
+    void ppo_sc   ( const tara::thread& );
+    // void new_ppo_pso  ( const tara::thread& );
+    // void new_ppo_rmo  ( const tara::thread& );
+    // void new_ppo_alpha( const tara::thread& );
     void ppo_power( const tara::thread& );
     bool check_ppo( const hb_enc::se_ptr&, const hb_enc::se_ptr& );
     void ppo();

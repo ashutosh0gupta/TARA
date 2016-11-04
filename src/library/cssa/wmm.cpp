@@ -107,7 +107,8 @@ z3::expr wmm_event_cons::get_rel_seq_bvar( hb_enc::se_ptr wrp,
   std::string bname = "res-seq-"+wrp->name()+"-"+wr->name();
   z3::expr b = z3.c.bool_const(  bname.c_str() );
   // todo: do need to record the interupption bit
-  if( record ) p.rel_seq_map.insert( std::make_tuple(bname,wrp,wr) );
+  if( record )
+    p.rel_seq_map[wr].insert( std::make_pair( bname, wrp ) );
   return b;
 }
 
@@ -266,18 +267,18 @@ void wmm_event_cons::ses_c11() {
   // - fr  from read
   // - ws  write serialization
 
-  //todo: disable the following code if rd rd coherence not preserved
-  hb_enc::se_to_ses_map prev_rds;
-  for( unsigned t = 0; t < p.size(); t++ ) {
-    // const auto& thr = p.get_thread( t );
-    for( auto e : p.get_thread( t ).events ) {
-      hb_enc::se_set& rds = prev_rds[e];
-      for( auto ep : e->prev_events ) {
-        rds.insert( prev_rds[ep].begin(), prev_rds[ep].end() );
-        if( ep->is_rd() ) rds.insert( ep );
-      }
-    }
-  }
+  // //todo: disable the following code if rd rd coherence not preserved
+  // hb_enc::se_to_ses_map prev_rds;
+  // for( unsigned t = 0; t < p.size(); t++ ) {
+  //   // const auto& thr = p.get_thread( t );
+  //   for( auto e : p.get_thread( t ).events ) {
+  //     hb_enc::se_set& rds = prev_rds[e];
+  //     for( auto ep : e->prev_events ) {
+  //       rds.insert( prev_rds[ep].begin(), prev_rds[ep].end() );
+  //       if( ep->is_rd() ) rds.insert( ep );
+  //     }
+  //   }
+  // }
 
   
   for( const variable& v1 : p.globals ) {
@@ -289,8 +290,8 @@ void wmm_event_cons::ses_c11() {
         z3::expr no_interup = z3.mk_true();
         for( auto& wrpp : wrs ) {
           if( wrpp->tid != wr->tid && !wrpp->is_update() ) {
-            no_interup = no_interup && ( hb_encoding.mk_ghb_ws( wrpp, dep.e) ||
-                                         hb_encoding.mk_ghb_ws( wr,wrpp ) );
+            no_interup = no_interup && ( hb_encoding.mk_ghb_c11_mo( wrpp, dep.e) ||
+                                         hb_encoding.mk_ghb_c11_mo( wr,wrpp ) );
           }
         }
         z3::expr b = get_rel_seq_bvar( dep.e, wr );
@@ -302,8 +303,8 @@ void wmm_event_cons::ses_c11() {
             z3::expr no_interup = z3.mk_true();
             for( auto& wrpp : wrs ) {
               if( wrpp->tid != wrp->tid && !wrpp->is_update() ) {
-                no_interup = no_interup && ( hb_encoding.mk_ghb_ws(wrpp, wrp) ||
-                                             hb_encoding.mk_ghb_ws( wr, wrpp) );
+                no_interup = no_interup && ( hb_encoding.mk_ghb_c11_mo(wrpp, wrp) ||
+                                             hb_encoding.mk_ghb_c11_mo( wr, wrpp) );
               }
             }
             z3::expr b = get_rel_seq_bvar( wrp, wr );
@@ -325,49 +326,64 @@ void wmm_event_cons::ses_c11() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
 
-        //sw due to rf
-        // if( rd->is_at_least_acq() ) {
-        //   if( wr->is_at_least_rls() ) {
-        //     rf = rf && implies( b, hb_encoding.mk_ghbs( wr, rd ) );
-        //   }else{
-        //     for( auto& it : rel_seq_map[wr] ) {
-        //       std::string bname = std::get<0>(it);
-        //       hb_enc::se_ptr wrp = std::get<1>(it);
-        //       z3::expr b_wrp_wr = _z3.c.bool_const(  bname.c_str() );
-        //       rf = rf && implies( b && b_wrp_wr, hb_encoding.mk_ghbs( wrp, rd ) );
-        //     }
-        //   }
-        // }else if( ) {
-          
-        // }else{
-          
-        // }
-        // read from
-        z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
-        rf = rf && new_rf;
+        // sw due to rf
+        if( rd->is_at_least_acq() ) {
+          if( wr->is_at_least_rls() ) {
+            rf = rf && implies( b, hb_encoding.mk_ghb_c11_hb( wr, rd ) );
+          }else{
+            for( auto& it : p.rel_seq_map[wr] ) {
+              std::string bname = std::get<0>(it);
+              hb_enc::se_ptr wrp = std::get<1>(it);
+              z3::expr b_wrp_wr = z3.c.bool_const(  bname.c_str() );
+              rf = rf && implies( b && b_wrp_wr,
+                                  hb_encoding.mk_ghb_c11_hb( wrp, rd ) );
+            }
+          }
+        }
+        if( rd->is_atomic() && wr->is_atomic() ) {
+          z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
+          rf = rf && implies( b, ! hb_rd_wr );
+        }else{
+          // to do something
+          wmm_error( "c11 non atomics not supported!!" );
+        }
 
-        // z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
-        // thin = thin && new_thin;
-        // //global read from
-        // if( in_grf( wr, rd ) ) grf = grf && new_rf;
-
-        // from read
-        for( const hb_enc::se_ptr& after_wr : wrs ) {
-          if( after_wr->name() != wr->name() ) {
-            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
-                          && after_wr->guard;
-            if( anti_po_loc_fr_new( rd, after_wr ) ) {
-              fr = fr && !cond;
-            }else{
-              auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
-              if( is_rd_rd_coherance_preserved() ) {
-                for( auto before_rd : prev_rds[rd] ) {
-                  z3::expr anti_coherent_b =
-                    get_rf_bvar( v1, after_wr, before_rd, false );
-                  new_fr = !anti_coherent_b && new_fr;
-                }
+        // coherence
+        for( const hb_enc::se_ptr& wrp : wrs ) {
+          if( wr == wrp ) continue;
+          z3::expr hb_wrp_rd = hb_encoding.mk_hb_c11_hb( wrp, rd );
+          z3::expr hb_rd_wrp = hb_encoding.mk_hb_c11_hb( rd, wrp );
+          fr = fr && implies( b && hb_encoding.mk_ghb_c11_mo(wr,wrp),!hb_wrp_rd)
+            && implies( b && hb_encoding.mk_ghb_c11_mo(wrp,wr), !hb_rd_wrp );
+          for( const hb_enc::se_ptr& rdp : rds ) {
+            if( rd == rdp ) continue;
+            z3::expr bp = get_rf_bvar( v1, wrp, rdp, false );
+            z3::expr hb_rd_rdp = hb_encoding.mk_hb_c11_hb( rd, rdp );
+            fr = fr && implies( b && bp && hb_encoding.mk_ghb_c11_mo(wrp,wr),
+                                !hb_rd_rdp );
+          }
+        }
+        // SCReads
+        if( rd->is_sc() ) {
+          if( wr->is_sc() ) {
+            for( auto& wrp : wrs ) {
+              if( !wrp->is_sc() || wr == wrp ) continue;
+              fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ),
+                                  hb_encoding.mk_hb_c11_sc( wrp, wr ) );
+            }
+          }else{ // wr is not sc
+            for( auto& wrp : wrs ) {
+              if( !wrp->is_sc() || wr == wrp ) continue;
+              z3::expr no_one_else = z3.mk_true();
+              for( auto& wrpp : wrs ) {
+                if( !wrpp->is_sc() || wrpp == wrp ) continue;
+                no_one_else = no_one_else &&
+                  ( (z3::expr)(hb_encoding.mk_hb_c11_sc( wrpp, wrp )) ||
+                    (z3::expr)(hb_encoding.mk_hb_c11_sc( rd,  wrpp )) );
               }
-              fr = fr && implies( cond , new_fr );
+              fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ) &&
+                                  no_one_else,
+                               !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp ) );
             }
           }
         }
@@ -378,27 +394,38 @@ void wmm_event_cons::ses_c11() {
     // write serialization
     // todo: what about ws;rf
     auto it1 = wrs.begin();
+    z3::expr_vector dists(z3.c);
     for( ; it1 != wrs.end() ; it1++ ) {
       const hb_enc::se_ptr& wr1 = *it1;
       auto it2 = it1;
       it2++;
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
-        if( wr1->tid != wr2->tid && // Why this condition?
-            !wr1->is_pre() && !wr2->is_pre() // no initializations
-            ) {
-          ws = ws && ( hb_encoding.mk_ghb_ws( wr1, wr2 ) ||
-                       hb_encoding.mk_ghb_ws( wr2, wr1 ) );
-        }
+        fr = fr
+          && z3::implies( hb_encoding.mk_hb_c11_hb(wr1,wr2),
+                          hb_encoding.mk_hb_c11_mo(wr1,wr2));
       }
+      dists.push_back( wr1->get_c11_mo_solver_symbol() );
     }
+    ws = ws && distinct( dists );
 
-    // dependency
-    // for( const hb_enc::se_ptr& wr : wrs ) {
-    //   for( auto& dep : wr->data_dependency )
-    //     thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
-    // }
   }
+
+  auto it1 = p.all_sc.begin();
+  z3::expr_vector dists(z3.c);
+  for( ; it1 != p.all_sc.end() ; it1++ ) {
+    const hb_enc::se_ptr& e1 = *it1;
+    auto it2 = it1;
+    it2++;
+    for( ; it2 != p.all_sc.end() ; it2++ ) {
+      const hb_enc::se_ptr& e2 = *it2;
+      fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
+                              hb_encoding.mk_hb_c11_sc( e1, e2 ) );
+    }
+    dists.push_back( e1->get_c11_mo_solver_symbol() );
+  }
+  ws = ws && distinct( dists );
+
 }
 
 //----------------------------------------------------------------------------
@@ -430,7 +457,16 @@ void wmm_event_cons::distinct_events() {
 // todo: deal with double barriers that may cause bugs since they are not 
 //       explicitly ordered
 
-void wmm_event_cons::new_ppo_sc( const tara::thread& thread ) {
+void wmm_event_cons::ppo_c11( const tara::thread& thread ) {
+
+  for( auto& e : thread.events ) {
+    po = po && hb_encoding.mk_ghbs_c11_hb( e->prev_events, e );
+  }
+  auto& e = thread.final_event;
+  po = po && hb_encoding.mk_ghbs_c11_hb( e->prev_events, e );
+}
+
+void wmm_event_cons::ppo_sc( const tara::thread& thread ) {
 
   for( auto& e : thread.events ) {
     po = po && hb_encoding.mk_ghbs( e->prev_events, e );
@@ -643,15 +679,23 @@ void wmm_event_cons::ppo() {
   for( unsigned t=0; t < p.size(); t++ ) {
     auto& thr = p.get_thread(t);
     auto& cr_e = p.create_map[thr.name];
-    po = po && z3::implies( cr_e->guard,
-                            thr.start_event->guard &&
-                            hb_encoding.mk_hbs( cr_e ,thr.start_event ) );
-    if(       p.is_mm_sc()    ) { new_ppo_sc ( thr ); // sc_ppo   ( thread );
+    z3::expr cr_ord = p.is_mm_c11() ?
+      hb_encoding.mk_hb_c11_hb( cr_e ,thr.start_event ):
+      hb_encoding.mk_hbs( cr_e ,thr.start_event );
+    // z3::expr cr_ord(z3.c);
+    // if( p.is_mm_c11() ) {
+    //   cr_ord = hb_encoding.mk_hb_c11_hb( cr_e ,thr.start_event );
+    // }else{
+    //   cr_ord = hb_encoding.mk_hbs( cr_e ,thr.start_event );
+    // }
+    po = po && z3::implies( cr_e->guard, thr.start_event->guard && cr_ord );
+    if(       p.is_mm_sc()    ) { ppo_sc ( thr ); // sc_ppo   ( thread );
     }else if( p.is_mm_tso()   ) { ppo_traverse( thr );
     }else if( p.is_mm_pso()   ) { ppo_traverse( thr );
     }else if( p.is_mm_rmo()   ) { ppo_rmo_traverse( thr );
     }else if( p.is_mm_alpha() ) { ppo_traverse( thr );
     }else if( p.is_mm_power() ) { ppo_power( thr );
+    }else if( p.is_mm_c11() )   { ppo_c11( thr );
     }else{                      p.unsupported_mm();
     }
     // ordering with the final events of the thread
@@ -661,9 +705,11 @@ void wmm_event_cons::ppo() {
       const auto& jp_pair = it->second;
       const auto join_point = jp_pair.first;
       z3::expr join_guard = jp_pair.second;
-      po = po && z3::implies( thr.final_event->guard,
-                              join_guard &&
-                              hb_encoding.mk_hbs( thr.final_event, join_point));
+      z3::expr join_order = p.is_mm_c11() ?
+        hb_encoding.mk_hb_c11_hb( thr.final_event, join_point ):
+        hb_encoding.mk_hbs( thr.final_event, join_point);
+      // z3::expr join_order = hb_encoding.mk_hbs( thr.final_event, join_point);
+      po = po && z3::implies( thr.final_event->guard, join_guard && join_order);
     }
   }
   // po = po && dist;
@@ -849,7 +895,12 @@ void wmm_event_cons::run() {
 
   distinct_events(); // Rd/Wr events on globals are distinct
   ppo(); // build hb formulas to encode the preserved program order
-  ses();
+  if( p.is_mm_c11() ) {
+    ses_c11();
+  }else{
+    ses();
+  }
+
   // old_ses(); // build symbolic event structure
   // barrier(); // build barrier// ppo already has the code
 

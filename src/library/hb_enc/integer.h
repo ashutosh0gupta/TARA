@@ -38,6 +38,7 @@ namespace hb_enc {
     virtual void make_location( std::shared_ptr< location > locations ) override;
     virtual void make_locations(std::vector< std::shared_ptr< location > > locations) override;
     virtual hb_enc::hb make_hb(location_ptr loc1, location_ptr loc2) const override;
+    virtual hb_enc::hb make_hb_po(location_ptr loc1, location_ptr loc2) const override;
     virtual hb_enc::as make_as(location_ptr loc1, location_ptr loc2) const override;
     virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const override;
     virtual std::unique_ptr<hb_enc::hb> get_hb(const z3::expr& hb, bool allow_equal = false) const override;

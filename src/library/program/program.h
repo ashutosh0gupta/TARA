@@ -172,6 +172,7 @@ namespace tara {
      *        or non-deterministic branches
      */
     cssa::variable_set initial_variables;
+    hb_enc::se_set all_sc;
 
     inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
     inline const helpers::z3interf& z3() const { return _z3; }
@@ -201,6 +202,7 @@ namespace tara {
     inline bool is_mm_rmo()      const;
     inline bool is_mm_alpha()    const;
     inline bool is_mm_power()    const;
+    inline bool is_mm_c11()    const;
     void set_mm( mm_t );
     mm_t get_mm() const;
     void unsupported_mm() const;
@@ -212,7 +214,8 @@ namespace tara {
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
-    std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > rel_seq_map;
+    std::map< hb_enc::se_ptr,
+              std::set< std::pair<std::string, hb_enc::se_ptr> > > rel_seq_map;
     // pre calculation of ordering
     hb_enc::se_to_ses_map must_after;
     hb_enc::se_to_ses_map must_before;
@@ -353,6 +356,7 @@ inline bool program::is_mm_pso()      const {  return mm == mm_t::pso;  }
 inline bool program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
 inline bool program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
 inline bool program::is_mm_power()    const {  return mm == mm_t::power;}
+inline bool program::is_mm_c11()    const {  return mm == mm_t::c11;}
 
 inline mm_t program::get_mm()         const { return mm; }
 inline void program::set_mm(mm_t _mm)       { mm = _mm;  }

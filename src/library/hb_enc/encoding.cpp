@@ -249,7 +249,7 @@ z3::expr encoding::mk_ghbs( const se_ptr& before, const se_ptr& after ) {
 }
 
 z3::expr encoding::mk_ghbs( const se_ptr& before, const se_set& after ) {
-  z3::expr hbs = z3.mk_true();// ctx.bool_val(true);
+  z3::expr hbs = z3.mk_true();
   for( auto& af : after ) hbs = hbs && mk_ghbs( before, af );
   return hbs;
 }
@@ -265,8 +265,23 @@ z3::expr encoding::mk_ghb_thin( const se_ptr& before, const se_ptr& after ) {
   return implies( before->guard && after->guard, mk_hb_thin( before, after ) );
 }
 
-z3::expr encoding::mk_ghb_ws( const se_ptr& before, const se_ptr& after ) {
-  return implies( before->guard && after->guard, mk_hb_ws( before, after ) );
+
+z3::expr encoding::mk_ghb_c11_hb( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hb_c11_hb( before, after ));
+}
+
+z3::expr encoding::mk_ghbs_c11_hb( const se_set& before, const se_ptr& after ) {
+  z3::expr hbs = z3.mk_true();
+  for( auto& bf : before ) hbs = hbs && mk_ghb_c11_hb( bf, after );
+  return hbs;
+}
+
+z3::expr encoding::mk_ghb_c11_mo( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hb_c11_mo( before, after ));
+}
+
+z3::expr encoding::mk_ghb_c11_sc( const se_ptr& before, const se_ptr& after ) {
+  return implies( before->guard && after->guard, mk_hb_c11_sc( before, after ));
 }
 
 z3::expr encoding::mk_hbs( const se_set& before, const se_ptr& after) {
@@ -300,9 +315,18 @@ hb encoding::mk_hb_thin(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->thin_v, after->thin_v );
 }
 
-hb encoding::mk_hb_ws(const se_ptr& before, const se_ptr& after) {
+hb encoding::mk_hb_c11_mo(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->thin_v, after->thin_v );
 }
+
+hb encoding::mk_hb_c11_hb(const se_ptr& before, const se_ptr& after) {
+  return make_hb_po( before->c11_hb_v, after->c11_hb_v );
+}
+
+hb encoding::mk_hb_c11_sc(const se_ptr& before, const se_ptr& after) {
+  return make_hb( before->e_v, after->e_v );
+}
+
 
   z3::expr encoding::mk_guarded_forbid_expr( const hb_enc::hb_vec& vec ) {
     z3::expr hbs = z3.mk_true();

@@ -47,19 +47,19 @@ known_files=[ '../locks.ctrc',
               '../wmm-litmus-lb-ctrl.ctrc',
               '../wmm-litmus-lb-data.ctrc',
               '../wmm-litmus-lb.ctrc',
-              '../wmm-rmo-reduction.ctrc',
-              '../wmm-fib-1.ctrc',
-              '../wmm-fib-2.ctrc',
-              '../wmm-fib-3.ctrc',
-              '../wmm-fib-4.ctrc',
-              '../wmm-fib-5.ctrc',
               '../wmm-litmus-irrwiw.ctrc',
 	      '../wmm-litmus-wrw+wr.ctrc',
 	      '../wmm-litmus-wrw+2w.ctrc',
 	      '../wmm-litmus-wrr+2w.ctrc',
 	      '../wmm-litmus-irwiw.ctrc',
 	      '../wmm-litmus-rfi-pso.ctrc',
-	      '../wmm-litmus-thin.ctrc'
+	      '../wmm-litmus-thin.ctrc',
+              '../wmm-rmo-reduction.ctrc',
+              '../wmm-fib-1.ctrc',
+              '../wmm-fib-2.ctrc',
+              '../wmm-fib-3.ctrc',
+              '../wmm-fib-4.ctrc',
+              '../wmm-fib-5.ctrc'
             ]
 
 #wmm-litmus-sb-self-read.ctrc

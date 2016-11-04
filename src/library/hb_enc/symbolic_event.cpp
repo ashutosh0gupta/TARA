@@ -33,11 +33,10 @@ using namespace std;
 
 std::shared_ptr<tara::hb_enc::location>
 symbolic_event::create_internal_event( helpers::z3interf& z3,
-                                       std::string& event_name,
-                                       unsigned tid, unsigned instr_no,
-                                       bool special )
+                                       std::string e_name, unsigned tid,
+                                       unsigned instr_no, bool special )
 {
-  auto e_v = make_shared<hb_enc::location>( z3.c, event_name, special );
+  auto e_v = make_shared<hb_enc::location>( z3.c, e_name, special );
   e_v->thread = tid;
   e_v->instr_no = instr_no; // not used in post POPL15
 
@@ -52,7 +51,7 @@ void symbolic_event::update_topological_order() {
   o_tag = o_tag_t::na;
 }
 
-symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, unsigned _tid,
+symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 se_set& _prev_events, unsigned instr_no,
                                 const cssa::variable& _v,
                                 const cssa::variable& _prog_v,
@@ -63,48 +62,52 @@ symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, unsigned _tid,
   , loc_name(_loc)
   , et( _et )
   , prev_events( _prev_events )
-  , guard(_hb_enc.z3.c)
+  , guard(z3.c)
 {
   if( et != event_t::r &&  event_t::w != et ) {
     throw hb_enc_exception("symboic event with wrong parameters!");
   }
   bool is_read = (et == event_t::r); // || event_t::f == et);
   std::string et_name = is_read ? "R" : "W";
-  std::string event_name = et_name + "#" + v.name;
-  e_v = create_internal_event( _hb_enc.z3, event_name, _tid, instr_no, false );
-  event_name = "__thin__" + event_name;
-  thin_v = create_internal_event( _hb_enc.z3, event_name, _tid, instr_no, false);
+  std::string e_name = et_name + "#" + v.name;
+  e_v = create_internal_event(   z3,            e_name,tid,instr_no,false);
+  thin_v = create_internal_event(z3,"__thin__" +e_name,tid,instr_no,false);
+  c11_hb_v=create_internal_event(z3,"__hb__"   +e_name,tid,instr_no,false);
+  // c11_mo_v=create_internal_event(z3,"__mo__"   +e_name,tid,instr_no,false);
+  // c11_sc_v=create_internal_event(z3,"__sc__"   +e_name,tid,instr_no,false);
   update_topological_order();
 }
 
 
 // barrier events
-symbolic_event::symbolic_event( hb_enc::encoding& _hb_enc, unsigned _tid,
+symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 se_set& _prev_events, unsigned instr_no,
                                 std::string _loc, event_t _et )
   : tid(_tid)
-  , v("dummy",_hb_enc.z3.c)
-  , prog_v( "dummy",_hb_enc.z3.c)
+  , v("dummy",z3.c)
+  , prog_v( "dummy",z3.c)
   , loc_name(_loc)
   , et( _et )
   , prev_events( _prev_events )
-  , guard(_hb_enc.z3.c)
+  , guard(z3.c)
 {
-  std::string event_name;
+  std::string e_name;
   switch( et ) {
-  case event_t::barr  : { event_name = "barr#";   break; }
-  case event_t::barr_b: { event_name = "barr_b#"; break; }
-  case event_t::barr_a: { event_name = "barr_a#"; break; }
-  case event_t::pre   : { event_name = "pre#" ;   break; }
-  case event_t::post  : { event_name = "post#";   break; }
+  case event_t::barr  : { e_name = "barr#";   break; }
+  case event_t::barr_b: { e_name = "barr_b#"; break; }
+  case event_t::barr_a: { e_name = "barr_a#"; break; }
+  case event_t::pre   : { e_name = "pre#" ;   break; }
+  case event_t::post  : { e_name = "post#";   break; }
   default: hb_enc_exception("unreachable code!!");
   }
-  event_name = event_name+loc_name;
-  e_v = create_internal_event( _hb_enc.z3, event_name, _tid, instr_no, true);
-                               // (event_t::post == et), prog_v.name );
-  std::string thin_name = "__thin__" + event_name;
-  thin_v = create_internal_event( _hb_enc.z3, thin_name, tid, instr_no, true);
-                                  // (event_t::post == et), prog_v.name );
+  e_name = e_name+loc_name;
+  e_v = create_internal_event    (z3,            e_name,tid,instr_no,true);
+  thin_v = create_internal_event (z3, "__thin__"+e_name,tid,instr_no,true);
+  c11_hb_v =create_internal_event(z3, "__hb__"  +e_name,tid,instr_no,true);
+  // c11_mo_v =create_internal_event(z3, "__mo__"  +e_name,tid,instr_no,true);
+  // c11_sc_v =create_internal_event(z3, "__sc__"  +e_name,tid,instr_no,true);
+  // (event_t::post == et), prog_v.name );
+  // (event_t::post == et), prog_v.name );
   update_topological_order();
 }
 

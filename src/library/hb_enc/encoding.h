@@ -155,11 +155,14 @@ public:
   virtual void make_locations(std::vector<std::shared_ptr<hb_enc::location>> locations) = 0;
   virtual location_ptr get_location(const std::string& name) const; // make one location from a name
   virtual hb make_hb(location_ptr loc1, location_ptr loc2) const = 0;
+  virtual hb make_hb_po(location_ptr loc1, location_ptr loc2) const = 0;
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
+  hb mk_hb_c11_hb(const se_ptr& before, const se_ptr& after);
+  hb mk_hb_c11_sc(const se_ptr& before, const se_ptr& after);
+  hb mk_hb_c11_mo(const se_ptr& before, const se_ptr& after);
   hb mk_hb_thin(const se_ptr&, const se_ptr& );
-  hb mk_hb_ws(const se_ptr&, const se_ptr& );
   hb mk_hbs(const se_ptr& loc1, const se_ptr& loc2);
   z3::expr mk_hbs(const se_set& loc1, const se_ptr& loc2);
   z3::expr mk_hbs(const se_ptr& loc1, const se_set& loc2);
@@ -168,7 +171,13 @@ public:
   z3::expr mk_ghbs( const se_ptr& before, const se_set& after );
   z3::expr mk_ghbs( const se_set& before, const se_ptr& after );
   z3::expr mk_ghb_thin( const se_ptr& before, const se_ptr& after );
-  z3::expr mk_ghb_ws( const se_ptr& before, const se_ptr& after );
+
+  //calls related c11 model
+  z3::expr mk_ghbs_c11_hb( const se_set& before, const se_ptr& after );
+  z3::expr mk_ghb_c11_hb( const se_ptr& before, const se_ptr& after );
+  z3::expr mk_ghb_c11_mo( const se_ptr& before, const se_ptr& after );
+  z3::expr mk_ghb_c11_sc( const se_ptr& before, const se_ptr& after );
+
 
   z3::expr mk_guarded_forbid_expr( const hb_vec& );
   z3::expr mk_expr( const hb_vec& );

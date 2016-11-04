@@ -37,8 +37,12 @@ integer::integer(helpers::z3interf& z3) : encoding(z3)
 void integer::record_event( se_ptr& e ) {
   make_location( e->e_v );
   make_location( e->thin_v );
+  make_po_location( e->c11_hb_v );
+  // make_location   ( e->c11_mo_v );
+  // make_location   ( e->c11_sc_v );
   event_lookup.insert( make_pair( e->get_solver_symbol(), e ) );
   event_lookup.insert( make_pair( e->get_thin_solver_symbol(), e ) );
+  event_lookup.insert( make_pair( e->get_c11_hb_solver_symbol(), e ) );
 }
 
 void integer::make_location( std::shared_ptr< location > loc )
@@ -64,7 +68,7 @@ void integer::make_po_location( std::shared_ptr< location > loc )
 {
   counter++;
   loc->_serial = counter;
-  z3::expr loc_expr = z3.c.int_const(loc->name.c_str());
+  z3::expr loc_expr = z3.c.fresh_constant( loc->name.c_str(), hb_sort );
   loc->expr = loc_expr;
   location_lookup.insert(make_pair(loc_expr, loc));
 }
@@ -73,6 +77,11 @@ void integer::make_po_location( std::shared_ptr< location > loc )
 hb integer::make_hb(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
 {
   return hb(loc1, loc2, loc1->expr < loc2->expr);
+}
+
+hb integer::make_hb_po(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
+{
+  return hb(loc1, loc2, sr_po(loc1->expr,loc2->expr) );
 }
 
 as integer::make_as(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
