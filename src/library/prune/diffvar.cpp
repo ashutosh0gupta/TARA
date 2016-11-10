@@ -27,9 +27,11 @@ using namespace tara::prune;
 
 using namespace std;
 
-diffvar::diffvar(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
+diffvar::diffvar( const z3interf& z3,
+                  const tara::program& program ) : prune_base(z3, program)
 {
-  if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo() || program.is_mm_alpha()){
+  if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso()
+      || program.is_mm_rmo() || program.is_mm_alpha() ) {
   }else{
     throw std::runtime_error("diffvar does not support memory model!");
   }

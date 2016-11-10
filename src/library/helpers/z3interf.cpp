@@ -32,26 +32,6 @@ z3interf::z3interf(context& ctx) : c(ctx)
   // Z3_enable_trace( "rewriter");
   // Z3_enable_trace( "rewriter_step");
   Z3_enable_trace( "special_relations");
-
-  // z3::expr x = c.fresh_constant( "test_x", hb_sort );
-  // z3::expr y = c.fresh_constant( "test_y", hb_sort );
-  // z3::expr z = c.fresh_constant( "test_z", hb_sort );
-  // z3::expr u = c.fresh_constant( "test_u", hb_sort );
-  // z3::expr_vector v( c );
-  // v.push_back( x );
-  // v.push_back( y );
-  // v.push_back( z );
-  // v.push_back( u );
-  // z3::expr dist = distinct( v );
-  // z3::expr po1 = sr_po ( x , y );
-  // z3::expr po2 = sr_po ( z , u );
-  // z3::expr po3 = !sr_po( x , u );
-  // z3::expr po4 = !sr_po( z , y );
-  // // z3::expr po3 = sr_po( u , x );
-  // // z3::expr po4 = sr_po( y , z );
-  // bool bi = is_sat( dist && po1 && po2 && po3 && po4 );
-  // std::cerr << "is_sat " << bi << "\n";
-
 }
 
 z3interf::~z3interf() {}

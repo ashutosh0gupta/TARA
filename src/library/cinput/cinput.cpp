@@ -117,9 +117,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   std::vector<z3::expr> history;
   z3::expr tru = z3_.mk_true();
   auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
-                          "the_launcher", hb_enc::event_t::pre );
+                          "the_launcher", hb_enc::event_t::pre, hb_enc::o_tag_t::sc);
   auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
-                          "the_finisher", hb_enc::event_t::post );
+                          "the_finisher", hb_enc::event_t::post, hb_enc::o_tag_t::sc);
 
   // add_event( INT_MAX, start );
   p->init_loc = start;

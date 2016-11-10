@@ -123,7 +123,7 @@ bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
   assert( wr->tid >= p.size() || rd->tid >= p.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
-      || p.is_mm_rmo() || p.is_mm_alpha() ) {
+      || p.is_mm_rmo() || p.is_mm_alpha() || p.is_mm_c11() ) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( is_po_new( rd, wr ) ) {
@@ -315,10 +315,10 @@ void wmm_event_cons::ses_c11() {
     }
 
     for( const hb_enc::se_ptr& rd : rds ) {
-      z3::expr some_rfs = z3.c.bool_val(false);
+      z3::expr some_rfs = z3.mk_false(); //c.bool_val(false);
       z3::expr rd_v = rd->get_var_expr(v1);
       for( const hb_enc::se_ptr& wr : wrs ) {
-        if( anti_ppo_read_new( wr, rd ) ) continue;
+        if( wr->tid == rd->tid && !is_po_new( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_var_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
@@ -340,59 +340,139 @@ void wmm_event_cons::ses_c11() {
             }
           }
         }
-        if( rd->is_atomic() && wr->is_atomic() ) {
-          z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
-          rf = rf && implies( b, ! hb_rd_wr );
-        }else{
+        if( rd->is_na() || wr->is_na() ) {
           // to do something
           wmm_error( "c11 non atomics not supported!!" );
+        }else if( rd->is_rlx() || wr->is_rlx() ) {
+          z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
+          rf = rf && implies( b, ! hb_rd_wr );
         }
 
-        // coherence
+        // if( rd->is_atomic() && wr->is_atomic() ) {
+        //   z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
+        //   rf = rf && implies( b, ! hb_rd_wr );
+        // }else{
+        //   // to do something
+        //   wmm_error( "c11 non atomics not supported!!" );
+        // }
+
+        // coherence wr rw
         for( const hb_enc::se_ptr& wrp : wrs ) {
           if( wr == wrp ) continue;
-          z3::expr hb_wrp_rd = hb_encoding.mk_hb_c11_hb( wrp, rd );
-          z3::expr hb_rd_wrp = hb_encoding.mk_hb_c11_hb( rd, wrp );
-          fr = fr && implies( b && hb_encoding.mk_ghb_c11_mo(wr,wrp),!hb_wrp_rd)
-            && implies( b && hb_encoding.mk_ghb_c11_mo(wrp,wr), !hb_rd_wrp );
+          // todo: write false for obvious true true hb
+          z3::expr hb_wp_rd(z3.c),hb_rd_wp(z3.c),sc_wp_rd(z3.c);
+          z3::expr mo_wp_w(z3.c), mo_w_wp(z3.c), sc_hb_wp_w(z3.c);
+          if( is_po_new( wrp, rd ) ) {
+            hb_wp_rd = z3.mk_true();
+            hb_rd_wp = z3.mk_false();
+            sc_wp_rd = z3.mk_true();
+          }else if( is_po_new( rd, wrp ) ) {
+            hb_wp_rd = z3.mk_false();
+            hb_rd_wp = z3.mk_true();
+            sc_wp_rd = z3.mk_false();
+          }else{
+            //todo : should guard be included
+            hb_wp_rd = hb_encoding.mk_hb_c11_hb( wrp, rd );
+            hb_rd_wp = hb_encoding.mk_hb_c11_hb( rd, wrp );
+            if( rd->is_sc() && wrp->is_sc() )
+              sc_wp_rd = hb_encoding.mk_hb_c11_sc( wrp, rd );
+          }
+          if( is_po_new( wrp, wr ) ) {
+            mo_w_wp = z3.mk_false();
+            mo_wp_w = z3.mk_true();
+            sc_hb_wp_w = z3.mk_true();
+          }else if( is_po_new( wr, wrp ) ) {
+            mo_w_wp = z3.mk_true();
+            mo_wp_w = z3.mk_false();
+            sc_hb_wp_w = z3.mk_false();
+          }else{
+            mo_w_wp = hb_encoding.mk_hb_c11_mo( wr, wrp );
+            mo_wp_w = hb_encoding.mk_hb_c11_mo( wrp, wr );
+            if( wrp->is_sc() ) {
+              if( wr->is_sc() )
+                sc_hb_wp_w = hb_encoding.mk_hb_c11_sc( wrp, wr );
+              else
+                sc_hb_wp_w = !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp );
+            }
+          }
+          fr = fr && implies( b && wrp->guard && mo_w_wp, !hb_wp_rd ) &&
+                     implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
+          // rr coherence
           for( const hb_enc::se_ptr& rdp : rds ) {
             if( rd == rdp ) continue;
+            if( wrp->tid == rdp->tid && !is_po_new( wrp, rdp ) ) continue;
             z3::expr bp = get_rf_bvar( v1, wrp, rdp, false );
-            z3::expr hb_rd_rdp = hb_encoding.mk_hb_c11_hb( rd, rdp );
-            fr = fr && implies( b && bp && hb_encoding.mk_ghb_c11_mo(wrp,wr),
-                                !hb_rd_rdp );
-          }
-        }
-        // SCReads
-        if( rd->is_sc() ) {
-          if( wr->is_sc() ) {
-            for( auto& wrp : wrs ) {
-              if( !wrp->is_sc() || wr == wrp ) continue;
-              fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ),
-                                  hb_encoding.mk_hb_c11_sc( wrp, wr ) );
+            z3::expr hb_rd_rdp(z3.c);
+            if( is_po_new( rd, rdp ) ) {
+              hb_rd_rdp = z3.mk_true();
+            } else if( is_po_new( rdp, rd ) ) {
+              hb_rd_rdp = z3.mk_false();
+            }else{
+              hb_rd_rdp = hb_encoding.mk_hb_c11_hb( rd, rdp );
             }
-          }else{ // wr is not sc
-            for( auto& wrp : wrs ) {
-              if( !wrp->is_sc() || wr == wrp ) continue;
-              z3::expr no_one_else = z3.mk_true();
+            fr = fr && implies( b && bp && mo_wp_w, !hb_rd_rdp );
+          }
+
+          // SCReads
+          if( rd->is_sc() && wrp->is_sc() && wr != wrp ) {
+            if( wr->is_sc() ) {
+                fr = fr && implies( b && wrp->guard && sc_wp_rd, sc_hb_wp_w );
+            }else{
+              z3::expr no_else = z3.mk_true();
               for( auto& wrpp : wrs ) {
                 if( !wrpp->is_sc() || wrpp == wrp ) continue;
-                no_one_else = no_one_else &&
-                  ( (z3::expr)(hb_encoding.mk_hb_c11_sc( wrpp, wrp )) ||
-                    (z3::expr)(hb_encoding.mk_hb_c11_sc( rd,  wrpp )) );
+                z3::expr sc_wpp_wp(z3.c);
+                if( is_po_new( wrpp, wrp ) ) {
+                  sc_wpp_wp = z3.mk_true();
+                } else if( is_po_new( wrp, wrpp ) ) {
+                  sc_wpp_wp = z3.mk_false();
+                }else{
+                  sc_wpp_wp = hb_encoding.mk_ghb_c11_sc( wrpp, wrp );
+                }
+                z3::expr sc_rd_wpp(z3.c);
+                if( is_po_new( rd, wrpp ) ) {
+                  sc_rd_wpp = z3.mk_true();
+                } else if( is_po_new( wrpp, rd ) ) {
+                  sc_rd_wpp = z3.mk_false();
+                }else{
+                  sc_rd_wpp = hb_encoding.mk_ghb_c11_sc( rd,  wrpp );
+                }
+                no_else = no_else &&
+                  implies( wrpp->guard, ( sc_wpp_wp || sc_rd_wpp ) );
               }
-              fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ) &&
-                                  no_one_else,
-                               !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp ) );
+              fr = fr &&
+                implies( b && wrp->guard && sc_wp_rd && no_else, sc_hb_wp_w);
             }
           }
         }
+        // if( rd->is_sc() ) {
+        //   if( wr->is_sc() ) {
+        //     for( auto& wrp : wrs ) {
+        //       if( !wrp->is_sc() || wr == wrp ) continue;
+        //       fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ),
+        //                           hb_encoding.mk_hb_c11_sc( wrp, wr ) );
+        //     }
+        //   }else{ // wr is not sc
+        //     for( auto& wrp : wrs ) {
+        //       if( !wrp->is_sc() || wr == wrp ) continue;
+        //       z3::expr no_one_else = z3.mk_true();
+        //       for( auto& wrpp : wrs ) {
+        //         if( !wrpp->is_sc() || wrpp == wrp ) continue;
+        //         no_one_else = no_one_else &&
+        //           ( (z3::expr)(hb_encoding.mk_hb_c11_sc( wrpp, wrp )) ||
+        //             (z3::expr)(hb_encoding.mk_hb_c11_sc( rd,  wrpp )) );
+        //       }
+        //       fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ) &&
+        //                           no_one_else,
+        //                        !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp ) );
+        //     }
+        //   }
+        // }
       }
       wf = wf && implies( rd->guard, some_rfs );
     }
 
-    // write serialization
-    // todo: what about ws;rf
+    // modification order
     auto it1 = wrs.begin();
     z3::expr_vector dists(z3.c);
     for( ; it1 != wrs.end() ; it1++ ) {
@@ -401,16 +481,27 @@ void wmm_event_cons::ses_c11() {
       it2++;
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
-        fr = fr
-          && z3::implies( hb_encoding.mk_hb_c11_hb(wr1,wr2),
-                          hb_encoding.mk_hb_c11_mo(wr1,wr2));
+        // if( wr1->tid == wr2->tid && is_po_new( ) ) contiune;
+        if( is_po_new( wr1, wr2 ) ) {
+          fr = fr && hb_encoding.mk_ghb_c11_mo( wr1, wr2 );
+        }else if( is_po_new( wr2, wr1 ) ) {
+          fr = fr && hb_encoding.mk_ghb_c11_mo( wr2, wr1 );
+        }else{
+          //todo: should the following condition should be gaurded
+          fr = fr
+            && z3::implies( hb_encoding.mk_hb_c11_hb(wr1,wr2),
+                            hb_encoding.mk_hb_c11_mo(wr1,wr2) )
+            && z3::implies( hb_encoding.mk_hb_c11_hb(wr2,wr1),
+                                  hb_encoding.mk_hb_c11_mo(wr2,wr1) );
+        }
       }
       dists.push_back( wr1->get_c11_mo_solver_symbol() );
     }
-    ws = ws && distinct( dists );
+    if( dists.size() != 0)  ws = ws && distinct( dists );
 
   }
 
+  // sc events
   auto it1 = p.all_sc.begin();
   z3::expr_vector dists(z3.c);
   for( ; it1 != p.all_sc.end() ; it1++ ) {
@@ -419,12 +510,20 @@ void wmm_event_cons::ses_c11() {
     it2++;
     for( ; it2 != p.all_sc.end() ; it2++ ) {
       const hb_enc::se_ptr& e2 = *it2;
-      fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
-                              hb_encoding.mk_hb_c11_sc( e1, e2 ) );
+      if( is_po_new( e1, e2 ) ) {
+        fr = fr && hb_encoding.mk_ghb_c11_sc( e1, e2 );
+      }else if( is_po_new( e2, e1 ) ) {
+        fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
+      }else{
+        fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
+                                hb_encoding.mk_hb_c11_sc( e1, e2 ) )
+          && z3::implies( hb_encoding.mk_hb_c11_hb( e2, e1 ),
+                          hb_encoding.mk_hb_c11_sc( e2, e1 ) );
+      }
     }
-    dists.push_back( e1->get_c11_mo_solver_symbol() );
+    dists.push_back( e1->get_c11_sc_solver_symbol() );
   }
-  ws = ws && distinct( dists );
+  if( dists.size() != 0) ws = ws && distinct( dists );
 
 }
 
@@ -451,6 +550,25 @@ void wmm_event_cons::distinct_events() {
 
 }
 
+void wmm_event_cons::distinct_events_c11() {
+
+  z3::expr_vector es( z3.c );
+
+  es.push_back( p.init_loc->get_c11_hb_solver_symbol() );
+
+  if( p.post_loc )
+    es.push_back( p.post_loc->get_c11_hb_solver_symbol() );
+
+  for( unsigned t=0; t < p.size(); t++ ) {
+    auto& thread = p.get_thread(t);
+    for(auto& e : thread.events )
+      es.push_back( e->get_c11_hb_solver_symbol() );
+    es.push_back( thread.start_event->get_c11_hb_solver_symbol() );
+    es.push_back( thread.final_event->get_c11_hb_solver_symbol() );
+  }
+  dist = distinct(es);
+
+}
 
 //----------------------------------------------------------------------------
 // build preserved programming order(ppo)
@@ -571,6 +689,7 @@ bool wmm_event_cons::check_ppo( mm_t mm,
   case mm_t::pso  : return is_ordered_pso  ( e1, e2 ); break;
   case mm_t::rmo  : return is_ordered_rmo  ( e1, e2 ); break;
   case mm_t::alpha: return is_ordered_alpha( e1, e2 ); break;
+  case mm_t::c11  : return false; break; //todo : c11, formalize what is must before.
   default:
     std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
     wmm_error( msg );
@@ -893,16 +1012,14 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
 void wmm_event_cons::run() {
   update_orderings();
 
-  distinct_events(); // Rd/Wr events on globals are distinct
   ppo(); // build hb formulas to encode the preserved program order
   if( p.is_mm_c11() ) {
+    distinct_events_c11();
     ses_c11();
   }else{
+    distinct_events();
     ses();
   }
-
-  // old_ses(); // build symbolic event structure
-  // barrier(); // build barrier// ppo already has the code
 
   if ( o.print_phi ) {
     o.out() << "(" << endl
@@ -941,7 +1058,7 @@ bool wmm_event_cons::anti_ppo_read_old( const hb_enc::se_ptr& wr,
       || p.is_mm_rmo() || p.is_mm_alpha() ) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
-    if( is_po( rd, wr ) ) {
+    if( is_po_old( rd, wr ) ) {
       return true;
     }
     //
@@ -959,7 +1076,7 @@ bool wmm_event_cons::anti_po_loc_fr_old( const hb_enc::se_ptr& rd,
   assert( wr->tid == p.size() || rd->tid == p.size() ||
           wr->prog_v.name == rd->prog_v.name );
   if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_rmo() || p.is_mm_alpha()) {
-    if( is_po( wr, rd ) ) {
+    if( is_po_old( wr, rd ) ) {
       return true;
     }
     //

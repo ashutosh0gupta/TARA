@@ -52,6 +52,7 @@ namespace cssa {
     tara::program& p;
 
     void distinct_events();
+    void distinct_events_c11();
 
     static bool is_barrier_ordered( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     z3::expr is_ordered_dependency( const hb_enc::se_ptr&, const hb_enc::se_ptr&);

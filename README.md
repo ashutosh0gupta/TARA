@@ -178,3 +178,7 @@ Known issues
 - can thin be removed without worry
 - C parsing: bool types are declared as 8bit 
 - assert(false) support
+- bulk rename litmus files.. and write their C versions
+- todo: is_po_new add memoization
+- delare the_launcher and the_finisher as sc
+- populate all sc

@@ -316,15 +316,15 @@ hb encoding::mk_hb_thin(const se_ptr& before, const se_ptr& after) {
 }
 
 hb encoding::mk_hb_c11_mo(const se_ptr& before, const se_ptr& after) {
-  return make_hb( before->thin_v, after->thin_v );
+  return make_hb( before->get_c11_mo_stamp(), after->get_c11_mo_stamp() );
 }
 
 hb encoding::mk_hb_c11_hb(const se_ptr& before, const se_ptr& after) {
-  return make_hb_po( before->c11_hb_v, after->c11_hb_v );
+  return make_hb_po( before->get_c11_hb_stamp(), after->get_c11_hb_stamp() );
 }
 
 hb encoding::mk_hb_c11_sc(const se_ptr& before, const se_ptr& after) {
-  return make_hb( before->e_v, after->e_v );
+  return make_hb( before->get_c11_sc_stamp(), after->get_c11_sc_stamp() );
 }
 
 
@@ -349,30 +349,31 @@ bool encoding::eval_hb( const z3::model& m,
   return eval_hb( m, before->e_v, after->e_v );
 }
 
-list<z3::expr> encoding::get_hbs( z3::model& m ) const
-{
-  list<z3::expr> result;
-  z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
+// list<z3::expr> encoding::get_hbs( z3::model& m ) const
+// {
+//   list<z3::expr> result;
+//   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
   
-  for( unsigned i = 0; i<asserted.size(); i++ ) {
-    z3::expr atom = asserted[i];
-    unique_ptr<hb_enc::hb> hb = get_hb( atom );
-    if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
-      //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
-      //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
-      //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
-      assert(eval_hb(m, hb->loc1, hb->loc2));
-      result.push_back(asserted[i]);
-    }
-  }
+//   for( unsigned i = 0; i<asserted.size(); i++ ) {
+//     z3::expr atom = asserted[i];
+//     unique_ptr<hb_enc::hb> hb = get_hb( atom );
+//     if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
+//       //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
+//       //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
+//       //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
+//       assert(eval_hb(m, hb->loc1, hb->loc2));
+//       result.push_back(asserted[i]);
+//     }
+//   }
   
-  return result;
-}
+//   return result;
+// }
 
 vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
 {
   vector<hb_ptr> result;
   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
+  // z3::expr_vector asserted = z3.c.collect_last_asserted_po_constr();
 
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];

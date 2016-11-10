@@ -119,6 +119,17 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     instructions.push_back(instr);
   }
 
+  void program::add_event( unsigned i, hb_enc::se_ptr e )   {
+    if( i < threads.size() ) {
+      threads[i]->add_event( e );
+      if( e->is_rd() ) rd_events[e->prog_v].push_back( e );
+      if( e->is_wr() ) wr_events[e->prog_v].insert( e );
+      if( e->is_sc() ) all_sc.insert( e );
+    }
+    // todo what to do with pre/post events
+    se_store[e->name()] = e;
+  }
+
   const tara::thread& program::operator[](unsigned int i) const {
     return *threads[i];
   }
@@ -305,6 +316,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     myfile.close();
   }
 
+
+  bool compare_events( std::pair< hb_enc::se_ptr, int >& a,
+                       std::pair< hb_enc::se_ptr, int >& b ) {
+    return a.second < b.second;
+  }
+
   void program::print_execution( std::ostream& stream, z3::model m ) const {
     // output the program as a dot file
     stream << "digraph hbs {" << std::endl;
@@ -315,11 +332,9 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       stream << "subgraph cluster_" << t << " {\n";
       stream << "color=lightgrey;\n";
       stream << "label = \"" << thread.name << "\"\n";
-      //for (unsigned i=0; i < thread.instructions.size(); i++) {
       for( const auto& e : thread.events ) {
         z3::expr v = m.eval( e->guard );
         if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
-          // std::cout << e->name() << "\n" << e->guard << "\n";
           print_node( stream, e , "gray");
         }else
           print_node( stream, e );
@@ -360,29 +375,55 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       }
       if( join_map.find( thread.name ) != join_map.end() ) {
         print_edge( stream, thread.final_event, join_map.at(thread.name).first, "brown" );
+      }
     }
-  }
-    //stream << "pre" << " [label=\""  << phi_pre << "\"]" << std::endl;
-    //stream << "post" << " [label=\"" << phi_post << "\"]" << std::endl;
-    for( auto& it : reading_map ) {
-      std::string bname = std::get<0>(it);
-      z3::expr b = _z3.c.bool_const(  bname.c_str() );
-      z3::expr bv = m.eval( b );
-      if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
-        hb_enc::se_ptr wr = std::get<1>(it);
-        hb_enc::se_ptr rd = std::get<2>(it);
-        if( rd->e_v->thread == wr->e_v->thread )
-        print_edge( stream, wr, rd, "blue,style=dashed" );
-        else print_edge( stream, wr, rd, "blue" );
-        //fr
-        std::set< hb_enc::se_ptr > fr_wrs;
-        auto it = wr_events.find(rd->prog_v);
-        if( it != wr_events.end() ) { // fails for dummy variable
-          for( const auto& after_wr : it->second ) {
-            z3::expr v = m.eval( after_wr->guard );
-            if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
-              if( _hb_encoding.eval_hb( m, wr, after_wr ) ) {
-                print_edge( stream, rd, after_wr, "orange,constraint=false" );
+    if( is_mm_c11() ) {
+      for( auto& it : reading_map ) {
+        std::string bname = std::get<0>(it);
+        z3::expr b = _z3.c.bool_const( bname.c_str() );
+        z3::expr bv = m.eval( b );
+        if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+          hb_enc::se_ptr wr = std::get<1>(it);
+          hb_enc::se_ptr rd = std::get<2>(it);
+          if( rd->is_rlx() || wr->is_rlx() )
+            print_edge( stream, wr, rd, "blue,style=dashed" );
+          else
+            print_edge( stream, wr, rd, "blue" );
+        }
+      }
+      for( auto& it : rel_seq_map ) {
+        hb_enc::se_ptr rd = it.first;
+        for( std::pair<std::string, hb_enc::se_ptr> b_wr : it.second ) {
+          std::string bname = b_wr.first;
+          z3::expr b = _z3.c.bool_const( bname.c_str() );
+          z3::expr bv = m.eval( b );
+          if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+            hb_enc::se_ptr wr = b_wr.second;
+            print_edge( stream, wr, rd, "purple" );
+          }
+        }
+      }
+    }else{
+      for( auto& it : reading_map ) {
+        std::string bname = std::get<0>(it);
+        z3::expr b = _z3.c.bool_const(  bname.c_str() );
+        z3::expr bv = m.eval( b );
+        if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+          hb_enc::se_ptr wr = std::get<1>(it);
+          hb_enc::se_ptr rd = std::get<2>(it);
+          if( rd->e_v->thread == wr->e_v->thread )
+            print_edge( stream, wr, rd, "blue,style=dashed" );
+          else print_edge( stream, wr, rd, "blue" );
+          //fr
+          // std::set< hb_enc::se_ptr > fr_wrs;
+          auto it = wr_events.find(rd->prog_v);
+          if( it != wr_events.end() ) { // fails for dummy variable
+            for( const auto& after_wr : it->second ) {
+              z3::expr v = m.eval( after_wr->guard );
+              if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
+                if( _hb_encoding.eval_hb( m, wr, after_wr ) ) {
+                  print_edge( stream, rd, after_wr, "orange,constraint=false" );
+                }
               }
             }
           }
@@ -390,32 +431,81 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       }
     }
 
+    // // old inefficient sorting of write events
+    // for(const cssa::variable& v1 : globals ) {
+    //   std::set< hb_enc::se_ptr > wrs;
+    //   auto it = wr_events.find( v1 );
+    //   for( const auto& wr : it->second ) {
+    //     z3::expr v = m.eval( wr->guard );
+    //     if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE)
+    //       wrs.insert( wr );
+    //   }
+    //   hb_enc::se_vec ord_wrs;
+    //   while( !wrs.empty() ) {
+    //     hb_enc::se_ptr min;
+    //     for ( auto wr : wrs ) {
+    //       if( min ) {
+    //         if( _hb_encoding.eval_hb( m, wr, min ) ) {
+    //           min = wr;
+    //         }
+    //       }else{
+    //         min = wr;
+    //       }
+    //     }
+    //     ord_wrs.push_back(min);
+    //     wrs.erase( min );
+    //   }
+
+    //   for( unsigned i = 1; i < ord_wrs.size(); i++  ) {
+    //     print_edge( stream, ord_wrs[i-1], ord_wrs[i], "green" );
+    //   }
+    // }
+
+
     for(const cssa::variable& v1 : globals ) {
-      std::set< hb_enc::se_ptr > wrs;
+      std::vector< std::pair< hb_enc::se_ptr, int > > wrs;
       auto it = wr_events.find( v1 );
       for( const auto& wr : it->second ) {
         z3::expr v = m.eval( wr->guard );
-        if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE)
-          wrs.insert( wr );
-      }
-      hb_enc::se_vec ord_wrs;
-      while( !wrs.empty() ) {
-        hb_enc::se_ptr min;
-        for ( auto wr : wrs ) {
-          if( min ) {
-            if( _hb_encoding.eval_hb( m, wr, min ) ) {
-              min = wr;
-            }
+        if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
+          if( is_mm_c11() )
+            v = m.eval( wr->get_c11_mo_solver_symbol() );
+          else
+            v = m.eval( wr->get_solver_symbol() );
+          int val;
+          if( Z3_get_numeral_int( v.ctx(), v, &val) ) {
+            wrs.push_back( std::make_pair( wr, val ) );
           }else{
-            min = wr;
+            program_error( "execution printing error!!" );
           }
         }
-        ord_wrs.push_back(min);
-        wrs.erase( min );
       }
+      std::sort( wrs.begin(), wrs.end(), compare_events );
 
-      for( unsigned i = 1; i < ord_wrs.size(); i++  ) {
-        print_edge( stream, ord_wrs[i-1], ord_wrs[i], "green" );
+      for( unsigned i = 1; i < wrs.size(); i++  ) {
+        print_edge( stream, wrs[i-1].first, wrs[i].first, "green" );
+      }
+    }
+
+    if( is_mm_c11() ) {
+      std::vector< std::pair< hb_enc::se_ptr, int > > es;
+      for( const auto& e : all_sc) {
+        z3::expr v = m.eval( e->guard );
+        if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE) {
+          v = m.eval( e->get_c11_sc_solver_symbol() );
+          int val;
+          if( Z3_get_numeral_int( v.ctx(), v, &val) ) {
+            std::cerr << e->get_c11_sc_solver_symbol() << " "<< val << "\n";
+            es.push_back( std::make_pair( e, val ) );
+          }else{
+            program_error( "execution printing error!!" );
+          }
+        }
+      }
+      std::sort( es.begin(), es.end(), compare_events );
+
+      for( unsigned i = 1; i < es.size(); i++  ) {
+        print_edge( stream, es[i-1].first, es[i].first, "orange" );
       }
     }
 

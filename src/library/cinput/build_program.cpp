@@ -332,8 +332,9 @@ translateBlock( unsigned thr_id,
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         cssa::variable gv = p->get_global( (std::string)(g->getName()) );
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                             history, gv, loc_name, hb_enc::event_t::w );
-        wr->o_tag = translate_ordering_tags( store->getOrdering());
+                             history, gv, loc_name, hb_enc::event_t::w,
+                             translate_ordering_tags( store->getOrdering()) );
+        // wr->o_tag = ;
         new_events.insert( wr );
         const auto& data_dep_set = get_depends( store->getOperand(0) );
         local_map.insert( std::make_pair( I, data_dep_set ));
@@ -350,8 +351,8 @@ translateBlock( unsigned thr_id,
           cssa::variable gv = a_pair.second;
           z3::expr path_cond_c = path_cond && c;
           auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,
-                               history, gv, loc_name, hb_enc::event_t::w );
-          wr->o_tag = translate_ordering_tags( store->getOrdering());
+                               history, gv, loc_name, hb_enc::event_t::w,
+                               translate_ordering_tags( store->getOrdering()));
           block_ssa = block_ssa && implies( c , ( wr->v == val ) );
           new_events.insert( wr);
         }
@@ -375,8 +376,8 @@ translateBlock( unsigned thr_id,
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
           cssa::variable gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                               history, gv, loc_name, hb_enc::event_t::r );
-          rd->o_tag = translate_ordering_tags( load->getOrdering());
+                               history, gv, loc_name, hb_enc::event_t::r,
+                               translate_ordering_tags( load->getOrdering()) );
           // todo: << replace path cond ~> true??
           // local_map[I].insert( hb_enc::depends( rd, path_cond ) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
@@ -392,8 +393,9 @@ translateBlock( unsigned thr_id,
             cssa::variable gv = a_pair.second;
             z3::expr path_cond_c = path_cond && c;
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
-                                 history, gv, loc_name, hb_enc::event_t::r );
-            rd->o_tag = translate_ordering_tags( load->getOrdering());
+                                 history, gv, loc_name, hb_enc::event_t::r,
+                                 translate_ordering_tags( load->getOrdering()));
+            // rd->o_tag = translate_ordering_tags( load->getOrdering());
             block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
             new_events.insert( rd );
           }

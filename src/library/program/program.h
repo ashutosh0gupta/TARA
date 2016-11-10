@@ -256,15 +256,7 @@ namespace tara {
       phi_pre = phi_pre && (init_loc->get_var_expr( g) == val);
     }
 
-    void add_event( unsigned i, hb_enc::se_ptr e )   {
-      if( i < threads.size() ) {
-        threads[i]->add_event( e );
-        if( e->is_rd() ) rd_events[e->prog_v].push_back( e );
-        if( e->is_wr() ) wr_events[e->prog_v].insert( e );
-      }
-      // todo what to do with pre/post events
-      se_store[e->name()] = e;
-    }
+    void add_event( unsigned i, hb_enc::se_ptr e );
 
     void add_event( unsigned i, hb_enc::se_set es ) {
       for( auto e : es ) {

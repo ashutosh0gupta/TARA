@@ -148,12 +148,12 @@ namespace hb_enc {
     inline bool is_atomic() const { return o_tag != o_tag_t::na;  }
 
     inline bool is_at_least_rls() const {
-      assert( is_wr() );
+      assert( is_wr() || is_pre() );
       return is_rls() || is_rlsacq() || is_sc();
     }
 
     inline bool is_at_least_acq() const {
-      assert( is_rd() );
+      assert( is_rd() || is_post() );
       return is_acq() || is_rlsacq() || is_sc();
     }
 
@@ -179,15 +179,28 @@ namespace hb_enc {
     }
 
     inline z3::expr get_c11_hb_solver_symbol() const {
-      return *c11_hb_v;
+      return *get_c11_hb_stamp();
     }
 
     inline z3::expr get_c11_mo_solver_symbol() const {
-      return *thin_v;
+      return *get_c11_mo_stamp();
     }
 
     inline z3::expr get_c11_sc_solver_symbol() const {
-      return *e_v;
+      return *get_c11_sc_stamp();
+    }
+
+
+    inline std::shared_ptr<tara::hb_enc::location> get_c11_hb_stamp() const {
+      return c11_hb_v;
+    }
+
+    inline std::shared_ptr<tara::hb_enc::location> get_c11_mo_stamp() const {
+      return thin_v;
+    }
+
+    inline std::shared_ptr<tara::hb_enc::location> get_c11_sc_stamp() const {
+      return e_v;
     }
 
 
@@ -244,12 +257,13 @@ namespace hb_enc {
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
              const cssa::variable& prog_v, std::string loc,
-             event_t _et ) {
+             event_t _et, hb_enc::o_tag_t ord_tag ) {
     cssa::variable ssa_v = prog_v + "#" + loc;
     se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0,
                                                  ssa_v, prog_v, loc, _et);
     e->guard = path_cond;
     e->history = history_;
+    e->o_tag = ord_tag;
     hb_enc.record_event( e );
     for(se_ptr ep  : prev_es) {
       ep->add_post_events( e, hb_enc.z3.mk_true() );
@@ -257,15 +271,18 @@ namespace hb_enc {
     return e;
   }
 
+  //todo: enable tagging for the fences of all kinds
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
              std::string loc, event_t et,
-             std::map<const hb_enc::se_ptr, z3::expr>& branch_conds  ) {
+             std::map<const hb_enc::se_ptr, z3::expr>& branch_conds,
+             hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na  ) {
     se_ptr e =
       std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0, loc, et );
     e->guard = path_cond;
     e->history = history_;
+    e->o_tag = ord_tag;
     hb_enc.record_event( e );
     // assert( z3::eq( branch_cond, hb_enc.z3.mk_true() ) ||
     //                 prev_es.size() == 1 );
@@ -279,13 +296,14 @@ namespace hb_enc {
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
-             std::string loc, event_t et ) {
+             std::string loc, event_t et,
+             hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na ) {
     std::map<const hb_enc::se_ptr, z3::expr> branch_conds;
     for( auto& ep : prev_es ) {
       branch_conds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
     }
     return mk_se_ptr( hb_enc, tid, prev_es, path_cond, history_, loc, et,
-                       branch_conds );
+                      branch_conds, ord_tag );
   }
 
   //--------------------------------------------------------------------------
@@ -359,7 +377,9 @@ namespace hb_enc {
                          const std::vector<z3::expr>& conds,
                          hb_enc::depends_set& result );
   void pointwise_and( const depends_set&, z3::expr, depends_set& );
-  inline bool is_po( const se_ptr& x, const se_ptr& y ) {
+
+  //todo: deprecate this function
+  inline bool is_po_old( const se_ptr& x, const se_ptr& y ) {
     if( x == y ) return true;
     if( x->tid != y->tid ) return false;
     if( x->e_v->instr_no < y->e_v->instr_no ) return true;
