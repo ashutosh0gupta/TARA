@@ -191,8 +191,8 @@ public:
   virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const = 0;
   virtual std::unique_ptr<hb> get_hb(const z3::expr& hb, bool allow_equal = false) const = 0;
   virtual std::vector<hb_enc::location_ptr> get_trace(const z3::model& m) const = 0;
-  std::list<z3::expr> get_hbs( z3::model& m ) const;
-  std::vector<hb_ptr> get_hbs_new( z3::model& m ) const;
+  // std::list<z3::expr> get_hbs( z3::model& m ) const;
+  std::vector<hb_ptr> get_hbs( z3::model& m ) const;
   helpers::z3interf& z3;
   // z3::context& ctx;
 protected:

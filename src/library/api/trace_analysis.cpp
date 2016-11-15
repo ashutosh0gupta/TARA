@@ -238,7 +238,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     // list<z3::expr> hbs = hb_encoding.get_hbs(m);
     // z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
 
-    hb_enc::hb_vec hbs = hb_encoding.get_hbs_new(m);
+    hb_enc::hb_vec hbs = hb_encoding.get_hbs(m);
     z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
 
     if (o.machine && o.print_pruning >=1 ) {

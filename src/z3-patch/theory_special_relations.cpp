@@ -165,6 +165,7 @@ namespace smt {
         for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
             atom& a = *r.m_asserted_atoms[i];
             if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+              display_atom( a );
                 // v1 !-> v2
                 // find v1 -> v3 -> v4 -> v2 path
                 r.m_explanation.reset();
@@ -330,6 +331,22 @@ namespace smt {
         return res;
     }
 
+  lbool theory_special_relations::propagate_po(atom& a) {
+        lbool res = l_true;
+        // if (a.phase()) {
+        //   res = enable(a);
+        // }
+        relation& r = a.get_relation();
+        if (a.phase()) {
+            r.m_uf.merge(a.v1(), a.v2());
+            res = enable(a);
+        }
+        else if (r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
+            // res = enable(a);
+        }
+        return res;
+    }
+
     lbool theory_special_relations::propagate(relation& r) {
         lbool res = l_true;
         while (res == l_true && r.m_asserted_qhead < r.m_asserted_atoms.size()) {
@@ -340,6 +357,9 @@ namespace smt {
                 break;
             case sr_plo:
                 res = propagate_plo(a);
+                break;
+            case sr_po:
+                res = propagate_po(a);
                 break;
             default:
                 if (a.phase()) {
@@ -724,6 +744,47 @@ namespace smt {
             out << mk_pp(it->m_value->decl(), get_manager()) << ":\n";
             it->m_value->m_graph.display(out);
             it->m_value->m_uf.display(out);
+            for (unsigned i = 0; i < it->m_value->m_asserted_atoms.size(); ++i){
+              atom& a = *it->m_value->m_asserted_atoms[i];
+            display_atom( out, a );
+            }
         }
     }
+
+  //BEGIN: ASHU
+  void theory_special_relations::collect_asserted_po_atoms( vector< std::pair<bool_var,bool> >& atoms) const {
+    obj_map<func_decl, relation*>::iterator it = m_relations.begin(), end = m_relations.end();
+    for (; it != end; ++it) {
+      relation& r = *(it->m_value );
+      if( r.m_property != sr_po ) continue;
+      SASSERT( r.m_asserted_qhead == r.m_asserted_atoms.size() );
+      for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
+        atom& a = *r.m_asserted_atoms[i];
+        atoms.push_back( std::make_pair(a.var(),a.phase()) );
+      }
+    }
+    // for (unsigned i = 0; i < m_asserted_qhead; i++) {
+    //     bound * b = m_asserted_bounds[i];
+    //     if (b->is_atom()) {
+    //       atom* a = static_cast<atom*>(b);
+    //       bool_var bv = a->get_bool_var();
+    //       bool istr = a->is_true();
+    //       atoms.push_back( std::make_pair(bv,istr) );
+    //     }
+    // }
+  }
+
+void theory_special_relations::display_atom( std::ostream & out, atom& a ) const {
+    context& ctx = get_context();
+    expr* e = ctx.bool_var2expr( a.var() );
+    if( !a.phase() ) out << "(not ";
+    out << mk_pp( e, get_manager());
+    if( !a.phase() ) out << ")";
+     out << "\n";
+  }
+void theory_special_relations::display_atom( atom& a) const {
+  display_atom( std::cerr, a);
+}
+  //END: ASHU
+
 }

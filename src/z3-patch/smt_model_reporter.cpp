@@ -9,6 +9,7 @@
 #include"ast_pp.h"
 #include"ast_smt2_pp.h"
 #include "theory_arith.h"
+#include "theory_special_relations.h"
 
 namespace smt {
 
@@ -51,12 +52,12 @@ namespace smt {
 
   void model_generator::collect_asserted_linear_constr( ast_ref_vector& atoms ) {
     // find arithmatic theory
-    family_id arith_id = m_manager.get_family_id("arith");    
+    family_id arith_id = m_manager.get_family_id("arith");
     theory * th = m_context->get_theory( arith_id );
     if( th == NULL ) return;
     theory_mi_arith* ar_th = reinterpret_cast<theory_mi_arith*>(th);
     // collect the asserted atoms
-    vector< std::pair<bool_var, bool> > bvars; 
+    vector< std::pair<bool_var, bool> > bvars;
     ar_th->collect_asserted_atoms( bvars );
     for( unsigned i=0; i < bvars.size(); i++ ) {
       bool_var bv = bvars[i].first;
@@ -68,9 +69,31 @@ namespace smt {
       atoms.push_back( e );
     }
     // filter out non intersting atoms
-    
     // return
 
+  }
+
+  void model_generator::collect_asserted_po_constr( ast_ref_vector& atoms ) {
+    // // find arithmatic theory
+    family_id arith_id = m_manager.get_family_id("special_relations");
+    theory * th = m_context->get_theory( arith_id );
+    if( th == NULL ) return;
+    theory_special_relations* ar_th = reinterpret_cast<theory_special_relations*>(th);
+    // collect the asserted atoms
+    vector< std::pair<bool_var, bool> > bvars;
+    ar_th->collect_asserted_po_atoms( bvars );
+    for( unsigned i=0; i < bvars.size(); i++ ) {
+      bool_var bv = bvars[i].first;
+      bool  is_tr = bvars[i].second;
+      expr* e = m_context->bool_var2expr( bv );
+      if( !is_tr ) {
+        e = m_manager.mk_not( e );
+      }
+      atoms.push_back( e );
+    }
+    // // filter out non intersting atoms
+    
+    // // return
   }
   
 };

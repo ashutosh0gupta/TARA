@@ -128,6 +128,7 @@ namespace smt {
         void set_neg_cycle_conflict(relation& r);
         void set_conflict(relation& r);
         lbool  propagate_plo(atom& a);
+      lbool  propagate_po(atom& a); //ASHU: added to modify po solving
         theory_var mk_var(expr* e);
         void count_children(graph const& g, unsigned_vector& num_children);
         void ensure_strict(graph& g);
@@ -168,6 +169,12 @@ namespace smt {
         virtual bool can_propagate() { return false; }
         virtual void propagate() {}
         virtual void display(std::ostream & out) const;
+
+  //BEGIN: ASHU
+      void collect_asserted_po_atoms( vector< std::pair<bool_var,bool> >& atoms) const;
+      void display_atom( std::ostream & out, atom& a) const;
+      void display_atom( atom& a) const;
+  //END: ASHU
     };
 }
 

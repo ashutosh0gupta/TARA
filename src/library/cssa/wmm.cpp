@@ -395,8 +395,8 @@ void wmm_event_cons::ses_c11() {
                 sc_hb_wp_w = !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp );
             }
           }
-          fr = fr && implies( b && wrp->guard && mo_w_wp, !hb_wp_rd ) &&
-                     implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
+          // fr = fr && implies( b && wrp->guard && mo_w_wp, !hb_wp_rd ) &&
+          //            implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
           // rr coherence
           for( const hb_enc::se_ptr& rdp : rds ) {
             if( rd == rdp ) continue;
@@ -445,29 +445,6 @@ void wmm_event_cons::ses_c11() {
             }
           }
         }
-        // if( rd->is_sc() ) {
-        //   if( wr->is_sc() ) {
-        //     for( auto& wrp : wrs ) {
-        //       if( !wrp->is_sc() || wr == wrp ) continue;
-        //       fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ),
-        //                           hb_encoding.mk_hb_c11_sc( wrp, wr ) );
-        //     }
-        //   }else{ // wr is not sc
-        //     for( auto& wrp : wrs ) {
-        //       if( !wrp->is_sc() || wr == wrp ) continue;
-        //       z3::expr no_one_else = z3.mk_true();
-        //       for( auto& wrpp : wrs ) {
-        //         if( !wrpp->is_sc() || wrpp == wrp ) continue;
-        //         no_one_else = no_one_else &&
-        //           ( (z3::expr)(hb_encoding.mk_hb_c11_sc( wrpp, wrp )) ||
-        //             (z3::expr)(hb_encoding.mk_hb_c11_sc( rd,  wrpp )) );
-        //       }
-        //       fr = fr && implies( b && hb_encoding.mk_hb_c11_sc( wrp, rd ) &&
-        //                           no_one_else,
-        //                        !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp ) );
-        //     }
-        //   }
-        // }
       }
       wf = wf && implies( rd->guard, some_rfs );
     }
@@ -524,7 +501,9 @@ void wmm_event_cons::ses_c11() {
     dists.push_back( e1->get_c11_sc_solver_symbol() );
   }
   if( dists.size() != 0) ws = ws && distinct( dists );
-
+  fr = fr.simplify();
+  wf = wf.simplify();
+  rf = rf.simplify();
 }
 
 //----------------------------------------------------------------------------
@@ -833,6 +812,7 @@ void wmm_event_cons::ppo() {
   }
   // po = po && dist;
   //phi_po = phi_po && barriers;
+  po = po.simplify();
 }
 
 

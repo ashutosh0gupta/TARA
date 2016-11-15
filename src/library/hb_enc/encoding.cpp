@@ -369,11 +369,11 @@ bool encoding::eval_hb( const z3::model& m,
 //   return result;
 // }
 
-vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
+vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
 {
   vector<hb_ptr> result;
   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
-  // z3::expr_vector asserted = z3.c.collect_last_asserted_po_constr();
+  z3::expr_vector asserted_po = z3.c.collect_last_asserted_po_constr();
 
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];
@@ -395,6 +395,11 @@ vector<hb_ptr> encoding::get_hbs_new( z3::model& m ) const
       hb_ptr h = make_shared<hb_enc::hb>(*hb);
       result.push_back(h);
     }
+  }
+
+  for( unsigned i = 0; i<asserted_po.size(); i++ ) {
+    z3::expr atom = asserted_po[i];
+    std::cerr << atom << "\n";
   }
 
   return result;
