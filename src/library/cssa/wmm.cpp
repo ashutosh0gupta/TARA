@@ -326,10 +326,17 @@ void wmm_event_cons::ses_c11() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
 
+        z3::expr hb_w_rd(z3.c);
+        if( is_po_new( wr, rd ) ) {
+          hb_w_rd = z3.mk_true();
+        }else{
+          hb_w_rd = hb_encoding.mk_ghb_c11_hb( wr, rd );
+        }
+
         // sw due to rf
         if( rd->is_at_least_acq() ) {
           if( wr->is_at_least_rls() ) {
-            rf = rf && implies( b, hb_encoding.mk_ghb_c11_hb( wr, rd ) );
+            rf = rf && implies( b, hb_w_rd );
           }else{
             for( auto& it : p.rel_seq_map[wr] ) {
               std::string bname = std::get<0>(it);
@@ -347,14 +354,6 @@ void wmm_event_cons::ses_c11() {
           z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
           rf = rf && implies( b, ! hb_rd_wr );
         }
-
-        // if( rd->is_atomic() && wr->is_atomic() ) {
-        //   z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
-        //   rf = rf && implies( b, ! hb_rd_wr );
-        // }else{
-        //   // to do something
-        //   wmm_error( "c11 non atomics not supported!!" );
-        // }
 
         // coherence wr rw
         for( const hb_enc::se_ptr& wrp : wrs ) {
@@ -395,8 +394,8 @@ void wmm_event_cons::ses_c11() {
                 sc_hb_wp_w = !(z3::expr)hb_encoding.mk_hb_c11_hb( wr, wrp );
             }
           }
-          // fr = fr && implies( b && wrp->guard && mo_w_wp, !hb_wp_rd ) &&
-          //            implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
+          fr = fr && implies( b && wrp->guard && mo_w_wp, !hb_wp_rd ) &&
+                     implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
           // rr coherence
           for( const hb_enc::se_ptr& rdp : rds ) {
             if( rd == rdp ) continue;

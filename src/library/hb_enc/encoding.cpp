@@ -399,6 +399,8 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
 
   for( unsigned i = 0; i<asserted_po.size(); i++ ) {
     z3::expr atom = asserted_po[i];
+    unique_ptr<hb_enc::hb> hb = get_hb( atom );
+
     std::cerr << atom << "\n";
   }
 

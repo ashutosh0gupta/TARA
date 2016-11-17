@@ -495,7 +495,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
           v = m.eval( e->get_c11_sc_solver_symbol() );
           int val;
           if( Z3_get_numeral_int( v.ctx(), v, &val) ) {
-            std::cerr << e->get_c11_sc_solver_symbol() << " "<< val << "\n";
+            // std::cerr << e->get_c11_sc_solver_symbol() << " "<< val << "\n";
             es.push_back( std::make_pair( e, val ) );
           }else{
             program_error( "execution printing error!!" );

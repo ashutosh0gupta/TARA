@@ -165,12 +165,12 @@ namespace smt {
         for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
             atom& a = *r.m_asserted_atoms[i];
             if (!a.phase() && r.m_uf.find(a.v1()) == r.m_uf.find(a.v2())) {
-              display_atom( a );
                 // v1 !-> v2
                 // find v1 -> v3 -> v4 -> v2 path
                 r.m_explanation.reset();
                 unsigned timestamp = r.m_graph.get_timestamp();
                 if (r.m_graph.find_shortest_reachable_path(a.v1(), a.v2(), timestamp, r)) {
+                    r.m_explanation.push_back(a.explanation());
                     set_conflict(r);
                     res = l_false;
                 }                
@@ -757,7 +757,7 @@ namespace smt {
     for (; it != end; ++it) {
       relation& r = *(it->m_value );
       if( r.m_property != sr_po ) continue;
-      SASSERT( r.m_asserted_qhead == r.m_asserted_atoms.size() );
+      // SASSERT( r.m_asserted_qhead == r.m_asserted_atoms.size() );
       for (unsigned i = 0; i < r.m_asserted_atoms.size(); ++i) {
         atom& a = *r.m_asserted_atoms[i];
         atoms.push_back( std::make_pair(a.var(),a.phase()) );

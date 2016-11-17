@@ -122,23 +122,26 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
           loc1 = location_lookup.find(hb.arg(1));
           loc2 = location_lookup.find(hb.arg(0));
           break;
-        case Z3_OP_NOT:
-        {
-          auto res = swap_pair(get_locs(hb.arg(0), possibly_equal));
-          possibly_equal = !possibly_equal;
-          return res;
-          break;
+      case Z3_OP_NOT: {
+        auto neg_hb = get_locs(hb.arg(0), possibly_equal);
+        auto res = swap_pair( neg_hb );
+        possibly_equal = !possibly_equal;
+        return res;
+        break;
+      }
+      case Z3_OP_ADD: {
+        loc1 = location_lookup.find(hb.arg(0));
+        z3::expr t1 = hb.arg(1);
+        if (t1.decl().decl_kind() == Z3_OP_MUL) {
+          loc2 = location_lookup.find(t1.arg(1));
         }
-        case Z3_OP_ADD:
-        {
-          loc1 = location_lookup.find(hb.arg(0));
-          z3::expr t1 = hb.arg(1);
-          if (t1.decl().decl_kind() == Z3_OP_MUL) {
-            loc2 = location_lookup.find(t1.arg(1));
-          }
-        }
-        default:
-          break;
+      }
+      case Z3_OP_SPECIAL_RELATION_PO: {
+        loc1 = location_lookup.find(hb.arg(1));
+        loc2 = location_lookup.find(hb.arg(0));
+      }
+      default:
+        break;
       }
       break;
     }

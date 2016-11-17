@@ -1,3 +1,26 @@
+diff --git a/src/api/api_ast.cpp b/src/api/api_ast.cpp
+index 1f16b2d..3368f67 100644
+--- a/src/api/api_ast.cpp
++++ b/src/api/api_ast.cpp
+@@ -1219,6 +1219,18 @@ extern "C" {
+             }
+         }
+ 
++        //BEGIN: ASHU
++        if (mk_c(c)->get_special_relations_fid() == _d->get_family_id()) {
++            switch(_d->get_decl_kind()) {
++            case OP_SPECIAL_RELATION_LO : return Z3_OP_SPECIAL_RELATION_LO;
++            case OP_SPECIAL_RELATION_PO : return Z3_OP_SPECIAL_RELATION_PO;
++            case OP_SPECIAL_RELATION_PLO: return Z3_OP_SPECIAL_RELATION_PLO;
++            case OP_SPECIAL_RELATION_TO : return Z3_OP_SPECIAL_RELATION_TO;
++            default: UNREACHABLE();
++            }
++        }
++        //END: ASHU
++
+         return Z3_OP_UNINTERPRETED;
+         Z3_CATCH_RETURN(Z3_OP_UNINTERPRETED);
+     }
 diff --git a/src/api/api_context.cpp b/src/api/api_context.cpp
 index bc48874..37a8e1b 100644
 --- a/src/api/api_context.cpp
@@ -269,10 +292,24 @@ index 9fb6648..9ad98a2 100644
  }
  
 diff --git a/src/api/z3_api.h b/src/api/z3_api.h
-index 1144900..e7d5ae7 100644
+index 1144900..a314d78 100644
 --- a/src/api/z3_api.h
 +++ b/src/api/z3_api.h
-@@ -3361,6 +3361,43 @@ extern "C" {
+@@ -1217,6 +1217,13 @@ typedef enum {
+     Z3_OP_FPA_MIN_I,
+     Z3_OP_FPA_MAX_I,
+ 
++    //BEGIN: ASHU
++    Z3_OP_SPECIAL_RELATION_LO,
++    Z3_OP_SPECIAL_RELATION_PO,
++    Z3_OP_SPECIAL_RELATION_PLO,
++    Z3_OP_SPECIAL_RELATION_TO,
++    //END: ASHU
++
+     Z3_OP_UNINTERPRETED
+ } Z3_decl_kind;
+ 
+@@ -3361,6 +3368,43 @@ extern "C" {
      /*@}*/
  
  
@@ -316,7 +353,7 @@ index 1144900..e7d5ae7 100644
      /** @name Quantifiers */
      /*@{*/
      /**
-@@ -6015,6 +6052,13 @@ extern "C" {
+@@ -6015,6 +6059,13 @@ extern "C" {
  
      /*@}*/
  
