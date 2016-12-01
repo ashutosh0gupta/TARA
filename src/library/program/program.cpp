@@ -302,7 +302,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
 
 
 
-  void program::print_execution( const std::string& name, z3::model m ) {
+  void program::print_execution( const std::string& name, z3::model m ) const {
     boost::filesystem::path fname = _o.output_dir;
     fname += "program-execution-"+name+"-.dot";
     std::cerr << "dumping dot file : " << fname << std::endl;

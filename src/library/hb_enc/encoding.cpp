@@ -120,7 +120,9 @@ hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
 
   //the following allocator is not in use
 hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
-  e1( e1_), e2( e2_), loc1(e1->e_v), loc2(e2->e_v), expr(expr)
+  e1( e1_), e2( e2_), loc1(e1->e_v), loc2(e2->e_v),
+  is_neg( false ), is_partial( false ),
+  expr(expr)
 {
   _signature = loc1->serial();
   _signature <<= 16;
@@ -128,8 +130,24 @@ hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
 }
 
 hb::hb( se_ptr e1_, location_ptr l1_,
-        se_ptr e2_, location_ptr l2_, z3::expr expr):
-  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_), expr(expr)
+        se_ptr e2_, location_ptr l2_, z3::expr expr,
+        bool is_neg ):
+  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
+  is_neg( is_neg ), is_partial( false ),
+  expr(expr)
+{
+  _signature = loc1->serial();
+  _signature <<= 16;
+  _signature |= loc2->serial();
+}
+
+
+hb::hb( se_ptr e1_, location_ptr l1_,
+        se_ptr e2_, location_ptr l2_, z3::expr expr,
+        bool is_neg, bool is_partial ):
+  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
+  is_neg(is_neg) , is_partial( is_partial ),
+  expr(expr)
 {
   _signature = loc1->serial();
   _signature <<= 16;
@@ -158,7 +176,10 @@ bool operator< (const hb& hb1, const hb& hb2)
 }
 
 ostream& operator<< (std::ostream& stream, const hb& hb) {
-  stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
+  if( hb.is_partial && hb.is_neg )
+    stream << "!hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
+  else
+      stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
   return stream;
 }
 
@@ -378,7 +399,8 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];
     unique_ptr<hb_enc::hb> hb = get_hb( atom );
-    if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
+    if( hb && !hb->loc1->special && !hb->loc2->special &&
+        hb->loc1->thread != hb->loc2->thread ) {
       if( hb->e1 && hb->e2 ) { // for compatibility of the earlier version of tara
         z3::expr v1 = m.eval( hb->e1->guard );
         z3::expr v2 = m.eval( hb->e2->guard );
@@ -397,11 +419,16 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
     }
   }
 
-  for( unsigned i = 0; i<asserted_po.size(); i++ ) {
+  for( unsigned i = 0; i < asserted_po.size(); i++ ) {
     z3::expr atom = asserted_po[i];
     unique_ptr<hb_enc::hb> hb = get_hb( atom );
+    if( hb && !hb->loc1->special && !hb->loc2->special &&
+        hb->loc1->thread != hb->loc2->thread ) {
+      hb_ptr h = make_shared<hb_enc::hb>(*hb);
+      result.push_back(h);
+      // std::cerr << atom << "\n";
+    }
 
-    std::cerr << atom << "\n";
   }
 
   return result;

@@ -95,7 +95,7 @@ bool integer::eval_hb(const z3::model& model, std::shared_ptr< const hb_enc::loc
   return model.eval(make_hb(loc1, loc2)).get_bool();
 }
 
-pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& possibly_equal) const {
+pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& possibly_equal, bool& is_partial) const {
   // we need to flip that bool parameter in to know if we are sure about this result or not (two locations can be assigned an equal integer)
   auto loc1 = location_lookup.end();
   auto loc2 = location_lookup.end();
@@ -109,7 +109,7 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
           possibly_equal = true; // fallthrough
         case Z3_OP_LT: 
           if (hb.arg(1).kind() == Z3_NUMERAL_AST)
-            return get_locs(hb.arg(0), possibly_equal);
+            return get_locs(hb.arg(0), possibly_equal, is_partial);
           loc1 = location_lookup.find(hb.arg(0));
           loc2 = location_lookup.find(hb.arg(1));
           break;
@@ -117,13 +117,13 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
           possibly_equal = true; // fallthrough
         case Z3_OP_GT: 
           if (hb.arg(1).kind() == Z3_NUMERAL_AST) {
-            return swap_pair(get_locs(hb.arg(0), possibly_equal));
+            return swap_pair(get_locs(hb.arg(0), possibly_equal, is_partial));
           }
           loc1 = location_lookup.find(hb.arg(1));
           loc2 = location_lookup.find(hb.arg(0));
           break;
       case Z3_OP_NOT: {
-        auto neg_hb = get_locs(hb.arg(0), possibly_equal);
+        auto neg_hb = get_locs(hb.arg(0), possibly_equal, is_partial);
         auto res = swap_pair( neg_hb );
         possibly_equal = !possibly_equal;
         return res;
@@ -137,6 +137,7 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
         }
       }
       case Z3_OP_SPECIAL_RELATION_PO: {
+        is_partial = true;
         loc1 = location_lookup.find(hb.arg(1));
         loc2 = location_lookup.find(hb.arg(0));
       }
@@ -154,10 +155,12 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
 unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
 {
   bool possibly_equal = false;
-  auto p = get_locs(hb, possibly_equal);
+  bool is_partial = false;
+  auto p = get_locs(hb, possibly_equal, is_partial);
   integer::mapit loc1 = p.first;
   integer::mapit loc2 = p.second;
-  if ((!possibly_equal || allow_equal) && loc1 != location_lookup.end() && loc2 != location_lookup.end()) {
+  if ( (!possibly_equal || allow_equal || is_partial)
+       && loc1 != location_lookup.end() && loc2 != location_lookup.end() ) {
     std::shared_ptr<hb_enc::location> l1 = get<1>(*loc1);
     std::shared_ptr<hb_enc::location> l2 = get<1>(*loc2);
     se_ptr e1;
@@ -166,7 +169,13 @@ unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
     se_ptr e2;
     if( event_lookup.find( l2->expr ) != event_lookup.end() )
       e2 = event_lookup.at( l2->expr );
-    return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb));
+    if( is_partial )
+      return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
+                                                   possibly_equal,
+                                                   is_partial));
+    else
+      return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
+                                                   possibly_equal));
   } else 
     return unique_ptr<hb_enc::hb>();
 }

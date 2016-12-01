@@ -95,12 +95,17 @@ public:
   se_ptr e2;
   location_ptr loc1; //todo : to be removed
   location_ptr loc2; //todo : to be removed
+  bool is_neg;
+  bool is_partial;
   operator z3::expr () const;
   z3::expr get_guarded_forbid_expr();
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
   hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
   hb( se_ptr e1, location_ptr loc1,
-      se_ptr e2, location_ptr loc2, z3::expr expr );
+      se_ptr e2, location_ptr loc2, z3::expr expr, bool is_neg );
+  hb( se_ptr e1, location_ptr loc1,
+      se_ptr e2, location_ptr loc2,
+      z3::expr expr, bool is_neg, bool is_partial );
   uint32_t signature(); // a unique integer indentifying the hb
   
   bool operator==(const hb &other) const;

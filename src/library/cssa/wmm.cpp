@@ -503,6 +503,7 @@ void wmm_event_cons::ses_c11() {
   fr = fr.simplify();
   wf = wf.simplify();
   rf = rf.simplify();
+  grf = rf;
 }
 
 //----------------------------------------------------------------------------

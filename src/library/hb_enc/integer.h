@@ -49,7 +49,7 @@ namespace hb_enc {
     std::unordered_map< z3::expr, se_ptr, helpers::z3interf::expr_hash, helpers::z3interf::expr_equal > event_lookup;
   // map location to instruction
     typedef std::unordered_map<z3::expr, std::shared_ptr<hb_enc::location>>::const_iterator mapit;
-    std::pair<mapit,mapit> get_locs(const z3::expr& hb, bool& possibly_equal) const;
+    std::pair<mapit,mapit> get_locs(const z3::expr& hb, bool& possibly_equal, bool& is_partial) const;
   private:
     // todo: should the following be static??
     uint16_t counter = 0;

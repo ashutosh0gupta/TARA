@@ -13,13 +13,13 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     z3::expr trigger = sol.ctx().fresh_constant("implied_assumption", sol.ctx().bool_sort());
     triggers.push_back(trigger);
     z3::expr translation = translate(i);
-    //std::cout<<"\nexpr 1 "<<translation<<"\n";
-    //std::cout<<"\nexpr 2 "<<trigger<<"\n";
+    // std::cout<<"\nexpr 1 "<<translation<<"\n";
+    // std::cout<<"\nexpr 2 "<<trigger<<"\n";
     sol.add(implies(trigger,translation));
   }
   
   // for many items, first do unsat core
-  if (items.size() > 10) {
+  if (items.size() > 6) { // 10) {
     z3::check_result r = sol.check(triggers.size(), &triggers[0]);
     if (r==z3::sat) {
       //std::cout << sol.get_model() << std::endl;

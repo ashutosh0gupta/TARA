@@ -14,6 +14,7 @@ atomic_int r2 = 0;
 
 void* p0(void *) {
   atomic_store_explicit( &x, 1, memory_order_release );
+  // atomic_store_explicit( &x, 1, memory_order_consume );
   r1 = atomic_load_explicit( &y, memory_order_acquire );
   return NULL;
 }
@@ -32,7 +33,6 @@ int main() {
 
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
-  // int r = r1;
-  // assert( r1 == 0 );
+
   assert( r1 == 1 || r2 == 1 );
 }

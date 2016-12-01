@@ -71,6 +71,10 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
 
   sol_good.add(program.get_initial(m));
   z3interf::min_unsat<z3::expr>(sol_good, hbs_expr, [](z3::expr e) { return e; });
+  // { // in return state is sat then we can debug the state
+  //   z3::model mp = sol_good.get_model();
+  //   program.print_execution( "dump", mp );
+  // }
   sol_good.pop();
   hb_enc::hb_vec final_result;
   for( z3::expr e : hbs_expr ) {
