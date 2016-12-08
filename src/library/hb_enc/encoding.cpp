@@ -178,6 +178,8 @@ bool operator< (const hb& hb1, const hb& hb2)
 ostream& operator<< (std::ostream& stream, const hb& hb) {
   if( hb.is_partial && hb.is_neg )
     stream << "!hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
+  else if( hb.is_partial && !hb.is_neg )
+    stream << "hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
   else
       stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
   return stream;
