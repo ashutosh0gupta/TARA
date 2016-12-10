@@ -177,7 +177,7 @@ bool operator< (const hb& hb1, const hb& hb2)
 
 ostream& operator<< (std::ostream& stream, const hb& hb) {
   if( hb.is_partial && hb.is_neg )
-    stream << "!hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
+    stream << "!hb(" << hb.e2->name() << "," << hb.e1->name() << ")";
   else if( hb.is_partial && !hb.is_neg )
     stream << "hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
   else

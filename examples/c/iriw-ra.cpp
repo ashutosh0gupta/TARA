@@ -48,3 +48,4 @@ int main() {
   assert( r1 == 0 || r2 == 1 || r3 == 0 || r4 == 1);
 }
 
+// ( hb(R#x#_l24_c8,W#x#_l14_c3) ∧ hb(R#y#_l30_c8,W#y#_l19_c3) ∧ !hb(W#x#_l14_c3,R#x#_l31_c8) ∧ !hb(W#y#_l19_c3,R#y#_l25_c8) )
