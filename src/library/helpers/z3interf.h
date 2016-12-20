@@ -123,7 +123,8 @@ public:
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate);
   template <class value>
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
-    
+  z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );
+  Z3_decl_kind get_decl_kind( z3::expr e );
 };
   // we need this xor, since the default xor in c++ interface is for bvxor
   inline z3::expr _xor( z3::expr const & a, z3::expr const & b ) {
@@ -131,6 +132,7 @@ public:
     Z3_ast r = Z3_mk_xor(a.ctx(), a, b);
     return z3::expr(a.ctx(), r);
   }
+
 
 }
   //----------------

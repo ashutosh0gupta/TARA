@@ -210,6 +210,7 @@ namespace hb_enc {
 
     void set_pre_events( se_set& );
     void add_post_events( se_ptr&, z3::expr );
+    z3::expr get_post_cond( const se_ptr& e_post ) const;
 
     void set_data_dependency( const hb_enc::depends_set& deps );
     void set_ctrl_dependency( const hb_enc::depends_set& deps );

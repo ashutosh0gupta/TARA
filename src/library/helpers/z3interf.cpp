@@ -55,6 +55,11 @@ solver z3interf::create_solver(context& ctx)
 }
 
 
+Z3_decl_kind z3interf::get_decl_kind( z3::expr e ) {
+  func_decl d = e.decl();
+  return d.decl_kind();
+}
+
 ///////////////////////////////////////////////
 // Printing
 ///////////////////////////////////////////////
@@ -338,6 +343,33 @@ cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
     newvars.insert(newv);
   }
   return newvars;
+}
+
+z3::expr z3interf::simplify_or_vector( std::vector<z3::expr>& o_vec ) {
+  unsigned sz = o_vec.size();
+
+  for( unsigned i = 0; i < sz; i++ ) {
+    z3::expr a = o_vec[i];
+    z3::expr un_not_a = a;
+    bool negated = false;
+    while( Z3_OP_NOT == get_decl_kind( un_not_a ) ) {
+      un_not_a = a.arg(0);
+      negated = !negated;
+    }
+    z3::expr replace_term = negated ? mk_true() : mk_false();
+    z3::expr_vector src(c); src.push_back( un_not_a );
+    z3::expr_vector dst(c); dst.push_back( replace_term );
+    for( unsigned j = 0; j < sz; j++ ) {
+      if( i != j ) {
+        o_vec[j] = o_vec[j].substitute( src, dst ); //todo : is it correct
+        o_vec[j] = o_vec[j].simplify();
+        if( is_true( o_vec[j] )  ) return o_vec[j];
+      }
+    }
+  }
+  z3::expr res = mk_false();
+  for( z3::expr c : o_vec ) res = res || c;
+  return res.simplify();
 }
 
 //----------------

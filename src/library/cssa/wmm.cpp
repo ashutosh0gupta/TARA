@@ -280,18 +280,19 @@ void wmm_event_cons::ses_c11() {
   //   }
   // }
 
-  
   for( const variable& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
     for( const hb_enc::se_ptr& wr : wrs ) {
+      if( wr->is_at_least_rls() ) continue;
       hb_enc::depends_set& deps = p.c11_rs_heads[wr];
       for( auto& dep : deps ) { // empty set if wr is a release
         z3::expr no_interup = z3.mk_true();
         for( auto& wrpp : wrs ) {
-          if( wrpp->tid != wr->tid && !wrpp->is_update() ) {
-            no_interup = no_interup && ( hb_encoding.mk_ghb_c11_mo( wrpp, dep.e) ||
-                                         hb_encoding.mk_ghb_c11_mo( wr,wrpp ) );
+          if( wrpp->tid != wr->tid && !wrpp->is_update() && wrpp->is_wr() ) {
+            no_interup = no_interup &&
+              ( hb_encoding.mk_ghb_c11_mo( wrpp, dep.e ) ||
+                hb_encoding.mk_ghb_c11_mo( wr  , wrpp  ) );
           }
         }
         z3::expr b = get_rel_seq_bvar( dep.e, wr );
@@ -341,6 +342,7 @@ void wmm_event_cons::ses_c11() {
             for( auto& it : p.rel_seq_map[wr] ) {
               std::string bname = std::get<0>(it);
               hb_enc::se_ptr wrp = std::get<1>(it);
+              if( is_po_new( wrp, rd ) ) continue;
               z3::expr b_wrp_wr = z3.c.bool_const(  bname.c_str() );
               rf = rf && implies( b && b_wrp_wr,
                                   hb_encoding.mk_ghb_c11_hb( wrp, rd ) );
@@ -351,8 +353,10 @@ void wmm_event_cons::ses_c11() {
           // to do something
           wmm_error( "c11 non atomics not supported!!" );
         }else if( rd->is_rlx() || wr->is_rlx() ) {
-          z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
-          rf = rf && implies( b, ! hb_rd_wr );
+          if( !is_po_new( wr, rd ) ) {
+            z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
+            rf = rf && implies( b, ! hb_rd_wr );
+          }
         }
 
         // coherence wr rw
@@ -842,6 +846,7 @@ void wmm_event_cons::update_orderings() {
         update_may_after( p.get_thread(i).events, *rit );
     }
   }
+
   if( o.print_input > 2 ) {
     o.out() << "============================\n";
     o.out() << "must after/before relations:\n";
@@ -852,11 +857,12 @@ void wmm_event_cons::update_orderings() {
         tara::debug_print( o.out(), p.must_before[e] );
         o.out() << "after: ";
         tara::debug_print( o.out(), p.must_after [e] );
-        // o.out() << "\n";
         o.out() << "may after: ";
         tara::debug_print( o.out(), p.may_after [e] );
         o.out() << "ppo before: ";
         tara::debug_print( o.out(), p.ppo_before [e] );
+        o.out() << "c11 release sequence heads: ";
+        tara::debug_print( o.out(), p.c11_rs_heads [e] );
         o.out() << "\n";
       }
     }
@@ -952,7 +958,6 @@ void wmm_event_cons::update_may_after( const hb_enc::se_vec& es,
         epp_cond = dep.cond;
       } else {
      	pointwise_and( local_ordered[epp], dep.cond, temp );
-     	// pointwise_and( p.may_after[epp], dep.cond, temp );
       }
       temp.insert( hb_enc::depends( epp, epp_cond ) );
       temp_vector.push_back( temp );
@@ -988,6 +993,25 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
   }
   p.ppo_before[e] = local_ordered[e];
 }
+
+// void wmm_event_cons::update_c11_rs_heads( const hb_enc::se_vec& thread_es ) {
+//   //todo: na events have release sequence
+//   hb_enc::se_to_depends_map local_rs_head_map;
+//   for( auto& ep : thread_es ) {
+//     if( ep->is_wr() && ep->is_at_least_rls() ) {
+//       p.c11_rs_heads[ep].insert( hb_enc::depends(ep, z3.mk_true() ) );
+//     }else{
+//       std::vector<hb_enc::depends_set> ord_sets( ep->prev_events.size() );
+//       unsigned i = 0;
+//       for( auto& epp : ep->prev_events ) {
+//         z3::expr cond  =  epp->get_post_cond( ep );
+//         hb_enc::pointwise_and( p.c11_rs_heads[epp],  cond , ord_sets[i] );
+//         i++;
+//       }
+//       hb_enc::join_depends_set( ord_sets, p.c11_rs_heads[ep] );
+//     }
+//   }
+// }
 
 void wmm_event_cons::run() {
   update_orderings();

@@ -159,7 +159,9 @@ namespace tara {
     program( helpers::z3interf& z3_,
              api::options& o_,
              hb_enc::encoding& hb_encoding_
-             ): _z3(z3_), _o(o_), _hb_encoding(hb_encoding_) {}
+             ): _z3(z3_), _o(o_), _hb_encoding(hb_encoding_) {
+      mm = _o.mm;
+    }
 
     cssa::variable_set globals;
     cssa::variable_set allocated; // temp allocations
@@ -257,6 +259,16 @@ namespace tara {
     }
 
     void add_event( unsigned i, hb_enc::se_ptr e );
+    void set_c11_rs_heads( hb_enc::se_ptr e, std::map< cssa::variable,
+                                                       hb_enc::depends_set >& );
+    void set_c11_rs_heads( hb_enc::se_set es,
+                           std::map< cssa::variable,
+                                     hb_enc::depends_set >& rs_heads ){
+      assert( es.size() == 1 );
+      for( auto e : es ) {
+        set_c11_rs_heads( e, rs_heads );
+      }
+    }
 
     void add_event( unsigned i, hb_enc::se_set es ) {
       for( auto e : es ) {

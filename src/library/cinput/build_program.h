@@ -115,6 +115,9 @@ namespace cinput {
     //hb_enc::depends_set ctrl_dep_ses;
     build_program::local_data_dependency local_map;
     build_program::local_ctrl_dependency local_ctrl;
+    std::map< const llvm::BasicBlock*,
+              std::map< cssa::variable, hb_enc::depends_set > >
+    local_release_heads;
     //-----------------------------------
 
     class pointing {

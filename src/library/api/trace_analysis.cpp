@@ -54,6 +54,8 @@ void trace_analysis::input(string input_file)
   input(input_file,mm_t::none);
 }
 
+//todo : the second param is redundant because _options object already knows mm;
+// needs removal
 void trace_analysis::input(string input_file, mm_t mm)
 {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {

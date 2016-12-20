@@ -137,6 +137,15 @@ void symbolic_event::add_post_events( se_ptr& e, z3::expr cond ) {
   post_events.insert( hb_enc::depends( e, cond) );
 }
 
+//todo : make the following function efficient
+z3::expr symbolic_event::get_post_cond( const se_ptr& e_post ) const {
+  for( const auto& dep : post_events ) {
+    if( dep.e == e_post ) return dep.cond;
+  }
+  assert( false ); // called with wrong parameters
+  return guard.ctx().bool_val(false); //dummy code
+}
+
 
 void symbolic_event::set_data_dependency( const hb_enc::depends_set& deps ) {
   data_dependency.clear();

@@ -172,6 +172,9 @@ namespace cssa {
     bool operator!=(const variable& rhs) const {
       return !(*this==rhs);
     }
+    bool operator<( const variable& rhs) const {
+      return this->name < rhs.name;
+    }
   };
   
   

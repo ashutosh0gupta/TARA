@@ -139,7 +139,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
       cinput_error( "histories can not be subset of each other!!" );
     }
   }else{
-    z3::expr c = z3.mk_false();
+    std::vector<z3::expr> or_vec;// = z3.mk_false();
     unsigned j = 0;
     for( auto& old_h: hs ) {
       unsigned i1 = i;
@@ -149,9 +149,10 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
       }
       auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[j++], c1 );
       conds.insert( pr );
-      c = c || c1;
+      or_vec.push_back( c1 );
+      // c = c || c1;
     }
-    c = c.simplify();
+    z3::expr c = z3.simplify_or_vector( or_vec );
     if( z3::eq( c, z3.mk_true() ) )
       return;
     split_step ss( NULL, 0, 0, c);// todo: can store meaningful information
@@ -195,11 +196,12 @@ hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
 }
 
 hb_enc::depends_set build_program::get_ctrl( const llvm::BasicBlock* b ) {
-  if( b->empty()) {
+  if( b->empty() ) {
     hb_enc::depends_set ctrl_dep;
-    return ctrl_dep; }
-  else {
-    return local_ctrl.at(b); }
+    return ctrl_dep;
+  }else{
+    return local_ctrl.at(b);
+  }
 }
 
 
@@ -312,6 +314,8 @@ translateBlock( unsigned thr_id,
                           history, loc_name, hb_enc::event_t::block,
                           branch_conds );
   p->add_event( thr_id, block );
+  p->set_c11_rs_heads( block, local_release_heads[b] );
+
   prev_events.clear(); prev_events.insert( block );
 
   assert(b);
@@ -363,6 +367,7 @@ translateBlock( unsigned thr_id,
         }
       }
       p->add_event( thr_id, new_events );
+      p->set_c11_rs_heads( new_events, local_release_heads[b] );
       prev_events = new_events;
       assert( !recognized );recognized = true;
     }
@@ -405,7 +410,8 @@ translateBlock( unsigned thr_id,
             cinput_error( "potentially null access in not supported yet!" );
           }
         }
-        p->add_event( thr_id, new_events );
+        p->add_event( thr_id, new_events);
+        p->set_c11_rs_heads( new_events, local_release_heads[b] );
         prev_events = new_events;
         assert( !recognized );recognized = true;
       }else if( auto alloc = llvm::dyn_cast<llvm::AllocaInst>(I) ) {
@@ -550,6 +556,7 @@ translateBlock( unsigned thr_id,
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
+          p->set_c11_rs_heads( barr, local_release_heads[b] );
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
                   argnum == 4 ) {
@@ -565,6 +572,7 @@ translateBlock( unsigned thr_id,
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
           p->add_create( thr_id, barr, fname );
+          p->set_c11_rs_heads( barr, local_release_heads[b] );
           prev_events.clear(); prev_events.insert( barr );
           // create
         }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
@@ -579,6 +587,7 @@ translateBlock( unsigned thr_id,
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, join_cond, fname);
+          p->set_c11_rs_heads( barr, local_release_heads[b] );
           join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
         }else{
@@ -643,6 +652,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     std::map<const llvm::BasicBlock*,hb_enc::depends_set> ctrl_ses;
+    std::map< const cssa::variable,
+      std::map<const llvm::BasicBlock*,hb_enc::depends_set> > last_rls_ses;
     if( o.print_input > 0 ) {
       std::cout << "=====================================================\n";
       std::cout << "Processing block" << " block__" << thread_id << "__"
@@ -654,16 +665,14 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     std::vector< split_history > histories; // needs to be ref
     std::vector<llvm::BasicBlock*> preds;
     std::map<const hb_enc::se_ptr, z3::expr > branch_conds;
-    // z3::expr branch_cond = z3.mk_true();
-    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI) {
+    //iterate over predecessors
+    for( auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
       llvm::BasicBlock *prev = *PI;
       split_history h = block_to_split_stack[prev];
       z3::expr prev_cond = z3.mk_true();
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
         z3::expr b = block_to_exit_bit.at(prev);
-        // llvm::TerminatorInst *term= prev->getTerminator();
         unsigned succ_num = PI.getOperandNo();
-        // assert( succ_num );
         llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
         hb_enc::depends_set ctrl_temp;
         if( !br->isUnconditional() ) {
@@ -672,10 +681,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           const auto& ctrl_temp1 = get_ctrl(prev);
           hb_enc::join_depends_set( ctrl_temp1 , ctrl_temp0, ctrl_temp );
         }else if( br->isUnconditional() ) {
-	  ctrl_temp = get_ctrl(prev);
+	  ctrl_temp = get_ctrl( prev );
         }
         assert( br->getOperand(succ_num) == src );
-        // std::cout << br->getNumOperands() << "\n";
         if( br->getNumOperands() >= 2 ) {
           if( succ_num == 1 ) b = !b;
           split_step ss(prev, block_to_id[prev], succ_num, b);
@@ -685,8 +693,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         ctrl_ses[prev] = ctrl_temp;
       }
       histories.push_back(h);
-      hb_enc::se_set& prev_trail = block_to_trailing_events.at(prev);
+      hb_enc::se_set& prev_trail = block_to_trailing_events.at( prev );
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
+      assert( prev_trail.size() < 2 );
       for( auto& prev_e : prev_trail ) {
         if( branch_conds.find( prev_e ) != branch_conds.end() ) {
           prev_cond = prev_cond || branch_conds.at(prev_e);
@@ -694,6 +703,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         branch_conds.insert( std::make_pair( prev_e, prev_cond) );
       }
       preds.push_back( prev );
+      if( o.mm == mm_t::c11 ) {
+        for( const cssa::variable& v : p->globals )
+          last_rls_ses[v][ prev ] = local_release_heads[prev][v];
+      }
     }
     if( src == &(f.getEntryBlock()) ) {
       split_history h;
@@ -711,6 +724,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     local_ctrl[src].clear();
     if( o.mm == mm_t::rmo )
       join_depends_set( ctrl_ses, conds, local_ctrl[src] );
+
+    // caclulating last release heads
+     if( o.mm == mm_t::c11 ) {
+       for( const cssa::variable& v : p->globals )
+         join_depends_set( last_rls_ses[v], conds, local_release_heads[src][v]);
+     }
 
     if( src->hasName() && (src->getName() == "err") ) {
       p->append_property( thread_id, !path_cond );

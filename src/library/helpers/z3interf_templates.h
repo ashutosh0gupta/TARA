@@ -17,9 +17,20 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     // std::cout<<"\nexpr 2 "<<trigger<<"\n";
     sol.add(implies(trigger,translation));
   }
+#ifndef NDEBUG
+  {
+    z3::expr_vector assertions(sol.ctx());
+    for( auto t1 = triggers.begin(); t1 != triggers.end(); t1++ ) {
+      assertions.push_back(*t1);
+    }
+    if( sol.check(assertions) != z3::unsat )
+      tara_error( "::min_unsat", "input is not unsat" );
+  }
+#endif // NDEBUG
   
   // for many items, first do unsat core
-  if (items.size() > 6) { // 10) {
+  if (items.size() > 12) {
+      //10) {
     z3::check_result r = sol.check(triggers.size(), &triggers[0]);
     if (r==z3::sat) {
       //std::cout << sol.get_model() << std::endl;
@@ -52,6 +63,7 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     for (auto t1 = triggers.begin(); t1 != triggers.end(); t1++) {
       if (t1 != t) assertions.push_back(*t1);
     }
+    // std::cerr << translate(*i) << "\n";
     if (sol.check(assertions) == z3::unsat) {
       i = items.erase(i);
       t = triggers.erase(t);
