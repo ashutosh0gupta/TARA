@@ -135,11 +135,13 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
         if (t1.decl().decl_kind() == Z3_OP_MUL) {
           loc2 = location_lookup.find(t1.arg(1));
         }
+        break;
       }
       case Z3_OP_SPECIAL_RELATION_PO: {
         is_partial = true;
         loc1 = location_lookup.find(hb.arg(0));
         loc2 = location_lookup.find(hb.arg(1));
+        break;
       }
       default:
         break;

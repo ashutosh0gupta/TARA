@@ -118,6 +118,8 @@ def process_diff( expected, observed ):
 #------------------------------------------------------------------
 
 bin_name = "../../tara"
+comment_string = "#"
+clen = len( comment_string ) + 1
 
 def execute_example(fname,o):
     ops =o.split(' ')
