@@ -186,10 +186,10 @@ void wmm_event_cons::ses() {
     const auto& wrs = p.wr_events[v1];
     for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = z3.c.bool_val(false);
-      z3::expr rd_v = rd->get_var_expr(v1);
+      z3::expr rd_v = rd->get_rd_expr(v1);
       for( const hb_enc::se_ptr& wr : wrs ) {
         if( anti_ppo_read_new( wr, rd ) ) continue;
-        z3::expr wr_v = wr->get_var_expr( v1 );
+        z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
@@ -317,10 +317,10 @@ void wmm_event_cons::ses_c11() {
 
     for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = z3.mk_false(); //c.bool_val(false);
-      z3::expr rd_v = rd->get_var_expr(v1);
+      z3::expr rd_v = rd->get_rd_expr( v1 );
       for( const hb_enc::se_ptr& wr : wrs ) {
-        if( wr->tid == rd->tid && !is_po_new( wr, rd ) ) continue;
-        z3::expr wr_v = wr->get_var_expr( v1 );
+        if( wr->tid == rd->tid && ( wr==rd || !is_po_new( wr, rd ) )) continue;
+        z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );
@@ -342,10 +342,13 @@ void wmm_event_cons::ses_c11() {
             for( auto& it : p.rel_seq_map[wr] ) {
               std::string bname = std::get<0>(it);
               hb_enc::se_ptr wrp = std::get<1>(it);
-              if( is_po_new( wrp, rd ) ) continue;
+              if( is_po_new( wrp, rd ) && rd != wrp ) continue;
               z3::expr b_wrp_wr = z3.c.bool_const(  bname.c_str() );
-              rf = rf && implies( b && b_wrp_wr,
-                                  hb_encoding.mk_ghb_c11_hb( wrp, rd ) );
+              z3::expr hb_wrp_rd = z3.mk_false();
+              if( !is_po_new( rd, wrp ) && rd != wrp ) {
+                hb_wrp_rd = hb_encoding.mk_ghb_c11_hb( wrp, rd );
+              }
+              rf = rf && implies( b && b_wrp_wr, hb_wrp_rd );
             }
           }
         }
@@ -365,14 +368,15 @@ void wmm_event_cons::ses_c11() {
           // todo: write false for obvious true true hb
           z3::expr hb_wp_rd(z3.c),hb_rd_wp(z3.c),sc_wp_rd(z3.c);
           z3::expr mo_wp_w(z3.c), mo_w_wp(z3.c), sc_hb_wp_w(z3.c);
-          if( is_po_new( wrp, rd ) ) {
-            hb_wp_rd = z3.mk_true();
-            hb_rd_wp = z3.mk_false();
-            sc_wp_rd = z3.mk_true();
-          }else if( is_po_new( rd, wrp ) ) {
+          // if rd == wrp, it will work since is_po returns true
+          if( is_po_new( rd, wrp ) ) {
             hb_wp_rd = z3.mk_false();
             hb_rd_wp = z3.mk_true();
             sc_wp_rd = z3.mk_false();
+          }else if( is_po_new( wrp, rd ) ) {
+            hb_wp_rd = z3.mk_true();
+            hb_rd_wp = z3.mk_false();
+            sc_wp_rd = z3.mk_true();
           }else{
             //todo : should guard be included
             hb_wp_rd = hb_encoding.mk_hb_c11_hb( wrp, rd );
@@ -402,7 +406,7 @@ void wmm_event_cons::ses_c11() {
                      implies( b && wrp->guard && mo_wp_w, !hb_rd_wp );
           // rr coherence
           for( const hb_enc::se_ptr& rdp : rds ) {
-            if( rd == rdp ) continue;
+            if( rd == rdp || wrp == rdp ) continue;
             if( wrp->tid == rdp->tid && !is_po_new( wrp, rdp ) ) continue;
             z3::expr bp = get_rf_bvar( v1, wrp, rdp, false );
             z3::expr hb_rd_rdp(z3.c);
@@ -994,25 +998,6 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
   p.ppo_before[e] = local_ordered[e];
 }
 
-// void wmm_event_cons::update_c11_rs_heads( const hb_enc::se_vec& thread_es ) {
-//   //todo: na events have release sequence
-//   hb_enc::se_to_depends_map local_rs_head_map;
-//   for( auto& ep : thread_es ) {
-//     if( ep->is_wr() && ep->is_at_least_rls() ) {
-//       p.c11_rs_heads[ep].insert( hb_enc::depends(ep, z3.mk_true() ) );
-//     }else{
-//       std::vector<hb_enc::depends_set> ord_sets( ep->prev_events.size() );
-//       unsigned i = 0;
-//       for( auto& epp : ep->prev_events ) {
-//         z3::expr cond  =  epp->get_post_cond( ep );
-//         hb_enc::pointwise_and( p.c11_rs_heads[epp],  cond , ord_sets[i] );
-//         i++;
-//       }
-//       hb_enc::join_depends_set( ord_sets, p.c11_rs_heads[ep] );
-//     }
-//   }
-// }
-
 void wmm_event_cons::run() {
   update_orderings();
 
@@ -1107,14 +1092,14 @@ void wmm_event_cons::old_ses() {
     hb_enc::se_set tid_rds;
     for( const hb_enc::se_ptr& rd : rds ) {
       z3::expr some_rfs = z3.c.bool_val(false);
-      z3::expr rd_v = rd->get_var_expr(v1);
+      z3::expr rd_v = rd->get_rd_expr(v1);
       if( rd->tid != c_tid ) {
         tid_rds.clear();
         c_tid = rd->tid;
       }
       for( const hb_enc::se_ptr& wr : wrs ) {
         if( anti_ppo_read_old( wr, rd ) ) continue;
-        z3::expr wr_v = wr->get_var_expr( v1 );
+        z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
         z3::expr eq = ( rd_v == wr_v );

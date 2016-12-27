@@ -255,7 +255,7 @@ namespace tara {
     }
 
     void append_pre( cssa::variable g,  z3::expr val) {
-      phi_pre = phi_pre && (init_loc->get_var_expr( g) == val);
+      phi_pre = phi_pre && (init_loc->get_wr_expr( g) == val);
     }
 
     void add_event( unsigned i, hb_enc::se_ptr e );
@@ -274,6 +274,13 @@ namespace tara {
       for( auto e : es ) {
         add_event( i, e );
       }
+    }
+
+    void add_event_with_rs_heads( unsigned i, hb_enc::se_set es,
+                                  std::map< cssa::variable,
+                                            hb_enc::depends_set >& rs_hs) {
+      add_event( i, es );
+      set_c11_rs_heads( es, rs_hs );
     }
 
     void set_start_event( unsigned i, hb_enc::se_ptr e, z3::expr cond ) {

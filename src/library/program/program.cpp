@@ -133,10 +133,11 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   void program::set_c11_rs_heads( hb_enc::se_ptr e,
                                   std::map< cssa::variable,
                                             hb_enc::depends_set >& rs_heads_map ) {
-    if( is_mm_c11() ) {
+    //for read events there are no relase heads
+    if( is_mm_c11() && e->is_wr() ) {
       hb_enc::depends_set& rs_heads = rs_heads_map[e->prog_v];
-      // todo : ability to throw acception if a new model is seen
-      if( e->is_wr() && e->is_at_least_rls() ){
+      // todo : ability to throw exception if a new model is seen
+      if( e->is_at_least_rls() ) {
         rs_heads.clear(); rs_heads.insert(hb_enc::depends( e, _z3.mk_true() ));
       }
       c11_rs_heads[e] = rs_heads;

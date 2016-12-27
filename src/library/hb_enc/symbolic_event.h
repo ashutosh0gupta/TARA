@@ -60,6 +60,8 @@ namespace hb_enc {
       post  // final event
       };
 
+  std::string event_t_name( event_t et );
+
   class symbolic_event;
   typedef symbolic_event se;
   typedef std::shared_ptr<symbolic_event> se_ptr;
@@ -91,9 +93,14 @@ namespace hb_enc {
 
   public:
     unsigned tid;
-    cssa::variable v;               // variable with ssa name
-    cssa::variable prog_v;          // variable name in the program
+    cssa::variable v;            // variable with ssa name
+    cssa::variable v_copy;       // variable with ssa name
+                                 // v_copy is same as v for normal rd and wr
+                                 // only for update instruction v_copy is diff
+    cssa::variable prog_v;       // variable name in the program
     std::string loc_name;
+    cssa::variable rd_v() { return v; }
+    cssa::variable wr_v() { return v_copy; }
   private:
     unsigned topological_order;
   public:
@@ -170,6 +177,11 @@ namespace hb_enc {
       topological_order = order;
     }
 
+    inline void append_history( z3::expr f ) {
+      guard = guard && f;
+      history.push_back(f);
+    }
+
     inline z3::expr get_solver_symbol() const {
       return *e_v;
     }
@@ -214,14 +226,17 @@ namespace hb_enc {
 
     void set_data_dependency( const hb_enc::depends_set& deps );
     void set_ctrl_dependency( const hb_enc::depends_set& deps );
+    void set_dependencies( const hb_enc::depends_set& data,
+                           const hb_enc::depends_set& ctrl );
 
-    friend std::ostream& operator<< (std::ostream& stream,
-                                     const symbolic_event& var) {
+    friend std::ostream& operator<< ( std::ostream& stream,
+                                      const symbolic_event& var ) {
       stream << var.name();
       return stream;
     }
     void debug_print(std::ostream& stream );
-    z3::expr get_var_expr(const cssa::variable&);
+    z3::expr get_rd_expr(const cssa::variable&);
+    z3::expr get_wr_expr(const cssa::variable&);
   };
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;

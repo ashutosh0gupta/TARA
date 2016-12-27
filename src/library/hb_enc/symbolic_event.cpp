@@ -30,6 +30,21 @@ using namespace std;
 //----------------------------------------------------------------------------
 // utilities for symbolic events
 
+std::string hb_enc::event_t_name( event_t et ) {
+    switch( et) {
+    case event_t::pre   : return "pre"  ; break;
+    case event_t::r     : return "R"    ; break;
+    case event_t::w     : return "W"    ; break;
+    case event_t::u     : return "U"    ; break;
+    case event_t::barr  : return "barr" ; break;
+    case event_t::barr_b: return "barr_b" ; break;
+    case event_t::barr_a: return "barr_a" ; break;
+    case event_t::block : return "block"; break;
+    case event_t::post  : return "post" ; break;
+    default: hb_enc_error( "name of the event type is not implemented yet!" );
+    }
+}
+
 
 std::shared_ptr<tara::hb_enc::location>
 symbolic_event::create_internal_event( helpers::z3interf& z3,
@@ -58,18 +73,23 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 std::string _loc, event_t _et )
   : tid(_tid)
   , v(_v)
+  , v_copy(_v)
   , prog_v( _prog_v )
   , loc_name(_loc)
   , et( _et )
   , prev_events( _prev_events )
   , guard(z3.c)
 {
-  if( et != event_t::r &&  event_t::w != et ) {
+  if( et != event_t::r &&  et != event_t::w &&  et != event_t::u ) {
     throw hb_enc_exception("symboic event with wrong parameters!");
   }
-  bool is_read = (et == event_t::r); // || event_t::f == et);
-  std::string et_name = is_read ? "R" : "W";
-  std::string e_name = et_name + "#" + v.name;
+  if( et == event_t::u ) {
+    v_copy = v + "#update_wr";
+  }
+  // bool is_read = (et == event_t::r);
+  // std::string et_name = is_read ? "R" : "W";
+  // std::string e_name = et_name + "#" + v.name;
+  std::string e_name = hb_enc::event_t_name( et ) + "#" + v.name;
   e_v = create_internal_event(   z3,            e_name,tid,instr_no,false);
   thin_v = create_internal_event(z3,"__thin__" +e_name,tid,instr_no,false);
   c11_hb_v=create_internal_event(z3,"__hb__"   +e_name,tid,instr_no,false);
@@ -85,22 +105,24 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 std::string _loc, event_t _et )
   : tid(_tid)
   , v("dummy",z3.c)
+  , v_copy("dummy",z3.c)
   , prog_v( "dummy",z3.c)
   , loc_name(_loc)
   , et( _et )
   , prev_events( _prev_events )
   , guard(z3.c)
 {
-  std::string e_name;
-  switch( et ) {
-  case event_t::barr  : { e_name = "barr#";   break; }
-  case event_t::barr_b: { e_name = "barr_b#"; break; }
-  case event_t::barr_a: { e_name = "barr_a#"; break; }
-  case event_t::pre   : { e_name = "pre#" ;   break; }
-  case event_t::post  : { e_name = "post#";   break; }
-  default: hb_enc_exception("unreachable code!!");
-  }
-  e_name = e_name+loc_name;
+  // std::string e_name;
+  // switch( et ) {
+  // case event_t::barr  : { e_name = "barr#";   break; }
+  // case event_t::barr_b: { e_name = "barr_b#"; break; }
+  // case event_t::barr_a: { e_name = "barr_a#"; break; }
+  // case event_t::pre   : { e_name = "pre#" ;   break; }
+  // case event_t::post  : { e_name = "post#";   break; }
+  // default: hb_enc_exception("unreachable code!!");
+  // }
+  // e_name = e_name+loc_name;
+  std::string e_name = hb_enc::event_t_name( et ) + "#" + loc_name;
   e_v = create_internal_event    (z3,            e_name,tid,instr_no,true);
   thin_v = create_internal_event (z3, "__thin__"+e_name,tid,instr_no,true);
   c11_hb_v =create_internal_event(z3, "__hb__"  +e_name,tid,instr_no,true);
@@ -111,11 +133,27 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
   update_topological_order();
 }
 
-z3::expr symbolic_event::get_var_expr( const cssa::variable& g ) {
-  assert( et == event_t::r   || et == event_t::w    ||
-          et == event_t::pre || et == event_t::post );
-  if( et == event_t::r || et == event_t::w ) {
+z3::expr symbolic_event::get_rd_expr( const cssa::variable& g ) {
+  assert( et == event_t::r   || et == event_t::u || et == event_t::post );
+  if( et == event_t::r || et == event_t::u ) {
     z3::expr v_expr = (z3::expr)(v);
+    return v_expr;
+  }
+  cssa::variable tmp_v = g+"#post";
+  // cssa::variable tmp_v(g.sort.ctx());
+  // switch( et ) {
+  // // case event_t::barr: { tmp_v = g+"#barr";  break; }
+  // case event_t::pre : { tmp_v = g+"#pre" ;  break; }
+  // case event_t::post: { tmp_v = g+"#post";  break; }
+  // default: hb_enc_exception("unreachable code!!");
+  // }
+  return (z3::expr)(tmp_v);
+}
+
+z3::expr symbolic_event::get_wr_expr( const cssa::variable& g ) {
+  assert( et == event_t::u   || et == event_t::w || et == event_t::pre );
+  if( et == event_t::w || et == event_t::u ) {
+    z3::expr v_expr = (z3::expr)(v_copy);
     return v_expr;
   }
   cssa::variable tmp_v(g.sort.ctx());
@@ -157,6 +195,12 @@ void symbolic_event::set_ctrl_dependency( const hb_enc::depends_set& deps ) {
   ctrl_dependency.insert( deps.begin(), deps.end() );
 }
 
+void symbolic_event::set_dependencies( const hb_enc::depends_set& data,
+                                       const hb_enc::depends_set& ctrl ) {
+  set_data_dependency( data );
+  set_ctrl_dependency( ctrl );
+}
+
 void symbolic_event::debug_print( std::ostream& stream ) {
   stream << *this << "\n";
   if( et == event_t::r || et == event_t::w ) {
@@ -171,7 +215,8 @@ void symbolic_event::debug_print( std::ostream& stream ) {
 // todo: enable memoization
 //----------------------
 bool tara::hb_enc::is_po_new( const se_ptr& x, const se_ptr& y ) {
-  if( x == y ) return true;
+  if( x == y )
+    return true;
   if( x->is_pre() || y->is_post() ) return true;
   if( x->is_post() || y->is_pre() ) return false;
   if( x->tid != y->tid ) return false;

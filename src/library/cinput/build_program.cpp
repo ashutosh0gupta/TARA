@@ -187,12 +187,21 @@ void split_history_to_exprs( const split_history& h,
 //   // return loc_expr;
 // }
 
+//todo: this function returns object not reference too bad programming
+//
 hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
   if( llvm::isa<llvm::Constant>(op) ) {
     hb_enc::depends_set data_dep;
     return data_dep; }
   else {
     return local_map.at(op); }
+}
+
+void build_program::join_depends( const llvm::Value* op1,const llvm::Value* op2,
+                                  hb_enc::depends_set& result ) {
+  hb_enc::depends_set dep_ses0 = get_depends( op1 );
+  hb_enc::depends_set dep_ses1 = get_depends( op2 );
+  hb_enc::join_depends_set( dep_ses0, dep_ses1, result );
 }
 
 hb_enc::depends_set build_program::get_ctrl( const llvm::BasicBlock* b ) {
@@ -338,13 +347,12 @@ translateBlock( unsigned thr_id,
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              history, gv, loc_name, hb_enc::event_t::w,
                              translate_ordering_tags( store->getOrdering()) );
-        // wr->o_tag = ;
         new_events.insert( wr );
         const auto& data_dep_set = get_depends( store->getOperand(0) );
-        local_map.insert( std::make_pair( I, data_dep_set ));
+        // local_map.insert( std::make_pair( I, data_dep_set ));//todo: why need this ~~~ should be deleted
 	wr->set_data_dependency( data_dep_set );
 	wr->set_ctrl_dependency( get_ctrl(b) );
-	block_ssa = block_ssa && ( wr->v == val );
+	block_ssa = block_ssa && ( wr->wr_v() == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
           cinput_error( "non pointer dereferenced!" );
@@ -357,7 +365,7 @@ translateBlock( unsigned thr_id,
           auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,
                                history, gv, loc_name, hb_enc::event_t::w,
                                translate_ordering_tags( store->getOrdering()));
-          block_ssa = block_ssa && implies( c , ( wr->v == val ) );
+          block_ssa = block_ssa && implies( c , ( wr->wr_v() == val ) );
           new_events.insert( wr);
         }
         if( points_to.at(addr).has_null() ) {
@@ -383,12 +391,10 @@ translateBlock( unsigned thr_id,
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r,
                                translate_ordering_tags( load->getOrdering()) );
-          // todo: << replace path cond ~> true??
-          // local_map[I].insert( hb_enc::depends( rd, path_cond ) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
           new_events.insert( rd );
-          block_ssa = block_ssa && ( rd->v == l_v);
+          block_ssa = block_ssa && ( rd->rd_v() == l_v);
         }else{
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
             cinput_error( "non pointer dereferenced!" );
@@ -401,7 +407,7 @@ translateBlock( unsigned thr_id,
                                  history, gv, loc_name, hb_enc::event_t::r,
                                  translate_ordering_tags( load->getOrdering()));
             // rd->o_tag = translate_ordering_tags( load->getOrdering());
-            block_ssa = block_ssa && implies( c , ( rd->v == l_v ) );
+            block_ssa = block_ssa && implies( c , ( rd->rd_v() == l_v ) );
             new_events.insert( rd );
           }
           if( points_to.at(addr).has_null() ) {
@@ -453,19 +459,20 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-      hb_enc::depends_set dep_ses0 = get_depends( op0 );
-      hb_enc::depends_set dep_ses1 = get_depends( op1 );
-      hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
+      // hb_enc::depends_set dep_ses0 = get_depends( op0 );
+      // hb_enc::depends_set dep_ses1 = get_depends( op1 );
+      // hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
+      join_depends( op0, op1, local_map[I] );
       assert( !recognized );recognized = true;
     }
 
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
-      llvm::Value* lhs = cmp->getOperand( 0 );
-      llvm::Value* rhs = cmp->getOperand( 1 );
-      z3::expr l = getTerm( lhs, m );
-      z3::expr r = getTerm( rhs, m );
-      llvm::CmpInst::Predicate pred = cmp->getPredicate();
+      llvm::Value* lhs = cmp->getOperand( 0 ),* rhs = cmp->getOperand( 1 );
+      // llvm::Value* rhs = cmp->getOperand( 1 );
+      z3::expr l = getTerm( lhs, m ), r = getTerm( rhs, m );
+      // z3::expr r = getTerm( rhs, m );
 
+      llvm::CmpInst::Predicate pred = cmp->getPredicate();
       switch( pred ) {
       case llvm::CmpInst::ICMP_EQ  : insert_term_map( I, l==r, m ); break;
       case llvm::CmpInst::ICMP_NE  : insert_term_map( I, l!=r, m ); break;
@@ -481,9 +488,10 @@ translateBlock( unsigned thr_id,
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
-      hb_enc::depends_set dep_ses0 = get_depends( lhs );
-      hb_enc::depends_set dep_ses1 = get_depends( rhs );
-      hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
+      // hb_enc::depends_set dep_ses0 = get_depends( lhs );
+      // hb_enc::depends_set dep_ses1 = get_depends( rhs );
+      // hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
+      join_depends( lhs, rhs, local_map[I] );
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
@@ -598,7 +606,88 @@ translateBlock( unsigned thr_id,
       }
       assert( !recognized );recognized = true;
     }
-    if( !recognized ) cinput_error( "----- failed to recognize!!");
+
+    if( auto rmw = llvm::dyn_cast<llvm::AtomicRMWInst>(I) ) {
+      std::string loc_name = getInstructionLocationName( I );
+
+      const llvm::Value* addr = rmw->getPointerOperand();
+      if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
+        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        auto up = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                             history, gv, loc_name, hb_enc::event_t::u,
+                             translate_ordering_tags( rmw->getOrdering()) );
+        z3::expr wr_v = getTerm( rmw->getValOperand(), m );
+        z3::expr rd_v = getTerm( I, m );
+        switch( rmw->getOperation() ) {
+        case llvm::AtomicRMWInst::BinOp::Xchg: break;
+        case llvm::AtomicRMWInst::BinOp::Add : wr_v = up->rd_v() + wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Sub : wr_v = up->rd_v() - wr_v; break;
+          // Unsupported
+        case llvm::AtomicRMWInst::BinOp::And : wr_v = up->rd_v() && wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Nand:wr_v= !(up->rd_v() && wr_v);break;
+        case llvm::AtomicRMWInst::BinOp::Or  : wr_v = up->rd_v() || wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Xor :
+        case llvm::AtomicRMWInst::BinOp::Max :
+        case llvm::AtomicRMWInst::BinOp::Min :
+        case llvm::AtomicRMWInst::BinOp::UMax:
+        case llvm::AtomicRMWInst::BinOp::UMin:
+        default:
+          cinput_error( "unspported atomic rmw operation");
+        }
+	block_ssa = block_ssa && (up->rd_v() == rd_v) && (up->wr_v() == wr_v);
+
+        local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
+        up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b) );
+        prev_events = { up };
+        p->add_event_with_rs_heads( thr_id, prev_events, local_release_heads[b] );
+      }else{ cinput_error( "atomic rmw is not supported on pointers!"); }
+
+      // prev_events.clear(); prev_events.insert( up );
+      // p->add_event( thr_id, prev_events );
+      // p->set_c11_rs_heads( prev_events, local_release_heads[b] );
+
+      assert( !recognized );recognized = true;
+    }
+    if( auto xchg = llvm::dyn_cast<llvm::AtomicCmpXchgInst>(I) ) {
+      assert( !xchg->isWeak() ); //todo: semantics of weak xchg is not clear!!
+      std::string loc_name = getInstructionLocationName( I );
+      const llvm::Value* addr = xchg->getPointerOperand();
+      if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
+        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        z3::expr cmp_v = getTerm( xchg->getCompareOperand(), m );
+        z3::expr new_v = getTerm( xchg->getNewValOperand(), m );
+        // fail event
+        auto rd=mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                           history, gv, loc_name, hb_enc::event_t::r,
+                           translate_ordering_tags(xchg->getFailureOrdering()));
+        rd->append_history( rd->rd_v() != cmp_v );
+        rd->set_dependencies( get_depends( xchg->getCompareOperand() ), get_ctrl(b));
+        // success event
+        auto up=mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                           history, gv, loc_name, hb_enc::event_t::u,
+                           translate_ordering_tags(xchg->getSuccessOrdering()));
+        up->append_history( up->rd_v() == cmp_v );
+        hb_enc::depends_set dep;
+        join_depends( xchg->getCompareOperand(), xchg->getNewValOperand(), dep);
+        rd->set_dependencies( dep, get_ctrl(b) );
+        prev_events = { rd, up };
+        p->add_event_with_rs_heads(thr_id, prev_events, local_release_heads[b]);
+        // join event
+        auto blk = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                              history, loc_name, hb_enc::event_t::block,
+                              branch_conds );
+        prev_events = { blk };
+        p->add_event(thr_id, prev_events);
+        block_ssa = block_ssa &&
+          (((up->rd_v() ==cmp_v)&&(up->wr_v() == new_v))||(rd->rd_v() !=cmp_v));
+      }else{
+        cinput_error( "Pointers are not supported in atomoic xchg!!");
+      }
+
+      assert( !recognized );recognized = true;
+    }
+
+    if( !recognized ) cinput_error( "----- instruction failed to recognize!!");
   }
   split_step ss( NULL, 0, 0, join_conds);
   block_to_split_stack.at(b).push_back( ss );

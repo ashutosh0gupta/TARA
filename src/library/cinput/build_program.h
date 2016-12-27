@@ -151,6 +151,9 @@ namespace cinput {
                          );
 
    hb_enc::depends_set get_depends( const llvm::Value* op );
+    void join_depends( const llvm::Value* op1,const llvm::Value* op2,
+                       hb_enc::depends_set& result );
+
    hb_enc::depends_set get_ctrl( const llvm::BasicBlock* b);
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
