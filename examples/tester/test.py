@@ -22,38 +22,38 @@ import argparse
 known_files=[ '../locks.ctrc',
               '../wmm-simple.ctrc',
               '../wmm-simple-fence.ctrc',
-              '../litmus/wmm-litmus-mp.ctrc',
-              '../litmus/wmm-litmus-mp-s.ctrc',
-              '../litmus/wmm-litmus-mp-10-var.ctrc',
-              '../litmus/wmm-litmus-wrc.ctrc',
-              '../litmus/wmm-litmus-wwc.ctrc',
-              '../litmus/wmm-litmus-rwc.ctrc',
-              '../litmus/wmm-litmus-isa2.ctrc',
-              '../litmus/wmm-litmus-sb.ctrc',
-              '../litmus/wmm-litmus-sb-2+2w.ctrc',
-              '../litmus/wmm-litmus-sb-3-thread.ctrc',
-              '../litmus/wmm-litmus-sb-r.ctrc',
-              '../litmus/wmm-litmus-iriw.ctrc',
-              '../litmus/wmm-litmus-sb-redundant.ctrc',
-              '../litmus/wmm-litmus-sb-3-thread.ctrc',
-              '../litmus/wmm-litmus-corr0.ctrc',
-              '../litmus/wmm-litmus-corr2.ctrc',
-              '../litmus/wmm-litmus-corw1.ctrc',
-              '../litmus/wmm-litmus-coww.ctrc',
-              '../litmus/wmm-litmus-corr1.ctrc',
-              '../litmus/wmm-litmus-corw.ctrc',
-              '../litmus/wmm-litmus-cowr.ctrc',
-              '../litmus/wmm-litmus-cow3r.ctrc',
-              '../litmus/wmm-litmus-lb-ctrl.ctrc',
-              '../litmus/wmm-litmus-lb-data.ctrc',
-              '../litmus/wmm-litmus-lb.ctrc',
-              '../litmus/wmm-litmus-irrwiw.ctrc',
-	      '../litmus/wmm-litmus-wrw+wr.ctrc',
-	      '../litmus/wmm-litmus-wrw+2w.ctrc',
-	      '../litmus/wmm-litmus-wrr+2w.ctrc',
-	      '../litmus/wmm-litmus-irwiw.ctrc',
-	      '../litmus/wmm-litmus-rfi-pso.ctrc',
-	      '../litmus/wmm-litmus-thin.ctrc',
+              '../litmus/mp.ctrc',
+              '../litmus/mp-s.ctrc',
+              '../litmus/mp-10-var.ctrc',
+              '../litmus/wrc.ctrc',
+              '../litmus/wwc.ctrc',
+              '../litmus/rwc.ctrc',
+              '../litmus/isa2.ctrc',
+              '../litmus/sb.ctrc',
+              '../litmus/sb-2+2w.ctrc',
+              '../litmus/sb-3-thread.ctrc',
+              '../litmus/sb-r.ctrc',
+              '../litmus/iriw.ctrc',
+              '../litmus/sb-redundant.ctrc',
+              '../litmus/sb-3-thread.ctrc',
+              '../litmus/corr0.ctrc',
+              '../litmus/corr2.ctrc',
+              '../litmus/corw1.ctrc',
+              '../litmus/coww.ctrc',
+              '../litmus/corr1.ctrc',
+              '../litmus/corw.ctrc',
+              '../litmus/cowr.ctrc',
+              '../litmus/cow3r.ctrc',
+              '../litmus/lb-ctrl.ctrc',
+              '../litmus/lb-data.ctrc',
+              '../litmus/lb.ctrc',
+              '../litmus/irrwiw.ctrc',
+	      '../litmus/wrw+wr.ctrc',
+	      '../litmus/wrw+2w.ctrc',
+	      '../litmus/wrr+2w.ctrc',
+	      '../litmus/irwiw.ctrc',
+	      '../litmus/rfi-pso.ctrc',
+	      '../litmus/thin.ctrc',
               '../wmm-rmo-reduction.ctrc',
               '../wmm-fib-1.ctrc',
               '../wmm-fib-2.ctrc',
@@ -115,11 +115,23 @@ def process_diff( expected, observed ):
         for l in range( minlen-1, len( ob_list )-1 ):
             printf( "%d,0 \t: + %s\n", l+1, ob_list[l])
 
+comment_string = "#"
+clen = len( comment_string ) + 1
+
+def set_comment_string( fname ):
+    global comment_string
+    global clen
+    if fname[-5:] == ".ctrc": 
+        comment_string = "#"
+    elif fname[-2:] == ".c" or fname[-4:] == ".cpp":
+        comment_string = "//"
+    else:
+        raise ValueError('unrecognized file type: ' + fname)
+    clen = len( comment_string ) + 1
+
 #------------------------------------------------------------------
 
 bin_name = "../../tara"
-comment_string = "#"
-clen = len( comment_string ) + 1
 
 def execute_example(fname,o):
     ops =o.split(' ')
@@ -153,22 +165,23 @@ class example:
             started = False
             for line in f:
                 if started:
-                    if line[:2] == '#~' :
+                    if line[:clen] == comment_string +'~' :
                         self.populate_runs( options, output)
                         options = []
                         output = ''
                         started = False
-                    elif line[:2] == '##' :
+                    elif line[:clen] == comment_string + '#' :
                         output += line[2:]
                 else:
-                    if line[:2] == '#!':
+                    if line[:clen] == comment_string + '!':
                         options.append( line[2:-1] )
-                    if line[:2] == '#~' :
+                    if line[:clen] == comment_string + '~' :
                         started = True
             if( not args.suppress ):
                 printf( "\n" )
 
     def __init__( self, fname ):
+        set_comment_string( fname )
         self.filename = fname
         self.count = 0
         self.load_running_cases()
@@ -178,15 +191,15 @@ class example:
 
 if args.update:
     for filename in files:
+        set_comment_string( filename )
         options = []
         with open(filename, 'r') as f:
             for line in f:
-                if line[:2] == '#!':
-                    options.append( line[2:-1] )
+                if line[:clen] == comment_string + '!':
+                    options.append( line[clen:-1] )
     
         with open( filename, "a") as myfile:
-            myfile.write( "\n######## ERASE TESTS ABOVE #######\n" )
-
+            myfile.write( "\n" + comment_string + "####### ERASE TESTS ABOVE #######\n" )
         for o in options:
             printf( "%s\n", o )
             ops =o.split(' ')

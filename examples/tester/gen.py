@@ -17,23 +17,29 @@ l = len(sys.argv)
 
 fname = sys.argv[l-1]
 
+if fname[-5:] == ".ctrc": 
+    comment_string = "#"
+else:
+    comment_string = "//"
+
+clen = len( comment_string ) + 1
+
+
 call_options =sys.argv[1:]
 
 bin_name = "../../tara"
 output = check_output([bin_name]+call_options)
 outs = output.split('\n')
 
+line = "###############################################\n"
+
 opt_string = ' '.join(call_options[:-1])
 fname = call_options[-1]
 with open( fname, "a") as myfile:
-    myfile.write( "\n################################################\n" )
-    myfile.write( "#!" )
-    myfile.write( opt_string )
-    myfile.write( "\n" )
-    myfile.write("################################################\n")
-    myfile.write("#~\n")
+    myfile.write( "\n" + comment_string + line )
+    myfile.write( comment_string + "!" + opt_string + "\n" )
+    myfile.write( comment_string + line )
+    myfile.write(comment_string + "~\n")
     for s in outs[:-1]:
-        myfile.write( "##" )
-        myfile.write( s )
-        myfile.write( "\n" )
-    myfile.write( "#~\n\n" )
+        myfile.write( comment_string + "#" +  s + "\n" )
+    myfile.write( comment_string + "~\n\n" )
