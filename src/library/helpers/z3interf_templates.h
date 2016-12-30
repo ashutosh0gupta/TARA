@@ -23,8 +23,8 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     for( auto t1 = triggers.begin(); t1 != triggers.end(); t1++ ) {
       assertions.push_back(*t1);
     }
-    // if( sol.check(assertions) != z3::unsat )
-    //   tara_error( "::min_unsat", "input is not unsat" );
+    if( sol.check(assertions) != z3::unsat )
+      tara_error( "::min_unsat", "input is not unsat" );
   }
 #endif // NDEBUG
   
