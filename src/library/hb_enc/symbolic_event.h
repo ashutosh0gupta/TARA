@@ -32,7 +32,50 @@
 namespace tara{
 namespace hb_enc {
 
-  class location;
+struct location {
+private:
+  z3::expr expr; // ensure this one is not visible from the outside
+  uint16_t _serial;
+  
+  friend class hb_enc::integer;
+public:
+  location(location& ) = delete;
+  location& operator=(location&) = delete;
+  location(z3::context& ctx, std::string name ,bool special = false);
+
+  std::string name;
+  /**
+   * @brief True if this is a special location
+   * 
+   * This means the location is not actualy in the program, but the start symbol and the like
+   */
+  bool special;  //todo: rename to a meaningful name
+  int thread; // number of the thread of this location
+  int instr_no; // number of this instruction
+  /**
+   * @brief The previous location in the same thread
+   * 
+   */
+  std::weak_ptr<hb_enc::location const> prev;
+  /**
+   * @brief The next location in the same thread
+   * 
+   */
+  std::weak_ptr<hb_enc::location const> next;
+  
+  
+  bool operator==(const location &other) const;
+  bool operator!=(const location &other) const;
+  operator z3::expr () const;
+  uint16_t serial() const;
+  
+  friend std::ostream& operator<< (std::ostream& stream, const location& loc);
+  friend std::ostream& operator<< (std::ostream& stream, const std::shared_ptr<hb_enc::location const>& loc);
+  
+  void debug_print(std::ostream& stream );
+};
+
+  // class location;
 
   //todo: the following two enums must be merged
 
@@ -124,9 +167,10 @@ namespace hb_enc {
     depends_set data_dependency;
     depends_set ctrl_dependency;
 
-    inline std::string name() const {
-      return e_v->name;
-    }
+    std::string name() const;
+    // inline std::string name() const {
+    //   return e_v->name;
+    // }
 
     inline bool is_pre()            const { return et == event_t::pre;    }
     inline bool is_rd()             const { return et == event_t::r ||
@@ -164,9 +208,11 @@ namespace hb_enc {
       return is_acq() || is_rlsacq() || is_sc();
     }
 
-    inline unsigned get_instr_no() const {
-      return e_v->instr_no;
-    }
+    unsigned get_instr_no() const;
+
+    // inline unsigned get_instr_no() const {
+    //   return e_v->instr_no;
+    // }
 
     inline unsigned get_topological_order() const {
       return topological_order;
@@ -182,25 +228,31 @@ namespace hb_enc {
       history.push_back(f);
     }
 
-    inline z3::expr get_solver_symbol() const {
-      return *e_v;
-    }
+    z3::expr get_solver_symbol() const;
+    z3::expr get_thin_solver_symbol() const;
+    z3::expr get_c11_hb_solver_symbol() const;
+    z3::expr get_c11_mo_solver_symbol() const;
+    z3::expr get_c11_sc_solver_symbol() const;
 
-    inline z3::expr get_thin_solver_symbol() const {
-      return *thin_v;
-    }
+    // inline z3::expr get_solver_symbol() const {
+    //   return *e_v;
+    // }
 
-    inline z3::expr get_c11_hb_solver_symbol() const {
-      return *get_c11_hb_stamp();
-    }
+    // inline z3::expr get_thin_solver_symbol() const {
+    //   return *thin_v;
+    // }
 
-    inline z3::expr get_c11_mo_solver_symbol() const {
-      return *get_c11_mo_stamp();
-    }
+    // inline z3::expr get_c11_hb_solver_symbol() const {
+    //   return *get_c11_hb_stamp();
+    // }
 
-    inline z3::expr get_c11_sc_solver_symbol() const {
-      return *get_c11_sc_stamp();
-    }
+    // inline z3::expr get_c11_mo_solver_symbol() const {
+    //   return *get_c11_mo_stamp();
+    // }
+
+    // inline z3::expr get_c11_sc_solver_symbol() const {
+    //   return *get_c11_sc_stamp();
+    // }
 
 
     inline std::shared_ptr<tara::hb_enc::location> get_c11_hb_stamp() const {
@@ -326,14 +378,15 @@ namespace hb_enc {
 
   struct se_hash {
     size_t operator () (const se_ptr &v) const {
-      return std::hash<std::string>()(v->e_v->name);
+      // return std::hash<std::string>()(v->e_v->name);
+      return std::hash<std::string>()(v->name());
     }
   };
 
   struct se_equal :
     std::binary_function <symbolic_event,symbolic_event,bool> {
     bool operator() (const se_ptr& x, const se_ptr& y) const {
-      return std::equal_to<std::string>()(x->e_v->name, y->e_v->name);
+      return std::equal_to<std::string>()(x->name(), y->name());
     }
   };
 
@@ -398,8 +451,8 @@ namespace hb_enc {
   inline bool is_po_old( const se_ptr& x, const se_ptr& y ) {
     if( x == y ) return true;
     if( x->tid != y->tid ) return false;
-    if( x->e_v->instr_no < y->e_v->instr_no ) return true;
-    if( x->e_v->instr_no == y->e_v->instr_no && x->is_rd() && y->is_wr() )
+    if( x->get_instr_no() < y->get_instr_no() ) return true;
+    if( x->get_instr_no() == y->get_instr_no() && x->is_rd() && y->is_wr() )
       return true;
     return false;
   }

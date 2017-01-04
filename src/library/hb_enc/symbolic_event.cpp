@@ -20,12 +20,84 @@
 #include "hb_enc/symbolic_event.h"
 #include "hb_enc/encoding.h"
 #include "hb_enc/hb_enc_exception.h"
+#include "hb_enc/hb.h"
 
 using namespace tara;
 using namespace tara::hb_enc;
 using namespace tara::helpers;
 
 using namespace std;
+
+
+/*************************
+ * location
+ *************************/
+  
+location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
+
+bool location::operator==(const location &other) const {
+  // if expr is empty fall back to name
+  if ((Z3_ast)this->expr==0) 
+    return this->name == other.name;
+  else
+    return (Z3_ast)this->expr == (Z3_ast)other.expr;
+}
+
+bool location::operator!=(const location &other) const {
+  return !(*this == other);
+}
+
+location::operator z3::expr () const {
+  return expr;
+}
+
+uint16_t location::serial() const
+{
+  return _serial;
+}
+
+string tara::hb_enc::to_string(const location& loc) {
+  string res = loc.name;
+  return res;
+}
+
+
+string get_var_from_location (location_ptr loc) {
+  string res = loc->name;
+  unsigned i;
+  for(i=2;i!=res.length();i++) {
+    if(res[i]=='#') {
+      res=res.substr(2,i-2);
+      break;
+    }
+  }
+  return res;
+}
+
+
+ostream& tara::hb_enc::operator<< (ostream& stream, const location& loc) {
+  stream << to_string(loc);
+  return stream;
+}
+
+ostream& tara::hb_enc::operator<< (ostream& stream, const location_ptr& loc) {
+  stream << *loc;
+  return stream;
+}
+
+string operator+ (const string& lhs, const location_ptr& rhs) {
+  return lhs + to_string(*rhs);
+}
+
+ostream& tara::hb_enc::operator<< ( ostream& stream,
+                                    const location_pair& loc_pair)
+{
+  stream << loc_pair.first << "-" << loc_pair.second;
+  return stream;
+}
+
+void location::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
+
 
 //----------------------------------------------------------------------------
 // utilities for symbolic events
@@ -57,6 +129,35 @@ symbolic_event::create_internal_event( helpers::z3interf& z3,
 
   return e_v;
 }
+
+std::string symbolic_event::name() const {
+  return e_v->name;
+}
+
+unsigned symbolic_event::get_instr_no() const {
+  return e_v->instr_no;
+}
+
+z3::expr symbolic_event::get_solver_symbol() const {
+  return *e_v;
+}
+
+z3::expr symbolic_event::get_thin_solver_symbol() const {
+  return *thin_v;
+}
+
+z3::expr symbolic_event::get_c11_hb_solver_symbol() const {
+  return *get_c11_hb_stamp();
+}
+
+z3::expr symbolic_event::get_c11_mo_solver_symbol() const {
+  return *get_c11_mo_stamp();
+}
+
+z3::expr symbolic_event::get_c11_sc_solver_symbol() const {
+  return *get_c11_sc_stamp();
+}
+
 
 void symbolic_event::update_topological_order() {
   unsigned max = 0;

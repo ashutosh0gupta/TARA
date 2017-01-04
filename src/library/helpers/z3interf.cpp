@@ -272,6 +272,16 @@ vector< expr > z3interf::decompose(expr conj, Z3_decl_kind kind)
   return result;
 }
 
+bool z3interf::is_bool_const( z3::expr b ) {
+  if( !b.is_bool() || b.kind() != Z3_APP_AST ) return false;
+  return b.num_args() == 0;
+}
+
+std::string z3interf::get_top_func_name( z3::expr b ) {
+  assert( b.kind() == Z3_APP_AST );
+  z3::func_decl d = b.decl();
+  return d.name().str();
+}
 
 z3::expr z3interf::get_fresh_bool( std::string suff ) {
   static unsigned count = 0;

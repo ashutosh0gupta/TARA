@@ -119,8 +119,11 @@ public:
   bool is_sat( z3::expr ) const;
   bool entails( z3::expr e1, z3::expr e2 ) const;
 
+  bool is_bool_const( z3::expr );
+  std::string get_top_func_name( z3::expr b );
+
   template <class value>
-  static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate);
+  static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate, bool potentially_input_sat = false);
   template <class value>
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
   z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );

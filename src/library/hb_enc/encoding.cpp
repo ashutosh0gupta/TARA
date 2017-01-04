@@ -20,178 +20,13 @@
 
 #include "encoding.h"
 #include "symbolic_event.h"
+#include "hb.h"
 #include <boost/iterator/iterator_concepts.hpp>
 
 using namespace std;
 
 namespace tara {
 namespace hb_enc {
-
-/*************************
- * location
- *************************/
-  
-location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
-
-bool location::operator==(const location &other) const {
-  // if expr is empty fall back to name
-  if ((Z3_ast)this->expr==0) 
-    return this->name == other.name;
-  else
-    return (Z3_ast)this->expr == (Z3_ast)other.expr;
-}
-
-bool location::operator!=(const location &other) const {
-  return !(*this == other);
-}
-
-location::operator z3::expr () const {
-  return expr;
-}
-
-uint16_t location::serial() const
-{
-  return _serial;
-}
-
-string to_string (const location& loc) {
-  string res = loc.name;
-  return res;
-}
-
-
-string get_var_from_location (location_ptr loc) {
-  string res = loc->name;
-unsigned i;
-  for(i=2;i!=res.length();i++)
-  {
-
-	  if(res[i]=='#')
-	  {
-		  res=res.substr(2,i-2);
-		  break;
-	  }
-  }
-
-  return res;
-}
-
-
-ostream& operator<< (ostream& stream, const location& loc) {
-  stream << to_string(loc);
-  return stream;
-}
-
-ostream& operator<< (ostream& stream, const location_ptr& loc) {
-  stream << *loc;
-  return stream;
-}
-
-string operator+ (const string& lhs, const location_ptr& rhs) {
-  return lhs + to_string(*rhs);
-}
-
-ostream& operator<< (ostream& stream, const location_pair& loc_pair) {
-  stream << loc_pair.first << "-" << loc_pair.second;
-  return stream;
-}
-
-void location::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
-
-/*************************
- * hb
- *************************/
-
-hb::operator z3::expr () const {
-  return expr;
-}
-
-  z3::expr hb::get_guarded_forbid_expr() {
-    return implies( e1->guard && e2->guard, !expr );
-  }
-
-hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
-  loc1(location1), loc2(location2), expr(expr)
-{
-  _signature = loc1->serial();
-  _signature <<= 16;
-  _signature |= loc2->serial();
-}
-
-  //the following allocator is not in use
-hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
-  e1( e1_), e2( e2_), loc1(e1->e_v), loc2(e2->e_v),
-  is_neg( false ), is_partial( false ),
-  expr(expr)
-{
-  _signature = loc1->serial();
-  _signature <<= 16;
-  _signature |= loc2->serial();
-}
-
-hb::hb( se_ptr e1_, location_ptr l1_,
-        se_ptr e2_, location_ptr l2_, z3::expr expr,
-        bool is_neg ):
-  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
-  is_neg( is_neg ), is_partial( false ),
-  expr(expr)
-{
-  _signature = loc1->serial();
-  _signature <<= 16;
-  _signature |= loc2->serial();
-}
-
-
-hb::hb( se_ptr e1_, location_ptr l1_,
-        se_ptr e2_, location_ptr l2_, z3::expr expr,
-        bool is_neg, bool is_partial ):
-  e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
-  is_neg(is_neg) , is_partial( is_partial ),
-  expr(expr)
-{
-  _signature = loc1->serial();
-  _signature <<= 16;
-  _signature |= loc2->serial();
-}
-
-uint32_t hb::signature()
-{
-  return _signature;
-}
-
-bool hb::operator==(const hb& other) const
-{
-  return _signature == other._signature;
-}
-
-bool hb::operator!=(const hb &other) const {
-  return !(*this == other);
-}
-
-bool operator< (const hb& hb1, const hb& hb2)
-{
-  return hb1.loc1->name < hb2.loc1->name ||
-    ( hb1.loc1->name ==  hb2.loc1->name &&
-      hb1.loc2->name < hb2.loc2->name );
-}
-
-ostream& operator<< (std::ostream& stream, const hb& hb) {
-  if( hb.is_partial && hb.is_neg )
-    stream << "!hb(" << hb.e2->name() << "," << hb.e1->name() << ")";
-  else if( hb.is_partial && !hb.is_neg )
-    stream << "hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
-  else
-      stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
-  return stream;
-}
-
-  void hb::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
-
-hb hb::negate() const
-{
-  return hb(loc2, loc1, !expr);
-}
-
 
 /*************************
  * as
@@ -257,6 +92,12 @@ void encoding::save_locations(const vector< shared_ptr< location > >& locations)
   for (auto loc: locations) {
     location_map.insert(make_pair(loc->name, loc));
   }
+}
+
+void encoding::record_rf_map(std::set< std::tuple< std::string,hb_enc::se_ptr,
+                                                   hb_enc::se_ptr> >& rf_map_)
+{
+  rf_map = rf_map_;
 }
 
 hb encoding::mk_hbs(const se_ptr& before, const se_ptr& after) {
@@ -372,27 +213,7 @@ bool encoding::eval_hb( const z3::model& m,
   return eval_hb( m, before->e_v, after->e_v );
 }
 
-// list<z3::expr> encoding::get_hbs( z3::model& m ) const
-// {
-//   list<z3::expr> result;
-//   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
-  
-//   for( unsigned i = 0; i<asserted.size(); i++ ) {
-//     z3::expr atom = asserted[i];
-//     unique_ptr<hb_enc::hb> hb = get_hb( atom );
-//     if (hb && !hb->loc1->special && !hb->loc2->special && hb->loc1->thread != hb->loc2->thread) {
-//       //z3::expr hb2 = _hb_encoding.make_hb(hb->loc1, hb->loc2);
-//       //cout << asserted[i] << " | " << (z3::expr)*hb << " | " << *hb << " | " << (z3::expr)hb2 << endl;
-//       //assert(m.eval(*hb).get_bool() == m.eval(hb2).get_bool());
-//       assert(eval_hb(m, hb->loc1, hb->loc2));
-//       result.push_back(asserted[i]);
-//     }
-//   }
-  
-//   return result;
-// }
-
-vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
+vector<hb_ptr> encoding::get_hbs( z3::model& m )
 {
   vector<hb_ptr> result;
   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
@@ -400,7 +221,7 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
 
   for( unsigned i = 0; i<asserted.size(); i++ ) {
     z3::expr atom = asserted[i];
-    unique_ptr<hb_enc::hb> hb = get_hb( atom );
+    auto hb = get_hb( atom );
     if( hb && !hb->loc1->special && !hb->loc2->special &&
         hb->loc1->thread != hb->loc2->thread ) {
       if( hb->e1 && hb->e2 ) { // for compatibility of the earlier version of tara
@@ -423,7 +244,7 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
 
   for( unsigned i = 0; i < asserted_po.size(); i++ ) {
     z3::expr atom = asserted_po[i];
-    unique_ptr<hb_enc::hb> hb = get_hb( atom );
+    auto hb = get_hb( atom );
     if( hb && !hb->loc1->special && !hb->loc2->special &&
         hb->loc1->thread != hb->loc2->thread ) {
       hb_ptr h = make_shared<hb_enc::hb>(*hb);
@@ -431,6 +252,21 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m ) const
       // std::cerr << atom << "\n";
     }
 
+  }
+
+  // current_rf_map.clear();
+  //get rf hbs
+  for( auto& it : rf_map ) {
+    std::string bname = std::get<0>(it);
+    z3::expr b = z3.c.bool_const( bname.c_str() );
+    z3::expr bv = m.eval( b );
+    if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+      hb_enc::se_ptr wr = std::get<1>(it);
+      hb_enc::se_ptr rd = std::get<2>(it);
+      hb_ptr h = make_shared<hb_enc::hb>(wr, rd, b, false, hb_t::rf);
+      result.push_back( h );
+      current_rf_map.insert( std::make_pair( bname, h ) );
+    }
   }
 
   return result;

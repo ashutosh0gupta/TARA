@@ -173,10 +173,10 @@ class example:
                         output = ''
                         started = False
                     elif line[:clen] == comment_string + '#' :
-                        output += line[2:]
+                        output += line[clen:]
                 else:
                     if line[:clen] == comment_string + '!':
-                        options.append( line[2:-1] )
+                        options.append( line[clen:-1] )
                     if line[:clen] == comment_string + '~' :
                         started = True
             if( not args.suppress ):

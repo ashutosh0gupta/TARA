@@ -25,6 +25,7 @@
 #include "prune/unsat_core.h"
 #include "prune/remove_thin.h"
 #include "prune/remove_non_cycled.h"
+#include "prune/remove_non_relax_rf.h"
 #include "helpers/helpers.h"
 #include "api/options.h"
 
@@ -115,20 +116,22 @@ namespace prune {
     boost::tokenizer<boost::char_separator<char> > tok(prune_order, sep);
     for (string p : tok) {
       unique_ptr<prune::prune_base> prune;
-      if (p=="data_flow")
+      if ( p == "data_flow" )
         prune = unique_ptr<prune::prune_base>(new data_flow(z3, program));
-      else if (p=="remove_implied")
+      else if ( p == "remove_implied" )
         prune = unique_ptr<prune::prune_base>(new remove_implied(z3, program));
-      else if (p=="unsat_core")
+      else if ( p == "unsat_core" )
         prune = unique_ptr<prune::prune_base>(new unsat_core(z3, program, sol_good));
-      else if (p=="diffvar")
+      else if ( p == "diffvar" )
         prune = unique_ptr<prune::prune_base>(new diffvar(z3, program));
-      else if (p=="remove_thin")
+      else if ( p == "remove_thin" )
 	prune = unique_ptr<prune::prune_base>(new remove_thin(z3, program));
-      else if (p=="remove_non_cycled")
+      else if ( p == "remove_non_cycled" )
 	prune = unique_ptr<prune::prune_base>(new remove_non_cycled(z3, program));
+      else if ( p == "remove_non_relax_rf" )
+        prune =unique_ptr<prune::prune_base>(new remove_non_relax_rf(z3,program));
       else {
-        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\",\"remove_thin\",\"remove_non_cycled\"." << endl;
+        cerr << "Invalid prune engine. Must be one of \"data_flow\",\"remove_implied\",\"unsat_core\",\"remove_thin\",\"remove_non_cycled\",\"remove_non_relax_rf\"." << endl;
         return false;
       }
       prune_chain.push_back(std::move(prune));

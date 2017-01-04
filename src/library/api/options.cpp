@@ -123,7 +123,7 @@ void options::interpret_options(po::variables_map& vm) {
       // default options for pruning under wmm
       prune_chain = "diffvar,unsat_core,remove_thin,remove_implied";
       if( mm == mm_t::c11 ) {
-        prune_chain = "unsat_core,remove_implied";
+        prune_chain = "remove_non_relax_rf,unsat_core,remove_implied";
       }
       //prune_chain = "diffvar,unsat_core,remove_implied,remove_thin";
     }

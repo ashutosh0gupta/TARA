@@ -19,6 +19,7 @@
  */
 
 #include "remove_thin.h"
+#include "hb_enc/hb.h"
 #include<cassert>
 
 using namespace tara;

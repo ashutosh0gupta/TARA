@@ -19,6 +19,7 @@
 
 #include "helpers/helpers.h"
 #include "program/program.h"
+#include "hb_enc/hb.h"
 #include <fstream>
 
 using namespace tara::helpers;

@@ -231,7 +231,7 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
         branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       } else if( is_llvm_false(args[i]) ) { // jump to else block
-        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
+        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this );
         //todo: remove tail block and any other block that is unreachable now
         branch = llvm::BranchInst::Create( elseBlock );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );

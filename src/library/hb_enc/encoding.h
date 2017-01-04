@@ -34,53 +34,14 @@ namespace hb_enc {
   class integer;
 
   class symbolic_event;
+  class location;
+  class hb;
+
   typedef std::shared_ptr<symbolic_event> se_ptr;
   typedef std::set<se_ptr> se_set;
-
-struct location {
-private:
-  z3::expr expr; // ensure this one is not visible from the outside
-  uint16_t _serial;
-  
-  friend class hb_enc::integer;
-public:
-  location(location& ) = delete;
-  location& operator=(location&) = delete;
-  location(z3::context& ctx, std::string name ,bool special = false);
-
-  std::string name;
-  /**
-   * @brief True if this is a special location
-   * 
-   * This means the location is not actualy in the program, but the start symbol and the like
-   */
-  bool special;  //todo: rename to a meaningful name
-  int thread; // number of the thread of this location
-  int instr_no; // number of this instruction
-  /**
-   * @brief The previous location in the same thread
-   * 
-   */
-  std::weak_ptr<hb_enc::location const> prev;
-  /**
-   * @brief The next location in the same thread
-   * 
-   */
-  std::weak_ptr<hb_enc::location const> next;
-  
-  
-  bool operator==(const location &other) const;
-  bool operator!=(const location &other) const;
-  operator z3::expr () const;
-  uint16_t serial() const;
-  
-  friend std::ostream& operator<< (std::ostream& stream, const location& loc);
-  friend std::ostream& operator<< (std::ostream& stream, const std::shared_ptr<hb_enc::location const>& loc);
-  
-  void debug_print(std::ostream& stream );
-};
-
-typedef std::shared_ptr<hb_enc::location const> location_ptr;
+  typedef std::shared_ptr<hb_enc::hb> hb_ptr;
+  typedef std::vector<hb_ptr> hb_vec;
+  typedef std::shared_ptr<hb_enc::location const> location_ptr;
 
 std::string to_string (const tara::hb_enc::location& loc);
 std::string get_var_from_location (location_ptr loc);
@@ -88,46 +49,6 @@ std::string operator+ (const std::string& lhs, const location_ptr& rhs);
 typedef std::pair<location_ptr,location_ptr> location_pair;
 std::ostream& operator<< (std::ostream& stream, const location_pair& loc_pair);
 
-
-struct hb {
-public:
-  se_ptr e1;
-  se_ptr e2;
-  location_ptr loc1; //todo : to be removed
-  location_ptr loc2; //todo : to be removed
-  bool is_neg;
-  bool is_partial;
-  operator z3::expr () const;
-  z3::expr get_guarded_forbid_expr();
-  hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
-  hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
-  hb( se_ptr e1, location_ptr loc1,
-      se_ptr e2, location_ptr loc2, z3::expr expr, bool is_neg );
-  hb( se_ptr e1, location_ptr loc1,
-      se_ptr e2, location_ptr loc2,
-      z3::expr expr, bool is_neg, bool is_partial );
-  uint32_t signature(); // a unique integer indentifying the hb
-  
-  bool operator==(const hb &other) const;
-  bool operator!=(const hb &other) const;
-  
-  friend std::ostream& operator<< (std::ostream& stream, const hb& hb);
-  void debug_print(std::ostream& stream );
-  
-  hb negate() const;
-
-  friend bool operator< (const hb& hb1, const hb& hb2);
-  // static bool hb_cmp(hb& hb1, hb& hb2) {
-  //   return hb1.loc1->name < hb2.loc1->name ||
-  //     ( hb1.loc1->name ==  hb2.loc1->name &&
-  //       hb1.loc2->name < hb1.loc2->name );}
-private:
-  z3::expr expr;
-  uint32_t _signature = 0;
-};
-
-typedef std::shared_ptr<hb_enc::hb> hb_ptr;
-typedef std::vector<hb_ptr> hb_vec;
 
 
 struct as {
@@ -146,7 +67,7 @@ private:
   z3::expr expr;
   uint32_t _signature = 0;
 };
-  
+
 class encoding
 {
 public:
@@ -155,6 +76,7 @@ public:
   virtual ~encoding();
   
   virtual void record_event( se_ptr& ) = 0;
+  void record_rf_map( std::set< std::tuple<std::string, hb_enc::se_ptr, hb_enc::se_ptr> >& );
 
   virtual void make_location( std::shared_ptr<hb_enc::location> locations ) = 0;
   virtual void make_locations(std::vector<std::shared_ptr<hb_enc::location>> locations) = 0;
@@ -189,15 +111,19 @@ public:
 
   bool eval_hb( const z3::model& m, const se_ptr& before, const se_ptr& after ) const;
 
+// protected:
+  std::set< std::tuple<std::string, hb_enc::se_ptr, hb_enc::se_ptr> > rf_map;
+  std::map< std::string, hb_enc::hb_ptr > current_rf_map;
+public:
 //--------------------------------------------------------------------------
 //end of wmm support
 //--------------------------------------------------------------------------
   virtual as make_as(location_ptr loc1, location_ptr loc2) const = 0;
   virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const = 0;
-  virtual std::unique_ptr<hb> get_hb(const z3::expr& hb, bool allow_equal = false) const = 0;
+  virtual hb_ptr get_hb(const z3::expr& hb, bool allow_equal = false) const = 0;
   virtual std::vector<hb_enc::location_ptr> get_trace(const z3::model& m) const = 0;
   // std::list<z3::expr> get_hbs( z3::model& m ) const;
-  std::vector<hb_ptr> get_hbs( z3::model& m ) const;
+  std::vector<hb_ptr> get_hbs( z3::model& m );
   helpers::z3interf& z3;
   // z3::context& ctx;
 protected:

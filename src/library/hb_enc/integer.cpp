@@ -45,6 +45,7 @@ void integer::record_event( se_ptr& e ) {
   event_lookup.insert( make_pair( e->get_c11_hb_solver_symbol(), e ) );
 }
 
+
 void integer::make_location( std::shared_ptr< location > loc )
 {
   std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
@@ -154,10 +155,17 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
   return make_pair<integer::mapit,integer::mapit>(std::move(loc1),std::move(loc2));
 }
 
-unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
+hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
 {
   bool possibly_equal = false;
   bool is_partial = false;
+  if( z3.is_bool_const( hb ) ) {
+    auto it = current_rf_map.find( z3.get_top_func_name( hb ) );
+    if( it != current_rf_map.end() ) {
+      return it->second;
+    }
+  }
+
   auto p = get_locs(hb, possibly_equal, is_partial);
   integer::mapit loc1 = p.first;
   integer::mapit loc2 = p.second;
@@ -172,14 +180,13 @@ unique_ptr<hb> integer::get_hb(const z3::expr& hb, bool allow_equal) const
     if( event_lookup.find( l2->expr ) != event_lookup.end() )
       e2 = event_lookup.at( l2->expr );
     if( is_partial )
-      return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
-                                                   possibly_equal,
-                                                   is_partial));
+      return shared_ptr<hb_enc::hb>(new hb_enc::hb( e1, l1, e2, l2, hb,
+                                                    possibly_equal,is_partial));
     else
-      return unique_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
+      return shared_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
                                                    possibly_equal));
   } else 
-    return unique_ptr<hb_enc::hb>();
+    return shared_ptr<hb_enc::hb>();
 }
 
 // unused function set for deprecation

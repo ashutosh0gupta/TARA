@@ -42,7 +42,7 @@ nf::nf( helpers::z3interf& _z3 ) : output_base(_z3), bad_dnf(true), bad_cnf(fals
 void nf::prune_implied_within(nf::result_type& result, z3::solver& sol)
 {
   for (auto& v:result) { 
-    z3interf::min_unsat<hb_enc::hb>(sol, v, [](hb_enc::hb hb) { return hb; });
+    z3interf::min_unsat<hb_enc::hb>(sol, v, [](hb_enc::hb hb) { return hb; }, true);
   }
 }
 

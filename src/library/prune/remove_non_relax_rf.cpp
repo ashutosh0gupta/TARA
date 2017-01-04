@@ -18,7 +18,7 @@
  *
  */
 
-#include "diffvar.h"
+#include "remove_non_relax_rf.h"
 #include "hb_enc/hb.h"
 #include<cassert>
 
@@ -28,42 +28,33 @@ using namespace tara::prune;
 
 using namespace std;
 
-diffvar::diffvar( const z3interf& z3,
-                  const tara::program& program ) : prune_base(z3, program)
+remove_non_relax_rf::remove_non_relax_rf( const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
-  if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso()
-      || program.is_mm_rmo() || program.is_mm_alpha() ) {
+  if( program.is_mm_c11() ){
   }else{
-    throw std::runtime_error("diffvar does not support memory model!");
+    throw std::runtime_error("remove_non_relax_rf does not support current memory model!");
   }
 }
 
-string diffvar::name()
+string remove_non_relax_rf::name()
 {
-  return string("diffvar");
+  return string("remove_non_relax_rf");
 }
 
-hb_enc::hb_vec diffvar::prune( const hb_enc::hb_vec& hbs,
-                               const z3::model& m )
-{
+hb_enc::hb_vec remove_non_relax_rf::prune( const hb_enc::hb_vec& hbs,
+                                           const z3::model& m ) {
   assert( program.is_mm_declared() );
   hb_enc::hb_vec result = hbs;
   for (auto it = result.begin() ; it != result.end(); ) {
-    shared_ptr<hb_enc::hb> hb1 = *it;
-    auto& l1 = hb1->e1;
-    auto& l2 = hb1->e2;
     bool remove = false;
-    if( l1->is_mem_op() && l2->is_mem_op() && l1->tid != l2->tid ) {
-      if( l1->prog_v != l2->prog_v ) remove = true;
-      if( l1->is_rd() && l2->is_rd() ) remove = true; // todo: is_it_correct
+    hb_enc::hb_ptr hb = *it;
+    if( hb->type == hb_enc::hb_t::rf ) {
+      if( !hb->e1->is_rlx() && !hb->e2->is_rlx() )
+        remove = true;
     }
-    // if( !l1->special && !l2->special && l1->thread != l2->thread ) {
-    //   if( l1->prog_v_name != l2->prog_v_name ) remove = true;
-    //   if( l1->is_read && l2->is_read ) remove = true; // todo: is_it_correct
-    // }
-    if( remove ) it = result.erase(it); else ++it;
+    if( remove ) it = result.erase(it); else ++it; 
   }
-
   return result;
 }
+
 

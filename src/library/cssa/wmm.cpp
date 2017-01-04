@@ -97,7 +97,11 @@ z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,
                                       bool record ) {
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
   z3::expr b = z3.c.bool_const(  bname.c_str() );
-  if( record ) p.reading_map.insert( std::make_tuple(bname,wr,rd) );
+  if( record ) {
+    p.reading_map.insert( std::make_tuple(bname, wr, rd) );
+    if( p.is_mm_c11() )
+      hb_encoding.rf_map.insert( std::make_tuple(bname, wr, rd) );
+  }
   return b;
 }
 

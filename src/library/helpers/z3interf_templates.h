@@ -5,8 +5,9 @@
  * Template functions
  ****************/ 
 
+
 template <class value>
-void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& items, std::function< z3::expr(value) > translate) {
+void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& items, std::function< z3::expr(value) > translate, bool potentially_input_sat) {
   std::vector<z3::expr> triggers;
   // translate items to expr
   for (auto i: items) {
@@ -18,19 +19,20 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
     sol.add(implies(trigger,translation));
   }
 #ifndef NDEBUG
-  {
+  if( !potentially_input_sat ) {
     z3::expr_vector assertions(sol.ctx());
     for( auto t1 = triggers.begin(); t1 != triggers.end(); t1++ ) {
       assertions.push_back(*t1);
     }
-    if( sol.check(assertions) != z3::unsat )
+    if( sol.check(assertions) != z3::unsat ) {
+      for(auto i: items) std::cerr << translate(i) << "\n";
       tara_error( "::min_unsat", "input is not unsat" );
+    }
   }
 #endif // NDEBUG
   
   // for many items, first do unsat core
-  if (items.size() > 12) {
-      //10) {
+  if (items.size() > 10) {
     z3::check_result r = sol.check(triggers.size(), &triggers[0]);
     if (r==z3::sat) {
       //std::cout << sol.get_model() << std::endl;
@@ -73,6 +75,20 @@ void tara::helpers::z3interf::min_unsat(z3::solver& sol, std::list< value >& ite
       t++;
     }
   }
+#ifndef NDEBUG
+  if( !potentially_input_sat ) {
+    z3::expr_vector assertions(sol.ctx());
+    for( auto t1 = triggers.begin(); t1 != triggers.end(); t1++ ) {
+      assertions.push_back(*t1);
+    }
+    if( sol.check(assertions) != z3::unsat ) {
+      for(auto i: items) {
+        std::cerr << translate(i) << "\n";
+      }
+      tara_error( "::min_unsat", "unsat core returning sat core!!" );
+    }
+  }
+#endif // NDEBUG
 }
 
 template <class value>

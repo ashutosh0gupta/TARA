@@ -86,6 +86,25 @@ public:
 #define cinput_warning( S )       tara_warning( "::cinput", S )
 
 
+#define COMPARE_TAIL( A, B, Tail ) ( A < B || ( A == B && ( Tail ) ) )
+#define COMPARE_LAST( A, B )       ( A < B )
+
+#define COMPARE_PTR1( A, B, F ) COMPARE_LAST( A->F, B->F )
+#define COMPARE_PTR2( A, B, F1, F2 ) COMPARE_TAIL( A->F1, B->F1, \
+        COMPARE_PTR1( A, B, F2 ) )
+#define COMPARE_PTR3( A, B, F1, F2, F3 ) COMPARE_TAIL( A->F1, B->F1, \
+        COMPARE_PTR2( A, B, F2, F3 ) )
+#define COMPARE_PTR4( A, B, F1, F2, F3, F4 ) COMPARE_TAIL( A->F1, B->F1, \
+        COMPARE_PTR3( A, B, F2, F3, F4 ) )
+
+#define COMPARE_OBJ1( A, B, F ) COMPARE_LAST( A.F, B.F )
+#define COMPARE_OBJ2( A, B, F1, F2 ) COMPARE_TAIL( A.F1, B.F1, \
+        COMPARE_OBJ1( A, B, F2 ) )
+#define COMPARE_OBJ3( A, B, F1, F2, F3 ) COMPARE_TAIL( A.F1, B.F1, \
+        COMPARE_OBJ2( A, B, F2, F3 ) )
+#define COMPARE_OBJ4( A, B, F1, F2, F3, F4 ) COMPARE_TAIL( A.F1, B.F1, \
+        COMPARE_OBJ3( A, B, F2, F3, F4 ) )
+
 
 namespace std {
   template <>

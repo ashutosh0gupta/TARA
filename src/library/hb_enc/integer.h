@@ -26,6 +26,7 @@
 #include "helpers/helpers.h"
 #include "helpers/z3interf.h"
 #include "hb_enc/symbolic_event.h"
+#include "hb_enc/hb.h"
 
 namespace tara {
 namespace hb_enc {
@@ -41,7 +42,7 @@ namespace hb_enc {
     virtual hb_enc::hb make_hb_po(location_ptr loc1, location_ptr loc2) const override;
     virtual hb_enc::as make_as(location_ptr loc1, location_ptr loc2) const override;
     virtual bool eval_hb(const z3::model& model, location_ptr loc1, location_ptr loc2) const override;
-    virtual std::unique_ptr<hb_enc::hb> get_hb(const z3::expr& hb, bool allow_equal = false) const override;
+    virtual hb_ptr get_hb(const z3::expr& hb, bool allow_equal = false) const override;
     virtual std::vector<location_ptr> get_trace(const z3::model& m) const override;
     void make_po_location( std::shared_ptr< location > loc );
   protected:

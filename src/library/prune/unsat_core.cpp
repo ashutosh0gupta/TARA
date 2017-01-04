@@ -20,6 +20,7 @@
 
 #include "unsat_core.h"
 #include "helpers/z3interf_templates.h"
+#include "hb_enc/hb.h"
 
 using namespace tara;
 using namespace tara::helpers;
@@ -79,8 +80,8 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   hb_enc::hb_vec final_result;
   for( z3::expr e : hbs_expr ) {
     auto u_hb = hb_enc.get_hb( e );
-    hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
-    final_result.push_back( hb );
+    // hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
+    final_result.push_back( u_hb );
   }
   return final_result;
 }

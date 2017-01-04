@@ -94,7 +94,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   if( o.print_input > 0 ) {
     std::cerr << "dumping bytecode file : " << bc_file << std::endl;
   }
-  // std::string bc_file = cfile+".bc";
+
   c2bc( cfile, bc_file.string() );
 
   std::unique_ptr<llvm::Module> module;
