@@ -50,6 +50,7 @@ hb_enc::hb_vec remove_non_relax_rf::prune( const hb_enc::hb_vec& hbs,
     hb_enc::hb_ptr hb = *it;
     if( hb->type == hb_enc::hb_t::rf ) {
       if( !hb->e1->is_rlx() && !hb->e2->is_rlx() )
+      // if( !hb->e1->is_rlx() )
         remove = true;
     }
     if( remove ) it = result.erase(it); else ++it; 
