@@ -1,4 +1,13 @@
-﻿Building on *nix
+﻿TARA
+====
+
+TARA is the implementation that accompanies our paper [1].
+The tool accepts concurrent traces in a custom language and returns a succinct error explanation in the form of a DNF over happens-before relations.
+This can be used for synthesis or fault localisation.
+
+[1] Ashutosh Gupta, Thomas A. Henzinger, Arjun Radhakrishna, Roopsha Samanta, Thorsten Tarrach. Succinct Representation of Concurrent Trace Sets. In POPL 2015
+
+Building on *nix
 ================
 
 On Ubuntu 14.04 LTS
