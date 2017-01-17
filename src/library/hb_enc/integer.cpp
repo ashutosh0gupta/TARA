@@ -35,25 +35,23 @@ integer::integer(helpers::z3interf& z3) : encoding(z3)
 // {}
 
 void integer::record_event( se_ptr& e ) {
-  make_location( e->e_v );
-  make_location( e->thin_v );
-  make_po_location( e->c11_hb_v );
-  // make_location   ( e->c11_mo_v );
-  // make_location   ( e->c11_sc_v );
+  make_tstamp( e->e_v );
+  make_tstamp( e->thin_v );
+  make_po_tstamp( e->c11_hb_v );
   event_lookup.insert( make_pair( e->get_solver_symbol(), e ) );
   event_lookup.insert( make_pair( e->get_thin_solver_symbol(), e ) );
   event_lookup.insert( make_pair( e->get_c11_hb_solver_symbol(), e ) );
 }
 
 
-void integer::make_location( std::shared_ptr< location > loc )
+void integer::make_tstamp( tstamp_var_ptr loc )
 {
-  std::vector< std::shared_ptr<tara::hb_enc::location> > locations;
+  std::vector< tstamp_var_ptr > locations;
   locations.push_back( loc );
-  make_locations(locations);
+  add_time_stamps(locations);
 }
 
-void integer::make_locations(vector< std::shared_ptr< location > > locations)
+void integer::add_time_stamps(vector< tstamp_var_ptr > locations)
 {
   for (unsigned i=0; i<locations.size(); i++) {
     counter++;
@@ -65,7 +63,7 @@ void integer::make_locations(vector< std::shared_ptr< location > > locations)
   save_locations(locations);
 }
 
-void integer::make_po_location( std::shared_ptr< location > loc )
+void integer::make_po_tstamp( tstamp_var_ptr loc )
 {
   counter++;
   loc->_serial = counter;
@@ -75,23 +73,23 @@ void integer::make_po_location( std::shared_ptr< location > loc )
 }
 
 
-hb integer::make_hb(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
+hb integer::make_hb(hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const
 {
   return hb(loc1, loc2, loc1->expr < loc2->expr);
 }
 
-hb integer::make_hb_po(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
+hb integer::make_hb_po(hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const
 {
   return hb(loc1, loc2, sr_po(loc1->expr,loc2->expr) );
 }
 
-as integer::make_as(std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
+as integer::make_as(hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const
 {
   assert (loc1->thread == loc2->thread);
   return as(loc1, loc2, loc1->expr + (loc2->instr_no-loc1->instr_no)  == loc2->expr);
 }
 
-bool integer::eval_hb(const z3::model& model, std::shared_ptr< const hb_enc::location > loc1, std::shared_ptr< const hb_enc::location > loc2) const
+bool integer::eval_hb(const z3::model& model, hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const
 {
   return model.eval(make_hb(loc1, loc2)).get_bool();
 }
@@ -167,12 +165,10 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
   }
 
   auto p = get_locs(hb, possibly_equal, is_partial);
-  integer::mapit loc1 = p.first;
-  integer::mapit loc2 = p.second;
-  if ( (!possibly_equal || allow_equal || is_partial)
-       && loc1 != location_lookup.end() && loc2 != location_lookup.end() ) {
-    std::shared_ptr<hb_enc::location> l1 = get<1>(*loc1);
-    std::shared_ptr<hb_enc::location> l2 = get<1>(*loc2);
+  integer::mapit loc1 = p.first, loc2 = p.second, end = location_lookup.end();
+  if( (!possibly_equal || allow_equal || is_partial) && loc1!=end && loc2!=end){
+    hb_enc::tstamp_ptr l1 = get<1>(*loc1);
+    hb_enc::tstamp_ptr l2 = get<1>(*loc2);
     se_ptr e1;
     if( event_lookup.find( l1->expr ) != event_lookup.end() )
       e1 = event_lookup.at( l1->expr );
@@ -185,7 +181,7 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
     else
       return shared_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
                                                    possibly_equal));
-  } else 
+  } else
     return shared_ptr<hb_enc::hb>();
 }
 

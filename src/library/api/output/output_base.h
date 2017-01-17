@@ -56,7 +56,7 @@ protected:
   /***************************
    * Useful utility functions
    ***************************/
-  inline const tara::instruction& lookup(const hb_enc::location_ptr& loc) const; // lookup a location in the program
+  inline const tara::instruction& lookup(const hb_enc::tstamp_ptr& loc) const; // lookup a location in the program
   /**
    * @brief Check if hb.loc1 is reading and hb.loc2 is writing to the same variable
    * 
@@ -79,22 +79,22 @@ protected:
   /**
    * @brief Order the locations so that the first location points to the thread with the lower number
    */
-  inline void order_locations_thread(hb_enc::location_ptr& loc1, hb_enc::location_ptr& loc2);
+  inline void order_locations_thread(hb_enc::tstamp_ptr& loc1, hb_enc::tstamp_ptr& loc2);
   
   /**
    * @brief Checks if two pairs of locations overlap
    */
-  inline bool check_overlap(const hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2);
+  inline bool check_overlap(const hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2);
   
   /**
    * @brief Checks if one pair is contained in the other
    */
-  inline bool check_contained(const hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2);
+  inline bool check_contained(const hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2);
   
   /**
    * @brief Merge into the existing locs1 the second locs, so that they cover both intervals
    */
-  inline void merge_overlap(hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2);
+  inline void merge_overlap(hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2);
 private:
 };
 }}}

@@ -9,20 +9,19 @@ void fence();
 
 atomic_int x = 0;
 atomic_int y = 0;
-atomic_int r1 = 0;
-atomic_int r2 = 0;
 
 void* p0(void *) {
-  atomic_store_explicit( &x, 1, memory_order_release );
-  // atomic_thread_fence(memory_order_seq_cst);
-  r1 = atomic_load_explicit( &y, memory_order_acquire );
+  atomic_store_explicit( &x, 1, memory_order_relaxed );
+  atomic_store_explicit( &y, 1, memory_order_relaxed );
   return NULL;
 }
 
 void* p1(void *) {
-  atomic_store_explicit( &y, 1, memory_order_release );
-  // atomic_thread_fence(memory_order_seq_cst);
-  r2 = atomic_load_explicit( &x, memory_order_acquire );
+  int r1 = atomic_load_explicit( &y, memory_order_relaxed );
+  if( r1 == 1 ) {
+    int r2 = atomic_load_explicit( &x, memory_order_relaxed );
+    assert( r2 == 1);
+  }
   return NULL;
 }
 
@@ -34,9 +33,8 @@ int main() {
 
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
-
-  assert( r1 == 1 || r2 == 1 );
 }
+
 
 //###############################################
 //!-M c11
@@ -45,7 +43,7 @@ int main() {
 //#
 //#Final result
 //#Bad DNF
-//#( !hb(W#x#_l16_c3,R#x#_l25_c8) ∧ !hb(W#y#_l23_c3,R#y#_l18_c8) ) 
+//#( rf(W#y#_l15_c3,R#y#_l20_c12) ∧ rf(pre#the_launcher,R#x#_l22_c14) ) 
 //#
 //~
 

@@ -61,7 +61,12 @@ known_files=[ '../locks.ctrc',
               '../wmm-fib-4.ctrc',
               '../wmm-fib-5.ctrc',
               '../c/iriw-ra.cpp',
-              '../c/sb-ra.cpp'
+              '../c/sbmp-ra.cpp',
+              '../c/mp-ra.cpp',
+              '../c/sb-ra.cpp',
+              '../c/mp-rlx.cpp',
+              '../c/double-mp-rlx.cpp',
+              '../c/screads.cpp'
             ]
 
 #wmm-litmus-sb-self-read.ctrc

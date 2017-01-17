@@ -79,7 +79,7 @@ encoding::~encoding()
 
 
   //location_map is only used in old code
-location_ptr encoding::get_location(const string& name) const
+location_ptr encoding::get_tstamp(const string& name) const
 {
   auto found = location_map.find(name);
   assert (found != location_map.end());

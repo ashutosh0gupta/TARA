@@ -503,10 +503,16 @@ void wmm_event_cons::ses_c11() {
       }else if( is_po_new( e2, e1 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
       }else{
+        // fr = fr && z3::implies( hb_encoding.mk_hb_c11_sc( e1, e2 ),
+        //                         hb_encoding.mk_hb_c11_hb( e1, e2 ) )
+        //   && z3::implies( hb_encoding.mk_hb_c11_sc( e2, e1 ),
+        //                   hb_encoding.mk_hb_c11_hb( e2, e1 ) );
         fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
                                 hb_encoding.mk_hb_c11_sc( e1, e2 ) )
           && z3::implies( hb_encoding.mk_hb_c11_hb( e2, e1 ),
                           hb_encoding.mk_hb_c11_sc( e2, e1 ) );
+        // fr = fr && ( (z3::expr)hb_encoding.mk_hb_c11_hb( e1, e2 ) ||
+        //              (z3::expr)hb_encoding.mk_hb_c11_hb( e2, e1 ) );
       }
     }
     dists.push_back( e1->get_c11_sc_solver_symbol() );

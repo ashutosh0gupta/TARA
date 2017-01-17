@@ -228,15 +228,14 @@ void cssa::program::build_hb(const input::program& input)
 {
   z3::expr_vector locations(_z3.c);
   // start location is needed to ensure all locations are mentioned in phi_po
-  shared_ptr<hb_enc::location> start_location = input.start_name();
+  hb_enc::tstamp_ptr start_location = input.start_name();
   locations.push_back(*start_location);
   
   for (unsigned t=0; t<input.threads.size(); t++) {
     tara::thread& thread = *threads[t];
-    shared_ptr<hb_enc::location> prev;
     for (unsigned j=0; j<input.threads[t].size(); j++) {
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j])) {
-        shared_ptr<hb_enc::location> loc = instr->location();
+        hb_enc::tstamp_ptr loc = instr->location();
         locations.push_back(*loc);
         
         auto ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
@@ -261,14 +260,14 @@ void cssa::program::build_hb(const input::program& input)
   
   // add atomic sections
   for (input::location_pair as : input.atomic_sections) {
-    hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(as));
-    hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(as));
+    hb_enc::tstamp_ptr loc1 = _hb_encoding.get_tstamp(get<0>(as));
+    hb_enc::tstamp_ptr loc2 = _hb_encoding.get_tstamp(get<1>(as));
     phi_po = phi_po && _hb_encoding.make_as(loc1, loc2);
   }
   // add happens-befores
   for (input::location_pair hb : input.happens_befores) {
-    hb_enc::location_ptr loc1 = _hb_encoding.get_location(get<0>(hb));
-    hb_enc::location_ptr loc2 = _hb_encoding.get_location(get<1>(hb));
+    hb_enc::tstamp_ptr loc1 = _hb_encoding.get_tstamp(get<0>(hb));
+    hb_enc::tstamp_ptr loc2 = _hb_encoding.get_tstamp(get<1>(hb));
     phi_po = phi_po && _hb_encoding.make_hb(loc1, loc2);
   }
   phi_po = phi_po && phi_distinct;
@@ -428,12 +427,11 @@ void cssa::program::wmm_build_cssa_thread(const input::program& input) {
     tara::thread& thread = *threads[t];
     assert( thread.size() == 0 );
 
-    shared_ptr<hb_enc::location> prev;
     for( unsigned j=0; j < input.threads[t].size(); j++ ) {
       if( shared_ptr<input::instruction_z3> instr =
           dynamic_pointer_cast<input::instruction_z3>(input.threads[t][j]) ) {
 
-        shared_ptr<hb_enc::location> loc = instr->location();
+        hb_enc::tstamp_ptr loc = instr->location();
         auto ninstr = make_shared<instruction>( _z3, loc, &thread, instr->name,
                                                 instr->type, instr->instr );
         thread.add_instruction(ninstr);

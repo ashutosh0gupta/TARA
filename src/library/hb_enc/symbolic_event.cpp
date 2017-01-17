@@ -117,8 +117,7 @@ std::string hb_enc::event_t_name( event_t et ) {
     }
 }
 
-
-std::shared_ptr<tara::hb_enc::location>
+tstamp_var_ptr
 symbolic_event::create_internal_event( helpers::z3interf& z3,
                                        std::string e_name, unsigned tid,
                                        unsigned instr_no, bool special )

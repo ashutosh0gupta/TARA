@@ -406,7 +406,6 @@ translateBlock( unsigned thr_id,
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
                                  history, gv, loc_name, hb_enc::event_t::r,
                                  translate_ordering_tags( load->getOrdering()));
-            // rd->o_tag = translate_ordering_tags( load->getOrdering());
             block_ssa = block_ssa && implies( c , ( rd->rd_v() == l_v ) );
             new_events.insert( rd );
           }
@@ -440,8 +439,6 @@ translateBlock( unsigned thr_id,
     }
 
     if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
-      //  dep_ses0;
-      // hb_enc::depends_set dep_ses1;
       llvm::Value* op0 = bop->getOperand( 0 );
       llvm::Value* op1 = bop->getOperand( 1 );
       z3::expr a = getTerm( op0, m );
@@ -459,18 +456,13 @@ translateBlock( unsigned thr_id,
         cinput_error("unsupported instruction " << opName << " occurred!!");
       }
       }
-      // hb_enc::depends_set dep_ses0 = get_depends( op0 );
-      // hb_enc::depends_set dep_ses1 = get_depends( op1 );
-      // hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
       join_depends( op0, op1, local_map[I] );
       assert( !recognized );recognized = true;
     }
 
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 ),* rhs = cmp->getOperand( 1 );
-      // llvm::Value* rhs = cmp->getOperand( 1 );
       z3::expr l = getTerm( lhs, m ), r = getTerm( rhs, m );
-      // z3::expr r = getTerm( rhs, m );
 
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
       switch( pred ) {
@@ -488,9 +480,6 @@ translateBlock( unsigned thr_id,
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
-      // hb_enc::depends_set dep_ses0 = get_depends( lhs );
-      // hb_enc::depends_set dep_ses1 = get_depends( rhs );
-      // hb_enc::join_depends_set( dep_ses0, dep_ses1, local_map[I] );
       join_depends( lhs, rhs, local_map[I] );
       assert( !recognized );recognized = true;
     }
@@ -535,6 +524,7 @@ translateBlock( unsigned thr_id,
 
     UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
     UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
+    UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
     // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
 
     if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
@@ -547,14 +537,19 @@ translateBlock( unsigned thr_id,
       }
       assert( !recognized );recognized = true;
     }
-    UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
-    // if( llvm::isa<llvm::SwitchInst>(I) ) {
-    //   cinput_error( "switch statement not supported yet!!");
-    //   assert( !recognized );recognized = true;
-    // }
+    if( auto fence = llvm::dyn_cast<llvm::FenceInst>(I) ) {
+      assert( fence->getSynchScope()==llvm::SynchronizationScope::CrossThread);
+      std::string loc_name = "fence__" + getInstructionLocationName( I );
+      auto fnce = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+                             history, loc_name, hb_enc::event_t::barr,
+                             translate_ordering_tags( fence->getOrdering() ) );
+      p->add_event( thr_id, fnce );
+      p->set_c11_rs_heads( fnce, local_release_heads[b] );
+      prev_events = { fnce };
+      assert( !recognized );recognized = true;
+    }
     if( auto call = llvm::dyn_cast<llvm::CallInst>(I) ) {
-      if( llvm::isa<llvm::DbgValueInst>(I) ||
-          llvm::isa<llvm::DbgDeclareInst>(I) ) {
+      if(llvm::isa<llvm::DbgValueInst>(I) ||llvm::isa<llvm::DbgDeclareInst>(I)){
         // Ignore debug instructions
       }else{
         llvm::Function* fp = call->getCalledFunction();
@@ -572,7 +567,7 @@ translateBlock( unsigned thr_id,
           llvm::Value* v = call->getArgOperand(2);
           if( !v->hasName() ) {
             v->getType()->print( llvm::outs() ); llvm::outs() << "\n";
-            cinput_error( "unnamed call to function pointers is not supported!!");
+            cinput_error("unnamed call to function pointers is not supported!");
           }
           std::string loc_name = "create__" + getInstructionLocationName( I );
           auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
@@ -637,15 +632,10 @@ translateBlock( unsigned thr_id,
 	block_ssa = block_ssa && (up->rd_v() == rd_v) && (up->wr_v() == wr_v);
 
         local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
-        up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b) );
+        up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));
         prev_events = { up };
-        p->add_event_with_rs_heads( thr_id, prev_events, local_release_heads[b] );
+        p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
       }else{ cinput_error( "atomic rmw is not supported on pointers!"); }
-
-      // prev_events.clear(); prev_events.insert( up );
-      // p->add_event( thr_id, prev_events );
-      // p->set_c11_rs_heads( prev_events, local_release_heads[b] );
-
       assert( !recognized );recognized = true;
     }
     if( auto xchg = llvm::dyn_cast<llvm::AtomicCmpXchgInst>(I) ) {

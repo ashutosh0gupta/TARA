@@ -39,6 +39,7 @@ namespace hb_enc {
      hb  // timing ordering
    , rf  // rf ordering
    , phb // partial ordered hb
+   , sc  // sc ordering in c11
    , thin // thin air hb
        };
 
@@ -46,19 +47,19 @@ struct hb {
 public:
   se_ptr e1;
   se_ptr e2;
-  location_ptr loc1; //todo : to be removed
-  location_ptr loc2; //todo : to be removed
+  tstamp_ptr loc1; //todo : to be removed; type should contain all the needed info
+  tstamp_ptr loc2; //todo : to be removed
   bool is_neg;
   bool is_partial;
   hb_t type;
   operator z3::expr () const;
   z3::expr get_guarded_forbid_expr();
   hb(se_ptr loc1, se_ptr loc2, z3::expr expr);
-  hb(location_ptr loc1, location_ptr loc2, z3::expr expr);
-  hb( se_ptr e1, location_ptr loc1,
-      se_ptr e2, location_ptr loc2, z3::expr expr, bool is_neg );
-  hb( se_ptr e1, location_ptr loc1,
-      se_ptr e2, location_ptr loc2,
+  hb(tstamp_ptr loc1, tstamp_ptr loc2, z3::expr expr);
+  hb( se_ptr e1, tstamp_ptr loc1,
+      se_ptr e2, tstamp_ptr loc2, z3::expr expr, bool is_neg );
+  hb( se_ptr e1, tstamp_ptr loc1,
+      se_ptr e2, tstamp_ptr loc2,
       z3::expr expr, bool is_neg, bool is_partial );
   hb( se_ptr e1_, se_ptr e2_, z3::expr expr, bool is_neg, hb_t type_ );
   uint32_t signature(); // a unique integer indentifying the hb

@@ -55,7 +55,7 @@ public:
   instruction_z3(const std::string& name, const z3::expr& instr, instruction_type type, cssa::variable_set havok_vars);
   instruction_z3(const std::string& name, tara::helpers::z3interf& z3, const std::string& instr, variable_set variables, tara::instruction_type type, variable_set havok_vars);
   z3::expr instr;
-  inline std::shared_ptr<hb_enc::location> location() {return _location;}
+  inline hb_enc::tstamp_ptr location() {return _tstamp;}
   
   /**
    * @brief variables read/changed in this instruction
@@ -73,7 +73,7 @@ public:
    * 
    */
   cssa::variable_set havok_vars;
-  std::shared_ptr<hb_enc::location> _location;
+  hb_enc::tstamp_var_ptr _tstamp;
 private:
   cssa::variable_set _variables;
 

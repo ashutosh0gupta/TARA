@@ -142,25 +142,25 @@ void program::convert_names(z3interf& z3, hb_enc::encoding& hb_enc)
   if (names_converted) return;
   names_converted = true;
   
-  vector<shared_ptr<hb_enc::location>> locations;
+  vector<hb_enc::tstamp_var_ptr> locations;
   
   // start location is needed to ensure all locations are mentioned in phi_po
-  shared_ptr<hb_enc::location> start_location = make_shared<hb_enc::location>(z3.c, "start", true);
+  hb_enc::tstamp_var_ptr start_location = make_shared<hb_enc::location>(z3.c, "start", true);
   _start_loc = start_location;
   locations.push_back(start_location);
 
-  shared_ptr<hb_enc::location> end_location = make_shared<hb_enc::location>(z3.c, "end", true);
+  hb_enc::tstamp_var_ptr end_location = make_shared<hb_enc::location>(z3.c, "end", true);
   _end_loc = end_location;
   locations.push_back(end_location);
   
   for (unsigned t=0; t<threads.size(); t++) {
-    shared_ptr<hb_enc::location> prev;
+    hb_enc::tstamp_var_ptr prev;
     for (unsigned j=0; j<threads[t].size(); j++) {
       if (shared_ptr<instruction_z3> instr = dynamic_pointer_cast<instruction_z3>(threads[t][j])) {
-        shared_ptr<hb_enc::location> loc = make_shared<hb_enc::location>(z3.c, instr->name);
+        hb_enc::tstamp_var_ptr loc = make_shared<hb_enc::location>(z3.c, instr->name);
         loc->thread = t;
         loc->instr_no = j;
-        instr->_location = loc;
+        instr->_tstamp = loc;
         
         // make sure these link to each other
         if (prev!=nullptr)
@@ -175,7 +175,7 @@ void program::convert_names(z3interf& z3, hb_enc::encoding& hb_enc)
     }
   }
   //z3.hb_encoding().
-  hb_enc.make_locations(locations);
+  hb_enc.add_time_stamps(locations);
 }
 
 

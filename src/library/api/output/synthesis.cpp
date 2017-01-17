@@ -145,10 +145,10 @@ bool synthesis::find_lock(const nf::row_type& disjunct)
       auto b = a;
       for (b++; b!=disjunct.end() && !found; b++) {
         // check if this is a lock
-        hb_enc::location_ptr loc1a = a->loc1;
-        hb_enc::location_ptr loc1b = b->loc2;
-        hb_enc::location_ptr loc2b = a->loc2;
-        hb_enc::location_ptr loc2a = b->loc1;
+        hb_enc::tstamp_ptr loc1a = a->loc1;
+        hb_enc::tstamp_ptr loc1b = b->loc2;
+        hb_enc::tstamp_ptr loc2b = a->loc2;
+        hb_enc::tstamp_ptr loc2a = b->loc1;
         if (loc1a->thread == loc1b->thread && loc2a->thread==loc2b->thread && 
           loc1a->instr_no >= loc1b->instr_no && loc2a->instr_no >= loc2b->instr_no
         ) {
@@ -184,8 +184,8 @@ bool synthesis::find_barrier(const nf::row_type& disjunct, list< nf::row_type >:
     barrier b("b" + std::to_string(barrier_counter));
     b.locations.insert(d.loc2);
     // find crossing arrow
-    hb_enc::location_ptr start = d.loc1;
-    hb_enc::location_ptr end = d.loc2;
+    hb_enc::tstamp_ptr start = d.loc1;
+    hb_enc::tstamp_ptr end = d.loc2;
     auto a = current;
     for (a++; a!=list.end();)
     {
@@ -226,13 +226,13 @@ void synthesis::merge_locks()
   for (auto i = locks.begin(); i!=locks.end(); i++) {
     assert (i->locations.size() == 2);
     // check if another lock should be merged with this one
-    hb_enc::location_pair& locp1a = i->locations.front();
-    hb_enc::location_pair& locp1b = i->locations.back();
+    hb_enc::tstamp_pair& locp1a = i->locations.front();
+    hb_enc::tstamp_pair& locp1b = i->locations.back();
     auto j = i;
     for (j++; j!=locks.end(); ) {
       assert (j->locations.size() == 2);
-      hb_enc::location_pair& locp2a = j->locations.front();
-      hb_enc::location_pair& locp2b = j->locations.back();
+      hb_enc::tstamp_pair& locp2a = j->locations.front();
+      hb_enc::tstamp_pair& locp2b = j->locations.back();
       bool found = false;
       // make sure they talk about the same threads
       if (locp1a.first->thread == locp2a.second->thread && locp1b.first->thread == locp2b.second->thread) {
@@ -271,11 +271,11 @@ void synthesis::merge_locks_multithread()
     for (j++; j!=locks.end(); j++) {
       // the thing we want to merge with should have only two locations
       assert (j->locations.size() == 2);
-      hb_enc::location_pair& locp2a = j->locations.front();
-      hb_enc::location_pair& locp2b = j->locations.back();
+      hb_enc::tstamp_pair& locp2a = j->locations.front();
+      hb_enc::tstamp_pair& locp2b = j->locations.back();
       // check if one of the locations in the lock j is in the list of locations of i
-      hb_enc::location_pair* present = nullptr; // the location thas 
-      hb_enc::location_pair* other = nullptr;
+      hb_enc::tstamp_pair* present = nullptr; // the location thas 
+      hb_enc::tstamp_pair* other = nullptr;
       if (list_contains(i->locations, locp2a)) {
         present = &locp2a;
         other = &locp2b;

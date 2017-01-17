@@ -72,7 +72,7 @@ void output_base::order_locations_thread(hb_enc::location_ptr& loc1, hb_enc::loc
   }
 }
 
-bool output_base::check_overlap(const hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2)
+bool output_base::check_overlap(const hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2)
 {
   if (locs1.first->thread == locs2.first->thread) {
     if ((locs1.first->instr_no <= locs2.first->instr_no && locs2.first->instr_no <= locs1.second->instr_no) ||
@@ -83,7 +83,7 @@ bool output_base::check_overlap(const hb_enc::location_pair& locs1, const hb_enc
   return false;
 }
 
-bool output_base::check_contained(const hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2)
+bool output_base::check_contained(const hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2)
 {
   if (locs1.first->thread == locs2.first->thread) {
     if ((locs1.first->instr_no <= locs2.first->instr_no && locs2.second->instr_no <= locs1.second->instr_no) ||
@@ -94,7 +94,7 @@ bool output_base::check_contained(const hb_enc::location_pair& locs1, const hb_e
   return false;
 }
 
-void output_base::merge_overlap(hb_enc::location_pair& locs1, const hb_enc::location_pair& locs2)
+void output_base::merge_overlap(hb_enc::tstamp_pair& locs1, const hb_enc::tstamp_pair& locs2)
 {
   locs1.first=locs1.first->instr_no <= locs2.first->instr_no ? locs1.first : locs2.first;
   locs1.second=locs1.second->instr_no <= locs2.second->instr_no ? locs1.second : locs2.second;

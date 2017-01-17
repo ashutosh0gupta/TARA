@@ -134,7 +134,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   void program::set_c11_rs_heads( hb_enc::se_ptr e,
                                   std::map< cssa::variable,
                                             hb_enc::depends_set >& rs_heads_map ) {
-    //for read events there are no relase heads
+    //for read and barrier events there are no relase heads
     if( is_mm_c11() && e->is_wr() ) {
       hb_enc::depends_set& rs_heads = rs_heads_map[e->prog_v];
       // todo : ability to throw exception if a new model is seen

@@ -70,12 +70,10 @@ public:
   uint16_t serial() const;
   
   friend std::ostream& operator<< (std::ostream& stream, const location& loc);
-  friend std::ostream& operator<< (std::ostream& stream, const std::shared_ptr<hb_enc::location const>& loc);
+  friend std::ostream& operator<< (std::ostream& stream, const tstamp_ptr& loc);
   
   void debug_print(std::ostream& stream );
 };
-
-  // class location;
 
   //todo: the following two enums must be merged
 
@@ -119,7 +117,7 @@ public:
   class symbolic_event
   {
   private:
-    std::shared_ptr<tara::hb_enc::location>
+    tstamp_var_ptr
     create_internal_event( helpers::z3interf& _hb_enc, std::string event_name,
                            unsigned tid, unsigned instr_no, bool special);
                            // bool is_read, std::string& prog_v_name );
@@ -147,14 +145,11 @@ public:
   private:
     unsigned topological_order;
   public:
-    std::shared_ptr<tara::hb_enc::location> e_v; // variable for solver
-    std::shared_ptr<tara::hb_enc::location> thin_v; // thin air variable
+    tstamp_var_ptr e_v; // variable for solver
+    tstamp_var_ptr thin_v; // thin air variable
 
     // c11 variables
-    std::shared_ptr<tara::hb_enc::location> c11_hb_v; // po hb variable
-
-    // std::shared_ptr<tara::hb_enc::location> c11_mo_v; // memory order
-    // std::shared_ptr<tara::hb_enc::location> c11_sc_v; // sc variable
+    tstamp_var_ptr c11_hb_v; // po hb variable
 
     event_t et;    // type of the event
     o_tag_t o_tag; // ordering tag on the event
@@ -234,36 +229,16 @@ public:
     z3::expr get_c11_mo_solver_symbol() const;
     z3::expr get_c11_sc_solver_symbol() const;
 
-    // inline z3::expr get_solver_symbol() const {
-    //   return *e_v;
-    // }
 
-    // inline z3::expr get_thin_solver_symbol() const {
-    //   return *thin_v;
-    // }
-
-    // inline z3::expr get_c11_hb_solver_symbol() const {
-    //   return *get_c11_hb_stamp();
-    // }
-
-    // inline z3::expr get_c11_mo_solver_symbol() const {
-    //   return *get_c11_mo_stamp();
-    // }
-
-    // inline z3::expr get_c11_sc_solver_symbol() const {
-    //   return *get_c11_sc_stamp();
-    // }
-
-
-    inline std::shared_ptr<tara::hb_enc::location> get_c11_hb_stamp() const {
+    inline tstamp_ptr get_c11_hb_stamp() const {
       return c11_hb_v;
     }
 
-    inline std::shared_ptr<tara::hb_enc::location> get_c11_mo_stamp() const {
+    inline tstamp_ptr get_c11_mo_stamp() const {
       return thin_v;
     }
 
-    inline std::shared_ptr<tara::hb_enc::location> get_c11_sc_stamp() const {
+    inline tstamp_ptr get_c11_sc_stamp() const {
       return e_v;
     }
 

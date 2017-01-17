@@ -95,11 +95,11 @@ public:
    * Throws an exception if an error was found
    */
   void check_correctness();
-  inline std::shared_ptr<hb_enc::location> start_name() const {return _start_loc;}
-  inline std::shared_ptr<hb_enc::location> end_name() const {return _end_loc;}
+  inline hb_enc::tstamp_var_ptr start_name() const {return _start_loc;}
+  inline hb_enc::tstamp_var_ptr end_name() const {return _end_loc;}
 private:
-  std::shared_ptr<hb_enc::location> _start_loc;
-  std::shared_ptr<hb_enc::location> _end_loc;
+  hb_enc::tstamp_var_ptr _start_loc;
+  hb_enc::tstamp_var_ptr _end_loc;
   bool names_converted = false;
 };
 }}

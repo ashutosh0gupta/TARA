@@ -69,3 +69,15 @@ int main() {
   pthread_join(thr_2, NULL);
   pthread_join(thr_3, NULL);
 }
+
+//###############################################
+//!-M c11
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( hb(W#r#_l51_c5,R#r#_l36_c7) ∧ rf(W#x#_l20_c3,R#x#_l35_c11) ∧ rf(W#x#_l20_c3,R#x#_l43_c12) ∧ rf(W#x#_l21_c3,R#x#_l44_c12) ∧ rf(W#x#_l27_c3,R#x#_l45_c12) ∧ rf(W#y#_l22_c3,R#y#_l46_c12) ∧ rf(W#y#_l29_c3,R#y#_l47_c12) ∧ rf(W#y#_l34_c3,R#y#_l48_c12) ) 
+//#
+//~
+

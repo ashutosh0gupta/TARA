@@ -47,8 +47,8 @@ hb::operator z3::expr () const {
     _signature |= loc2->serial();
   }
 
-hb::hb(location_ptr location1, location_ptr location2, z3::expr expr):
-  loc1(location1), loc2(location2), expr(expr)
+hb::hb(tstamp_ptr loc1_, tstamp_ptr loc2_, z3::expr expr):
+  loc1(loc1_), loc2(loc2_), expr(expr)
 {
   update_signature();
   // _signature = loc1->serial();
@@ -65,8 +65,8 @@ hb::hb(se_ptr e1_, se_ptr e2_, z3::expr expr):
   update_signature();
 }
 
-hb::hb( se_ptr e1_, location_ptr l1_,
-        se_ptr e2_, location_ptr l2_, z3::expr expr,
+hb::hb( se_ptr e1_, tstamp_ptr l1_,
+        se_ptr e2_, tstamp_ptr l2_, z3::expr expr,
         bool is_neg ):
   e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
   is_neg( is_neg ), is_partial( false ), type( hb_t::hb ),
@@ -76,8 +76,8 @@ hb::hb( se_ptr e1_, location_ptr l1_,
 }
 
   // todo: this call should be removed
-hb::hb( se_ptr e1_, location_ptr l1_,
-        se_ptr e2_, location_ptr l2_, z3::expr expr,
+hb::hb( se_ptr e1_, tstamp_ptr l1_,
+        se_ptr e2_, tstamp_ptr l2_, z3::expr expr,
         bool is_neg, bool is_partial ):
   e1( e1_), e2( e2_), loc1(l1_), loc2(l2_),
   is_neg(is_neg) , is_partial( is_partial ), type( hb_t::hb ),
@@ -125,6 +125,8 @@ bool operator< (const hb& hb1, const hb& hb2)
 ostream& operator<< (std::ostream& stream, const hb& hb) {
   if( hb.type == hb_t::rf ) {
     stream << "rf(" << hb.e1->name() << "," << hb.e2->name() << ")";
+  }else if( hb.type == hb_t::sc ) {
+    stream << "sc(" << hb.e1->name() << "," << hb.e2->name() << ")";
   }else{
     if( hb.is_partial && hb.is_neg )
       stream << "!hb(" << hb.e2->name() << "," << hb.e1->name() << ")";
