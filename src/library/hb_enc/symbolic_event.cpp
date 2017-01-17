@@ -62,7 +62,7 @@ string tara::hb_enc::to_string(const location& loc) {
 }
 
 
-string get_var_from_location (location_ptr loc) {
+string get_var_from_location (tstamp_ptr loc) {
   string res = loc->name;
   unsigned i;
   for(i=2;i!=res.length();i++) {
@@ -80,17 +80,17 @@ ostream& tara::hb_enc::operator<< (ostream& stream, const location& loc) {
   return stream;
 }
 
-ostream& tara::hb_enc::operator<< (ostream& stream, const location_ptr& loc) {
+ostream& tara::hb_enc::operator<< (ostream& stream, const tstamp_ptr& loc) {
   stream << *loc;
   return stream;
 }
 
-string operator+ (const string& lhs, const location_ptr& rhs) {
+string operator+ (const string& lhs, const tstamp_ptr& rhs) {
   return lhs + to_string(*rhs);
 }
 
 ostream& tara::hb_enc::operator<< ( ostream& stream,
-                                    const location_pair& loc_pair)
+                                    const tstamp_pair& loc_pair)
 {
   stream << loc_pair.first << "-" << loc_pair.second;
   return stream;

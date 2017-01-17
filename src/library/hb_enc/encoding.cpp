@@ -37,7 +37,7 @@ as::operator z3::expr () const {
   return expr;
 }
 
-as::as(location_ptr location1, location_ptr location2, z3::expr expr):
+as::as(tstamp_ptr location1, tstamp_ptr location2, z3::expr expr):
 loc1(location1), loc2(location2), expr(expr)
 {
   _signature = loc1->serial();
@@ -78,19 +78,19 @@ encoding::~encoding()
 {}
 
 
-  //location_map is only used in old code
-location_ptr encoding::get_tstamp(const string& name) const
+  //tstamp_map is only used in old code
+tstamp_ptr encoding::get_tstamp(const string& name) const
 {
-  auto found = location_map.find(name);
-  assert (found != location_map.end());
+  auto found = tstamp_map.find(name);
+  assert (found != tstamp_map.end());
   return get<1>(*found);
 }
 
-void encoding::save_locations(const vector< shared_ptr< location > >& locations)
+void encoding::save_locations(const vector< tstamp_var_ptr >& locations)
 {
-  location_map.clear();
+  tstamp_map.clear();
   for (auto loc: locations) {
-    location_map.insert(make_pair(loc->name, loc));
+    tstamp_map.insert(make_pair(loc->name, loc));
   }
 }
 

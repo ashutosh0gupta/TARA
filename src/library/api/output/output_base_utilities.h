@@ -9,7 +9,7 @@ namespace output {
  * Useful utility functions
  ***************************/
 
-const tara::instruction& output_base::lookup(const hb_enc::location_ptr& loc) const {
+const tara::instruction& output_base::lookup(const hb_enc::tstamp_ptr& loc) const {
   return program->lookup_location(loc); 
 }
 
@@ -55,18 +55,18 @@ bool output_base::order_hb(hb_enc::hb& hb1, hb_enc::hb& hb2) const
 }
 
 
-void output_base::order_locations(hb_enc::location_ptr& loc1, hb_enc::location_ptr& loc2) {
+void output_base::order_locations(hb_enc::tstamp_ptr& loc1, hb_enc::tstamp_ptr& loc2) {
   assert (loc1->thread==loc2->thread);
   if (loc1->instr_no > loc2->instr_no) {
-    hb_enc::location_ptr helper = loc1;
+    hb_enc::tstamp_ptr helper = loc1;
     loc1 = loc2;
     loc2 = helper;
   }
 }
 
-void output_base::order_locations_thread(hb_enc::location_ptr& loc1, hb_enc::location_ptr& loc2) {
+void output_base::order_locations_thread(hb_enc::tstamp_ptr& loc1, hb_enc::tstamp_ptr& loc2) {
   if (loc1->thread > loc2->thread) {
-    hb_enc::location_ptr helper = loc1;
+    hb_enc::tstamp_ptr helper = loc1;
     loc1 = loc2;
     loc2 = helper;
   }

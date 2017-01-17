@@ -46,7 +46,7 @@ namespace hb_enc {
     virtual std::vector<tstamp_ptr> get_trace(const z3::model& m) const override;
     void make_po_tstamp( tstamp_var_ptr );
   protected:
-    std::unordered_map< z3::expr, tstamp_var_ptr > location_lookup;
+    std::unordered_map< z3::expr, tstamp_var_ptr > tstamp_lookup;
     std::unordered_map< z3::expr, se_ptr, helpers::z3interf::expr_hash, helpers::z3interf::expr_equal > event_lookup;
   // map tstamp to instruction
     typedef std::unordered_map<z3::expr, tstamp_var_ptr>::const_iterator mapit;

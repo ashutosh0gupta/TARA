@@ -41,14 +41,12 @@ namespace hb_enc {
   typedef std::set<se_ptr> se_set;
   typedef std::shared_ptr<hb_enc::hb> hb_ptr;
   typedef std::vector<hb_ptr> hb_vec;
-  typedef std::shared_ptr<hb_enc::location const> location_ptr;
   typedef std::shared_ptr<hb_enc::location const> tstamp_ptr;
   typedef std::shared_ptr<hb_enc::location> tstamp_var_ptr;
 
 std::string to_string (const tara::hb_enc::location& loc);
 std::string get_var_from_location (tstamp_ptr loc);
 std::string operator+ (const std::string& lhs, const tstamp_ptr& rhs);
-typedef std::pair<tstamp_ptr,tstamp_ptr> location_pair;
 typedef std::pair<tstamp_ptr,tstamp_ptr> tstamp_pair;
 std::ostream& operator<< (std::ostream& stream, const tstamp_pair& loc_pair);
 
@@ -81,7 +79,7 @@ public:
   virtual void record_event( se_ptr& ) = 0;
   void record_rf_map( std::set< std::tuple<std::string, hb_enc::se_ptr, hb_enc::se_ptr> >& );
 
-  virtual void make_tstamp( std::shared_ptr< location > ) = 0;
+  virtual void make_tstamp( tstamp_var_ptr ) = 0;
   virtual void add_time_stamps(std::vector< tstamp_var_ptr > ) = 0;
   virtual tstamp_ptr get_tstamp(const std::string& name) const; // make one tstamp from a name
   virtual hb make_hb(tstamp_ptr loc1, tstamp_ptr loc2) const = 0;
@@ -130,8 +128,8 @@ public:
   helpers::z3interf& z3;
   // z3::context& ctx;
 protected:
-  std::unordered_map<std::string, tstamp_ptr> location_map;
-  void save_locations(const std::vector<hb_enc::tstamp_var_ptr>& locations);
+  std::unordered_map<std::string, tstamp_ptr> tstamp_map;
+  void save_locations(const std::vector<hb_enc::tstamp_var_ptr>& );
 };
 }}
 

@@ -28,7 +28,7 @@ using namespace tara::helpers;
 namespace tara {
 
 instruction::instruction( z3interf& z3,
-                          hb_enc::location_ptr location,
+                          hb_enc::tstamp_ptr location,
                           tara::thread* thread,
                           std::string& name,
                           instruction_type type,
@@ -159,7 +159,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   const tara::instruction&
-  program::lookup_location(const hb_enc::location_ptr& location) const {
+  program::lookup_location(const hb_enc::tstamp_ptr& location) const {
     return (*this)[location->thread][location->instr_no];
   }
 

@@ -59,12 +59,12 @@ private:
     variable orig_name;
     std::shared_ptr<instruction> last_local; // can be NULL if none
     unsigned thread;
-    hb_enc::location_ptr loc;
+    hb_enc::tstamp_ptr loc;
 
     pi_needed( variable name,
                variable orig_name,
                std::shared_ptr<instruction> last_local,
-               unsigned thread, hb_enc::location_ptr loc)
+               unsigned thread, hb_enc::tstamp_ptr loc)
       : name(name)
       , orig_name(orig_name)
       , last_local(last_local)
@@ -114,7 +114,7 @@ public:
   // where a local variable is written
   std::unordered_map<std::string, std::shared_ptr<instruction>> variable_written;
 
-  const instruction& lookup_location(const hb_enc::location_ptr& location) const;
+  const instruction& lookup_location(const hb_enc::tstamp_ptr& location) const;
 public: /* functions */
   void print_hb( const z3::model& m,
                  std::ostream& out,

@@ -58,7 +58,7 @@ void integer::add_time_stamps(vector< tstamp_var_ptr > locations)
     locations[i]->_serial = counter;
     z3::expr loc_expr = z3.c.int_const(locations[i]->name.c_str());
     locations[i]->expr = loc_expr;
-    location_lookup.insert(make_pair(loc_expr, locations[i]));
+    tstamp_lookup.insert(make_pair(loc_expr, locations[i]));
   }
   save_locations(locations);
 }
@@ -69,7 +69,7 @@ void integer::make_po_tstamp( tstamp_var_ptr loc )
   loc->_serial = counter;
   z3::expr loc_expr = z3.c.fresh_constant( loc->name.c_str(), hb_sort );
   loc->expr = loc_expr;
-  location_lookup.insert(make_pair(loc_expr, loc));
+  tstamp_lookup.insert(make_pair(loc_expr, loc));
 }
 
 
@@ -96,8 +96,8 @@ bool integer::eval_hb(const z3::model& model, hb_enc::tstamp_ptr loc1, hb_enc::t
 
 pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& possibly_equal, bool& is_partial) const {
   // we need to flip that bool parameter in to know if we are sure about this result or not (two locations can be assigned an equal integer)
-  auto loc1 = location_lookup.end();
-  auto loc2 = location_lookup.end();
+  auto loc1 = tstamp_lookup.end();
+  auto loc2 = tstamp_lookup.end();
   switch(hb.kind()) {
     case Z3_APP_AST:
     {
@@ -109,8 +109,8 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
         case Z3_OP_LT: 
           if (hb.arg(1).kind() == Z3_NUMERAL_AST)
             return get_locs(hb.arg(0), possibly_equal, is_partial);
-          loc1 = location_lookup.find(hb.arg(0));
-          loc2 = location_lookup.find(hb.arg(1));
+          loc1 = tstamp_lookup.find(hb.arg(0));
+          loc2 = tstamp_lookup.find(hb.arg(1));
           break;
         case Z3_OP_GE: 
           possibly_equal = true; // fallthrough
@@ -118,8 +118,8 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
           if (hb.arg(1).kind() == Z3_NUMERAL_AST) {
             return swap_pair(get_locs(hb.arg(0), possibly_equal, is_partial));
           }
-          loc1 = location_lookup.find(hb.arg(1));
-          loc2 = location_lookup.find(hb.arg(0));
+          loc1 = tstamp_lookup.find(hb.arg(1));
+          loc2 = tstamp_lookup.find(hb.arg(0));
           break;
       case Z3_OP_NOT: {
         auto neg_hb = get_locs(hb.arg(0), possibly_equal, is_partial);
@@ -129,17 +129,17 @@ pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& 
         break;
       }
       case Z3_OP_ADD: {
-        loc1 = location_lookup.find(hb.arg(0));
+        loc1 = tstamp_lookup.find(hb.arg(0));
         z3::expr t1 = hb.arg(1);
         if (t1.decl().decl_kind() == Z3_OP_MUL) {
-          loc2 = location_lookup.find(t1.arg(1));
+          loc2 = tstamp_lookup.find(t1.arg(1));
         }
         break;
       }
       case Z3_OP_SPECIAL_RELATION_PO: {
         is_partial = true;
-        loc1 = location_lookup.find(hb.arg(0));
-        loc2 = location_lookup.find(hb.arg(1));
+        loc1 = tstamp_lookup.find(hb.arg(0));
+        loc2 = tstamp_lookup.find(hb.arg(1));
         break;
       }
       default:
@@ -165,7 +165,7 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
   }
 
   auto p = get_locs(hb, possibly_equal, is_partial);
-  integer::mapit loc1 = p.first, loc2 = p.second, end = location_lookup.end();
+  integer::mapit loc1 = p.first, loc2 = p.second, end = tstamp_lookup.end();
   if( (!possibly_equal || allow_equal || is_partial) && loc1!=end && loc2!=end){
     hb_enc::tstamp_ptr l1 = get<1>(*loc1);
     hb_enc::tstamp_ptr l2 = get<1>(*loc2);
@@ -187,12 +187,12 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
 
 // unused function set for deprecation
 // interesting code - it has annonymous function
-vector< location_ptr > integer::get_trace(const z3::model& m) const
+vector< tstamp_ptr > integer::get_trace(const z3::model& m) const
 {
-  vector<location_ptr> result;
-  for (auto l : location_map)
+  vector<tstamp_ptr> result;
+  for (auto l : tstamp_map)
     result.push_back(get<1>(l));
-  sort(result.begin(), result.end(), [&](const location_ptr & a, const location_ptr & b) -> bool
+  sort(result.begin(), result.end(), [&](const tstamp_ptr & a, const tstamp_ptr & b) -> bool
   { 
     return m.eval(((z3::expr)(*a)) > *b).get_bool(); 
   });

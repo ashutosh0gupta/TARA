@@ -37,9 +37,9 @@ enum class bug_type {
 
 struct bug {
   bug(bug_type type);
-  bug(bug_type type, std::list<hb_enc::location_ptr> locations);
+  bug(bug_type type, std::list<hb_enc::tstamp_ptr> locations);
   bug_type type;
-  std::list<hb_enc::location_ptr> locations;
+  std::list<hb_enc::tstamp_ptr> locations;
   friend std::ostream& operator<< (std::ostream& stream, const bug& bug);
   bool operator==(const bug& rhs) const;
   bool operator!=(const bug& rhs) const;
@@ -79,7 +79,7 @@ private:
    * @param hbs ...
    * @return bool
    */
-  bool first_assignment(const cssa::variable& variable, hb_enc::location_ptr loc, const nf::row_type& hbs);
+  bool first_assignment(const cssa::variable& variable, hb_enc::tstamp_ptr loc, const nf::row_type& hbs);
   
   long long unsigned time;
 };

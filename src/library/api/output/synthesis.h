@@ -27,7 +27,7 @@ namespace tara {
 namespace api {
 namespace output {
   
-typedef std::list<hb_enc::location_pair> lock_locations;
+typedef std::list<hb_enc::tstamp_pair> lock_locations;
 
 struct lock {
   lock(std::string name);
@@ -40,7 +40,7 @@ struct lock {
 struct barrier {
   barrier(std::string name);
   std::string name;
-  std::unordered_set<hb_enc::location_ptr> locations;
+  std::unordered_set<hb_enc::tstamp_ptr> locations;
   friend std::ostream& operator<< (std::ostream& stream, const barrier& barrier);
 };
   

@@ -42,7 +42,7 @@ namespace tara {
 
   class instruction {
   public:
-    hb_enc::location_ptr loc; // todo : remove it
+    hb_enc::tstamp_ptr loc; // todo : remove it
     z3::expr instr;
     z3::expr path_constraint;
     thread* in_thread;
@@ -69,7 +69,7 @@ namespace tara {
     // End WMM support
     //--------------------------------------------------------------------------
   
-    instruction(helpers::z3interf& z3, hb_enc::location_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
+    instruction(helpers::z3interf& z3, hb_enc::tstamp_ptr location, thread* thread, std::string& name, instruction_type type, z3::expr original_expression);
     friend std::ostream& operator<< (std::ostream& stream, const instruction& i);
     void debug_print( std::ostream& o );
   private:
@@ -341,7 +341,7 @@ namespace tara {
      */
     z3::expr get_initial(const z3::model& m) const;
 
-    const instruction& lookup_location(const tara::hb_enc::location_ptr&) const;
+    const instruction& lookup_location(const tara::hb_enc::tstamp_ptr&) const;
     bool is_global(const cssa::variable& name) const;
     void print_dependency( std::ostream& );
     void print_dot( std::ostream& );
