@@ -37,8 +37,8 @@ as::operator z3::expr () const {
   return expr;
 }
 
-as::as(tstamp_ptr location1, tstamp_ptr location2, z3::expr expr):
-loc1(location1), loc2(location2), expr(expr)
+as::as(tstamp_ptr tstamp1, tstamp_ptr tstamp2, z3::expr expr):
+loc1(tstamp1), loc2(tstamp2), expr(expr)
 {
   _signature = loc1->serial();
   _signature <<= 16;
@@ -86,10 +86,10 @@ tstamp_ptr encoding::get_tstamp(const string& name) const
   return get<1>(*found);
 }
 
-void encoding::save_locations(const vector< tstamp_var_ptr >& locations)
+void encoding::save_tstamps(const vector< tstamp_var_ptr >& tstamps)
 {
   tstamp_map.clear();
-  for (auto loc: locations) {
+  for (auto loc: tstamps) {
     tstamp_map.insert(make_pair(loc->name, loc));
   }
 }

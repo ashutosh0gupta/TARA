@@ -34,18 +34,18 @@ namespace hb_enc {
   class integer;
 
   class symbolic_event;
-  class location;
+  class tstamp;
   class hb;
 
   typedef std::shared_ptr<symbolic_event> se_ptr;
   typedef std::set<se_ptr> se_set;
   typedef std::shared_ptr<hb_enc::hb> hb_ptr;
   typedef std::vector<hb_ptr> hb_vec;
-  typedef std::shared_ptr<hb_enc::location const> tstamp_ptr;
-  typedef std::shared_ptr<hb_enc::location> tstamp_var_ptr;
+  typedef std::shared_ptr<hb_enc::tstamp const> tstamp_ptr;
+  typedef std::shared_ptr<hb_enc::tstamp> tstamp_var_ptr;
 
-std::string to_string (const tara::hb_enc::location& loc);
-std::string get_var_from_location (tstamp_ptr loc);
+std::string to_string (const tara::hb_enc::tstamp& loc);
+
 std::string operator+ (const std::string& lhs, const tstamp_ptr& rhs);
 typedef std::pair<tstamp_ptr,tstamp_ptr> tstamp_pair;
 std::ostream& operator<< (std::ostream& stream, const tstamp_pair& loc_pair);
@@ -129,7 +129,7 @@ public:
   // z3::context& ctx;
 protected:
   std::unordered_map<std::string, tstamp_ptr> tstamp_map;
-  void save_locations(const std::vector<hb_enc::tstamp_var_ptr>& );
+  void save_tstamps(const std::vector<hb_enc::tstamp_var_ptr>& );
 };
 }}
 

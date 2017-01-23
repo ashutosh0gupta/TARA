@@ -841,6 +841,51 @@ void wmm_event_cons::update_orderings() {
       update_must_before( p.get_thread(i).events, e );
     }
   }
+
+  p.seq_before[p.init_loc].clear();
+  p.seq_before[p.post_loc].clear();
+  for( unsigned i = 0; i < p.size(); i++ ) {
+    p.seq_before[p.get_thread(i).start_event].clear();
+    for( auto& e : p.get_thread(i).events ) {
+      auto& sb_es = p.seq_before[e];
+      for( auto& ep : e->prev_events ) {
+        // if( ep->is_mem_op() )
+        sb_es.insert( ep ); //todo: include fences??
+        helpers::set_insert( sb_es,p.seq_before[ep]);
+      }
+    }
+    auto& sb_es = p.seq_before[p.get_thread(i).final_event];
+    for( auto& ep : p.get_thread(i).final_event->prev_events ) {
+      // if( ep->is_mem_op() )
+        sb_es.insert( ep ); //todo: include fences??
+      helpers::set_insert( sb_es,p.seq_before[ep]);
+    }
+  }
+
+  p.seq_after[p.init_loc].clear();
+  p.seq_after[p.post_loc].clear();
+  for( unsigned i = 0; i < p.size(); i++ ) {
+    p.seq_after[p.get_thread(i).final_event].clear();
+    auto rit = p.get_thread(i).events.rbegin();
+    auto rend = p.get_thread(i).events.rend();
+    for (; rit!= rend; ++rit) {
+      hb_enc::se_ptr e = *rit;
+      auto& sa_es = p.seq_after[e];
+      for( auto& ep : e->post_events ) {
+        // if( ep.e->is_mem_op() )
+        sa_es.insert( ep.e ); //todo: include fences??
+        helpers::set_insert( sa_es,  p.seq_after[ep.e]);
+      }
+    }
+    auto& sa_es = p.seq_after[p.get_thread(i).start_event];
+    for( auto& ep : p.get_thread(i).start_event->post_events ) {
+      // if( ep.e->is_mem_op() )
+      sa_es.insert( ep.e ); //todo: include fences??
+      helpers::set_insert( sa_es,  p.seq_after[ep.e]);
+      // tara::debug_print( std::cerr, sa_es );
+    }
+  }
+
   for( unsigned i = 0; i < p.size(); i ++ ) {
     auto rit = p.get_thread(i).events.rbegin();
     auto rend = p.get_thread(i).events.rend();
@@ -877,6 +922,10 @@ void wmm_event_cons::update_orderings() {
         tara::debug_print( o.out(), p.ppo_before [e] );
         o.out() << "c11 release sequence heads: ";
         tara::debug_print( o.out(), p.c11_rs_heads [e] );
+        o.out() << "seq before: ";
+        tara::debug_print( o.out(), p.seq_before [e] );
+        o.out() << "seq after: ";
+        tara::debug_print( o.out(), p.seq_after [e] );
         o.out() << "\n";
       }
     }
@@ -906,6 +955,7 @@ void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
   }
   p.must_before[e] = local_ordered[e];
 }
+
 
 void wmm_event_cons::update_must_after( const hb_enc::se_vec& es,
                                         hb_enc::se_ptr e ) {

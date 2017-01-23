@@ -32,44 +32,44 @@
 namespace tara{
 namespace hb_enc {
 
-struct location {
+struct tstamp {
 private:
   z3::expr expr; // ensure this one is not visible from the outside
   uint16_t _serial;
   
   friend class hb_enc::integer;
 public:
-  location(location& ) = delete;
-  location& operator=(location&) = delete;
-  location(z3::context& ctx, std::string name ,bool special = false);
+  tstamp(tstamp& ) = delete;
+  tstamp& operator=(tstamp&) = delete;
+  tstamp(z3::context& ctx, std::string name ,bool special = false);
 
   std::string name;
   /**
-   * @brief True if this is a special location
+   * @brief True if this is a special tstamp
    * 
-   * This means the location is not actualy in the program, but the start symbol and the like
+   * This means the tstamp is not actualy in the program, but the start symbol and the like
    */
   bool special;  //todo: rename to a meaningful name
-  int thread; // number of the thread of this location
+  int thread; // number of the thread of this tstamp
   int instr_no; // number of this instruction
   /**
-   * @brief The previous location in the same thread
+   * @brief The previous tstamp in the same thread
    * 
    */
-  std::weak_ptr<hb_enc::location const> prev;
+  std::weak_ptr<hb_enc::tstamp const> prev;
   /**
-   * @brief The next location in the same thread
+   * @brief The next tstamp in the same thread
    * 
    */
-  std::weak_ptr<hb_enc::location const> next;
+  std::weak_ptr<hb_enc::tstamp const> next;
   
   
-  bool operator==(const location &other) const;
-  bool operator!=(const location &other) const;
+  bool operator==(const tstamp &other) const;
+  bool operator!=(const tstamp &other) const;
   operator z3::expr () const;
   uint16_t serial() const;
   
-  friend std::ostream& operator<< (std::ostream& stream, const location& loc);
+  friend std::ostream& operator<< (std::ostream& stream, const tstamp& loc);
   friend std::ostream& operator<< (std::ostream& stream, const tstamp_ptr& loc);
   
   void debug_print(std::ostream& stream );
@@ -174,6 +174,7 @@ public:
                                                    et == event_t::u;      }
     inline bool is_update()         const { return et == event_t::u;      }
     inline bool is_barrier()        const { return et == event_t::barr;   }
+    inline bool is_fence()          const { return et == event_t::barr;   }
     inline bool is_before_barrier() const { return et == event_t::barr_b; }
     inline bool is_after_barrier () const { return et == event_t::barr_a; }
     inline bool is_barr_type()      const {
@@ -228,6 +229,11 @@ public:
     z3::expr get_c11_hb_solver_symbol() const;
     z3::expr get_c11_mo_solver_symbol() const;
     z3::expr get_c11_sc_solver_symbol() const;
+
+    inline bool access_same_var( se_ptr e ) const {
+      if( is_pre() || is_post() ) return true;
+      return prog_v.name == e->prog_v.name;
+    }
 
 
     inline tstamp_ptr get_c11_hb_stamp() const {
@@ -294,7 +300,7 @@ public:
 
   //--------------------------------------------------------------------------
   // new calls
-  // todo: streamline se allocation
+  // todo: streamline se all tstamps
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
@@ -439,7 +445,10 @@ public:
   // bool is_must_after ( const se_ptr& x, const se_ptr& y );
 
 }
+
+  void debug_print(std::ostream& out, const hb_enc::se_vec& set );
   void debug_print(std::ostream& out, const hb_enc::se_set& set );
+  void debug_print(std::ostream& out, const hb_enc::se_to_ses_map& dep );
   void debug_print(std::ostream& out, const hb_enc::depends& dep );
   void debug_print(std::ostream& out, const hb_enc::depends_set& set);
 }

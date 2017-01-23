@@ -83,21 +83,44 @@ void barrier_synthesis::print_all_cycles( ostream& stream ) const {
   }
 }
 
+void barrier_synthesis::report( ostream& stream,
+                                const std::vector<hb_enc::se_ptr>& inserted,
+                                std::string msg ) const {
+  if( inserted.size() > 0 ) {
+    stream << msg << ":-\n";
+    for ( auto e : inserted ) {
+      stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
+    }
+  }
+}
+
 void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
   if( verbose && !machine_readable )
     normal_form.print(stream, false);
 
+  stream << "The following synchromizations must be added:\n";
 
-  stream <<"Barriers must be inserted after the following instructions:- \n";
-  for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
-    hb_enc::se_ptr e = barrier_where[i];
-    stream << "thread " << e->get_tid() << e->name() << endl;
-  }
-  stream <<"Soft Barriers must be inserted after the following instructions:- \n";
-  for ( unsigned i = 0; i < soft_barrier_where.size(); i++ ) {
-    hb_enc::se_ptr e = soft_barrier_where[i];
-    stream << "thread " << e->get_tid() << e->name() << endl;
-  }
+  report( stream, result_sc_fences , "sc fences after");
+  report( stream, result_rlsacq_fences, "rlsacq fences after");
+  report( stream, result_rls_fences, "rls fences after");
+  report( stream, result_acq_fences, "acq fences after");
+  report( stream, result_rls_upgrade    , "upgrade to rls");
+  report( stream, result_acq_upgrade    , "upgrade to rls");
+  report( stream, result_rlsacq_upgrade , "upgrade to rlsacq");
+
+  report( stream, barrier_where , "full fences after");
+  report( stream, soft_barrier_where , "soft fences after");
+
+  // stream <<"Barriers must be inserted after the following instructions:- \n";
+  // for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
+  //   hb_enc::se_ptr e = barrier_where[i];
+  //   stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
+  // }
+  // stream <<"Soft Barriers must be inserted after the following instructions:- \n";
+  // for ( unsigned i = 0; i < soft_barrier_where.size(); i++ ) {
+  //   hb_enc::se_ptr e = soft_barrier_where[i];
+  //   stream << "thread " << e->get_tid() << e->name() << endl;
+  // }
 
   stream << endl;
 }
@@ -111,76 +134,113 @@ void barrier_synthesis::gather_statistics(api::metric& metric) const
 
 //----------------------------------------------------------------------------
 
-bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
-  return ( a->get_instr_no() < b->get_instr_no() );
+
+
+z3::expr barrier_synthesis::get_h_var_bit( const hb_enc::se_ptr& b,
+                                           const hb_enc::se_ptr& e_i,
+                                           const hb_enc::se_ptr& e_j ) {
+  auto pr = std::make_tuple( b, e_i, e_j );
+  auto it = hist_map.find( pr );
+  if( it != hist_map.end() )
+    return it->second;
+  z3::expr bit = z3.get_fresh_bool( b->name() + "_"+ e_i->name() + "_"+ e_j->name() );
+  hist_map.insert( std::make_pair( pr, bit) );
+  return bit;
+}
+
+z3::expr barrier_synthesis::get_write_order_bit( const hb_enc::se_ptr& b,
+                                                 const hb_enc::se_ptr& e ) {
+  auto pr = std::make_pair( b, e);
+  auto it = wr_ord_map.find( pr );
+  if( it != wr_ord_map.end() )
+    return it->second;
+  z3::expr bit = z3.get_fresh_bool();
+  wr_ord_map.insert( std::make_pair( pr, bit) );
+  return bit;
+}
+
+z3::expr barrier_synthesis::get_bit_from_map(std::map< std::pair<hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e ) {
+  auto pr = std::make_pair( b, e);
+  auto it = map.find( pr );
+  if( it != map.end() )
+    return it->second;
+  z3::expr bit = z3.get_fresh_bool();
+  map.insert( std::make_pair( pr, bit) );
+  return bit;
+}
+
+z3::expr barrier_synthesis::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr, cssa::variable>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e, const cssa::variable& v ) {
+  auto pr = std::make_tuple( b, e, v);
+  auto it = map.find( pr );
+  if( it != map.end() )
+    return it->second;
+  z3::expr bit = z3.get_fresh_bool();
+  map.insert( std::make_pair( pr, bit) );
+  return bit;
 }
 
 
-void barrier_synthesis::gen_max_sat_problem() {
-  z3::context& z3_ctx = sol_bad->ctx();
-
-  for( auto& cycles : all_cycles ) {
-      for( auto& cycle : cycles ) {
-        bool found = false;
-        for( auto edge : cycle.edges ) {
-          if( edge.type==edge_type::rpo ) {
-            //check each edge for rpo: push them in another vector
-            //compare the edges in same thread
-            tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
-            tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
-            found = true;
-          }
-        }
-        if( !found )
-          throw output_exception( "cycles found without any relaxed program oders!!");
-      }
-  }
-
-  for( auto it = tid_to_se_ptr.begin();  it != tid_to_se_ptr.end(); it++ ) {
-    hb_enc::se_vec& vec = it->second;
-    std::sort( vec.begin(), vec.end(), cmp );
-    vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
-    for(auto e : vec ) {
-      z3::expr s = z3.get_fresh_bool();
-      // std::cout << s << e->name() << endl;
-      segment_map.insert( {e,s} );
-      soft.push_back( !s);
-    }
-  }
-
-  z3::expr hard = z3_ctx.bool_val(true);
-  for( auto& cycles : all_cycles ) {
-    if( cycles.size() == 0 ) continue; // throw error unfixable situation
-    z3::expr c_disjunct = z3_ctx.bool_val(false);
-    for( auto& cycle : cycles ) {
-      z3::expr r_conjunct = z3_ctx.bool_val(true);
-      for( auto edge : cycle.edges ) {
-        if( edge.type==edge_type::rpo ) {
-          unsigned tid = edge.before->tid;
-          auto& events = tid_to_se_ptr.at(tid);
-          bool in_range = false;
-          z3::expr s_disjunct = z3_ctx.bool_val(false);
-          for( auto e : events ) {
-            if( e == edge.before ) in_range = true;
-            if( e == edge.after ) break;
-            if( in_range ) {
-              auto find_z3 = segment_map.find( e );
-              s_disjunct = s_disjunct || find_z3->second;
-            }
-          }
-          r_conjunct = r_conjunct && s_disjunct;
-        }
-      }
-      z3::expr c = z3.get_fresh_bool();
-      // z3_to_cycle.insert({c, &cycle});
-      c_disjunct=c_disjunct || c;
-      hard = hard && implies( c, r_conjunct );
-    }
-    hard = hard && c_disjunct;
-  }
-  cut.push_back( hard );
-
+z3::expr barrier_synthesis::get_sc_var_bit( const hb_enc::se_ptr& b,
+                                            const hb_enc::se_ptr& e ) {
+  return get_bit_from_map( sc_var_map, b, e );
 }
+
+z3::expr barrier_synthesis::get_rls_var_bit( const hb_enc::se_ptr& b,
+                                            const hb_enc::se_ptr& e ) {
+  return get_bit_from_map( rls_var_map, b, e );
+}
+
+z3::expr barrier_synthesis::get_acq_var_bit( const hb_enc::se_ptr& b,
+                                             const hb_enc::se_ptr& e ) {
+  return get_bit_from_map( acq_var_map, b, e );
+}
+
+z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
+                                                const hb_enc::se_ptr& e ) {
+  return get_bit_from_map( rlsacq_var_map, b, e );
+}
+
+z3::expr barrier_synthesis::get_rls_var_bit( const hb_enc::se_ptr& b,
+                                             const hb_enc::se_ptr& e,
+                                             const cssa::variable& v) {
+  return get_bit_from_map( rls_v_var_map, b, e, v);
+}
+
+z3::expr barrier_synthesis::get_acq_var_bit( const hb_enc::se_ptr& b,
+                                             const hb_enc::se_ptr& e,
+                                             const cssa::variable& v) {
+  return get_bit_from_map( acq_v_var_map, b, e, v);
+}
+
+z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
+                                                const hb_enc::se_ptr& e,
+                                                const cssa::variable& v) {
+  return get_bit_from_map( rlsacq_v_var_map, b, e, v);
+}
+
+//=====
+
+z3::expr barrier_synthesis::get_rls_bit( const hb_enc::se_ptr& e,
+                                         const cssa::variable& v ) {
+  if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
+  if( e->is_rls() ) return z3.mk_true();
+  return rls_v_map.at( e );
+}
+
+z3::expr barrier_synthesis::get_acq_bit( const hb_enc::se_ptr& e,
+                                         const cssa::variable& v ) {
+  if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
+  if( e->is_acq() ) return z3.mk_true();
+  return acq_v_map.at( e );
+}
+
+z3::expr barrier_synthesis::get_rlsacq_bit( const hb_enc::se_ptr& e,
+                                            const cssa::variable& v ) {
+  if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
+  if( e->is_rlsacq() ) return z3.mk_true();
+  return rlsacq_v_map.at( e );
+}
+
 
 // we need to choose
 // constraints for mk_edge( b, a)
@@ -196,47 +256,14 @@ void barrier_synthesis::gen_max_sat_problem() {
 // b_k => l_k
 // return h_baa
 
-
-z3::expr barrier_synthesis::get_h_var_bit( hb_enc::se_ptr b,
-                                           hb_enc::se_ptr e_i,
-                                           hb_enc::se_ptr e_j ) {
-  auto pr = std::make_tuple( b, e_i, e_j );
-  auto it = hist_map.find( pr );
-  if( it != hist_map.end() )
-    return it->second;
-  z3::expr bit = z3.get_fresh_bool( b->name() + "_"+ e_i->name() + "_"+ e_j->name() );
-  hist_map.insert( std::make_pair( pr, bit) );
-  return bit;
-}
-
-z3::expr barrier_synthesis::get_write_order_bit( hb_enc::se_ptr b,
-                                                 hb_enc::se_ptr e ) {
-  auto pr = std::make_pair( b, e);
-  auto it = wr_ord_map.find( pr );
-  if( it != wr_ord_map.end() )
-    return it->second;
-  z3::expr bit = z3.get_fresh_bool();
-  wr_ord_map.insert( std::make_pair( pr, bit) );
-  return bit;
-}
-
-z3::expr barrier_synthesis::get_barr_bit( hb_enc::se_ptr e ) {
-  return barrier_map.at( e );
-}
-
-z3::expr barrier_synthesis::get_lw_barr_bit( hb_enc::se_ptr e ) {
-  return light_barrier_map.at( e );
-}
-
-
 z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
                                                 hb_enc::se_ptr& a,
                                                 z3::expr& hard ) {
   mm_t mm = program->get_mm();
   hb_enc::se_tord_set pending;
   hb_enc::se_vec found;
-  std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,hb_enc::se_ptr>,z3::expr >
-    history_map;
+  // std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,hb_enc::se_ptr>,z3::expr >
+  //   history_map;
   std::map< hb_enc::se_ptr, z3::expr > forced_map;
 
   pending.insert( b );
@@ -262,15 +289,16 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
       for( const hb_enc::se_ptr& k : i->prev_events ) {
         if( helpers::exists( found, k )  ) {
           z3::expr h_bkj = get_h_var_bit( b, k, j );
-          z3::expr h_bkk = cssa::wmm_event_cons::check_ppo(mm,k,j) ?
-            get_h_var_bit(b,k,k):z3.mk_false();
+          z3::expr h_bkk = z3.mk_false();
+          h_bkk = cssa::wmm_event_cons::check_ppo(mm,k,j) ?
+            get_h_var_bit(b,k,k) : z3.mk_false();
           // todo: check for the lwsync requirement
           z3::expr lw_k = z3.mk_false();
           if( enable_lw_fences ) { // disable 
-            z3::expr lw_k = j->is_wr()? get_lw_barr_bit( k ) : z3.mk_false();
+            z3::expr lw_k = j->is_wr()? get_lw_fence_bit( k ) : z3.mk_false();
             lw_k = lw_k && get_write_order_bit( b, k );
           }
-          z3::expr b_k = get_barr_bit( k );
+          z3::expr b_k = get_fence_bit( k );
           conj = conj && (h_bkj || h_bkk || lw_k || b_k);
         }
       }
@@ -291,8 +319,8 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
       z3::expr h_bii = i->is_wr() ? get_h_var_bit( b, i, i ) : z3.mk_false();
       z3::expr w_bi = get_write_order_bit( b, i );
       hard = hard && implies( w_bi, conj ||  h_bii );
-      z3::expr s_i = get_barr_bit( i );
-      z3::expr lw_i = get_lw_barr_bit( i );
+      z3::expr s_i = get_fence_bit( i );
+      z3::expr lw_i = get_lw_fence_bit( i );
       hard = hard && implies( s_i, lw_i );
     }
   }
@@ -302,33 +330,352 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
   return z3.mk_false(); //todo : may be reachable for unreachable pairs
 }
 
+void barrier_synthesis::mk_c11_edge_constraint( hb_enc::se_ptr& b,
+                                                hb_enc::se_ptr& a,
+                                                z3::expr& hard ) {
+  assert( b->tid == a->tid );
+  if( helpers::exists( const_already_made, {b,a}) ) return;
+
+  hb_enc::se_tord_set pending;
+  hb_enc::se_vec found;
+
+  pending.insert( b );
+  while( !pending.empty() ) {
+    hb_enc::se_ptr e = *pending.begin();
+    pending.erase( e );
+    // hb_enc::se_ptr e = helpers::pick( pending );
+    found.push_back( e );
+    if( e->get_topological_order() > a->get_topological_order() )
+      continue;
+    if( a == e ) break;
+    for( auto& xpp : e->post_events ) {
+      if( !helpers::exists( found, xpp.e ) ) pending.insert( xpp.e );
+    }
+  }
+
+  for( auto it = found.begin(); it != found.end();it++ ) {
+    hb_enc::se_ptr& i = *it;
+    if( helpers::exists( const_already_made, {b,i}) ) continue;
+    const_already_made.insert( {b,i} );
+    z3::expr conj_sc  = z3.mk_true();
+    z3::expr conj_rls = z3.mk_true();
+    z3::expr conj_acq = z3.mk_true();
+    std::map<cssa::variable, z3::expr> conj_rls_map;
+    std::map<cssa::variable, z3::expr> conj_acq_map;
+    for( auto v : program->globals ) {
+      auto pr = std::make_pair(v, z3.mk_true() );
+      conj_rls_map.insert( pr  );
+      conj_acq_map.insert( pr );
+    }
+    for( const hb_enc::se_ptr& k : i->prev_events ) {
+      if( helpers::exists( found, k ) ) {
+        if( !k->is_sc() || !k->is_fence() ) {
+          conj_sc = conj_sc && (get_sc_var_bit(b, k) || get_sc_fence_bit(k));
+        }
+        if( !k->is_rls() || !k->is_fence() ) {
+          conj_rls = conj_rls
+            && (get_rls_var_bit(b, k) || get_rls_fence_bit(k)
+                || get_rlsacq_fence_bit( k ));
+        }
+        if( !k->is_rls() || !k->is_fence() ) {
+          conj_acq = conj_acq
+            && ( get_acq_var_bit(b, k) || get_acq_fence_bit(k)
+                 || get_rlsacq_fence_bit(k) );
+        }
+        std::map<cssa::variable, z3::expr> conj_rls_map_copy;
+        std::map<cssa::variable, z3::expr> conj_acq_map_copy;
+        for( auto& v : program->globals ) {
+          z3::expr d1 = conj_rls_map.at(v);
+          if( !k->is_rls() || !k->is_wr() ) {
+            d1 = d1 && ( get_rls_var_bit(b, k, v) || get_rls_bit(k, v) ||
+                       get_rlsacq_bit(k, v) || get_rls_fence_bit(k) ||
+                       get_rlsacq_fence_bit(k) );
+          }
+          conj_rls_map_copy.insert( {v, d1} );
+          z3::expr d2 = conj_acq_map.at(v);
+          if( !k->is_acq() || !k->is_rd() ) {
+            d2 = d2 && (get_acq_var_bit( b, k, v ) || get_acq_bit( k, v )
+                        || get_rlsacq_bit( k, v )
+                        || get_rls_fence_bit(k) || get_rlsacq_fence_bit(k));
+          }
+          conj_acq_map_copy.insert( {v, d2} );
+        }
+        conj_rls_map = conj_rls_map_copy;
+        conj_acq_map = conj_acq_map_copy;
+      }
+    }
+    if( i == b ) {
+      conj_sc  = z3.mk_false();
+      conj_rls = z3.mk_false();
+      conj_acq = z3.mk_false();
+      std::map<cssa::variable, z3::expr> conj_rls_map_copy;
+      std::map<cssa::variable, z3::expr> conj_acq_map_copy;
+      for( auto& v : program->globals ) {
+        conj_rls_map_copy.insert( { v, get_rls_bit( b, v ) } );
+        conj_acq_map_copy.insert( { v, get_acq_bit( b, v ) } );
+
+        // z3::expr bit = get_rls_bit( b, v );
+        // auto pr = std::make_pair(v, bit );
+        // conj_rls_map.insert( pr );
+        // std::cout << conj_rls_map.at(v) << bit << "\n";
+        // conj_rls_map.insert( { v, get_rls_bit( b, v ) } );
+        // conj_acq_map.insert( { v, get_acq_bit( b, v ) } );
+        //<< get_acq_bit( b, v ) << "\n";
+      }
+    // for( auto& it : conj_rls_map_copy ){std::cout << it.first << it.second << "\n";}
+    // for( auto& it : conj_acq_map_copy ){std::cout << it.first << it.second << "\n";}
+      conj_rls_map = conj_rls_map_copy;
+      conj_acq_map = conj_acq_map_copy;
+    // for( auto& it : conj_rls_map ){std::cout << it.first << it.second << "\n";}
+    // for( auto& it : conj_acq_map ){std::cout << it.first << it.second << "\n";}
+    }
+    z3::expr cs = implies( get_sc_var_bit ( b, i ), conj_sc );
+    cs = cs && implies( get_rls_var_bit( b, i ), conj_rls );
+    cs = cs && implies( get_acq_var_bit( b, i ), conj_acq );
+    for( auto& v : program->globals ) {
+      cs = cs && implies( get_rls_var_bit( b, i, v ), conj_rls_map.at(v) );
+      cs = cs && implies( get_acq_var_bit( b, i, v ), conj_acq_map.at(v) );
+    }
+    hard = hard && cs;
+  }
+}
+// three possibilites rf,hb,ppo
+z3::expr barrier_synthesis::
+mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
+                           z3::expr& hard, bool sc_fence_needed ) {
+  assert( segment.size() > 0 );
+  z3::expr r_conj = z3.mk_true();
+  std::vector< std::pair<cycle_edge,cycle_edge> > rf_segs;
+  std::vector< cycle_edge > pos;
+  bool rf_open = false;
+  cycle_edge last_po(segment[0].before,segment[0].before,edge_type::ppo);
+  for( auto& ed_s : segment ) {
+    if( ed_s.type == edge_type::rf ) {
+      rf_open = true;
+    }else {
+      if( rf_open == true ) {
+        rf_open = false;
+        if( ed_s.type == edge_type::hb ) {
+          cycle_edge ed_end(ed_s.before,ed_s.before,edge_type::ppo);
+          rf_segs.push_back( {last_po, ed_end} );
+        }else{
+          rf_segs.push_back( {last_po, ed_s} );
+        }
+      }
+      if( ed_s.type == edge_type::ppo ) {
+        pos.push_back( ed_s );
+        last_po = ed_s;
+      }else{
+        last_po.before = last_po.after = ed_s.after ;
+      }
+    }
+  }
+
+  if( rf_open == true ) {
+    cycle_edge ed_end(segment.back().after,segment.back().after,edge_type::ppo);
+    rf_segs.push_back( {last_po, ed_end} );
+  }
+
+  if(verbose) {
+    tara::hb_enc::debug_print( std::cerr, segment );  std::cerr << "\n";
+    std::cerr << "rf pre posts:\n";
+    for( auto& it : rf_segs  ) {
+      tara::hb_enc::debug_print( std::cerr, it.first  ); std::cerr << ",";
+      tara::hb_enc::debug_print( std::cerr, it.second ); std::cerr << "\n";
+    }
+    std::cerr << "po segments:\n";
+    for( auto& po : pos  ) {
+      tara::hb_enc::debug_print( std::cerr, po ); std::cerr << "\n";
+    }
+  }
+
+  for( auto& it : rf_segs  ) {
+    auto& ed1 = it.first; auto& ed2 = it.second;
+    mk_c11_edge_constraint( ed1.before, ed1.after, hard );
+    mk_c11_edge_constraint( ed2.before, ed2.after, hard );
+    auto& v = ed2.before->prog_v;
+    r_conj = r_conj && get_rls_var_bit(ed1.before,ed1.after,v) &&
+      get_acq_var_bit(ed2.before,ed2.after,v);
+  }
+
+  if( sc_fence_needed ) {
+    z3::expr sc_seg_disj = z3.mk_false();
+    for( auto& ed : pos ) {
+      mk_c11_edge_constraint( ed.before, ed.after, hard );
+      sc_seg_disj = sc_seg_disj || get_sc_var_bit( ed.before, ed.after );
+    }
+    r_conj = r_conj && sc_seg_disj;
+  }
+
+  return r_conj;
+
+  //old code
+  // assert( segment.size() > 0 );
+  // z3::expr r_conj = z3.mk_true();
+  // auto& s = segment[0].before;
+  // cycle_edge last_po(s,s,edge_type::ppo);
+  // mk_c11_edge_constraint( last_po.before, last_po.after, hard );
+  // z3::expr sc_seg_disj = z3.mk_false();
+  // bool rf_open = false;
+  // for( auto& ed_s : segment ) {
+  //   if( ed_s.type == edge_type::rf ) {
+  //     rf_open = true;
+  //   } else {
+  //     if( rf_open == true ) {
+  //       rf_open = false;
+  //       auto& v = ed_s.before->prog_v;
+  //       r_conj = r_conj &&
+  //         get_rls_var_bit( last_po.before, last_po.after, v ) &&
+  //         get_acq_var_bit( ed_s.before   , ed_s.after, v );
+  //     }
+  //     sc_seg_disj = sc_seg_disj || get_sc_var_bit( ed_s.before, ed_s.after );
+  //     last_po = ed_s;
+  //     mk_c11_edge_constraint( last_po.before, last_po.after, hard );
+  //   }
+  // }
+  // if( rf_open == true ) {
+  //   auto& l = segment.back().after;
+  //   cycle_edge ed_s(l,l,edge_type::ppo);
+  //   auto& v = ed_s.before->prog_v;
+  //   mk_c11_edge_constraint( ed_s.before, ed_s.after, hard );
+  //   r_conj = r_conj &&
+  //     get_rls_var_bit( last_po.before, last_po.after, v ) &&
+  //     get_acq_var_bit( ed_s.before   , ed_s.after, v );
+  // }
+  // if( sc_fence_needed ) r_conj = r_conj && sc_seg_disj;
+  // return r_conj;
+}
+
+z3::expr barrier_synthesis::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
+  z3::expr r_conj = z3.mk_true();
+  if( program->is_mm_c11() ) {
+    assert( cycle.size() > 1 );
+    bool prefix_mode = true;
+    bool sc_fence_needed = false; // sc fences needed only if
+                                   // there are more than two fr in the cycle.
+    std::vector<cycle_edge> prefix;
+    std::vector<cycle_edge> segment;
+    for( auto& ed : cycle.edges ) {
+      if( ed.type == edge_type::fr ) {
+        if( prefix_mode == true ) {
+          prefix_mode = false;
+        }else{
+          r_conj = r_conj && mk_c11_segment_constraint( segment, hard);
+          sc_fence_needed = true;
+          segment.clear();
+        }
+      }else{
+        if( prefix_mode == true ) {
+          prefix.push_back( ed );
+        }else{
+          segment.push_back( ed );
+        }
+      }
+    }
+    segment.insert(segment.end(), prefix.begin(), prefix.end());
+    r_conj = r_conj && mk_c11_segment_constraint(segment, hard,sc_fence_needed);
+  }else{
+    for( auto edge : cycle.edges ) {
+      if( edge.type == edge_type::rpo ) {
+        r_conj = r_conj && mk_edge_constraint( edge.before, edge.after, hard );
+      }
+    }
+  }
+  return r_conj;
+}
+
+z3::expr barrier_synthesis::
+create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
+                 const std::string prefix,
+                 const hb_enc::se_ptr& e,
+                 std::vector<z3::expr>& soft ) {
+  z3::expr bit = z3.get_fresh_bool(prefix+e->name());
+  s_map.insert({ e, bit });
+  soft.push_back( !bit );
+  return bit;
+}
 void barrier_synthesis::gen_max_sat_problem_new() {
-  z3::context& z3_ctx = sol_bad->ctx();
+  // z3::context& z3_ctx = sol_bad->ctx();
+  const_already_made.clear();
+  z3::expr hard = z3.mk_true();
 
   for( unsigned t = 0; t < program->size(); t++ ) {
      const auto& thread = program->get_thread( t );
      for( const auto& e : thread.events ) {
-       // todo : optimize number of variables introduced
-       z3::expr m_bit = z3.get_fresh_bool(e->name());
-       barrier_map.insert({ e, m_bit });
-       soft.push_back( !m_bit );
-       z3::expr s_bit = z3.get_fresh_bool("lw_"+e->name());
-       light_barrier_map.insert({ e, s_bit });
-       soft.push_back( !s_bit );
+       // todo : optimize the number of introduced variables
+       if( !program->is_mm_c11() ) {
+         z3::expr m_bit = z3.get_fresh_bool(e->name());
+         fence_map.insert({ e, m_bit });
+         soft.push_back( !m_bit );
+         z3::expr s_bit = z3.get_fresh_bool("lw_"+e->name());
+         light_fence_map.insert({ e, s_bit });
+         soft.push_back( !s_bit );
+       }else{
+         //               /--> rls ----------> rls v
+         // sc -> rlsacq -|                    ^
+         //               |--> acq -> acq v    |
+         //               |               ^    |
+         //               |               |    |
+         //               \-------------> rlsacq v
+         auto sc_b = create_sync_bit(sc_fence_map,"sc_",e, soft );
+         auto rlsacq_b=create_sync_bit(rlsacq_fence_map,"rlsacq_",e,soft);
+         auto rls_b = create_sync_bit(rls_fence_map,"rls_",e, soft );
+         auto acq_b = create_sync_bit(acq_fence_map,"acq_",e, soft );
+         hard = hard && implies(sc_b, rlsacq_b) && implies(rlsacq_b, rls_b)
+           && implies(rlsacq_b, acq_b);
+         if( e->is_wr() && !e->is_rls() ) {
+           auto rls_v_b=create_sync_bit(rls_v_map,"rls_v_",e, soft);
+           hard = hard && implies(rls_b, rls_v_b);
+         }
+         if( e->is_rd() && !e->is_acq() ) {
+           auto acq_v_b=create_sync_bit(acq_v_map,"acq_v_",e, soft);
+           hard = hard && implies(acq_b, acq_v_b);
+         }
+         if( e->is_update() && !e->is_rlsacq() ) {
+           auto rlsacq_v_b=create_sync_bit(rlsacq_v_map,"rlsacq_v_",e,soft);
+           hard = hard && implies( rlsacq_b,   rlsacq_v_b );
+           hard = hard && implies( rlsacq_v_b, get_rls_bit(e,e->prog_v) );
+           hard = hard && implies( rlsacq_v_b, get_acq_bit(e,e->prog_v) );
+         }
+
+         // z3::expr sc_bit = z3.get_fresh_bool("sc_"+e->name());
+         // sc_fence_map.insert({ e, sc_bit });
+         // soft.push_back( !sc_bit );
+         // z3::expr rls_bit = z3.get_fresh_bool("rls_"+e->name());
+         // rls_fence_map.insert({ e, rls_bit });
+         // soft.push_back( !rls_bit );
+         // z3::expr acq_bit = z3.get_fresh_bool("acq_"+e->name());
+         // acq_fence_map.insert({ e, acq_bit });
+         // soft.push_back( !acq_bit );
+         // z3::expr rlsacq_bit = z3.get_fresh_bool("rlsacq_"+e->name());
+         // rlsacq_fence_map.insert({ e, rlsacq_bit });
+         // soft.push_back( !rlsacq_bit );
+         // if( e->is_wr() && !e->is_rls() ) {
+         //   z3::expr rls_bit = z3.get_fresh_bool("rls_v_"+e->name());
+         //   rls_v_map.insert({ e, rls_bit });
+         //   soft.push_back( !rls_bit );
+         // }
+         // if( e->is_rd() && !e->is_acq() ) {
+         //   z3::expr acq_bit = z3.get_fresh_bool("acq_v_"+e->name());
+         //   acq_v_map.insert({ e, acq_bit });
+         //   soft.push_back( !acq_bit );
+         // }
+         // if( e->is_update() && !e->is_rlsacq() ) {
+         //   z3::expr rlsacq_bit = z3.get_fresh_bool("rlsacq_v_"+e->name());
+         //   rlsacq_v_map.insert({ e, rlsacq_bit });
+         //   soft.push_back( !rlsacq_bit );
+         // }
+         // hard = hard && implies(sc_bit, rls_bit)
+         //   && implies(sc_bit, acq_bit) && implies(sc_bit, rlsacq_bit);
+       }
      }
   }
 
-  z3::expr hard = z3.mk_true();
   for( auto& cycles : all_cycles ) {
     if( cycles.size() == 0 ) continue; // throw error unfixable situation
-    z3::expr c_disjunct = z3_ctx.bool_val(false);
+    z3::expr c_disjunct = z3.mk_false();//z3_ctx.bool_val(false);
     for( auto& cycle : cycles ) {
-      z3::expr r_conj = z3.mk_true();
-      for( auto edge : cycle.edges ) {
-        if( edge.type == edge_type::rpo ) {
-          r_conj = r_conj && mk_edge_constraint( edge.before, edge.after, hard ); 
-        }
-      }
+      z3::expr r_conj = mk_cycle_constraint( cycle, hard );
       z3::expr c = z3.get_fresh_bool();
       c_disjunct = c_disjunct || c;
       hard = hard && implies( c, r_conj );
@@ -429,6 +776,7 @@ barrier_synthesis::fu_malik_maxsat( z3::expr hard,
 // ===========================================================================
 // main function for synthesis
 
+
 void barrier_synthesis::output(const z3::expr& output) {
     output_base::output(output);
     normal_form.output(output);
@@ -461,18 +809,53 @@ void barrier_synthesis::output(const z3::expr& output) {
     z3::model m =fu_malik_maxsat( cut[0], soft );
     // std::cout << m ;
 
-    for( auto it=barrier_map.begin(); it != barrier_map.end(); it++ ) {
+    for( auto it=fence_map.begin(); it != fence_map.end(); it++ ) {
       hb_enc::se_ptr e = it->first;
       z3::expr b = it->second;
       if( m.eval(b).get_bool() ) {
         barrier_where.push_back( e );
       }else{
-        z3::expr b_s = light_barrier_map.at(e);
+        z3::expr b_s = light_fence_map.at(e);
         if( m.eval(b_s).get_bool() ) {
           soft_barrier_where.push_back( e );
         }
       }
     }
+
+    for( auto it=sc_fence_map.begin(); it != sc_fence_map.end(); it++ ) {
+      hb_enc::se_ptr e = it->first;
+      if( m.eval(it->second).get_bool() ) {
+        result_sc_fences.push_back( e );
+      }else if( m.eval( rlsacq_fence_map.at(e) ).get_bool() ) {
+        result_rlsacq_fences.push_back( e );
+      }else if( m.eval( rls_fence_map.at(e) ).get_bool() ) {
+        result_rls_fences.push_back( e );
+      }else if( m.eval( acq_fence_map.at(e) ).get_bool() ) {
+        result_acq_fences.push_back( e );
+      }
+    }
+
+    for( auto it= rlsacq_v_map.begin(); it != rlsacq_v_map.end(); it++ ) {
+      hb_enc::se_ptr e = it->first;
+      if( m.eval(it->second).get_bool() ) {
+        result_rlsacq_upgrade.push_back(e);
+      }
+    }
+
+    for( auto it= rls_v_map.begin(); it != rls_v_map.end(); it++ ) {
+      hb_enc::se_ptr e = it->first;
+      if( m.eval(it->second).get_bool() ) {
+        result_rls_upgrade.push_back(e);
+      }
+    }
+
+    for( auto it= acq_v_map.begin(); it != acq_v_map.end(); it++ ) {
+      hb_enc::se_ptr e = it->first;
+      if( m.eval(it->second).get_bool() ) {
+        result_acq_upgrade.push_back(e);
+      }
+    }
+
 
     // for( auto it=segment_map.begin(); it != segment_map.end(); it++ ) {
     //   hb_enc::se_ptr e = it->first;
@@ -486,4 +869,79 @@ void barrier_synthesis::output(const z3::expr& output) {
 
     auto delay = chrono::steady_clock::now() - start_time;
     time = chrono::duration_cast<chrono::microseconds>(delay).count();
+}
+
+
+// ===========================================================================
+// old code ready for deletion
+
+bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
+  return ( a->get_instr_no() < b->get_instr_no() );
+}
+
+
+void barrier_synthesis::gen_max_sat_problem() {
+  z3::context& z3_ctx = sol_bad->ctx();
+
+  for( auto& cycles : all_cycles ) {
+      for( auto& cycle : cycles ) {
+        bool found = false;
+        for( auto edge : cycle.edges ) {
+          if( edge.type==edge_type::rpo ) {
+            //check each edge for rpo: push them in another vector
+            //compare the edges in same thread
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.before );
+            tid_to_se_ptr[ edge.before->tid ].push_back( edge.after );
+            found = true;
+          }
+        }
+        if( !found )
+          throw output_exception( "cycles found without any relaxed program oders!!");
+      }
+  }
+
+  for( auto it = tid_to_se_ptr.begin();  it != tid_to_se_ptr.end(); it++ ) {
+    hb_enc::se_vec& vec = it->second;
+    std::sort( vec.begin(), vec.end(), cmp );
+    vec.erase( std::unique( vec.begin(), vec.end() ), vec.end() );
+    for(auto e : vec ) {
+      z3::expr s = z3.get_fresh_bool();
+      // std::cout << s << e->name() << endl;
+      segment_map.insert( {e,s} );
+      soft.push_back( !s);
+    }
+  }
+
+  z3::expr hard = z3_ctx.bool_val(true);
+  for( auto& cycles : all_cycles ) {
+    if( cycles.size() == 0 ) continue; // throw error unfixable situation
+    z3::expr c_disjunct = z3.mk_false();
+    for( auto& cycle : cycles ) {
+      z3::expr r_conjunct = z3_ctx.bool_val(true);
+      for( auto edge : cycle.edges ) {
+        if( edge.type==edge_type::rpo ) {
+          unsigned tid = edge.before->tid;
+          auto& events = tid_to_se_ptr.at(tid);
+          bool in_range = false;
+          z3::expr s_disjunct = z3.mk_false();
+          for( auto e : events ) {
+            if( e == edge.before ) in_range = true;
+            if( e == edge.after ) break;
+            if( in_range ) {
+              auto find_z3 = segment_map.find( e );
+              s_disjunct = s_disjunct || find_z3->second;
+            }
+          }
+          r_conjunct = r_conjunct && s_disjunct;
+        }
+      }
+      z3::expr c = z3.get_fresh_bool();
+      // z3_to_cycle.insert({c, &cycle});
+      c_disjunct=c_disjunct || c;
+      hard = hard && implies( c, r_conjunct );
+    }
+    hard = hard && c_disjunct;
+  }
+  cut.push_back( hard );
+
 }

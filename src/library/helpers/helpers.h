@@ -25,6 +25,7 @@
 #include <string>
 #include <unordered_set>
 #include <set>
+#include <map>
 #include <list>
 #include <vector>
 #include <ostream>
@@ -114,15 +115,15 @@ namespace std {
     {
       using std::size_t;
       using std::hash;
-      
-      
+
+
       return (hash<Z3_ast>()((Z3_ast)k));
     }
   };
 }
 
 namespace tara {
-  
+
 namespace input {
   enum class data_type {
     bv32,
@@ -133,7 +134,7 @@ namespace input {
     real,
     smt, // an smt string
   };
-  
+
   struct variable {
     std::string name;
     data_type type;
@@ -142,17 +143,17 @@ namespace input {
     variable(std::string name, data_type type) : name(name), type(type) {}
     variable(std::string name, std::string type) : name(name), type(data_type::smt), smt_type(type) {}
   };
-  
+
   struct variable_hash {
     size_t operator () (const variable &v) const { return std::hash<std::string>()(v.name); }
   };
-  
+
   struct variable_equal : std::binary_function <variable,variable,bool> {
     bool operator() (const variable& x, const variable& y) const {
       return std::equal_to<std::string>()(x.name, y.name);
     }
   };
-  
+
   typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
   typedef std::unordered_set<std::string> string_set;
 
@@ -176,11 +177,11 @@ namespace cssa {
     friend variable operator+ (const std::string& str, const variable& v) {
       return variable(str+v.name, v.sort);
     }
-    
+
     operator z3::expr() const {
       return sort.ctx().constant(name.c_str(), sort);
     }
-    
+
     friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
       stream << var.name;
       return stream;
@@ -195,19 +196,19 @@ namespace cssa {
       return this->name < rhs.name;
     }
   };
-  
-  
-  
+
+
+
   struct variable_hash {
     size_t operator () (const variable &v) const { return std::hash<std::string>()(v.name); }
   };
-  
+
   struct variable_equal : std::binary_function <variable,variable,bool> {
     bool operator() (const variable& x, const variable& y) const {
       return x==y;
     }
   };
-  
+
   typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
 
   //--------------------------------------------------------------------------
@@ -218,7 +219,7 @@ namespace cssa {
 }
 
 namespace helpers {
-  
+
 inline cssa::variable get_unprimed(const cssa::variable& variable) {
   //converting the primed to unprimed by removing the dot
   if (variable.name[variable.name.size()-1] != '.') {
@@ -266,7 +267,7 @@ inline bool check_correct_global_variable(const cssa::variable& variable, std:: 
                                              const cssa::variable_set& vars ) {
     for( auto& v : vars ) {
       if( check_correct_global_variable( var, v.name ) ) {
-        return v; // TODO: This return value may trigger copy operation; 
+        return v; // TODO: This return value may trigger copy operation;
                   // resolve this issue
       }
     }
@@ -303,9 +304,22 @@ bool exists( const std::set<Key>& set1, const Key& k ) {
   return set1.find( k ) !=  set1.end();
 }
 
+template< class Key,  class Val>
+bool exists( const std::map<Key,Val>& map1, const Key& k ) {
+  return map1.find( k ) !=  map1.end();
+}
+
 template< class Key,class cmp >
 bool exists( const std::set<Key,cmp>& set1, const Key& k ) {
   return set1.find( k ) !=  set1.end();
+}
+
+template< class Key >
+void set_to_vec( const std::set<Key>& set,
+                  std::vector<Key>& v ) {
+  for( auto& s : set ) {
+    v.push_back( s );
+  }
 }
 
   // Insert second set inside the first set

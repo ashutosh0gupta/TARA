@@ -30,12 +30,12 @@ using namespace std;
 
 
 /*************************
- * location
+ * tstamp
  *************************/
   
-location::location(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
+tstamp::tstamp(z3::context& ctx, string name, bool special) : expr(z3::expr(ctx)), name(name) , special(special) {}
 
-bool location::operator==(const location &other) const {
+bool tstamp::operator==(const tstamp &other) const {
   // if expr is empty fall back to name
   if ((Z3_ast)this->expr==0) 
     return this->name == other.name;
@@ -43,39 +43,26 @@ bool location::operator==(const location &other) const {
     return (Z3_ast)this->expr == (Z3_ast)other.expr;
 }
 
-bool location::operator!=(const location &other) const {
+bool tstamp::operator!=(const tstamp &other) const {
   return !(*this == other);
 }
 
-location::operator z3::expr () const {
+tstamp::operator z3::expr () const {
   return expr;
 }
 
-uint16_t location::serial() const
+uint16_t tstamp::serial() const
 {
   return _serial;
 }
 
-string tara::hb_enc::to_string(const location& loc) {
+string tara::hb_enc::to_string(const tstamp& loc) {
   string res = loc.name;
   return res;
 }
 
 
-string get_var_from_location (tstamp_ptr loc) {
-  string res = loc->name;
-  unsigned i;
-  for(i=2;i!=res.length();i++) {
-    if(res[i]=='#') {
-      res=res.substr(2,i-2);
-      break;
-    }
-  }
-  return res;
-}
-
-
-ostream& tara::hb_enc::operator<< (ostream& stream, const location& loc) {
+ostream& tara::hb_enc::operator<< (ostream& stream, const tstamp& loc) {
   stream << to_string(loc);
   return stream;
 }
@@ -96,7 +83,7 @@ ostream& tara::hb_enc::operator<< ( ostream& stream,
   return stream;
 }
 
-void location::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
+void tstamp::debug_print(std::ostream& stream ) {  stream << *this << "\n"; }
 
 
 //----------------------------------------------------------------------------
@@ -122,7 +109,7 @@ symbolic_event::create_internal_event( helpers::z3interf& z3,
                                        std::string e_name, unsigned tid,
                                        unsigned instr_no, bool special )
 {
-  auto e_v = make_shared<hb_enc::location>( z3.c, e_name, special );
+  auto e_v = make_shared<hb_enc::tstamp>( z3.c, e_name, special );
   e_v->thread = tid;
   e_v->instr_no = instr_no; // not used in post POPL15
 
@@ -485,9 +472,27 @@ hb_enc::pick_maximal_depends_set( hb_enc::depends_set& set ) {
 
 //------------------------------------------------------------------------
 
+void tara::debug_print( std::ostream& out, const hb_enc::se_vec& set ) {
+  for (auto c : set) {
+    out << *c << " ";
+  }
+  out << std::endl;
+}
+
 void tara::debug_print( std::ostream& out, const hb_enc::se_set& set ) {
   for (auto c : set) {
     out << *c << " ";
+  }
+  out << std::endl;
+}
+
+void tara::debug_print( std::ostream& out, const hb_enc::se_to_ses_map& map ) {
+  for (auto it : map) {
+    se_ptr e = it.first;
+    se_set set  = it.second;
+    out << *e << "->";
+    debug_print( out, set );
+    out << "\n";
   }
   out << std::endl;
 }

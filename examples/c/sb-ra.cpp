@@ -14,7 +14,7 @@ atomic_int r2 = 0;
 
 void* p0(void *) {
   atomic_store_explicit( &x, 1, memory_order_release );
-  // atomic_thread_fence(memory_order_seq_cst);
+  atomic_thread_fence(memory_order_seq_cst);
   r1 = atomic_load_explicit( &y, memory_order_acquire );
   return NULL;
 }

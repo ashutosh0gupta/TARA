@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, IST Austria
+ * Copyright 2017, TIFR, India
  *
  * This file is part of TARA.
  *
@@ -97,7 +97,7 @@ bool cycle::add_edge( hb_enc::se_ptr before, hb_enc::se_ptr after, edge_type t )
   if( !closed && last() == before ) {
     cycle_edge ed(before, after, t);
     edges.push_back(ed);
-    if( t == edge_type::rpo ) {
+    if( t == edge_type::rpo || t == edge_type::fr || t == edge_type::rf ) {
       relaxed_edges.push_back( ed );
     }
   }else{
@@ -127,68 +127,124 @@ bool cycle::is_dominated_by( cycle& c ) {
   return true;
 }
 
-  std::ostream& operator<<( std::ostream& stream, const cycle& c ) {
-  stream << c.name << "(";
-  bool first = true;
-  for( const auto& edge : c.edges ) {
-    if(first) {
-      if( edge.before )
-        stream << edge.before->name();
+  void debug_print( std::ostream& stream,
+                    const std::vector<cycle_edge>& eds) {
+    bool first = true;
+    for( const auto& edge : eds ) {
+      if(first) {
+        if( edge.before )
+          stream << edge.before->name();
+        else
+          stream << "null";
+        first = false;
+      }
+      switch( edge.type ) {
+      case hb_enc::edge_type::hb:  { stream << "->";  } break;
+      case hb_enc::edge_type::ppo: { stream << "=>";  } break;
+      case hb_enc::edge_type::rpo: { stream << "~~>"; } break;
+      case hb_enc::edge_type::rf:  { stream << "==>"; } break;
+      case hb_enc::edge_type::fr:  { stream << "~~~>";} break;
+      default:
+        hb_enc_error( "uncover case!!" );
+      }
+      if( edge.after )
+        stream << edge.after->name();
       else
         stream << "null";
-      first = false;
     }
-    switch( edge.type ) {
-    case edge_type::hb:  {stream << "->";} break;
-    case edge_type::ppo: {stream << "=>";} break;
-    case edge_type::rpo: {stream << "~~>";} break;
-    }
-    if( edge.after )
-      stream << edge.after->name();
-    else
-      stream << "null";
   }
+
+  void debug_print( std::ostream& stream, const cycle_edge& ed ) {
+    std::vector<cycle_edge> eds;
+    eds.push_back( ed );
+    debug_print( stream, eds );
+  }
+
+  std::ostream& operator<<( std::ostream& stream, const cycle& c ) {
+    stream << c.name << "(";
+    debug_print( stream, c.edges );
+  // bool first = true;
+  // for( const auto& edge : c.edges ) {
+  //   if(first) {
+  //     if( edge.before )
+  //       stream << edge.before->name();
+  //     else
+  //       stream << "null";
+  //     first = false;
+  //   }
+  //   switch( edge.type ) {
+  //   case edge_type::hb:  { stream << "->";  } break;
+  //   case edge_type::ppo: { stream << "=>";  } break;
+  //   case edge_type::rpo: { stream << "~~>"; } break;
+  //   case edge_type::rf:  { stream << "==>"; } break;
+  //   case edge_type::fr:  { stream << "~~~>";} break;
+  //   default:
+  //     hb_enc_error( "uncover case!!" );
+  //   }
+  //   if( edge.after )
+  //     stream << edge.after->name();
+  //   else
+  //     stream << "null";
+  // }
   stream << ")";
   return stream;
 }
 
-  void cycles::insert_event( std::vector<hb_enc::se_vec>& event_lists,
-                             hb_enc::se_ptr e ) {
-  unsigned i_no = e->get_instr_no();
+  // void cycles::insert_event( std::vector<hb_enc::se_vec>& event_lists,
+  //                            hb_enc::se_ptr e ) {
+  // unsigned i_no = e->get_instr_no();
 
-  hb_enc::se_vec& es = event_lists[e->tid];
-  auto it = es.begin();
-  for(; it < es.end() ;it++) {
-    hb_enc::se_ptr& e1 = *it;
-    if( e1 == e ) return;
-    if( e1->get_instr_no() > i_no ||
-        ( e1->get_instr_no() == i_no && e1->is_wr() && e->is_rd() ) ) {
-      break;
-    }
-  }
-  es.insert( it, e);
-}
+  // hb_enc::se_vec& es = event_lists[e->tid];
+  // auto it = es.begin();
+  // for(; it < es.end() ;it++) {
+  //   hb_enc::se_ptr& e1 = *it;
+  //   if( e1 == e ) return;
+  //   if( e1->get_instr_no() > i_no ||
+  //       ( e1->get_instr_no() == i_no && e1->is_wr() && e->is_rd() ) ) {
+  //     break;
+  //   }
+  // }
+  // es.insert( it, e);
+  // }
 
 void cycles::succ( hb_enc::se_ptr e,
                    const hb_enc::se_set& filter,
                    std::vector< std::pair< hb_enc::se_ptr, edge_type> >& next_set ) {
-  for( auto it : hbs ) {
-    // auto hb_from_b = *it;
-    if( it.first == e ) {
-      if( filter.find( it.second ) == filter.end() ) continue;
-      next_set.push_back( {it.second,edge_type::hb} );
+  // for( auto it : hbs ) {
+  //   if( it.first == e ) {
+  //     if( filter.find( it.second ) == filter.end() ) continue;
+  //     next_set.push_back( {it.second,edge_type::hb} );
+  //   }
+  // }
+
+  for( auto ed : hbs ) {
+    if( ed.before == e ) {
+      if( filter.find( ed.after ) == filter.end() ) continue;
+      next_set.push_back( {ed.after, ed.type } );
     }
   }
 
+  for( auto& ed : learned_fr_edges ) {
+    if( ed.before == e ) {
+      if( !helpers::exists( filter, ed.after ) ) continue;
+      next_set.push_back( {ed.after, edge_type::fr } );
+    }
+  }
+
+  if( e->is_pre() || e->is_post() ) return;
   //todo: ineffient code... needs a fix
   for( auto& ep: program->get_thread(e->tid).events ) {
     if( filter.find( ep ) == filter.end() ) continue;
     for( const hb_enc::depends& dep : program->ppo_before.at(ep) ) {
       if( dep.e != e ) continue;
-      if( z3.is_true( dep.cond )  )
+      if( program->is_mm_c11() ) { //todo: c11 case should be handelled properly
         next_set.push_back( {ep, edge_type::ppo } );
-      else
-        next_set.push_back( {ep, edge_type::rpo } );
+      }else{
+        if( z3.is_true( dep.cond )  )
+          next_set.push_back( {ep, edge_type::ppo } );
+        else
+          next_set.push_back( {ep, edge_type::rpo } );
+      }
     }
   }
 
@@ -244,12 +300,11 @@ void cycles::find_sccs( const hb_enc::se_set& filter,
   lowlink_map.clear();
   on_stack.clear();
   scc_index = 0;
-  //assert( hbs.size() > 0 );
   while(1) {
     hb_enc::se_ptr e;
-    for( const auto hb : hbs ){
-      if( index_map.find( hb.first ) == index_map.end() ) { e = hb.first; break; }
-      if( index_map.find( hb.second ) == index_map.end() ) { e = hb.second; break; }
+    for( const auto hb : hbs ) {
+      if( index_map.find( hb.before) == index_map.end()) { e = hb.before; break;}
+      if( index_map.find( hb.after ) == index_map.end()) { e = hb.after;  break;}
     }
     if( e ) {
       find_sccs_rec( e, filter, sccs );
@@ -295,8 +350,7 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
   bool f = false;
   blocked[e] = true;
   std::vector< std::pair< hb_enc::se_ptr, edge_type> > next_set;
-  succ( e, //hbs, event_lists,
-        scc, next_set );
+  succ( e, scc, next_set );
   for( auto& ep_pair :  next_set ) {
     hb_enc::se_ptr ep = ep_pair.first;
     if( ep == root ) {
@@ -319,8 +373,7 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
       ancestor_stack.add_edge( ep, ep_pair.second );
       if( ep_pair.second != edge_type::rpo ||
           !is_relaxed_dominated( ancestor_stack , found_cycles ) ) {
-        bool fp = find_true_cycles_rec( ep, //hbs, event_lists,
-                                        scc, found_cycles );
+        bool fp = find_true_cycles_rec( ep, scc, found_cycles );
         if( fp ) f = true;
       }
     }
@@ -353,22 +406,209 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
   find_true_cycles_rec( e, scc, found_cycles );
 }
 
+
+  void
+  cycles::find_fr_edges( const hb_enc::hb_vec& c,
+                         const hb_enc::se_set& all_es,
+                         std::vector< cycle_edge >& new_edges ) {
+    new_edges.clear();
+    hb_enc::hb_vec hbs;
+    hb_enc::hb_vec rfs;
+    std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs; //quick and dirty: thrd create/join orderings
+    for( const auto& h : c ) {
+      if( h->type == hb_t::phb && !h->is_neg ) {
+        hbs.push_back( h );
+      }
+      if( h->type == hb_t::rf ) {
+        assert( !h->is_neg );
+        rfs.push_back( h );
+      }
+    }
+
+    hb_enc::se_set all_es_copy = all_es;
+
+    for( unsigned i = 0; i < program->size(); i ++ ) {
+      auto& ce = program->get_create_event(i);
+      auto& je = program->get_join_event(i);
+      auto& se = program->get_thread(i).start_event;
+      auto& fe = program->get_thread(i).final_event;
+      all_es_copy.insert( je );
+      all_es_copy.insert( ce );
+      all_es_copy.insert( se );
+      all_es_copy.insert( fe );
+      thread_syncs.push_back({ce,se});
+      thread_syncs.push_back({fe,je});
+    }
+
+    hb_enc::se_vec stack,es;
+    helpers::set_to_vec( all_es_copy, stack );
+    es = stack;
+
+    std::map< se_ptr, unsigned > order_map;
+    while( !stack.empty() ) {
+      se_ptr e = stack.back(); //std::cerr << e->name() << "\n";
+      if( helpers::exists( order_map, e ) ) {
+        stack.pop_back();
+        continue;
+      }
+      auto& prevs = program->seq_before.at(e);
+      bool ready = true;
+      unsigned m = 0;
+      for( auto& ep : prevs ) {
+        if( !helpers::exists( es, ep ) ) continue;
+        if( !helpers::exists( order_map, ep ) ) {
+          ready = false;
+          stack.push_back( ep );
+        }else{
+          if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
+        }
+      }
+      for( const auto& h : hbs ) {
+        if( h->e2 != e ) continue;
+        if( !helpers::exists( order_map, h->e1 ) ) {
+          ready = false;
+          stack.push_back( h->e1 );
+        }else{
+          if( ready == true && m < order_map.at(h->e1)) m = order_map.at(h->e1);
+        }
+      }
+      for( const auto& sync : thread_syncs ) {
+        //quick and dirty, prevs should have already included everything
+        if( sync.second != e ) continue;
+        auto& e1 = sync.first;
+        if( !helpers::exists( order_map, e1 ) ) {
+          ready = false;
+          stack.push_back( e1 );
+        }else{
+          if( ready == true && m < order_map.at(e1) ) m = order_map.at(e1);
+        }
+      }
+      if( ready == true ) {
+        order_map[e] = m + 1;
+      }
+    }
+
+    std::sort( es.begin(), es.end(),
+               [&](const se_ptr& x, const se_ptr& y) {
+                 return order_map.at(x) < order_map.at(y);
+               } );
+
+    hb_enc::se_to_ses_map pasts;
+    for( auto e : es ) {
+      auto& prevs = program->seq_before.at(e);
+      pasts[e] = prevs;
+      hb_enc::se_set& new_prevs = pasts.at(e);
+      for( auto epp : prevs ) {
+        if( helpers::exists( all_es_copy, epp ) ) {
+          helpers::set_insert( new_prevs, pasts.at(epp) );
+        }
+      }
+      for( const auto& h : hbs ) {
+        if( h->e2 == e ) {
+          new_prevs.insert( h->e1 );
+          helpers::set_insert( new_prevs, pasts.at(h->e1) );
+        }
+      }
+      for( const auto& sync : thread_syncs ) {
+        //quick and dirty, prevs should have already included everything
+        if( sync.second != e ) continue;
+        new_prevs.insert( sync.first );
+        helpers::set_insert( new_prevs, pasts.at(sync.first) );
+      }
+    }
+
+    hb_enc::se_to_ses_map posts;
+    for (auto rit = es.rbegin(); rit!= es.rend(); ++rit) {
+      hb_enc::se_ptr e = *rit;
+      auto& nexts = program->seq_after.at(e);
+      posts[e] = nexts;
+      hb_enc::se_set& new_nexts = posts.at(e);
+      for( auto epp : nexts ) {
+        if( helpers::exists( all_es_copy, epp ) ) {
+          helpers::set_insert( new_nexts, posts.at(epp) );
+        }
+      }
+      for( const auto& h : hbs ) {
+        if( h->e1 == e ) {
+          helpers::set_insert( new_nexts, posts.at(h->e2) );
+        }
+      }
+      for( const auto& sync : thread_syncs ) {
+        //quick and dirty, prevs should have already included everything
+        if( sync.first != e ) continue;
+        new_nexts.insert( sync.second );
+        helpers::set_insert( new_nexts, posts.at(sync.second) );
+      }
+      // debug_print( std::cerr, pasts );
+    }
+    // debug_print( std::cerr, posts );
+
+    for( const auto& h : rfs ) {
+      hb_enc::se_ptr w = h->e1;
+      hb_enc::se_ptr r = h->e2;
+      for( auto wp : pasts.at(w) ) {
+        if( helpers::exists( all_es, wp ) &&
+            ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
+          cycle_edge ed( wp, r, edge_type::fr );
+          new_edges.push_back(ed);
+          for( const auto& h : rfs ) {
+            if( wp == h->e1 && r->access_same_var( h->e2 ) ) {
+              cycle_edge ed( h->e2, r, edge_type::fr );
+              new_edges.push_back(ed);
+            }
+          }
+        }
+      }
+      for( auto wp : posts.at(w) ) {
+        if( wp->is_wr() && w->access_same_var(wp) &&
+            helpers::exists( all_es, wp ) ) {
+          cycle_edge ed( r, wp, edge_type::fr );
+          new_edges.push_back(ed);
+        }
+      }
+    }
+    // if( verbose ) {
+      // for( auto& ed : new_edges ) {
+      //   std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
+      // }
+    // }
+  }
+
+
   void cycles::find_cycles( const hb_enc::hb_vec& c,
                           std::vector<cycle>& found_cycles) {
   hb_enc::se_set all_events;
   hbs.clear();
-  event_lists.clear();
-  event_lists.resize( program->size() );
+  // event_lists.clear();
+  // event_lists.resize( program->size() );
 
   for( const auto& h : c ) {
-    hb_enc::se_ptr b = h->e1;
-    hb_enc::se_ptr a = h->e2;
-    hbs.push_back({b,a});
-    insert_event( event_lists, b);
-    insert_event( event_lists, a);
-    all_events.insert( b );
-    all_events.insert( a );
+    hb_enc::se_ptr before = h->e1;
+    hb_enc::se_ptr after = h->e2;
+    if( h->is_neg && h->type == hb_t::phb ) {
+      cycle_edge ed(before, after, edge_type::fr);
+      hbs.push_back(ed);
+    }else if( h->type == hb_t::rf ) {
+      auto rt = h->e1->is_rlx() || h->e2->is_rlx()? edge_type::rf : edge_type::hb;
+      cycle_edge ed(before, after, rt );
+      hbs.push_back(ed);
+    }else{
+      cycle_edge ed(before, after, edge_type::hb);
+      hbs.push_back(ed);
+    }
+    all_events.insert( before );
+    all_events.insert( after  );
+    // hb_enc::se_ptr b = h->e1;
+    // hb_enc::se_ptr a = h->e2;
+    // hbs.push_back({b,a});
+    // insert_event( event_lists, b);
+    // insert_event( event_lists, a);
+    // all_events.insert( b );
+    // all_events.insert( a );
   }
+
+  if( program->is_mm_c11() )
+    find_fr_edges( c, all_events, learned_fr_edges );
 
   std::vector< hb_enc::se_set > sccs;
   find_sccs( all_events, sccs );

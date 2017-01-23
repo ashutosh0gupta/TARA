@@ -23,6 +23,7 @@
 #define TARA_HB_ENC_CYCLES_H
 
 // #include "cssa/program.h"
+#include "api/options.h"
 #include "hb_enc/symbolic_event.h"
 #include "api/output/nf.h"
 #include <boost/bimap.hpp>
@@ -33,6 +34,8 @@ namespace hb_enc {
 
 
 enum class edge_type {
+  rf,  // c11 - rf edge
+  fr,  // c11 - learned edge
   hb,  // hbs appear in the formula
   ppo, // preserved program order
   rpo  // relaxed program order
@@ -105,8 +108,8 @@ typedef std::shared_ptr<cycle> cycle_ptr;
 class cycles {
 
 public:
-  cycles( const helpers::z3interf& _z3 ) :
-    z3(_z3) {} ;
+  cycles( const helpers::z3interf& _z3) :
+    z3(_z3) {};
 
   void find_cycles( const std::list<hb>& c, std::vector<cycle>& cycles );
   void find_cycles( const hb_enc::hb_vec& c, std::vector<cycle>& cycles );
@@ -117,7 +120,10 @@ private:
   typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
   const helpers::z3interf& z3;
 
-  hb_conj hbs;
+  // hb_conj hbs;
+  std::vector<cycle_edge> hbs;
+  std::vector<cycle_edge> learned_fr_edges;
+
   std::vector<hb_enc::se_vec> event_lists;
 
   std::map< hb_enc::se_ptr, int> index_map;
@@ -146,6 +152,10 @@ private:
 
   void cycles_unblock( hb_enc::se_ptr e );
 
+  void find_fr_edges( const hb_enc::hb_vec& c, const hb_enc::se_set& all_es,
+                      std::vector< cycle_edge >& new_edges );
+
+
   bool is_relaxed_dominated( cycle& c , std::vector<cycle>& cs );
   bool find_true_cycles_rec( hb_enc::se_ptr e,
                              const hb_enc::se_set& scc,
@@ -161,8 +171,15 @@ private:
 
 };
 
+void debug_print( std::ostream& stream,
+                  const std::vector<hb_enc::cycle_edge>& eds);
 
-}}
+void debug_print( std::ostream& stream,
+                  const hb_enc::cycle_edge& ed);
+
+}
+
+}
 
 
 #endif // TARA_HB_ENC_CYCLES_H

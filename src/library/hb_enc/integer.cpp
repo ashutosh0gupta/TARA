@@ -46,21 +46,21 @@ void integer::record_event( se_ptr& e ) {
 
 void integer::make_tstamp( tstamp_var_ptr loc )
 {
-  std::vector< tstamp_var_ptr > locations;
-  locations.push_back( loc );
-  add_time_stamps(locations);
+  std::vector< tstamp_var_ptr > tstamps;
+  tstamps.push_back( loc );
+  add_time_stamps(tstamps);
 }
 
-void integer::add_time_stamps(vector< tstamp_var_ptr > locations)
+void integer::add_time_stamps(vector< tstamp_var_ptr > tstamps)
 {
-  for (unsigned i=0; i<locations.size(); i++) {
+  for (unsigned i=0; i<tstamps.size(); i++) {
     counter++;
-    locations[i]->_serial = counter;
-    z3::expr loc_expr = z3.c.int_const(locations[i]->name.c_str());
-    locations[i]->expr = loc_expr;
-    tstamp_lookup.insert(make_pair(loc_expr, locations[i]));
+    tstamps[i]->_serial = counter;
+    z3::expr loc_expr = z3.c.int_const(tstamps[i]->name.c_str());
+    tstamps[i]->expr = loc_expr;
+    tstamp_lookup.insert(make_pair(loc_expr, tstamps[i]));
   }
-  save_locations(locations);
+  save_tstamps(tstamps);
 }
 
 void integer::make_po_tstamp( tstamp_var_ptr loc )
@@ -95,7 +95,7 @@ bool integer::eval_hb(const z3::model& model, hb_enc::tstamp_ptr loc1, hb_enc::t
 }
 
 pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& possibly_equal, bool& is_partial) const {
-  // we need to flip that bool parameter in to know if we are sure about this result or not (two locations can be assigned an equal integer)
+  // we need to flip that bool parameter in to know if we are sure about this result or not (two tstamps can be assigned an equal integer)
   auto loc1 = tstamp_lookup.end();
   auto loc2 = tstamp_lookup.end();
   switch(hb.kind()) {

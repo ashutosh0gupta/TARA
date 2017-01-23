@@ -218,12 +218,15 @@ namespace tara {
     std::set< std::tuple<std::string,hb_enc::se_ptr,hb_enc::se_ptr> > reading_map;
     std::map< hb_enc::se_ptr,
               std::set< std::pair<std::string, hb_enc::se_ptr> > > rel_seq_map;
-    // pre calculation of ordering
+    // pre calculation of orderings
     hb_enc::se_to_ses_map must_after;
     hb_enc::se_to_ses_map must_before;
     hb_enc::se_to_depends_map may_after;
     hb_enc::se_to_depends_map ppo_before;
     hb_enc::se_to_depends_map c11_rs_heads; // c11 release sequence heads
+
+    hb_enc::se_to_ses_map seq_before;
+    hb_enc::se_to_ses_map seq_after;
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;
@@ -235,6 +238,18 @@ namespace tara {
     inline const thread& get_thread(unsigned t) const {
       assert( t < threads.size() );
       return *threads[t];
+    }
+
+    inline const hb_enc::se_ptr get_create_event(unsigned t) const {
+      assert( t < threads.size() );
+      std::string n = threads[t]->name;
+      return create_map.at(n);
+    }
+
+    inline const hb_enc::se_ptr get_join_event(unsigned t) const {
+      assert( t < threads.size() );
+      std::string n = threads[t]->name;
+      return join_map.at(n).first;
     }
 
     unsigned add_thread( std::string str) {

@@ -93,7 +93,7 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       mode = modes::synthesis;
     else if (_mode == "wmm_synthesis") {
       mode = modes::wmm_synthesis;
-      prune_chain = prune_chain + ",remove_non_cycled";
+      // prune_chain = prune_chain + ",remove_non_cycled";
     }else if (_mode == "bugs")
       mode = modes::bugs;
     else {

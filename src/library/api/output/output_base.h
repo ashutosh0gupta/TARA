@@ -74,7 +74,7 @@ protected:
   /**
    * @brief Orders the two locations if they are from the same thread
    */
-  inline void order_locations(std::shared_ptr<hb_enc::location const>& loc1, std::shared_ptr<hb_enc::location const>& loc2);
+  inline void order_locations(hb_enc::tstamp_ptr& loc1, hb_enc::tstamp_ptr& loc2);
   
   /**
    * @brief Order the locations so that the first location points to the thread with the lower number
