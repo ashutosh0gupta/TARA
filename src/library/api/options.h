@@ -62,8 +62,10 @@ public: // information that are controlled by main
 protected:
   void get_description(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
   virtual void interpret_options(boost::program_options::variables_map& vm);
-  
-  std::string seperate_option(const std::string& to_parse, std::vector< std::string >& options); // parses the format xyz:bla,blub. xyz is returned and bla and blub added to the vector
+
+  // seperate_option parses the format xyz:bla,blub. xyz is returned and
+  // bla and blub added to the vector
+  std::string seperate_option(const std::string& to_parse, std::vector< std::string >& options);
 };
 }
 }

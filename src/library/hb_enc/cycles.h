@@ -41,6 +41,8 @@ enum class edge_type {
   rpo  // relaxed program order
 };
 
+  bool is_weak_edge( edge_type );
+
 class cycle_edge
 {
 public:
@@ -50,7 +52,7 @@ public:
   edge_type type;
   friend bool ValueComp(const hb_enc::se_ptr &,const hb_enc::se_ptr &);
   
-  bool operator==(const cycle_edge& b)
+  bool operator==(const cycle_edge& b) const
   {
     return b.before == before && b.after == after && b.type == type;
   }
@@ -97,9 +99,9 @@ private:
   void remove_suffix( unsigned i );
   void remove_prefix( unsigned i );
 
-  bool has_relaxed( cycle_edge& edge);
+  bool has_relaxed( cycle_edge& edge) const;
 public:
-  bool is_dominated_by( cycle& c );
+  bool is_dominated_by( cycle& c ) const;
 };
 
 typedef std::shared_ptr<cycle> cycle_ptr;
@@ -156,7 +158,7 @@ private:
                       std::vector< cycle_edge >& new_edges );
 
 
-  bool is_relaxed_dominated( cycle& c , std::vector<cycle>& cs );
+  bool is_relaxed_dominated( const cycle& c , std::vector<cycle>& cs );
   bool find_true_cycles_rec( hb_enc::se_ptr e,
                              const hb_enc::se_set& scc,
                              std::vector<cycle>& found_cycles );

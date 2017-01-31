@@ -105,7 +105,7 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
   report( stream, result_rls_fences, "rls fences after");
   report( stream, result_acq_fences, "acq fences after");
   report( stream, result_rls_upgrade    , "upgrade to rls");
-  report( stream, result_acq_upgrade    , "upgrade to rls");
+  report( stream, result_acq_upgrade    , "upgrade to acq");
   report( stream, result_rlsacq_upgrade , "upgrade to rlsacq");
 
   report( stream, barrier_where , "full fences after");
@@ -223,21 +223,21 @@ z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
 z3::expr barrier_synthesis::get_rls_bit( const hb_enc::se_ptr& e,
                                          const cssa::variable& v ) {
   if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
-  if( e->is_rls() ) return z3.mk_true();
+  if( e->is_at_least_rls() ) return z3.mk_true();
   return rls_v_map.at( e );
 }
 
 z3::expr barrier_synthesis::get_acq_bit( const hb_enc::se_ptr& e,
                                          const cssa::variable& v ) {
   if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
-  if( e->is_acq() ) return z3.mk_true();
+  if( e->is_at_least_acq() ) return z3.mk_true();
   return acq_v_map.at( e );
 }
 
 z3::expr barrier_synthesis::get_rlsacq_bit( const hb_enc::se_ptr& e,
                                             const cssa::variable& v ) {
   if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
-  if( e->is_rlsacq() ) return z3.mk_true();
+  if( e->is_at_least_rlsacq() ) return z3.mk_true();
   return rlsacq_v_map.at( e );
 }
 
@@ -259,6 +259,7 @@ z3::expr barrier_synthesis::get_rlsacq_bit( const hb_enc::se_ptr& e,
 z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
                                                 hb_enc::se_ptr& a,
                                                 z3::expr& hard ) {
+  assert( a->tid == b->tid );
   mm_t mm = program->get_mm();
   hb_enc::se_tord_set pending;
   hb_enc::se_vec found;
@@ -372,12 +373,12 @@ void barrier_synthesis::mk_c11_edge_constraint( hb_enc::se_ptr& b,
         if( !k->is_sc() || !k->is_fence() ) {
           conj_sc = conj_sc && (get_sc_var_bit(b, k) || get_sc_fence_bit(k));
         }
-        if( !k->is_rls() || !k->is_fence() ) {
+        if( !k->is_at_least_rls() || !k->is_fence() ) {
           conj_rls = conj_rls
             && (get_rls_var_bit(b, k) || get_rls_fence_bit(k)
                 || get_rlsacq_fence_bit( k ));
         }
-        if( !k->is_rls() || !k->is_fence() ) {
+        if( !k->is_at_least_acq() || !k->is_fence() ) {
           conj_acq = conj_acq
             && ( get_acq_var_bit(b, k) || get_acq_fence_bit(k)
                  || get_rlsacq_fence_bit(k) );
@@ -386,17 +387,17 @@ void barrier_synthesis::mk_c11_edge_constraint( hb_enc::se_ptr& b,
         std::map<cssa::variable, z3::expr> conj_acq_map_copy;
         for( auto& v : program->globals ) {
           z3::expr d1 = conj_rls_map.at(v);
-          if( !k->is_rls() || !k->is_wr() ) {
+          if( !k->is_at_least_rls() || !k->is_wr() || k->prog_v != v ) {
             d1 = d1 && ( get_rls_var_bit(b, k, v) || get_rls_bit(k, v) ||
                        get_rlsacq_bit(k, v) || get_rls_fence_bit(k) ||
                        get_rlsacq_fence_bit(k) );
           }
           conj_rls_map_copy.insert( {v, d1} );
           z3::expr d2 = conj_acq_map.at(v);
-          if( !k->is_acq() || !k->is_rd() ) {
+          if( !k->is_at_least_acq() || !k->is_rd() || k->prog_v != v ) {
             d2 = d2 && (get_acq_var_bit( b, k, v ) || get_acq_bit( k, v )
                         || get_rlsacq_bit( k, v )
-                        || get_rls_fence_bit(k) || get_rlsacq_fence_bit(k));
+                        || get_acq_fence_bit(k) || get_rlsacq_fence_bit(k));
           }
           conj_acq_map_copy.insert( {v, d2} );
         }
@@ -449,6 +450,12 @@ mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
   std::vector< cycle_edge > pos;
   bool rf_open = false;
   cycle_edge last_po(segment[0].before,segment[0].before,edge_type::ppo);
+  if( segment[0].before == segment.back().after ) {
+    //in case segment is a cycle
+    if( segment.back().type  == edge_type::ppo ) {
+      last_po = segment.back();
+    }
+  }
   for( auto& ed_s : segment ) {
     if( ed_s.type == edge_type::rf ) {
       rf_open = true;
@@ -473,6 +480,12 @@ mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
 
   if( rf_open == true ) {
     cycle_edge ed_end(segment.back().after,segment.back().after,edge_type::ppo);
+    if( segment[0].before == segment.back().after ) {
+      //in case segment is a cycle
+      if( segment[0].type  == edge_type::ppo ) {
+        last_po = segment[0];
+      }
+    }
     rf_segs.push_back( {last_po, ed_end} );
   }
 
@@ -623,15 +636,15 @@ void barrier_synthesis::gen_max_sat_problem_new() {
          auto acq_b = create_sync_bit(acq_fence_map,"acq_",e, soft );
          hard = hard && implies(sc_b, rlsacq_b) && implies(rlsacq_b, rls_b)
            && implies(rlsacq_b, acq_b);
-         if( e->is_wr() && !e->is_rls() ) {
+         if( e->is_wr() && !e->is_at_least_rls() ) {
            auto rls_v_b=create_sync_bit(rls_v_map,"rls_v_",e, soft);
            hard = hard && implies(rls_b, rls_v_b);
          }
-         if( e->is_rd() && !e->is_acq() ) {
+         if( e->is_rd() && !e->is_at_least_acq() ) {
            auto acq_v_b=create_sync_bit(acq_v_map,"acq_v_",e, soft);
            hard = hard && implies(acq_b, acq_v_b);
          }
-         if( e->is_update() && !e->is_rlsacq() ) {
+         if( e->is_update() && !e->is_at_least_rlsacq() ) {
            auto rlsacq_v_b=create_sync_bit(rlsacq_v_map,"rlsacq_v_",e,soft);
            hard = hard && implies( rlsacq_b,   rlsacq_v_b );
            hard = hard && implies( rlsacq_v_b, get_rls_bit(e,e->prog_v) );

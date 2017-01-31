@@ -195,13 +195,19 @@ public:
     inline bool is_atomic() const { return o_tag != o_tag_t::na;  }
 
     inline bool is_at_least_rls() const {
-      assert( is_wr() || is_pre() );
+      // assert( is_wr() || is_pre() );
       return is_rls() || is_rlsacq() || is_sc();
     }
 
     inline bool is_at_least_acq() const {
-      assert( is_rd() || is_post() );
+      // assert( is_rd() || is_post() );
       return is_acq() || is_rlsacq() || is_sc();
+    }
+
+    inline bool is_at_least_rlsacq() const {
+      // assert( is_pre() ||
+      //         is_wr() || is_rd() || is_post() );
+      return is_rlsacq() || is_sc();
     }
 
     unsigned get_instr_no() const;

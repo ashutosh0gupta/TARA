@@ -31,17 +31,33 @@ namespace po = boost::program_options;
 
 options_cmd::options_cmd() : options(), mode(modes::seperate), output_to_file(false)
 {
-    
+  // names for modes
+  mode_names.insert( std::make_pair( (modes::seperate), "seperate") );
+  mode_names.insert( std::make_pair( (modes::as), "as") );
+  mode_names.insert( std::make_pair( (modes::synthesis), "synthesis") );
+  mode_names.insert( std::make_pair( (modes::fsynth), "fsynth") );
+  mode_names.insert( std::make_pair( (modes::bugs), "bugs") );
+}
+
+std::string options_cmd::string_mode_names() {
+  bool first = true;
+  std::stringstream ss;
+  for( auto pr : mode_names) {
+    if(first) first = false; else ss << ",";
+    ss << "\"" << pr.second << "\"";
+  }
+  return ss.str();
 }
 
 void options_cmd::get_description_cmd(po::options_description& desc, po::positional_options_description& pd)
 {
   tara::api::options::get_description(desc, pd);
+  std::string moptions = "selects the mode of operation ("+string_mode_names()+")";
   desc.add_options()
   ("help,h", "produce help message")
   ("input,i", po::value(&input_file), "file to process")
   ("config,c", po::value<string>(), "a config file to parse")
-  ("mode,o", po::value<string>()->default_value("seperate"), "selects the mode of operation (\"seperate\",\"as\",\"synthesis\",\"bugs\",\"wmm_synthesis\")")
+    ("mode,o", po::value<string>()->default_value("seperate"), moptions.c_str() )
   ("ofile,f", po::bool_switch(&output_to_file), "append the output to the end of the input file")
   ("metric", po::bool_switch(&output_metric), "outputs statistics about the run")
   ;
@@ -82,23 +98,40 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
 
 void options_cmd::interpret_options(po::variables_map& vm) {
   options::interpret_options(vm);
-  
+
   if (vm.count("mode")) {
     string _mode = seperate_option(vm["mode"].as<string>(), mode_options);
-    if (_mode == "seperate")
-      mode = modes::seperate;
-    else if (_mode == "as")
-      mode = modes::as;
-    else if (_mode == "synthesis")
-      mode = modes::synthesis;
-    else if (_mode == "wmm_synthesis") {
-      mode = modes::wmm_synthesis;
-      // prune_chain = prune_chain + ",remove_non_cycled";
-    }else if (_mode == "bugs")
-      mode = modes::bugs;
-    else {
-      throw arg_exception("Mode must be one of: \"seperate\", \"lattice\", \"as\", \"synthesis\", \"bugs\",\"wmm_synthesis\"");
+    bool none = true;
+    for( auto pr : mode_names ) {
+      if( pr.second == _mode ) {
+        mode = pr.first;
+        none = false;
+        break;
+      }
     }
+    if( none ) {
+      std::string names = string_mode_names();
+      throw arg_exception("Mode must be one of: " + names);
+    }
+    if( mode == modes::fsynth ) {
+      prune_chain = prune_chain + ",remove_non_cycled";
+    }
+
+    // if (_mode == "seperate")
+    //   mode = modes::seperate;
+    // else if (_mode == "as")
+    //   mode = modes::as;
+    // else if (_mode == "synthesis")
+    //   mode = modes::synthesis;
+    // else if (_mode == "wmm_synthesis" && _mode == "fsynth") {
+    //   mode = modes::fsynth;
+    //   prune_chain = prune_chain + ",remove_non_cycled";
+    // }else if (_mode == "bugs")
+    //   mode = modes::bugs;
+    // else {
+    //   std::string names = string_mode_names();
+    //   throw arg_exception("Mode must be one of: " + names);
+    // }
   }
 
 }

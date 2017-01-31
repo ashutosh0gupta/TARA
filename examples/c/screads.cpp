@@ -17,7 +17,7 @@ atomic_int y = 0;
 atomic_int r = 0;
 
 void* p0(void *) {
-  atomic_store_explicit( &x, 1, memory_order_relaxed );
+  atomic_store_explicit( &x, 1, memory_order_relaxed );  //atomic_store_explicit( &x, 1, memory_order_release );
   atomic_store_explicit( &x, 2, memory_order_seq_cst );
   atomic_store_explicit( &y, 1, memory_order_seq_cst );
   return NULL;

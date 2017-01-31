@@ -185,25 +185,25 @@ void real_main(int argc, char **argv) {
   }*/
   
   bool synthesise = o.mode == modes::synthesis;
-  bool wmm_synthesis = o.mode == modes::wmm_synthesis;
+  bool fsynth = o.mode == modes::fsynth;
   bool bugs = o.mode == modes::bugs;
   switch (o.mode) {
     case modes::bugs:
     case modes::synthesis:
-    case modes::wmm_synthesis:
+    case modes::fsynth:
     case modes::seperate: {
       bool silent = false;
       unique_ptr<output::output_base> output;
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
         output = unique_ptr<output::output_base>(new output::smt(z3));
-      } if (synthesise||bugs||wmm_synthesis) {
+      } if (synthesise||bugs||fsynth) {
         bool verify = false;
         bool print_nfs = false;
         for (string p : o.mode_options) {
           if (p=="verify") verify = true;
           else if (p=="nfs") print_nfs = true;
         }
-        output = wmm_synthesis ?
+        output = fsynth ?
           unique_ptr<output::output_base>(new output::barrier_synthesis(z3, verify, print_nfs))
           : synthesise ?
           unique_ptr<output::output_base>(new output::synthesis(z3, verify, print_nfs))

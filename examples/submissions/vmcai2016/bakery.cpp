@@ -62,7 +62,7 @@ void* p1(void * arg) {
     {
 	r4 = n1;
         r5 = n2;
-	if((r4 == 0) || (r5 < r1))
+	if((r4 == 0) || (r5 < r4)) // r1 was here fix
 	{
 		r6 = cs;
 	        cs = r6 + 1;

@@ -23,6 +23,10 @@
 namespace tara {
 namespace hb_enc {
 
+  bool is_weak_edge( edge_type t ) {
+    return t ==  edge_type::rpo || t == edge_type::fr || t == edge_type::rf;
+  };
+
 cycle_edge::cycle_edge( hb_enc::se_ptr _before,
                         hb_enc::se_ptr _after,
                         edge_type _type )
@@ -75,7 +79,8 @@ unsigned cycle::has_cycle() {
 
 void cycle::pop() {
   auto& edge = edges.back();
-  if( edge.type ==  edge_type::rpo ) {
+  auto& t = edge.type;
+  if( is_weak_edge( t ) ) {
     assert( !relaxed_edges.empty() );
     relaxed_edges.pop_back();
   }
@@ -94,15 +99,20 @@ void cycle::close() {
 }
 
 bool cycle::add_edge( hb_enc::se_ptr before, hb_enc::se_ptr after, edge_type t ) {
+  assert( t != edge_type::rpo || before->tid == after->tid );
+  assert( t != edge_type::ppo || before->tid == after->tid );
+  assert( before == NULL || t != edge_type::hb  || before->tid != after->tid );
+  assert( t != edge_type::fr  || before->tid != after->tid );
+  assert( t != edge_type::rf  || before->tid != after->tid );
+
   if( !closed && last() == before ) {
     cycle_edge ed(before, after, t);
     edges.push_back(ed);
-    if( t == edge_type::rpo || t == edge_type::fr || t == edge_type::rf ) {
+    if( is_weak_edge( t ) ) {
       relaxed_edges.push_back( ed );
     }
   }else{
-    // throw error
-    assert(false);
+    hb_enc_error( "Mismatch in extending the cycle!!" );
   }
   // close();
   return closed;
@@ -112,13 +122,13 @@ bool cycle::add_edge( hb_enc::se_ptr after, edge_type t ) {
   return add_edge( last(), after, t );
 }
 
-bool cycle::has_relaxed( cycle_edge& edge) {
+bool cycle::has_relaxed( cycle_edge& edge) const {
   auto it = std::find( relaxed_edges.begin(), relaxed_edges.end(), edge);
   return it != relaxed_edges.end();
 }
 
 //I am dominated
-bool cycle::is_dominated_by( cycle& c ) {
+bool cycle::is_dominated_by( cycle& c ) const {
   for( auto& edge : c.relaxed_edges  ) {
     if( !has_relaxed( edge ) ) return false;
   }
@@ -221,6 +231,7 @@ void cycles::succ( hb_enc::se_ptr e,
     if( ed.before == e ) {
       if( filter.find( ed.after ) == filter.end() ) continue;
       next_set.push_back( {ed.after, ed.type } );
+      assert( ed.type != edge_type::ppo && ed.type != edge_type::rpo );
     }
   }
 
@@ -232,11 +243,12 @@ void cycles::succ( hb_enc::se_ptr e,
   }
 
   if( e->is_pre() || e->is_post() ) return;
-  //todo: ineffient code... needs a fix
+  //todo: inefficient code... needs a fix
   for( auto& ep: program->get_thread(e->tid).events ) {
     if( filter.find( ep ) == filter.end() ) continue;
     for( const hb_enc::depends& dep : program->ppo_before.at(ep) ) {
       if( dep.e != e ) continue;
+      assert( e->tid == ep->tid );
       if( program->is_mm_c11() ) { //todo: c11 case should be handelled properly
         next_set.push_back( {ep, edge_type::ppo } );
       }else{
@@ -258,6 +270,12 @@ void cycles::succ( hb_enc::se_ptr e,
   //     next_set.push_back( {dep.e, edge_type::rpo } );
   // }
     // break; // todo <- do we miss anything
+  // for( auto& ep_pair :  next_set ) {
+  //   std::cerr << "\n" << e->name() << "-->\n";
+  //   if(ep_pair.second == edge_type::rpo )
+  //     std::cerr << ep_pair.first->name() << "\n";
+  // }
+
 }
 
 
@@ -335,7 +353,7 @@ void cycles::cycles_unblock( hb_enc::se_ptr e ) {
   }
 }
 
-bool cycles::is_relaxed_dominated( cycle& c , std::vector<cycle>& cs ) {
+bool cycles::is_relaxed_dominated( const cycle& c , std::vector<cycle>& cs ) {
   for( cycle& cp : cs ) {
     if( c.is_dominated_by(cp) ) {
       return true;
@@ -347,6 +365,9 @@ bool cycles::is_relaxed_dominated( cycle& c , std::vector<cycle>& cs ) {
 bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
                                    const hb_enc::se_set& scc,
                                    std::vector<cycle>& found_cycles ) {
+  assert( ancestor_stack.last() == e );
+  // std::cout << "e:"<<ancestor_stack << "\n";
+
   bool f = false;
   blocked[e] = true;
   std::vector< std::pair< hb_enc::se_ptr, edge_type> > next_set;
@@ -354,8 +375,8 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
   for( auto& ep_pair :  next_set ) {
     hb_enc::se_ptr ep = ep_pair.first;
     if( ep == root ) {
-      ancestor_stack.add_edge( ep, ep_pair.second );
-      if( ep_pair.second != edge_type::rpo ||
+      ancestor_stack.add_edge( e, ep, ep_pair.second );
+      if( !is_weak_edge(ep_pair.second ) ||
           !is_relaxed_dominated( ancestor_stack , found_cycles ) ) {
         cycle c( ancestor_stack, ancestor_stack.has_cycle()); // 0 or 1??
         for( auto it = found_cycles.begin(); it != found_cycles.end();) {
@@ -370,11 +391,14 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
       ancestor_stack.pop();
       f = true;
     }else if( !blocked[ep] ) {
-      ancestor_stack.add_edge( ep, ep_pair.second );
-      if( ep_pair.second != edge_type::rpo ||
+      ancestor_stack.add_edge( e, ep, ep_pair.second );
+      if( !is_weak_edge(ep_pair.second ) ||
           !is_relaxed_dominated( ancestor_stack , found_cycles ) ) {
         bool fp = find_true_cycles_rec( ep, scc, found_cycles );
+        assert( ancestor_stack.last() == e );
         if( fp ) f = true;
+      }else{
+        ancestor_stack.pop();
       }
     }
   }
@@ -388,6 +412,7 @@ bool cycles::find_true_cycles_rec( hb_enc::se_ptr e,
     }
   }
   ancestor_stack.pop();
+  // std::cout << "r:"<<ancestor_stack << "\n";
   return f;
 }
 
@@ -412,12 +437,12 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
                          const hb_enc::se_set& all_es,
                          std::vector< cycle_edge >& new_edges ) {
     new_edges.clear();
-    hb_enc::hb_vec hbs;
+    hb_enc::hb_vec hbs_local;
     hb_enc::hb_vec rfs;
     std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs; //quick and dirty: thrd create/join orderings
     for( const auto& h : c ) {
       if( h->type == hb_t::phb && !h->is_neg ) {
-        hbs.push_back( h );
+        hbs_local.push_back( h );
       }
       if( h->type == hb_t::rf ) {
         assert( !h->is_neg );
@@ -463,7 +488,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
           if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
         }
       }
-      for( const auto& h : hbs ) {
+      for( const auto& h : hbs_local ) {
         if( h->e2 != e ) continue;
         if( !helpers::exists( order_map, h->e1 ) ) {
           ready = false;
@@ -503,7 +528,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
           helpers::set_insert( new_prevs, pasts.at(epp) );
         }
       }
-      for( const auto& h : hbs ) {
+      for( const auto& h : hbs_local ) {
         if( h->e2 == e ) {
           new_prevs.insert( h->e1 );
           helpers::set_insert( new_prevs, pasts.at(h->e1) );
@@ -528,7 +553,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
           helpers::set_insert( new_nexts, posts.at(epp) );
         }
       }
-      for( const auto& h : hbs ) {
+      for( const auto& h : hbs_local ) {
         if( h->e1 == e ) {
           helpers::set_insert( new_nexts, posts.at(h->e2) );
         }
@@ -566,11 +591,23 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
           new_edges.push_back(ed);
         }
       }
+      for( auto rp : pasts.at(r) ) {
+        if( helpers::exists( all_es, rp ) &&
+            ( rp->is_rd() && r->access_same_var(rp) ) ) {
+          for( const auto& h : rfs ) {
+            if( rp == h->e2 && r->access_same_var( h->e2 ) ) {
+              cycle_edge ed( h->e1, w, edge_type::fr );
+              new_edges.push_back(ed);
+            }
+          }
+        }
+      }
     }
     // if( verbose ) {
-      // for( auto& ed : new_edges ) {
-      //   std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
-      // }
+      for( auto& ed : new_edges ) {
+        debug_print( std::cerr, ed ); std::cerr << "\n";
+        // std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
+      }
     // }
   }
 

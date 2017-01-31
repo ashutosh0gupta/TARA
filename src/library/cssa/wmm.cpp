@@ -842,8 +842,8 @@ void wmm_event_cons::update_orderings() {
     }
   }
 
-  p.seq_before[p.init_loc].clear();
-  p.seq_before[p.post_loc].clear();
+  if( p.init_loc ) p.seq_before[p.init_loc].clear();
+  if( p.post_loc ) p.seq_before[p.post_loc].clear();
   for( unsigned i = 0; i < p.size(); i++ ) {
     p.seq_before[p.get_thread(i).start_event].clear();
     for( auto& e : p.get_thread(i).events ) {
@@ -862,8 +862,8 @@ void wmm_event_cons::update_orderings() {
     }
   }
 
-  p.seq_after[p.init_loc].clear();
-  p.seq_after[p.post_loc].clear();
+  if( p.init_loc ) p.seq_after[p.init_loc].clear();
+  if( p.post_loc ) p.seq_after[p.post_loc].clear();
   for( unsigned i = 0; i < p.size(); i++ ) {
     p.seq_after[p.get_thread(i).final_event].clear();
     auto rit = p.get_thread(i).events.rbegin();
@@ -911,7 +911,10 @@ void wmm_event_cons::update_orderings() {
     o.out() << "must after/before relations:\n";
     o.out() << "============================\n";
     for( unsigned i = 0; i < p.size(); i ++ ) {
-      for( auto& e : p.get_thread(i).events ) {
+      hb_enc::se_vec es = p.get_thread(i).events;
+      es.push_back( p.get_thread(i).start_event );
+      es.push_back( p.get_thread(i).final_event );
+      for( auto& e : es ) {
         o.out() << e->name() << "\nbefore: ";
         tara::debug_print( o.out(), p.must_before[e] );
         o.out() << "after: ";

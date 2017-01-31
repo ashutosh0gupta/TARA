@@ -30,7 +30,7 @@ enum class modes {
   seperate,
   as,
   synthesis,
-  wmm_synthesis,//wmm support
+  fsynth,//wmm support
   bugs,
 };
 
@@ -40,14 +40,19 @@ public:
   options_cmd();
   std::string input_file;
   modes mode;
-  std::vector<std::string> mode_options;
   bool output_to_file;
   bool output_metric;
+
+  std::vector<std::string> mode_options;
+  std::set< std::pair<modes, std::string> > mode_names;
+
 public: // information that are controlled by main
   bool parse_cmdline(int argc, char **argv);
 private:
+
   void get_description_cmd(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
   virtual void interpret_options(boost::program_options::variables_map& vm) override;
+  std::string string_mode_names();
 };
 
 
