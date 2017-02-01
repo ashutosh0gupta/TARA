@@ -75,8 +75,10 @@ ostream& operator<<(ostream& stream, const bug& bug)
 }
 }}}
 
-bugs::bugs(helpers::z3interf& _z3, bool verify, bool print_nfs): output_base(_z3), print_nfs(print_nfs), normal_form(_z3,true, false, false, false, verify)
-{}
+bugs::bugs(options& o_, helpers::z3interf& _z3): output_base(o_, _z3), normal_form(o_, _z3,true, false, false, false)
+{
+  print_nfs = helpers::exists( o.mode_options, std::string("nfs")  );
+}
 
 void bugs::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const tara::program > program)
 {

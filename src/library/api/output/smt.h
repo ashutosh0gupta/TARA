@@ -30,7 +30,7 @@ namespace output {
 class smt : public output_base
 {
 public:
-  smt(helpers::z3interf& _z3) : output_base(_z3) {};
+  smt(options& o_, helpers::z3interf& _z3) : output_base(o_, _z3) {};
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   using output_base::output;
   virtual z3::expr output() const;

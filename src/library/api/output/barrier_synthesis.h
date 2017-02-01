@@ -40,7 +40,7 @@ namespace output {
 class barrier_synthesis : public output_base
 {
 public:
-  barrier_synthesis( helpers::z3interf& _z3, bool verify, bool verbose );
+  barrier_synthesis(options& o_, helpers::z3interf& _z3);
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   virtual void init( const hb_enc::encoding& hb_encoding,
                      const z3::solver& sol_desired,

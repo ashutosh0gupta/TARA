@@ -54,6 +54,10 @@ public:
   mm_t mm = mm_t::none;
   std::vector<std::string> mm_options;
 
+  std::vector<std::string> mode_options;
+
+  bool has_sub_option( std::string s ) const;
+
   std::ostream* _out;
   inline std::ostream& out() const { return *_out; };
 public: // information that are controlled by main

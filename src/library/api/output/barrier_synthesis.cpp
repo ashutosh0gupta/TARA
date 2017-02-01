@@ -34,12 +34,17 @@ using namespace tara::helpers;
 using namespace std;
 
 
-barrier_synthesis::barrier_synthesis(helpers::z3interf& z3_,
-                                     bool verify, bool _verbose)
-  : output_base( z3_), verbose(_verbose)
-  , normal_form(z3_, true, false, false, false, verify)
+barrier_synthesis::barrier_synthesis(options& o_,
+                                     helpers::z3interf& z3_)
+  : output_base( o_, z3_)
+  , normal_form( o_, z3_, true, false, false, false)
   , cycle_finder( z3_ )
-{}
+{
+  verbose = helpers::exists( o.mode_options, std::string("verbose") );
+  // for(string p : o.mode_options) {
+  //   if (p=="verbose") verbose = true;
+  // }
+}
 
 void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
                               const z3::solver& sol_desired,

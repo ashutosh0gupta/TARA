@@ -25,7 +25,7 @@ using namespace tara::api::output;
 using namespace tara::api;
 using namespace std;
 
-output_base::output_base(helpers::z3interf& _z3) : z3(_z3)
+output_base::output_base(options& o_, helpers::z3interf& _z3) : o(o_), z3(_z3)
 {}
 
 output_base::~output_base() 

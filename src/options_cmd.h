@@ -43,7 +43,6 @@ public:
   bool output_to_file;
   bool output_metric;
 
-  std::vector<std::string> mode_options;
   std::set< std::pair<modes, std::string> > mode_names;
 
 public: // information that are controlled by main

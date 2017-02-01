@@ -195,37 +195,37 @@ void real_main(int argc, char **argv) {
       bool silent = false;
       unique_ptr<output::output_base> output;
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
-        output = unique_ptr<output::output_base>(new output::smt(z3));
+        output = unique_ptr<output::output_base>(new output::smt(o,z3));
       } if (synthesise||bugs||fsynth) {
-        bool verify = false;
-        bool print_nfs = false;
-        for (string p : o.mode_options) {
-          if (p=="verify") verify = true;
-          else if (p=="nfs") print_nfs = true;
-        }
-        output = fsynth ?
-          unique_ptr<output::output_base>(new output::barrier_synthesis(z3, verify, print_nfs))
-          : synthesise ?
-          unique_ptr<output::output_base>(new output::synthesis(z3, verify, print_nfs))
-          : unique_ptr<output::output_base>(new output::bugs(z3, verify, print_nfs)) ;
+        // bool verify = false;
+        // bool print_nfs = false;
+        // for (string p : o.mode_options) {
+        //   if (p=="verify") verify = true;
+        //   else if (p=="nfs") print_nfs = true;
+        // }
+        output =
+          fsynth?unique_ptr<output::output_base>(new output::barrier_synthesis(o,z3))
+          : synthesise ?unique_ptr<output::output_base>(new output::synthesis(o, z3))
+          : unique_ptr<output::output_base>(new output::bugs(o, z3)) ;
       } else {
-        bool bad_dnf = false;
-        bool bad_cnf = false;
-        bool good_dnf = false;
-        bool good_cnf = false;
-        bool verify = false;
-        bool no_opt = false;
-        for (string p : o.mode_options) {
-          if (p=="bad_dnf") bad_dnf = true;
-          else if (p=="bad_cnf") bad_cnf = true;
-          else if (p=="good_dnf") good_dnf = true;
-          else if (p=="good_cnf") good_cnf = true;
-          else if (p=="verify") verify = true;
-          else if (p=="noopt") no_opt = true;
-          else if (p=="silent") silent = true;
-        }
-        if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
-        output = unique_ptr<output::output_base>(new output::nf(z3,bad_dnf, bad_cnf, good_dnf, good_cnf, verify, no_opt));
+        // bool bad_dnf = false;
+        // bool bad_cnf = false;
+        // bool good_dnf = false;
+        // bool good_cnf = false;
+        // bool verify = false;
+        // bool no_opt = false;
+        // for (string p : o.mode_options) {
+          // if      (p== "bad_dnf" ) bad_dnf = true;
+          // else if (p== "bad_cnf" ) bad_cnf = true;
+          // else if (p== "good_dnf") good_dnf = true;
+          // else if (p== "good_cnf") good_cnf = true;
+          // else if (p== "verify"  ) verify = true;
+          // else if (p=="noopt") no_opt = true;
+        //   else if (p=="silent") silent = true;
+        // }
+        silent = o.has_sub_option( "silent" );
+        // if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
+        output = unique_ptr<output::output_base>( new output::nf(o,z3) );
       }
             
       trace_result res = ts.seperate(*output, run_metric);

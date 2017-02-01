@@ -47,7 +47,7 @@ struct barrier {
 class synthesis : public output_base
 {
 public:
-  synthesis(helpers::z3interf& _z3, bool verify, bool print_nfs);
+  synthesis(options& o_, helpers::z3interf& _z3);
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   virtual void init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr<const tara::program> program) override;
   virtual void output(const z3::expr& output) override;

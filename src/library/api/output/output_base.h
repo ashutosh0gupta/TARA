@@ -23,6 +23,7 @@
 
 #include <string>
 #include <z3++.h>
+#include "api/options.h"
 #include "hb_enc/encoding.h"
 #include "program/program.h"
 #include <memory>
@@ -34,7 +35,7 @@ namespace output {
 class output_base
 {
 public:
-  output_base(helpers::z3interf& _z3);
+  output_base(options& o_, helpers::z3interf& _z3);
   virtual ~output_base();
   virtual void print(std::ostream& stream, bool machine_readable) const = 0;
 
@@ -43,6 +44,7 @@ public:
   virtual void gather_statistics(metric& metric) const;
   bool output_ready();
 protected:
+  options& o;
   helpers::z3interf& z3;
   const hb_enc::encoding* _hb_encoding = nullptr;
   std::unique_ptr<z3::expr> _output = nullptr;

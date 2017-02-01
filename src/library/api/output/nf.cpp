@@ -18,6 +18,7 @@
  *
  */
 
+#include "api/options.h"
 #include "nf.h"
 #include "temp_functions.h"
 #include "prune/remove_implied.h"
@@ -32,11 +33,22 @@ using namespace tara::api::output;
 
 using namespace std;
 
-nf::nf(helpers::z3interf& _z3, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf, bool verify, bool no_opt) : output_base(_z3), bad_dnf(bad_dnf), bad_cnf(bad_cnf), good_dnf(good_dnf), good_cnf(good_cnf), verify(verify), no_opt(no_opt)
-{}
+nf::nf(options& o_, helpers::z3interf& _z3, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf) : output_base(o_, _z3), bad_dnf(bad_dnf), bad_cnf(bad_cnf), good_dnf(good_dnf), good_cnf(good_cnf)
+{
+  verify = helpers::exists( o.mode_options, std::string("verify") );
+  no_opt = helpers::exists( o.mode_options, std::string("noopt")  );
+}
 
-nf::nf( helpers::z3interf& _z3 ) : output_base(_z3), bad_dnf(true), bad_cnf(false), good_dnf(true), good_cnf(false), verify(false)
-{}
+nf::nf( options& o_, helpers::z3interf& _z3 ) : output_base(o_, _z3), bad_dnf(true), bad_cnf(false), good_dnf(true), good_cnf(false)
+{
+  verify   = helpers::exists( o.mode_options, std::string("verify")  );
+  no_opt   = helpers::exists( o.mode_options, std::string("noopt")   );
+  bad_dnf  = helpers::exists( o.mode_options, std::string("bad_dnf") );
+  bad_cnf  = helpers::exists( o.mode_options, std::string("bad_cnf") );
+  good_dnf = helpers::exists( o.mode_options, std::string("good_dnf"));
+  good_cnf = helpers::exists( o.mode_options, std::string("goog_cnf"));
+  if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
+}
 
 
 void nf::prune_implied_within(nf::result_type& result, z3::solver& sol)

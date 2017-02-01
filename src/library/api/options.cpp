@@ -20,6 +20,7 @@
 
 #include "constants.h"
 #include "options.h"
+#include "helpers/helpers.h"
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/tokenizer.hpp>
@@ -36,14 +37,30 @@ options::options() : machine(false), prune_chain("data_flow,unsat_core"), _out(&
     
 }
 
+bool options::has_sub_option( std::string s ) const {
+  return helpers::exists( mode_options, s);
+}
+
+const std::string pruning_s = "pruning";
+const std::string phi_s     = "phi"    ;
+const std::string rounds_s  = "rounds" ;
+const std::string output_s  = "output" ;
+const std::string input_s   = "input"  ;
+
+string string_of_print_options() {
+  return "\"" +  pruning_s + "\",\"" + phi_s  + "\",\"" +
+    rounds_s + "\",\"" + output_s + "\",\"" + input_s+ "\"";
+}
+
 void options::get_description(po::options_description& desc, po::positional_options_description& pd)
 {
+  std::string mm_select = "select a memory model ("+string_of_mm_names()+")";
   desc.add_options()
   ("hb-enc,e", po::value<string>(), "happens-before encoding (integer)")
   ("print,p", po::value<vector<string>>(), "print details about processing about a component (see readme)")
   ("prune,r", po::value<string>(), "select a chain of prune engines (see readme)")
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
-  ("mm,M", po::value<string>()->default_value("none"), "selects the memory model (\"sc\",\"tso\",\"pso\")")
+  ("mm,M", po::value<string>()->default_value("none"), mm_select.c_str() )
   ;
   pd.add("input", -1);
 }
@@ -68,51 +85,51 @@ void options::parse_config(boost::filesystem::path filename) {
 
 
 void options::interpret_options(po::variables_map& vm) {
-  
-  
+
   // verbosity options
-  if (vm.count("print")) {
+  if( vm.count("print") ) {
     vector<string> pss = vm["print"].as<vector<string>>();
     for (string ps:pss) {
       boost::char_separator<char> sep(",");
       boost::tokenizer<boost::char_separator<char> > tok(ps, sep);
-      for (string p : tok) {
-        if (p=="pruning")
-          print_pruning++;
-        else if (p=="phi")
-          print_phi++;
-        else if (p=="rounds")
-          print_rounds++;
-        else if (p=="output")
-          print_output++;
-        else if (p=="input")
-          print_input++;
+      for( std::string p : tok ) {
+        if     ( p == pruning_s ) print_pruning++;
+        else if( p == phi_s     ) print_phi++;
+        else if( p == rounds_s  ) print_rounds++;
+        else if( p == output_s  ) print_output++;
+        else if( p == input_s   ) print_input++;
         else {
-          throw arg_exception("Invalid printing type. Must be combination of \"pruning\",\"phi\",\"rounds\",\"output\",\"input\".");
+          std::string s = string_of_print_options();
+          throw arg_exception("Invalid printing type. Must be combination of "+s+".");
         }
       }
     }
   }
 
-  if (vm.count("mm")) {
-    string _mode = seperate_option(vm["mm"].as<string>(), mm_options);
-    if (_mode == "sc")
-      mm = mm_t::sc;
-    else if (_mode == "tso")
-      mm = mm_t::tso;
-    else if (_mode == "pso")
-      mm = mm_t::pso;
-    else if (_mode == "rmo")
-      mm = mm_t::rmo;
-    else if (_mode == "alpha")
-      mm = mm_t::alpha;
-    else if (_mode == "c11")
-      mm = mm_t::c11;
-    else if (_mode == "none")
-      mm = mm_t::none;
-    else {
-      throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
+  if( vm.count("mm") ) {
+    string _mode = seperate_option( vm["mm"].as<string>(), mm_options );
+    mm = mm_of_string( _mode );
+    if( mm == mm_t::wrong ) {
+      std::string names = string_of_mm_names();
+      throw arg_exception( "Memory model must be one of: " + names );
     }
+    // if (_mode == "sc")
+    //   mm = mm_t::sc;
+    // else if (_mode == "tso")
+    //   mm = mm_t::tso;
+    // else if (_mode == "pso")
+    //   mm = mm_t::pso;
+    // else if (_mode == "rmo")
+    //   mm = mm_t::rmo;
+    // else if (_mode == "alpha")
+    //   mm = mm_t::alpha;
+    // else if (_mode == "c11")
+    //   mm = mm_t::c11;
+    // else if (_mode == "none")
+    //   mm = mm_t::none;
+    // else {
+    //   throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
+    // }
   }
 
   if (vm.count("prune")) {
