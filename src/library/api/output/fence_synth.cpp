@@ -20,7 +20,7 @@
 
 #include "program/program.h"
 #include "output_exception.h"
-#include "barrier_synthesis.h"
+#include "fence_synth.h"
 #include "cssa/wmm.h"
 #include "hb_enc/cycles.h"
 #include "api/output/output_base_utilities.h"

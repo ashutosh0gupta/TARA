@@ -28,7 +28,7 @@
 #include <api/output/nf.h>
 #include <api/output/smt.h>
 #include <api/output/synthesis.h>
-#include <api/output/barrier_synthesis.h> // support for wmm
+#include <api/output/fence_synth.h> // support for wmm
 #include <api/output/bugs.h>
 #include <helpers/helpers.h>
 #include <helpers/z3interf.h>
