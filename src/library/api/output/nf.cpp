@@ -35,18 +35,18 @@ using namespace std;
 
 nf::nf(options& o_, helpers::z3interf& _z3, bool bad_dnf, bool bad_cnf, bool good_dnf, bool good_cnf) : output_base(o_, _z3), bad_dnf(bad_dnf), bad_cnf(bad_cnf), good_dnf(good_dnf), good_cnf(good_cnf)
 {
-  verify = helpers::exists( o.mode_options, std::string("verify") );
-  no_opt = helpers::exists( o.mode_options, std::string("noopt")  );
+  verify = o.has_sub_option("verify") ;
+  no_opt = o.has_sub_option("noopt")  ;
 }
 
 nf::nf( options& o_, helpers::z3interf& _z3 ) : output_base(o_, _z3), bad_dnf(true), bad_cnf(false), good_dnf(true), good_cnf(false)
 {
-  verify   = helpers::exists( o.mode_options, std::string("verify")  );
-  no_opt   = helpers::exists( o.mode_options, std::string("noopt")   );
-  bad_dnf  = helpers::exists( o.mode_options, std::string("bad_dnf") );
-  bad_cnf  = helpers::exists( o.mode_options, std::string("bad_cnf") );
-  good_dnf = helpers::exists( o.mode_options, std::string("good_dnf"));
-  good_cnf = helpers::exists( o.mode_options, std::string("goog_cnf"));
+  verify   = o.has_sub_option("verify")  ;
+  no_opt   = o.has_sub_option("noopt")   ;
+  bad_dnf  = o.has_sub_option("bad_dnf") ;
+  bad_cnf  = o.has_sub_option("bad_cnf") ;
+  good_dnf = o.has_sub_option("good_dnf");
+  good_cnf = o.has_sub_option("goog_cnf");
   if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
 }
 

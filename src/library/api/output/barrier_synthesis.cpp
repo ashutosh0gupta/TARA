@@ -34,7 +34,7 @@ using namespace tara::helpers;
 using namespace std;
 
 
-barrier_synthesis::barrier_synthesis(options& o_,
+fence_synth::fence_synth(options& o_,
                                      helpers::z3interf& z3_)
   : output_base( o_, z3_)
   , normal_form( o_, z3_, true, false, false, false)
@@ -46,7 +46,7 @@ barrier_synthesis::barrier_synthesis(options& o_,
   // }
 }
 
-void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
+void fence_synth::init( const hb_enc::encoding& hb_encoding,
                               const z3::solver& sol_desired,
                               const z3::solver& sol_undesired,
                               std::shared_ptr< const tara::program > _program )
@@ -58,7 +58,7 @@ void barrier_synthesis::init( const hb_enc::encoding& hb_encoding,
 }
 
 
-void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
+void fence_synth::find_cycles(nf::result_type& bad_dnf) {
   all_cycles.clear();
   all_cycles.resize( bad_dnf.size() );
   unsigned bad_dnf_num = 0;
@@ -77,7 +77,7 @@ void barrier_synthesis::find_cycles(nf::result_type& bad_dnf) {
 
 }
 
-void barrier_synthesis::print_all_cycles( ostream& stream ) const {
+void fence_synth::print_all_cycles( ostream& stream ) const {
   stream << "cycles found!\n";
   for( auto& cycles : all_cycles ) {
     stream << "[" << endl;
@@ -88,7 +88,7 @@ void barrier_synthesis::print_all_cycles( ostream& stream ) const {
   }
 }
 
-void barrier_synthesis::report( ostream& stream,
+void fence_synth::report( ostream& stream,
                                 const std::vector<hb_enc::se_ptr>& inserted,
                                 std::string msg ) const {
   if( inserted.size() > 0 ) {
@@ -99,7 +99,7 @@ void barrier_synthesis::report( ostream& stream,
   }
 }
 
-void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
+void fence_synth::print(ostream& stream, bool machine_readable) const {
   if( verbose && !machine_readable )
     normal_form.print(stream, false);
 
@@ -130,7 +130,7 @@ void barrier_synthesis::print(ostream& stream, bool machine_readable) const {
   stream << endl;
 }
 
-void barrier_synthesis::gather_statistics(api::metric& metric) const
+void fence_synth::gather_statistics(api::metric& metric) const
 {
   metric.additional_time = time;
   metric.additional_info = info;
@@ -141,7 +141,7 @@ void barrier_synthesis::gather_statistics(api::metric& metric) const
 
 
 
-z3::expr barrier_synthesis::get_h_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_h_var_bit( const hb_enc::se_ptr& b,
                                            const hb_enc::se_ptr& e_i,
                                            const hb_enc::se_ptr& e_j ) {
   auto pr = std::make_tuple( b, e_i, e_j );
@@ -153,7 +153,7 @@ z3::expr barrier_synthesis::get_h_var_bit( const hb_enc::se_ptr& b,
   return bit;
 }
 
-z3::expr barrier_synthesis::get_write_order_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_write_order_bit( const hb_enc::se_ptr& b,
                                                  const hb_enc::se_ptr& e ) {
   auto pr = std::make_pair( b, e);
   auto it = wr_ord_map.find( pr );
@@ -164,7 +164,7 @@ z3::expr barrier_synthesis::get_write_order_bit( const hb_enc::se_ptr& b,
   return bit;
 }
 
-z3::expr barrier_synthesis::get_bit_from_map(std::map< std::pair<hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e ) {
+z3::expr fence_synth::get_bit_from_map(std::map< std::pair<hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e ) {
   auto pr = std::make_pair( b, e);
   auto it = map.find( pr );
   if( it != map.end() )
@@ -174,7 +174,7 @@ z3::expr barrier_synthesis::get_bit_from_map(std::map< std::pair<hb_enc::se_ptr,
   return bit;
 }
 
-z3::expr barrier_synthesis::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr, cssa::variable>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e, const cssa::variable& v ) {
+z3::expr fence_synth::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr, cssa::variable>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e, const cssa::variable& v ) {
   auto pr = std::make_tuple( b, e, v);
   auto it = map.find( pr );
   if( it != map.end() )
@@ -185,39 +185,39 @@ z3::expr barrier_synthesis::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr
 }
 
 
-z3::expr barrier_synthesis::get_sc_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_sc_var_bit( const hb_enc::se_ptr& b,
                                             const hb_enc::se_ptr& e ) {
   return get_bit_from_map( sc_var_map, b, e );
 }
 
-z3::expr barrier_synthesis::get_rls_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_rls_var_bit( const hb_enc::se_ptr& b,
                                             const hb_enc::se_ptr& e ) {
   return get_bit_from_map( rls_var_map, b, e );
 }
 
-z3::expr barrier_synthesis::get_acq_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_acq_var_bit( const hb_enc::se_ptr& b,
                                              const hb_enc::se_ptr& e ) {
   return get_bit_from_map( acq_var_map, b, e );
 }
 
-z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
                                                 const hb_enc::se_ptr& e ) {
   return get_bit_from_map( rlsacq_var_map, b, e );
 }
 
-z3::expr barrier_synthesis::get_rls_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_rls_var_bit( const hb_enc::se_ptr& b,
                                              const hb_enc::se_ptr& e,
                                              const cssa::variable& v) {
   return get_bit_from_map( rls_v_var_map, b, e, v);
 }
 
-z3::expr barrier_synthesis::get_acq_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_acq_var_bit( const hb_enc::se_ptr& b,
                                              const hb_enc::se_ptr& e,
                                              const cssa::variable& v) {
   return get_bit_from_map( acq_v_var_map, b, e, v);
 }
 
-z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
+z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
                                                 const hb_enc::se_ptr& e,
                                                 const cssa::variable& v) {
   return get_bit_from_map( rlsacq_v_var_map, b, e, v);
@@ -225,21 +225,21 @@ z3::expr barrier_synthesis::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
 
 //=====
 
-z3::expr barrier_synthesis::get_rls_bit( const hb_enc::se_ptr& e,
+z3::expr fence_synth::get_rls_bit( const hb_enc::se_ptr& e,
                                          const cssa::variable& v ) {
   if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
   if( e->is_at_least_rls() ) return z3.mk_true();
   return rls_v_map.at( e );
 }
 
-z3::expr barrier_synthesis::get_acq_bit( const hb_enc::se_ptr& e,
+z3::expr fence_synth::get_acq_bit( const hb_enc::se_ptr& e,
                                          const cssa::variable& v ) {
   if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
   if( e->is_at_least_acq() ) return z3.mk_true();
   return acq_v_map.at( e );
 }
 
-z3::expr barrier_synthesis::get_rlsacq_bit( const hb_enc::se_ptr& e,
+z3::expr fence_synth::get_rlsacq_bit( const hb_enc::se_ptr& e,
                                             const cssa::variable& v ) {
   if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
   if( e->is_at_least_rlsacq() ) return z3.mk_true();
@@ -261,7 +261,7 @@ z3::expr barrier_synthesis::get_rlsacq_bit( const hb_enc::se_ptr& e,
 // b_k => l_k
 // return h_baa
 
-z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
+z3::expr fence_synth::mk_edge_constraint( hb_enc::se_ptr& b,
                                                 hb_enc::se_ptr& a,
                                                 z3::expr& hard ) {
   assert( a->tid == b->tid );
@@ -336,7 +336,7 @@ z3::expr barrier_synthesis::mk_edge_constraint( hb_enc::se_ptr& b,
   return z3.mk_false(); //todo : may be reachable for unreachable pairs
 }
 
-void barrier_synthesis::mk_c11_edge_constraint( hb_enc::se_ptr& b,
+void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
                                                 hb_enc::se_ptr& a,
                                                 z3::expr& hard ) {
   assert( b->tid == a->tid );
@@ -446,7 +446,7 @@ void barrier_synthesis::mk_c11_edge_constraint( hb_enc::se_ptr& b,
   }
 }
 // three possibilites rf,hb,ppo
-z3::expr barrier_synthesis::
+z3::expr fence_synth::
 mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
                            z3::expr& hard, bool sc_fence_needed ) {
   assert( segment.size() > 0 );
@@ -564,7 +564,7 @@ mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
   // return r_conj;
 }
 
-z3::expr barrier_synthesis::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
+z3::expr fence_synth::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
   z3::expr r_conj = z3.mk_true();
   if( program->is_mm_c11() ) {
     assert( cycle.size() > 1 );
@@ -602,7 +602,7 @@ z3::expr barrier_synthesis::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
   return r_conj;
 }
 
-z3::expr barrier_synthesis::
+z3::expr fence_synth::
 create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
                  const std::string prefix,
                  const hb_enc::se_ptr& e,
@@ -612,7 +612,7 @@ create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
   soft.push_back( !bit );
   return bit;
 }
-void barrier_synthesis::gen_max_sat_problem_new() {
+void fence_synth::gen_max_sat_problem_new() {
   // z3::context& z3_ctx = sol_bad->ctx();
   const_already_made.clear();
   z3::expr hard = z3.mk_true();
@@ -707,7 +707,7 @@ void barrier_synthesis::gen_max_sat_problem_new() {
 // ===========================================================================
 // max sat code
 
-void barrier_synthesis::assert_soft_constraints( z3::solver&s ,
+void fence_synth::assert_soft_constraints( z3::solver&s ,
                                                  std::vector<z3::expr>& cnstrs,
                                                  std::vector<z3::expr>& aux_vars
                                                  ) {
@@ -718,7 +718,7 @@ void barrier_synthesis::assert_soft_constraints( z3::solver&s ,
   }
 }
 
-z3::expr barrier_synthesis:: at_most_one( z3::expr_vector& vars ) {
+z3::expr fence_synth:: at_most_one( z3::expr_vector& vars ) {
   z3::expr result = vars.ctx().bool_val(true);
   if( vars.size() <= 1 ) return result;
   // todo check for size 0
@@ -733,7 +733,7 @@ z3::expr barrier_synthesis:: at_most_one( z3::expr_vector& vars ) {
   return result;
 }
 
-int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
+int fence_synth:: fu_malik_maxsat_step( z3::solver &s,
                                               std::vector<z3::expr>& soft_cnstrs,
                                               std::vector<z3::expr>& aux_vars ) {
     z3::expr_vector assumptions(z3.c);
@@ -771,7 +771,7 @@ int barrier_synthesis:: fu_malik_maxsat_step( z3::solver &s,
 }
 
 z3::model
-barrier_synthesis::fu_malik_maxsat( z3::expr hard,
+fence_synth::fu_malik_maxsat( z3::expr hard,
                                     std::vector<z3::expr>& soft_cnstrs ) {
     unsigned k;
     z3::solver s(z3.c);
@@ -795,7 +795,7 @@ barrier_synthesis::fu_malik_maxsat( z3::expr hard,
 // main function for synthesis
 
 
-void barrier_synthesis::output(const z3::expr& output) {
+void fence_synth::output(const z3::expr& output) {
     output_base::output(output);
     normal_form.output(output);
     
@@ -898,7 +898,7 @@ bool cmp( hb_enc::se_ptr a, hb_enc::se_ptr b ) {
 }
 
 
-void barrier_synthesis::gen_max_sat_problem() {
+void fence_synth::gen_max_sat_problem() {
   z3::context& z3_ctx = sol_bad->ctx();
 
   for( auto& cycles : all_cycles ) {

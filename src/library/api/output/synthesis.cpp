@@ -70,7 +70,7 @@ synthesis::synthesis( options& o_, helpers::z3interf& _z3 ):
   output_base( o_, _z3 ),
   normal_form( o_, _z3, false, false, false, true )
 {
-  print_nfs = helpers::exists( o.mode_options, std::string("nfs")  );
+  print_nfs = o.has_sub_option( "nfs");
 }
 
 void synthesis::init(const hb_enc::encoding& hb_encoding, const z3::solver& sol_desired, const z3::solver& sol_undesired, std::shared_ptr< const tara::program > program)

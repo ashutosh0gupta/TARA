@@ -204,9 +204,9 @@ void real_main(int argc, char **argv) {
         //   else if (p=="nfs") print_nfs = true;
         // }
         output =
-          fsynth?unique_ptr<output::output_base>(new output::barrier_synthesis(o,z3))
+          fsynth?       unique_ptr<output::output_base>(new output::fence_synth(o,z3))
           : synthesise ?unique_ptr<output::output_base>(new output::synthesis(o, z3))
-          : unique_ptr<output::output_base>(new output::bugs(o, z3)) ;
+          :             unique_ptr<output::output_base>(new output::bugs(o, z3)) ;
       } else {
         // bool bad_dnf = false;
         // bool bad_cnf = false;

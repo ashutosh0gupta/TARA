@@ -18,8 +18,8 @@
  *
  */
 
-#ifndef TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
-#define TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
+#ifndef TARA_API_OUTPUT_FENCE_SYNTH_H
+#define TARA_API_OUTPUT_FENCE_SYNTH_H
 
 #include "hb_enc/symbolic_event.h"
 #include "hb_enc/cycles.h"
@@ -37,10 +37,10 @@ namespace output {
   typedef hb_enc::cycle_edge cycle_edge;
   typedef hb_enc::edge_type edge_type;
 
-class barrier_synthesis : public output_base
+class fence_synth : public output_base
 {
 public:
-  barrier_synthesis(options& o_, helpers::z3interf& _z3);
+  fence_synth(options& o_, helpers::z3interf& _z3);
   virtual void print(std::ostream& stream, bool machine_readable) const override;
   virtual void init( const hb_enc::encoding& hb_encoding,
                      const z3::solver& sol_desired,
@@ -175,4 +175,4 @@ private:
 }
 
 
-#endif // TARA_API_OUTPUT_BARRIER_SYNTHESIS_H
+#endif // TARA_API_OUTPUT_FENCE_SYNTH_H

@@ -87,7 +87,7 @@ public:
     else
       return nullptr;
   };
-  friend class barrier_synthesis;
+  friend class fence_synth;
   friend std::ostream& operator<< (std::ostream& stream, const cycle& c);
   // std::unordered_map<unsigned,std::vector<hb_enc::se_ptr>>tid_to_se_ptr;
   std::vector<cycle_edge> edges;

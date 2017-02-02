@@ -73,7 +73,7 @@ public:
 #define program_error( S )           tara_error( "::program",            S )
 #define trace_error( S )             tara_error( "::trace",              S )
 #define wmm_error( S )               tara_error( "::wmm",                S )
-#define barrier_synthesis_error( S ) tara_error( "::barrier_synthesis",  S )
+#define fence_synth_error( S )       tara_error( "::fence_synth",        S )
 #define bugs_error( S )              tara_error( "::bugs",               S )
 #define prune_error( S )             tara_error( "::prune::data_flow",   S )
 #define prune_data_flow_error( S )   tara_error( "::prune",              S )
