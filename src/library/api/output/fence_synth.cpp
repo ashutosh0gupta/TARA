@@ -66,7 +66,7 @@ void fence_synth::find_cycles(nf::result_type& bad_dnf) {
     vector<cycle>& cs = all_cycles[bad_dnf_num++];
     cycle_finder.find_cycles( hbs, cs );
     if( cs.size() == 0 ) {
-      throw output_exception( "barrier synthesis: a conjunct without any cycles!!");
+      fence_synth_error( "a conjunct without any cycles!!");
     }
   }
 
@@ -113,17 +113,17 @@ void fence_synth::print(ostream& stream, bool machine_readable) const {
   report( stream, result_acq_upgrade    , "upgrade to acq");
   report( stream, result_rlsacq_upgrade , "upgrade to rlsacq");
 
-  report( stream, barrier_where , "full fences after");
-  report( stream, soft_barrier_where , "soft fences after");
+  report( stream, fence_where , "full fences after");
+  report( stream, soft_fence_where , "soft fences after");
 
-  // stream <<"Barriers must be inserted after the following instructions:- \n";
-  // for ( unsigned i = 0; i < barrier_where.size(); i++ ) {
-  //   hb_enc::se_ptr e = barrier_where[i];
+  // stream <<"Fences must be inserted after the following instructions:- \n";
+  // for ( unsigned i = 0; i < fence_where.size(); i++ ) {
+  //   hb_enc::se_ptr e = fence_where[i];
   //   stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
   // }
-  // stream <<"Soft Barriers must be inserted after the following instructions:- \n";
-  // for ( unsigned i = 0; i < soft_barrier_where.size(); i++ ) {
-  //   hb_enc::se_ptr e = soft_barrier_where[i];
+  // stream <<"Soft Fences must be inserted after the following instructions:- \n";
+  // for ( unsigned i = 0; i < soft_fence_where.size(); i++ ) {
+  //   hb_enc::se_ptr e = soft_fence_where[i];
   //   stream << "thread " << e->get_tid() << e->name() << endl;
   // }
 
@@ -831,11 +831,11 @@ void fence_synth::output(const z3::expr& output) {
       hb_enc::se_ptr e = it->first;
       z3::expr b = it->second;
       if( m.eval(b).get_bool() ) {
-        barrier_where.push_back( e );
+        fence_where.push_back( e );
       }else{
         z3::expr b_s = light_fence_map.at(e);
         if( m.eval(b_s).get_bool() ) {
-          soft_barrier_where.push_back( e );
+          soft_fence_where.push_back( e );
         }
       }
     }
@@ -879,11 +879,11 @@ void fence_synth::output(const z3::expr& output) {
     //   hb_enc::se_ptr e = it->first;
     //   z3::expr b = it->second;
     //   if( m.eval(b).get_bool() )
-    //     barrier_where.push_back( e );
+    //     fence_where.push_back( e );
     // }
 
     info = to_string(all_cycles.size()) + " " +
-      to_string(barrier_where.size()) + " " + to_string(soft_barrier_where.size());
+      to_string(fence_where.size()) + " " + to_string(soft_fence_where.size());
 
     auto delay = chrono::steady_clock::now() - start_time;
     time = chrono::duration_cast<chrono::microseconds>(delay).count();

@@ -22,6 +22,7 @@
 #include "helpers/z3interf.h"
 #include "input/parse.h"
 #include "input/ctrc_program.h"
+#include "input/ctrc_input.h"
 #include "cssa/wmm.h"
 #include "api/options.h"
 #include "api/output/nf.h"
@@ -44,99 +45,137 @@ using namespace tara::helpers;
 
 using namespace std;
 
-trace_analysis::trace_analysis(options options, helpers::z3interf& _z3) :
-  _options(options), z3(_z3), hb_encoding(_z3)
-{
-}
+trace_analysis::trace_analysis(options& options, helpers::z3interf& _z3) :
+  _options(options), z3(_z3), hb_encoding(_z3) {}
 
-void trace_analysis::input(string input_file)
-{
-  input(input_file,mm_t::none);
-}
+// void trace_analysis::input(string input_file) {
+//   input(input_file,mm_t::none);
+// }
 
 //todo : the second param is redundant because _options object already knows mm;
 // needs removal
-void trace_analysis::input(string input_file, mm_t mm)
-{
+// void trace_analysis::input(string input_file, mm_t mm) {
+void trace_analysis::input(string input_file) {
   if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
 
-     program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3, _options,
+    program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3, _options,
+                                                                hb_encoding,
+                                                                input_file ));
+    if( _options.mm != mm_t::none ) {
+      program->set_mm( _options.mm );
+    }else{
+      trace_error( "cinput and no memory model specified!!" );
+    }
+
+    // if( program->is_mm_declared() ) {
+      // cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
+      // mk_cons.run();
+      // if( _options.print_phi && program->get_mm() != mm_t::none ) {
+      //   _options.out() << "(" << endl
+      //                  << "phi_pre : \n" << program->phi_pre << endl
+      //                  <<"fea      : \n" << program->phi_fea << "\n"
+      //                  <<"vd       : \n" << program->phi_vd  << "\n"
+      //                  <<"prp      : \n" << program->phi_prp << "\n"
+      //                  << ")" << endl;
+      // }
+    // }else{ trace_error( "cinput and no memory model specified!!" ); }
+  }else{
+    program = unique_ptr<cssa::program>(ctrc_input::parse_ctrc_file(z3,_options,
                                                                  hb_encoding,
                                                                  input_file ));
-    if( mm != mm_t::none ) {
-      program->set_mm( mm );
-    }
 
-    if( program->is_mm_declared() ) {
-      cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
-      mk_cons.run();
-      if( _options.print_phi && program->get_mm() != mm_t::none ) {
-        _options.out() << "(" << endl
-                       << "phi_pre : \n" << program->phi_pre << endl
-                       <<"fea      : \n" << program->phi_fea << "\n"
-                       <<"vd       : \n" << program->phi_vd  << "\n"
-                       <<"prp      : \n" << program->phi_prp << "\n"
-                       << ")" << endl;
-      }
-    }else{ trace_error( "cinput and no memory model specified!!" ); }
-  }else{
-    input::program pa = input::parse::parseFile(input_file.c_str());
-    //--------------------------------------------------------------------------
-    // start of wmm support
-    //--------------------------------------------------------------------------
-    if( mm != mm_t::none ) {
-      pa.set_mm( mm );
-    }
-    //--------------------------------------------------------------------------
-    // end of wmm support
-    //--------------------------------------------------------------------------
-    input(pa);
+    // input::program pa = input::parse::parseFile(input_file.c_str());
+    // if( mm != mm_t::none ) {
+    //   pa.set_mm( mm );
+    // }
+    // pa.convert_instructions(z3, hb_encoding);
+    // pa.check_correctness();
+    // program = unique_ptr<cssa::program>(new cssa::program( z3, _options,
+    //                                                        hb_encoding, pa));
+
+
+
+    // if( program->is_mm_declared() ) {
+    //   cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
+    //   mk_cons.run();
+    // }
+    // if (_options.print_phi) {
+    //   _options.out() << "(" << endl;
+    //   _options.out() << "phi_vd"  << endl << program->phi_vd << endl;
+    //   _options.out() << "phi_pre" << endl << program->phi_pre << endl;
+    //   _options.out() << "phi_prp" << endl << program->phi_prp << endl;
+    //   _options.out() << "phi_fea" << endl << program->phi_fea << endl;
+    //   if( pa.get_mm() == mm_t::none ) {
+    //     _options.out() << "phi_po" << endl << program->phi_po << endl;
+    //     _options.out() << "phi_pi" << endl << program->phi_pi << endl;
+    //     _options.out() << endl;
+    //   }
+    //   _options.out() << ")" << endl;
+    // }
+    // input(pa);
   }
-}
-
-void trace_analysis::input(input::program& input_program)
-{
-  input_program.convert_instructions(z3, hb_encoding);
-  input_program.check_correctness();
-  program = unique_ptr<cssa::program>(new cssa::program( z3,
-                                                         _options,
-                                                         hb_encoding,
-                                                         input_program));
 
   if( program->is_mm_declared() ) {
-    cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
+    cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
     mk_cons.run();
   }
 
   if (_options.print_phi) {
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
-    if( input_program.get_mm() != mm_t::none ) {
-      _options.out() << "(" << endl;
-      _options.out() << "phi_pre : " << endl << program->phi_pre << endl;
-      _options.out() <<"fea : \n"<< program->phi_fea<<"\n";
-      _options.out() <<"vd : \n" << program->phi_vd<<"\n";
-      _options.out() <<"prp : \n"<< program->phi_prp<<"\n";
-      _options.out() << ")" << endl;
-    }else{
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
+    _options.out() << "(" << endl;
+    _options.out() << "phi_vd"  << endl << program->phi_vd << endl;
+    _options.out() << "phi_pre" << endl << program->phi_pre << endl;
+    _options.out() << "phi_prp" << endl << program->phi_prp << endl;
+    _options.out() << "phi_fea" << endl << program->phi_fea << endl;
+    if( _options.mm == mm_t::none ) {
       _options.out() << "phi_po" << endl << program->phi_po << endl;
-      _options.out() << "phi_vd" << endl << program->phi_vd << endl;
       _options.out() << "phi_pi" << endl << program->phi_pi << endl;
-      _options.out() << "phi_pre" << endl << program->phi_pre << endl;
-      _options.out() << "phi_prp" << endl <<program->phi_prp << endl;
-      _options.out() << "phi_fea" << endl <<program->phi_fea << endl;
       _options.out() << endl;
     }
+    _options.out() << ")" << endl;
   }
-
 }
 
-void trace_analysis::gather_statistics(metric& metric)
-{
+// void trace_analysis::input(input::program& input_program)
+// {
+//   input_program.convert_instructions(z3, hb_encoding);
+//   input_program.check_correctness();
+//   program = unique_ptr<cssa::program>(new cssa::program( z3,
+//                                                          _options,
+//                                                          hb_encoding,
+//                                                          input_program));
+
+//   if( program->is_mm_declared() ) {
+//     cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program);
+//     mk_cons.run();
+//   }
+
+//   if (_options.print_phi) {
+//     _options.out() << "(" << endl;
+//     _options.out() << "phi_vd"  << endl << program->phi_vd << endl;
+//     _options.out() << "phi_pre" << endl << program->phi_pre << endl;
+//     _options.out() << "phi_prp" << endl << program->phi_prp << endl;
+//     _options.out() << "phi_fea" << endl << program->phi_fea << endl;
+//   //--------------------------------------------------------------------------
+//   //start of wmm support
+//   //--------------------------------------------------------------------------
+//     if( input_program.get_mm() != mm_t::none ) {
+//       // _options.out() << "phi_pre : " << endl << program->phi_pre << endl;
+//       // _options.out() <<"fea : \n"<< program->phi_fea<<"\n";
+//       // _options.out() <<"vd : \n" << program->phi_vd<<"\n";
+//       // _options.out() <<"prp : \n"<< program->phi_prp<<"\n";
+//     }else{
+//   //--------------------------------------------------------------------------
+//   //end of wmm support
+//   //--------------------------------------------------------------------------
+//       _options.out() << "phi_po" << endl << program->phi_po << endl;
+//       _options.out() << "phi_pi" << endl << program->phi_pi << endl;
+//       _options.out() << endl;
+//     }
+//     _options.out() << ")" << endl;
+//   }
+// }
+
+void trace_analysis::gather_statistics(metric& metric) {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
   program->gather_statistics( metric );
@@ -145,8 +184,7 @@ void trace_analysis::gather_statistics(metric& metric)
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
-void trace_analysis::connect_read_writes( z3::solver& result )
-{
+void trace_analysis::connect_read_writes( z3::solver& result ) {
   if( program->is_mm_declared() ) {
     result.add( program->phi_po );
     result.add( program->phi_ses);

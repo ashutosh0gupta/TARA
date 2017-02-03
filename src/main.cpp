@@ -167,9 +167,10 @@ void real_main(int argc, char **argv) {
 
   start_time = chrono::steady_clock::now();
   trace_analysis ts(o,z3);
-  ts.input(o.input_file,o.mm);
+  // ts.input(o.input_file,o.mm);
+  ts.input(o.input_file);
   ts.gather_statistics(run_metric);
-  
+
   // TODO: Make this a seperate mode
   /*unordered_set< string >  ambigious;
   if (ts.check_ambigious_traces(ambigious)) {
@@ -184,7 +185,7 @@ void real_main(int argc, char **argv) {
     }
   }*/
   
-  bool synthesise = o.mode == modes::synthesis;
+  bool synthesis = o.mode == modes::synthesis;
   bool fsynth = o.mode == modes::fsynth;
   bool bugs = o.mode == modes::bugs;
   switch (o.mode) {
@@ -196,7 +197,7 @@ void real_main(int argc, char **argv) {
       unique_ptr<output::output_base> output;
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
         output = unique_ptr<output::output_base>(new output::smt(o,z3));
-      } if (synthesise||bugs||fsynth) {
+      } if (synthesis||bugs||fsynth) {
         // bool verify = false;
         // bool print_nfs = false;
         // for (string p : o.mode_options) {
@@ -204,9 +205,9 @@ void real_main(int argc, char **argv) {
         //   else if (p=="nfs") print_nfs = true;
         // }
         output =
-          fsynth?       unique_ptr<output::output_base>(new output::fence_synth(o,z3))
-          : synthesise ?unique_ptr<output::output_base>(new output::synthesis(o, z3))
-          :             unique_ptr<output::output_base>(new output::bugs(o, z3)) ;
+            fsynth    ? unique_ptr<output::output_base>(new output::fence_synth(o,z3))
+          : synthesis ? unique_ptr<output::output_base>( new output::synthesis(o,z3) )
+          :             unique_ptr<output::output_base>( new output::bugs(o, z3)     );
       } else {
         // bool bad_dnf = false;
         // bool bad_cnf = false;

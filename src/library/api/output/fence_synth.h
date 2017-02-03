@@ -147,8 +147,8 @@ private:
                std::string msg ) const;
 
   //result
-  std::vector<hb_enc::se_ptr>barrier_where;
-  std::vector<hb_enc::se_ptr>soft_barrier_where;
+  std::vector<hb_enc::se_ptr>fence_where;
+  std::vector<hb_enc::se_ptr>soft_fence_where;
 
   std::vector<hb_enc::se_ptr> result_sc_fences;
   std::vector<hb_enc::se_ptr> result_rlsacq_fences;

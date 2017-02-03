@@ -45,8 +45,8 @@ enum class trace_result {
 class trace_analysis
 {
 public:
-  trace_analysis(options options, helpers::z3interf& _z3);
-    trace_analysis(options options, z3::context& ctx);
+  trace_analysis(options& options, helpers::z3interf& _z3);
+    // trace_analysis(options& options, z3::context& ctx);
     void input(std::string input_file);
     void input(std::string input_file, mm_t mm);
     void input( input::program& input_program );
