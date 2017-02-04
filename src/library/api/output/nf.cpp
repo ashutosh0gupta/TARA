@@ -24,7 +24,6 @@
 #include "prune/remove_implied.h"
 #include <boost/iterator/iterator_concepts.hpp>
 #include "helpers/z3interf_templates.h"
-#include "input/program.h"
 #include <stack>
 
 using namespace tara;

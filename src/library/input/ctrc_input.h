@@ -29,7 +29,7 @@ namespace tara {
   class program;
 namespace ctrc_input {
 
-  cssa::program* parse_ctrc_file( helpers::z3interf& z3_, api::options& o_,
+  ctrc::program* parse_ctrc_file( helpers::z3interf& z3_, api::options& o_,
                                   hb_enc::encoding& hb_encoding,
                                   // input::program& pa,
                                   std::string& cfile );

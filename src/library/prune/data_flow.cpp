@@ -35,7 +35,7 @@ data_flow::data_flow(const z3interf& z3, const tara::program& program) : prune_b
       throw std::runtime_error("data_flow analysis is unsupported for mms!!");
   }
   if( program.is_original() ) {// todo: remove this hack
-    program_old = (const cssa::program*)(&program);
+    program_old = (const ctrc::program*)(&program);
   }else{
     prune_data_flow_error( "new version of program not supported!!")
   }
@@ -93,11 +93,11 @@ list<z3::expr> data_flow::prune(const list<z3::expr>& hbs, const z3::model& m)
     } else {
       auto global = program_old->pi_functions.find(v);
       assert(global!=program_old->pi_functions.end());
-      vector<cssa::pi_function_part> pi_parts = global->second;
+      vector<ctrc::pi_function_part> pi_parts = global->second;
 #ifndef NDEBUG
       bool part_matched = false;
 #endif
-      for (cssa::pi_function_part pi_part : pi_parts) {
+      for (ctrc::pi_function_part pi_part : pi_parts) {
         //cout << pi_part.hb_exression << endl;
         if (m.eval(pi_part.hb_exression).get_bool()) {
 #ifndef NDEBUG

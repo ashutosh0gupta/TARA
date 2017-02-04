@@ -26,7 +26,6 @@
 #include "hb_enc/encoding.h"
 #include "hb_enc/hb.h"
 #include <vector>
-#include "input/program.h"
 #include "helpers/helpers.h"
 
 namespace tara {

@@ -23,11 +23,9 @@
 #include "api/options.h"
 #include "constants.h"
 #include "program/program.h"
-#include "input/program.h"
 #include "helpers/z3interf.h"
 #include <vector>
 #include <list>
-// #include "cssa/thread.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/concept_check.hpp>

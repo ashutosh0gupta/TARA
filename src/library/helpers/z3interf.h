@@ -50,9 +50,21 @@ private:
   void _printFormula(const z3::expr& ast, std::ostream& out);
     
   static void get_variables(const z3::expr& expr, cssa::variable_set& result);
-  
+
   // hb_enc::integer _hb_encoding = hb_enc::integer(c);
-  
+
+  //
+  // functions for fu-malik maxsat
+  //
+  void assert_soft_constraints( z3::solver&s , std::vector<z3::expr>& cnstrs,
+                                std::vector<z3::expr>& aux_vars );
+  z3::expr at_most_one( z3::expr_vector& vars );
+  int fu_malik_maxsat_step( z3::solver &s, std::vector<z3::expr>& soft,
+                            std::vector<z3::expr>& aux_vars );
+
+  z3::model fu_malik_maxsat( z3::expr hard, std::vector<z3::expr>& soft );
+  //-----------------------------
+
 public:
 
   struct expr_hash {
@@ -121,6 +133,8 @@ public:
 
   bool is_bool_const( z3::expr );
   std::string get_top_func_name( z3::expr b );
+
+  z3::model maxsat( z3::expr hard, std::vector<z3::expr>& soft );
 
   template <class value>
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate, bool potentially_input_sat = false);

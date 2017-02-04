@@ -23,11 +23,12 @@
 
 #include "program/program.h"
 #include "input/ctrc_program.h"
-#include "cssa/cssa_exception.h" // todo: remove this include and exception calls
+// #include "cssa/cssa_exception.h" // todo: remove this include and exception calls
 #include "helpers/helpers.h"
 #include <vector>
 using namespace tara;
 using namespace tara::cssa;
+using namespace tara::ctrc;
 using namespace tara::helpers;
 
 using namespace std;
@@ -38,7 +39,7 @@ pi_function_part::pi_function_part(variable_set variables, z3::expr hb_exression
 pi_function_part::pi_function_part(z3::expr hb_exression) : hb_exression(hb_exression)
 {}
 
-void cssa::program::build_threads(const input::program& input)
+void ctrc::program::build_threads(const input::program& input)
 {
   z3::context& c = _z3.c;
   vector<pi_needed> pis;
@@ -140,7 +141,7 @@ void cssa::program::build_threads(const input::program& input)
         }
       }
       else {
-        throw cssa_exception("Instruction must be Z3");
+        ctrc_input_error( "Instruction must be Z3" );
       }
     }
     phi_fea = phi_fea && path_constraint;
@@ -149,7 +150,7 @@ void cssa::program::build_threads(const input::program& input)
 }
 
 //todo: move the following function in cssa folder
-void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const input::program& input)
+void ctrc::program::build_pis(vector< ctrc::program::pi_needed >& pis, const input::program& input)
 {
   z3::context& c = _z3.c;
   for (pi_needed pi : pis) {
@@ -224,7 +225,7 @@ void cssa::program::build_pis(vector< cssa::program::pi_needed >& pis, const inp
 }
 
 
-void cssa::program::build_hb(const input::program& input)
+void ctrc::program::build_hb(const input::program& input)
 {
   z3::expr_vector locations(_z3.c);
   // start location is needed to ensure all locations are mentioned in phi_po
@@ -241,7 +242,7 @@ void cssa::program::build_hb(const input::program& input)
         auto ninstr = make_shared<instruction>(_z3, loc, &thread, instr->name, instr->type, instr->instr);
         thread.add_instruction(ninstr);
       } else {
-        throw cssa_exception("Instruction must be Z3");
+        ctrc_input_error( "Instruction must be Z3" );
       }
     }
   }
@@ -273,7 +274,7 @@ void cssa::program::build_hb(const input::program& input)
   phi_po = phi_po && phi_distinct;
 }
 
-void cssa::program::build_pre(const input::program& input)
+void ctrc::program::build_pre(const input::program& input)
 {
   if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.precondition)) {
     z3::expr_vector src(_z3.c);
@@ -283,7 +284,7 @@ void cssa::program::build_pre(const input::program& input)
       if (!is_primed(v)) {
         nname = v + "#pre";
       } else {
-        throw cssa_exception("Primed variable in precondition");
+        ctrc_input_error("Primed variable in precondition");
       }
       src.push_back(v);
       dst.push_back(nname);
@@ -291,13 +292,13 @@ void cssa::program::build_pre(const input::program& input)
     // replace variables in expr
     phi_pre = instr->instr.substitute(src,dst);
   } else {
-    throw cssa_exception("Instruction must be Z3");
+    ctrc_input_error("Instruction must be Z3");
   }
 }
 
 
 
-void cssa::program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
+void ctrc::program::print_hb(const z3::model& m, ostream& out, bool machine_readable) const
 {  if( is_mm_declared() ) { wmm_print_dot( m ); return; } //wmm support
   if (!machine_readable){
     // initial values
@@ -364,7 +365,7 @@ void cssa::program::print_hb(const z3::model& m, ostream& out, bool machine_read
   out << endl;
 }
 
-void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
+void ctrc::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
 {
   // output the program as a dot file
   stream << "digraph hbs {" << endl;
@@ -389,7 +390,7 @@ void cssa::program::print_dot(ostream& stream, vector< hb_enc::hb >& hbs) const
 }
 
 
-cssa::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,o, hb_encoding)
+ctrc::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encoding, const input::program& input): tara::program(z3,o, hb_encoding)
 {
   prog_type = prog_t::original;// when is it ctrc // todo: ctrc type
   globals = z3.translate_variables(input.globals);
@@ -421,7 +422,7 @@ cssa::program::program(z3interf& z3, api::options& o, hb_enc::encoding& hb_encod
 // ctrc WMM support
 
 // populate content of threads
-void cssa::program::wmm_build_cssa_thread(const input::program& input) {
+void ctrc::program::wmm_build_cssa_thread(const input::program& input) {
 
   for( unsigned t=0; t < input.threads.size(); t++ ) {
     tara::thread& thread = *threads[t];
@@ -436,14 +437,14 @@ void cssa::program::wmm_build_cssa_thread(const input::program& input) {
                                                 instr->type, instr->instr );
         thread.add_instruction(ninstr);
       }else{
-        throw cssa_exception("Instruction must be Z3");
+        ctrc_input_error("Instruction must be Z3");
       }
     }
   }
 }
 
 // encode pre condition of multi-threaded code
-void cssa::program::wmm_build_pre(const input::program& input) {
+void ctrc::program::wmm_build_pre(const input::program& input) {
   //
   // start location is needed to ensure all locations are mentioned in phi_ppo
   //
@@ -470,7 +471,7 @@ void cssa::program::wmm_build_pre(const input::program& input) {
       if (!is_primed(v)) {
         nname = v + "#pre";
       } else {
-        throw cssa_exception("Primed variable in precondition");
+        ctrc_input_error("Primed variable in precondition");
       }
       src.push_back(v);
       dst.push_back(nname);
@@ -478,11 +479,11 @@ void cssa::program::wmm_build_pre(const input::program& input) {
     // replace variables in expr
     phi_pre = instr->instr.substitute(src,dst);
   } else {
-    throw cssa_exception("Instruction must be Z3");
+    ctrc_input_error("Instruction must be Z3");
   }
 }
 
-void cssa::program::wmm_build_post(const input::program& input,
+void ctrc::program::wmm_build_post(const input::program& input,
                                    unordered_map<string, string>& thread_vars,
                                    hb_enc::se_set last // not needed
                                    ) {
@@ -519,7 +520,7 @@ void cssa::program::wmm_build_post(const input::program& input,
           nname = v + "#" + thread_vars[v];
         }
       } else {
-        throw cssa_exception("Primed variable in postcondition");
+        ctrc_input_error("Primed variable in postcondition");
       }
       src.push_back(v);
       dst.push_back(nname);
@@ -530,11 +531,11 @@ void cssa::program::wmm_build_post(const input::program& input,
 
     // todo : check the above implies is consistent with rest of the code
   } else {
-    throw cssa_exception("Instruction must be Z3");
+    ctrc_input_error("Instruction must be Z3");
   }
 }
 
-void cssa::program::wmm_build_ssa( const input::program& input ) {
+void ctrc::program::wmm_build_ssa( const input::program& input ) {
 
   wmm_build_pre( input );
 
@@ -719,7 +720,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
           }
         }
       }else{
-        throw cssa_exception("Instruction must be Z3");
+        ctrc_input_error("Instruction must be Z3");
       }
     }
     auto final = mk_se_ptr_old( _hb_encoding, t,INT_MAX,
@@ -732,7 +733,7 @@ void cssa::program::wmm_build_ssa( const input::program& input ) {
   wmm_build_post( input, thread_vars, all_lasts );
 }
 
-void cssa::program::wmm( const input::program& input ) {
+void ctrc::program::wmm( const input::program& input ) {
   wmm_build_cssa_thread( input ); // construct thread skeleton
   wmm_build_ssa( input ); // build ssa
 
@@ -740,11 +741,11 @@ void cssa::program::wmm( const input::program& input ) {
   // add atomic sections
   for (input::location_pair as : input.atomic_sections) {
     cerr << "#WARNING: atomic sections are declared!! Not supproted in wmm mode!\n";
-    // throw cssa_exception( "atomic sections are not supported!" );
+    // ctrc_input_error( "atomic sections are not supported!" );
   }
 }
 
-bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
+bool ctrc::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
                                     unsigned end_inst_num ) const {
   const tara::thread& thread = *threads[tid];
   for(unsigned i = start_inst_num; i <= end_inst_num; i++ ) {
@@ -757,7 +758,7 @@ bool cssa::program::has_barrier_in_range( unsigned tid, unsigned start_inst_num,
 //start of wmm support
 //--------------------------------------------------------------------------
 
-void cssa::program::wmm_print_dot( z3::model m ) const {
+void ctrc::program::wmm_print_dot( z3::model m ) const {
   boost::filesystem::path fname = _o.output_dir;
   fname += ".iteration-sat-dump";
   std::cerr << "dumping dot file : " << fname << std::endl;
@@ -772,7 +773,7 @@ void cssa::program::wmm_print_dot( z3::model m ) const {
   myfile.close();
 }
 
-void cssa::program::wmm_print_dot( ostream& stream, z3::model m ) const {
+void ctrc::program::wmm_print_dot( ostream& stream, z3::model m ) const {
     // output the program as a dot file
   stream << "digraph hbs {" << endl;
   // output labels

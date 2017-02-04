@@ -25,7 +25,7 @@
 using namespace tara;
 using namespace tara::ctrc_input;
 
-cssa::program* tara::ctrc_input::parse_ctrc_file( helpers::z3interf& z3_,
+ctrc::program* tara::ctrc_input::parse_ctrc_file( helpers::z3interf& z3_,
                                                   api::options& _o,
                                                   hb_enc::encoding& hb_encoding,
                                                   // input::program& pa,
@@ -37,5 +37,5 @@ cssa::program* tara::ctrc_input::parse_ctrc_file( helpers::z3interf& z3_,
   pa.convert_instructions( z3_, hb_encoding );
   pa.check_correctness();
 
-  return new cssa::program( z3_, _o, hb_encoding, pa );
+  return new ctrc::program( z3_, _o, hb_encoding, pa );
 }

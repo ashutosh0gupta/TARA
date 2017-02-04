@@ -68,7 +68,7 @@ public:
                                 << triggered_at << std::endl;        \
                              issue_error( ss ); }
 
-
+#define ctrc_input_error( S )            tara_error( "::ctrc_input",             S )
 #define cinput_error( S )            tara_error( "::cinput",             S )
 #define program_error( S )           tara_error( "::program",            S )
 #define trace_error( S )             tara_error( "::trace",              S )

@@ -24,16 +24,13 @@
 #include "api/options.h"
 #include "api/metric.h"
 #include "api/output/output_base.h"
-#include "input/program.h"
-// #include "cssa/program.h"
-#include "hb_enc/encoding.h"
 #include "hb_enc/integer.h"
 
 #include <unordered_set>
 
 namespace tara {
+  class program;
 namespace api {
-
 
 enum class trace_result {
   always,
@@ -46,36 +43,27 @@ class trace_analysis
 {
 public:
   trace_analysis(options& options, helpers::z3interf& _z3);
-    // trace_analysis(options& options, z3::context& ctx);
-    void input(std::string input_file);
-    void input(std::string input_file, mm_t mm);
-    void input( input::program& input_program );
-    void gather_statistics( api::metric& metric );
-    trace_result seperate(output::output_base& output, metric& metric);
-    bool atomic_sections( std::vector< hb_enc::as >& output, bool merge_as = true);
-    bool check_ambigious_traces(std::unordered_set< std::string >& result);
+  void input(std::string input_file);
+  void gather_statistics( api::metric& metric );
+  trace_result seperate(output::output_base& output, metric& metric);
+  bool atomic_sections( std::vector< hb_enc::as >& output, bool merge_as = true);
+  bool check_ambigious_traces(std::unordered_set< std::string >& result);
 private:
-    options _options;
-    helpers::z3interf& z3;
-    std::shared_ptr<tara::program> program;
+  options _options;
+  helpers::z3interf& z3;
+  std::shared_ptr<tara::program> program;
   //hb_enc::encoding
-    hb_enc::integer hb_encoding;
-    /**
-     * @brief Creates a solver for good traces
-     *
-     * @param infeasable Should infeasable traces also be considered good?
-     * This is needed for pruning, when we provide inputs
-     * @return z3::solver
-     */
-    z3::solver make_good(bool include_infeasable);
-    z3::solver make_bad();
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
+  hb_enc::integer hb_encoding;
+  /**
+   * @brief Creates a solver for good traces
+   *
+   * @param infeasable Should infeasable traces also be considered good?
+   * This is needed for pruning, when we provide inputs
+   * @return z3::solver
+   */
+  z3::solver make_good(bool include_infeasable);
+  z3::solver make_bad();
   void connect_read_writes( z3::solver& result );
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
 
 };
 }

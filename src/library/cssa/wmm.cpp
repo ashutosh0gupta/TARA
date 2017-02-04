@@ -22,6 +22,7 @@
 #include "helpers/helpers.h"
 #include <string.h>
 #include "helpers/z3interf.h"
+#include "hb_enc/hb.h"
 #include <utility>
 #include <assert.h>
 using namespace tara;

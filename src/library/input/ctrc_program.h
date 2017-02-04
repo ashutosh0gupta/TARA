@@ -18,8 +18,8 @@
  */
 
 
-#ifndef TARA_CSSA_PROGRAM_H
-#define TARA_CSSA_PROGRAM_H
+#ifndef TARA_CTRC_PROGRAM_H
+#define TARA_CTRC_PROGRAM_H
 
 #include "program/program.h"
 #include "input/program.h"
@@ -27,19 +27,19 @@
 #include "helpers/z3interf.h"
 #include <vector>
 #include <list>
-// #include "cssa/thread.h"
+// #include "ctrc/thread.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <boost/concept_check.hpp>
 #include<utility>
 
 namespace tara{
-namespace cssa {
+namespace ctrc {
 
 struct pi_function_part {
-  variable_set variables;
+  cssa::variable_set variables;
   z3::expr hb_exression;
-  pi_function_part(variable_set variables, z3::expr hb_exression);
+  pi_function_part(cssa::variable_set variables, z3::expr hb_exression);
   pi_function_part(z3::expr hb_exression);
 };
 
@@ -55,14 +55,14 @@ public:
 private:
 
   struct pi_needed {
-    variable name;
-    variable orig_name;
+    cssa::variable name;
+    cssa::variable orig_name;
     std::shared_ptr<instruction> last_local; // can be NULL if none
     unsigned thread;
     hb_enc::tstamp_ptr loc;
 
-    pi_needed( variable name,
-               variable orig_name,
+    pi_needed( cssa::variable name,
+               cssa::variable orig_name,
                std::shared_ptr<instruction> last_local,
                unsigned thread, hb_enc::tstamp_ptr loc)
       : name(name)
@@ -125,10 +125,10 @@ public: /* functions */
 
   // bool is_global(const variable& name) const;
   // std::vector< std::shared_ptr<const instruction> >
-  // get_assignments_to_variable(const cssa::variable& variable) const;
+  // get_assignments_to_variable(const ctrc::variable& variable) const;
 };
 
 
 }}
 
-#endif // TARA_CSSA_PROGRAM_H
+#endif // TARA_CTRC_PROGRAM_H

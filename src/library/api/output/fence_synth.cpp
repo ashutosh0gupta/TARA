@@ -655,36 +655,6 @@ void fence_synth::gen_max_sat_problem_new() {
            hard = hard && implies( rlsacq_v_b, get_rls_bit(e,e->prog_v) );
            hard = hard && implies( rlsacq_v_b, get_acq_bit(e,e->prog_v) );
          }
-
-         // z3::expr sc_bit = z3.get_fresh_bool("sc_"+e->name());
-         // sc_fence_map.insert({ e, sc_bit });
-         // soft.push_back( !sc_bit );
-         // z3::expr rls_bit = z3.get_fresh_bool("rls_"+e->name());
-         // rls_fence_map.insert({ e, rls_bit });
-         // soft.push_back( !rls_bit );
-         // z3::expr acq_bit = z3.get_fresh_bool("acq_"+e->name());
-         // acq_fence_map.insert({ e, acq_bit });
-         // soft.push_back( !acq_bit );
-         // z3::expr rlsacq_bit = z3.get_fresh_bool("rlsacq_"+e->name());
-         // rlsacq_fence_map.insert({ e, rlsacq_bit });
-         // soft.push_back( !rlsacq_bit );
-         // if( e->is_wr() && !e->is_rls() ) {
-         //   z3::expr rls_bit = z3.get_fresh_bool("rls_v_"+e->name());
-         //   rls_v_map.insert({ e, rls_bit });
-         //   soft.push_back( !rls_bit );
-         // }
-         // if( e->is_rd() && !e->is_acq() ) {
-         //   z3::expr acq_bit = z3.get_fresh_bool("acq_v_"+e->name());
-         //   acq_v_map.insert({ e, acq_bit });
-         //   soft.push_back( !acq_bit );
-         // }
-         // if( e->is_update() && !e->is_rlsacq() ) {
-         //   z3::expr rlsacq_bit = z3.get_fresh_bool("rlsacq_v_"+e->name());
-         //   rlsacq_v_map.insert({ e, rlsacq_bit });
-         //   soft.push_back( !rlsacq_bit );
-         // }
-         // hard = hard && implies(sc_bit, rls_bit)
-         //   && implies(sc_bit, acq_bit) && implies(sc_bit, rlsacq_bit);
        }
      }
   }
@@ -707,89 +677,89 @@ void fence_synth::gen_max_sat_problem_new() {
 // ===========================================================================
 // max sat code
 
-void fence_synth::assert_soft_constraints( z3::solver&s ,
-                                                 std::vector<z3::expr>& cnstrs,
-                                                 std::vector<z3::expr>& aux_vars
-                                                 ) {
-  for( auto f : cnstrs ) {
-    auto n = z3.get_fresh_bool();
-    aux_vars.push_back(n);
-    s.add( f || n ) ;
-  }
-}
+// void fence_synth::assert_soft_constraints( z3::solver&s ,
+//                                                  std::vector<z3::expr>& cnstrs,
+//                                                  std::vector<z3::expr>& aux_vars
+//                                                  ) {
+//   for( auto f : cnstrs ) {
+//     auto n = z3.get_fresh_bool();
+//     aux_vars.push_back(n);
+//     s.add( f || n ) ;
+//   }
+// }
 
-z3::expr fence_synth:: at_most_one( z3::expr_vector& vars ) {
-  z3::expr result = vars.ctx().bool_val(true);
-  if( vars.size() <= 1 ) return result;
-  // todo check for size 0
-  z3::expr last_xor = vars[0];
+// z3::expr fence_synth:: at_most_one( z3::expr_vector& vars ) {
+//   z3::expr result = vars.ctx().bool_val(true);
+//   if( vars.size() <= 1 ) return result;
+//   // todo check for size 0
+//   z3::expr last_xor = vars[0];
   
-  for( unsigned i = 1; i < vars.size(); i++ ) {
-    z3::expr curr_xor = (vars[i] != last_xor );
-    result = result && (!last_xor || curr_xor);
-    last_xor = curr_xor;
-  }
+//   for( unsigned i = 1; i < vars.size(); i++ ) {
+//     z3::expr curr_xor = (vars[i] != last_xor );
+//     result = result && (!last_xor || curr_xor);
+//     last_xor = curr_xor;
+//   }
 
-  return result;
-}
+//   return result;
+// }
 
-int fence_synth:: fu_malik_maxsat_step( z3::solver &s,
-                                              std::vector<z3::expr>& soft_cnstrs,
-                                              std::vector<z3::expr>& aux_vars ) {
-    z3::expr_vector assumptions(z3.c);
-    z3::expr_vector core(z3.c);
-    for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
-      assumptions.push_back(!aux_vars[i]);
-    }
-    if (s.check(assumptions) != z3::check_result::unsat) {
-      return 1; // done
-    }else {
-      core=s.unsat_core();
-      // std::cout << core.size() << "\n";
-      z3::expr_vector block_vars(z3.c);
-      // update soft-constraints and aux_vars
-      for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
-        unsigned j;
-        // check whether assumption[i] is in the core or not
-        for( j = 0; j < core.size(); j++ ) {
-          if( assumptions[i] == core[j] )
-            break;
-        }
-        if (j < core.size()) {
-          z3::expr block_var = z3.get_fresh_bool();
-          z3::expr new_aux_var = z3.get_fresh_bool();
-          soft_cnstrs[i] = ( soft_cnstrs[i] || block_var );
-          aux_vars[i]    = new_aux_var;
-          block_vars.push_back( block_var );
-          s.add( soft_cnstrs[i] || new_aux_var );
-        }
-      }
-      z3::expr at_most_1 = at_most_one( block_vars );
-      s.add( at_most_1 );
-      return 0; // not done.
-    }
-}
+// int fence_synth:: fu_malik_maxsat_step( z3::solver &s,
+//                                               std::vector<z3::expr>& soft_cnstrs,
+//                                               std::vector<z3::expr>& aux_vars ) {
+//     z3::expr_vector assumptions(z3.c);
+//     z3::expr_vector core(z3.c);
+//     for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
+//       assumptions.push_back(!aux_vars[i]);
+//     }
+//     if (s.check(assumptions) != z3::check_result::unsat) {
+//       return 1; // done
+//     }else {
+//       core=s.unsat_core();
+//       // std::cout << core.size() << "\n";
+//       z3::expr_vector block_vars(z3.c);
+//       // update soft-constraints and aux_vars
+//       for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
+//         unsigned j;
+//         // check whether assumption[i] is in the core or not
+//         for( j = 0; j < core.size(); j++ ) {
+//           if( assumptions[i] == core[j] )
+//             break;
+//         }
+//         if (j < core.size()) {
+//           z3::expr block_var = z3.get_fresh_bool();
+//           z3::expr new_aux_var = z3.get_fresh_bool();
+//           soft_cnstrs[i] = ( soft_cnstrs[i] || block_var );
+//           aux_vars[i]    = new_aux_var;
+//           block_vars.push_back( block_var );
+//           s.add( soft_cnstrs[i] || new_aux_var );
+//         }
+//       }
+//       z3::expr at_most_1 = at_most_one( block_vars );
+//       s.add( at_most_1 );
+//       return 0; // not done.
+//     }
+// }
 
-z3::model
-fence_synth::fu_malik_maxsat( z3::expr hard,
-                                    std::vector<z3::expr>& soft_cnstrs ) {
-    unsigned k;
-    z3::solver s(z3.c);
-    s.add( hard );
-    assert( s.check() != z3::unsat );
-    assert( soft_cnstrs.size() > 0 );
+// z3::model
+// fence_synth::fu_malik_maxsat( z3::expr hard,
+//                                     std::vector<z3::expr>& soft_cnstrs ) {
+//     unsigned k;
+//     z3::solver s(z3.c);
+//     s.add( hard );
+//     assert( s.check() != z3::unsat );
+//     assert( soft_cnstrs.size() > 0 );
 
-    std::vector<z3::expr> aux_vars;
-    assert_soft_constraints( s, soft_cnstrs, aux_vars );
-    k = 0;
-    for (;;) {
-      if( fu_malik_maxsat_step(s, soft_cnstrs, aux_vars) ) {
-    	  z3::model m=s.get_model();
-    	  return m;
-      }
-      k++;
-    }
-}
+//     std::vector<z3::expr> aux_vars;
+//     assert_soft_constraints( s, soft_cnstrs, aux_vars );
+//     k = 0;
+//     for (;;) {
+//       if( fu_malik_maxsat_step(s, soft_cnstrs, aux_vars) ) {
+//     	  z3::model m=s.get_model();
+//     	  return m;
+//       }
+//       k++;
+//     }
+// }
 
 // ===========================================================================
 // main function for synthesis
@@ -824,7 +794,10 @@ void fence_synth::output(const z3::expr& output) {
       throw output_exception( "No relaxed edge found in any cycle!!");
       return;
     }
-    z3::model m =fu_malik_maxsat( cut[0], soft );
+    // z3::model m =fu_malik_maxsat( cut[0], soft );
+
+    z3::model m = z3.maxsat( cut[0], soft );
+
     // std::cout << m ;
 
     for( auto it=fence_map.begin(); it != fence_map.end(); it++ ) {

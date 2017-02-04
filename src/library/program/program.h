@@ -29,7 +29,7 @@
 // #include "cinput/cinput_exception.h"
 
 namespace tara {
-  namespace cssa{
+  namespace ctrc{
     class program;
   }
   class thread;
@@ -371,7 +371,7 @@ namespace tara {
     std::vector< std::shared_ptr<const instruction> >
     get_assignments_to_variable(const cssa::variable& variable) const;
 
-    friend cssa::program;
+    friend ctrc::program;
   };
 
 inline bool program::is_mm_declared() const {  return mm != mm_t::none; }

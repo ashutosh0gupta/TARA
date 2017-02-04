@@ -36,7 +36,7 @@ public:
 
   virtual std::string name();
 private:
-  const cssa::program* program_old;
+  const ctrc::program* program_old;
   /**
    * @brief Checks which one of the disjuncts is true, then inserts only that one.
    */
