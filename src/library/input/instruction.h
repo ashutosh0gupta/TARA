@@ -23,9 +23,10 @@
 #include <unordered_set>
 #include <string>
 #include <unordered_set>
-#include <z3++.h>
+// #include <z3++.h>
 #include "helpers/z3interf.h"
 #include "constants.h"
+#include "program/variable.h"
 #include "hb_enc/integer.h"
 
 namespace tara {
@@ -51,8 +52,8 @@ public:
 
 class instruction_z3 : public instruction {
 public:
-  instruction_z3(const std::string& name, const z3::expr& instr, instruction_type type, cssa::variable_set variables, cssa::variable_set havok_vars);
-  instruction_z3(const std::string& name, const z3::expr& instr, instruction_type type, cssa::variable_set havok_vars);
+  instruction_z3(const std::string& name, const z3::expr& instr, instruction_type type, tara::variable_set variables, tara::variable_set havok_vars);
+  instruction_z3(const std::string& name, const z3::expr& instr, instruction_type type, tara::variable_set havok_vars);
   instruction_z3(const std::string& name, tara::helpers::z3interf& z3, const std::string& instr, variable_set variables, tara::instruction_type type, variable_set havok_vars);
   z3::expr instr;
   inline hb_enc::tstamp_ptr location() {return _tstamp;}
@@ -62,7 +63,7 @@ public:
    * 
    * @return tara::cssa::variable_set
    */
-  cssa::variable_set variables();
+  tara::variable_set variables();
   /**
    * @brief Is this an assertion or assumption or regular statement
    * 
@@ -72,10 +73,10 @@ public:
    * @brief The set of variables that will be havoked in this statement (they are treated as inputs)
    * 
    */
-  cssa::variable_set havok_vars;
+  tara::variable_set havok_vars;
   hb_enc::tstamp_var_ptr _tstamp;
 private:
-  cssa::variable_set _variables;
+  tara::variable_set _variables;
 
   friend class program;
 };

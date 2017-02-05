@@ -26,7 +26,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include "helpers/helpers.h"
-// #include <hb_enc/integer.h>
+#include "program/variable.h"
 
 #include <boost/regex.hpp>
 
@@ -49,7 +49,7 @@ private:
     
   void _printFormula(const z3::expr& ast, std::ostream& out);
     
-  static void get_variables(const z3::expr& expr, cssa::variable_set& result);
+  static void get_variables(const z3::expr& expr, tara::variable_set& result);
 
   // hb_enc::integer _hb_encoding = hb_enc::integer(c);
 
@@ -106,10 +106,10 @@ public:
   void printFormula(const z3::expr& expr, std::ostream& out);
   z3::expr parseFormula(std::string str, const input::variable_set& vars);
   z3::expr parseFormula(std::string str, const std::vector<std::string>& names, const std::vector<z3::expr>& declarations);
-  cssa::variable_set translate_variables(input::variable_set vars);
+  tara::variable_set translate_variables(input::variable_set vars);
     
   // getting the information which happens-before relations are important
-  static cssa::variable_set get_variables(const z3::expr& expr);
+  static tara::variable_set get_variables(const z3::expr& expr);
   
   static std::vector<z3::expr> decompose(z3::expr conj, Z3_decl_kind kind);
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);

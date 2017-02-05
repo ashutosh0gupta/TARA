@@ -20,8 +20,6 @@
 
 #include "instruction.h"
 
-#include "input_exception.h"
-
 using namespace tara::input;
 using namespace tara;
 
@@ -37,17 +35,17 @@ instruction_z3::instruction_z3(const string& name, helpers::z3interf& z3, const 
 instruction_z3(name, z3.parseFormula(instr,variables), type, z3.translate_variables(havok_vars))
 {}
 
-instruction_z3::instruction_z3(const string& name, const z3::expr& instr, instruction_type type, cssa::variable_set havok_vars):
+instruction_z3::instruction_z3(const string& name, const z3::expr& instr, instruction_type type, tara::variable_set havok_vars):
 instruction_z3(name, instr, type, helpers::z3interf::get_variables(instr), havok_vars)
 {}
 
-instruction_z3::instruction_z3(const string& name, const z3::expr& instr, instruction_type type, cssa::variable_set variables, cssa::variable_set havok_vars): 
+instruction_z3::instruction_z3(const string& name, const z3::expr& instr, instruction_type type, tara::variable_set variables, tara::variable_set havok_vars): 
 instruction(name), instr(instr), type(type), havok_vars(havok_vars), _variables(variables)
 {}
 
 
 
-cssa::variable_set instruction_z3::variables()
+tara::variable_set instruction_z3::variables()
 {
   return _variables;
 }

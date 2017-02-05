@@ -22,7 +22,7 @@
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/tokenizer.hpp>
-#include "api/arg_exception.h"
+#include "helpers/helpers.h"
 
 using namespace std;
 using namespace tara::api;
@@ -79,7 +79,7 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
       return false;
     }
     if (!vm.count("input")) {
-      throw arg_exception("No input specified");
+      arg_error("No input specified");
     }
     if (vm.count("config")) {
       boost::filesystem::path path(vm["config"].as<string>());
@@ -89,7 +89,7 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
     interpret_options(vm);
 
   } catch ( const boost::program_options::error& e ) {
-    throw arg_exception(e.what());
+    arg_error(e.what());
     return false;
   }
     
@@ -111,7 +111,7 @@ void options_cmd::interpret_options(po::variables_map& vm) {
     }
     if( none ) {
       std::string names = string_mode_names();
-      throw arg_exception("Mode must be one of: " + names);
+      arg_error("Mode must be one of: " + names);
     }
     if( mode == modes::fsynth ) {
       prune_chain = prune_chain + ",remove_non_cycled";
@@ -130,7 +130,7 @@ void options_cmd::interpret_options(po::variables_map& vm) {
     //   mode = modes::bugs;
     // else {
     //   std::string names = string_mode_names();
-    //   throw arg_exception("Mode must be one of: " + names);
+    //   arg_error("Mode must be one of: " + names);
     // }
   }
 

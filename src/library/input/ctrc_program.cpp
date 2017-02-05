@@ -23,7 +23,6 @@
 
 #include "program/program.h"
 #include "input/ctrc_program.h"
-// #include "cssa/cssa_exception.h" // todo: remove this include and exception calls
 #include "helpers/helpers.h"
 #include <vector>
 using namespace tara;
@@ -58,7 +57,7 @@ void ctrc::program::build_threads(const input::program& input)
       if (shared_ptr<input::instruction_z3> instr = dynamic_pointer_cast<input::instruction_z3>(input.threads[t][i])) {
         z3::expr_vector src(c);
         z3::expr_vector dst(c);
-        for(const variable& v: instr->variables()) {
+        for(const auto& v: instr->variables()) {
           variable nname(c);
           if (!is_primed(v)) {
             if (is_global(v)) {
@@ -74,7 +73,7 @@ void ctrc::program::build_threads(const input::program& input)
             thread[i].variables_read.insert(nname); // this variable is read by this instruction
             thread[i].variables_read_orig.insert(v);
           } else {
-            variable v1 = get_unprimed(v);
+            auto v1 = get_unprimed(v);
             if (is_global(v1)) {
               nname = v1 + "#" + thread[i].loc->name;
             } else {

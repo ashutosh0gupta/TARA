@@ -20,7 +20,6 @@
 #include <boost/filesystem.hpp>
 
 #include "parse.h"
-#include "input_exception.h"
 #include "constants.h"
 #include "helpers/helpers.h"
 
@@ -57,13 +56,13 @@ program parse::parseFile(const char* file)
     std::stringstream fmt;
 	boost::filesystem::path full_path(boost::filesystem::current_path());
 	fmt << "File " << file << " in directory " << full_path << " not accessible";
-    throw input_exception(fmt.str().c_str());
+    ctrc_input_error(fmt.str().c_str());
   }
   parse in;
   int res = yyparse(in);
   fclose(yyin);
   if (res!=0)
-    throw input_exception("Parse error");
+    ctrc_input_error("Parse error");
   return std::move(in.p);
 }
 

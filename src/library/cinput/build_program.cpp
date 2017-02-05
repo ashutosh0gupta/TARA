@@ -20,7 +20,6 @@
 
 #include <string> 
 #include "build_program.h"
-#include "cinput_exception.h"
 #include "helpers/z3interf.h"
 #include <z3.h>
 using namespace tara;
@@ -343,7 +342,7 @@ translateBlock( unsigned thr_id,
       z3::expr val = getTerm( store->getOperand(0), m );
       hb_enc::se_set new_events;
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
-        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        auto gv = p->get_global( (std::string)(g->getName()) );
         auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              history, gv, loc_name, hb_enc::event_t::w,
                              translate_ordering_tags( store->getOrdering()) );
@@ -358,9 +357,9 @@ translateBlock( unsigned thr_id,
           cinput_error( "non pointer dereferenced!" );
         // How to deal with null??
         auto& p_set = points_to.at(addr).p_set;
-        for( std::pair< z3::expr, cssa::variable > a_pair : p_set ) {
+        for( std::pair< z3::expr, tara::variable > a_pair : p_set ) {
           z3::expr c = a_pair.first;
-          cssa::variable gv = a_pair.second;
+          auto gv = a_pair.second;
           z3::expr path_cond_c = path_cond && c;
           auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,
                                history, gv, loc_name, hb_enc::event_t::w,
@@ -387,7 +386,7 @@ translateBlock( unsigned thr_id,
         z3::expr l_v = getTerm( I, m);
         hb_enc::se_set new_events;
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
-          cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+          auto gv = p->get_global( (std::string)(g->getName()) );
           auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                                history, gv, loc_name, hb_enc::event_t::r,
                                translate_ordering_tags( load->getOrdering()) );
@@ -399,9 +398,9 @@ translateBlock( unsigned thr_id,
           if( !llvm::isa<llvm::PointerType>(addr->getType()) )
             cinput_error( "non pointer dereferenced!" );
           auto& potinted_set = points_to.at(addr).p_set;
-          for( std::pair< z3::expr, cssa::variable > a_pair : potinted_set ) {
+          for( std::pair< z3::expr, tara::variable > a_pair : potinted_set ) {
             z3::expr c = a_pair.first;
-            cssa::variable gv = a_pair.second;
+            auto gv = a_pair.second;
             z3::expr path_cond_c = path_cond && c;
             auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
                                  history, gv, loc_name, hb_enc::event_t::r,
@@ -428,7 +427,7 @@ translateBlock( unsigned thr_id,
         z3::sort sort = llvm_to_z3_sort( z3.c,
                                          alloc->getType()->getElementType() );
         p->add_allocated( alloc_name, sort );
-        cssa::variable v = p->get_allocated( alloc_name );
+        auto v = p->get_allocated( alloc_name );
         points_set_t p_set = { std::make_pair( z3.mk_true(), v ) };
         pointing pointing_( p_set );
         points_to.insert( std::make_pair(alloc,pointing_) );//todo: remove ugly
@@ -607,7 +606,7 @@ translateBlock( unsigned thr_id,
 
       const llvm::Value* addr = rmw->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
-        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        auto gv = p->get_global( (std::string)(g->getName()) );
         auto up = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
                              history, gv, loc_name, hb_enc::event_t::u,
                              translate_ordering_tags( rmw->getOrdering()) );
@@ -643,7 +642,7 @@ translateBlock( unsigned thr_id,
       std::string loc_name = getInstructionLocationName( I );
       const llvm::Value* addr = xchg->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
-        cssa::variable gv = p->get_global( (std::string)(g->getName()) );
+        auto gv = p->get_global( (std::string)(g->getName()) );
         z3::expr cmp_v = getTerm( xchg->getCompareOperand(), m );
         z3::expr new_v = getTerm( xchg->getNewValOperand(), m );
         // fail event
@@ -731,7 +730,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
     llvm::BasicBlock* src = &(*it);
     std::map<const llvm::BasicBlock*,hb_enc::depends_set> ctrl_ses;
-    std::map< const cssa::variable,
+    std::map< const tara::variable,
       std::map<const llvm::BasicBlock*,hb_enc::depends_set> > last_rls_ses;
     if( o.print_input > 0 ) {
       std::cout << "=====================================================\n";
@@ -783,7 +782,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       }
       preds.push_back( prev );
       if( o.mm == mm_t::c11 ) {
-        for( const cssa::variable& v : p->globals )
+        for( const auto& v : p->globals )
           last_rls_ses[v][ prev ] = local_release_heads[prev][v];
       }
     }
@@ -806,7 +805,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
     // caclulating last release heads
      if( o.mm == mm_t::c11 ) {
-       for( const cssa::variable& v : p->globals )
+       for( const auto& v : p->globals )
          join_depends_set( last_rls_ses[v], conds, local_release_heads[src][v]);
      }
 

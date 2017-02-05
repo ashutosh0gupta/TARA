@@ -19,7 +19,6 @@
 
 #include "hb_enc/symbolic_event.h"
 #include "hb_enc/encoding.h"
-#include "hb_enc/hb_enc_exception.h"
 #include "hb_enc/hb.h"
 
 using namespace tara;
@@ -155,8 +154,8 @@ void symbolic_event::update_topological_order() {
 
 symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 se_set& _prev_events, unsigned instr_no,
-                                const cssa::variable& _v,
-                                const cssa::variable& _prog_v,
+                                const tara::variable& _v,
+                                const tara::variable& _prog_v,
                                 std::string _loc, event_t _et )
   : tid(_tid)
   , v(_v)
@@ -168,7 +167,7 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
   , guard(z3.c)
 {
   if( et != event_t::r &&  et != event_t::w &&  et != event_t::u ) {
-    throw hb_enc_exception("symboic event with wrong parameters!");
+    hb_enc_error("symboic event with wrong parameters!");
   }
   if( et == event_t::u ) {
     v_copy = v + "#update_wr";
@@ -220,14 +219,14 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
   update_topological_order();
 }
 
-z3::expr symbolic_event::get_rd_expr( const cssa::variable& g ) {
+z3::expr symbolic_event::get_rd_expr( const tara::variable& g ) {
   assert( et == event_t::r   || et == event_t::u || et == event_t::post );
   if( et == event_t::r || et == event_t::u ) {
     z3::expr v_expr = (z3::expr)(v);
     return v_expr;
   }
-  cssa::variable tmp_v = g+"#post";
-  // cssa::variable tmp_v(g.sort.ctx());
+  tara::variable tmp_v = g+"#post";
+  // tara::variable tmp_v(g.sort.ctx());
   // switch( et ) {
   // // case event_t::barr: { tmp_v = g+"#barr";  break; }
   // case event_t::pre : { tmp_v = g+"#pre" ;  break; }
@@ -237,18 +236,18 @@ z3::expr symbolic_event::get_rd_expr( const cssa::variable& g ) {
   return (z3::expr)(tmp_v);
 }
 
-z3::expr symbolic_event::get_wr_expr( const cssa::variable& g ) {
+z3::expr symbolic_event::get_wr_expr( const tara::variable& g ) {
   assert( et == event_t::u   || et == event_t::w || et == event_t::pre );
   if( et == event_t::w || et == event_t::u ) {
     z3::expr v_expr = (z3::expr)(v_copy);
     return v_expr;
   }
-  cssa::variable tmp_v(g.sort.ctx());
+  tara::variable tmp_v(g.sort.ctx());
   switch( et ) {
   // case event_t::barr: { tmp_v = g+"#barr";  break; }
   case event_t::pre : { tmp_v = g+"#pre" ;  break; }
   case event_t::post: { tmp_v = g+"#post";  break; }
-  default: hb_enc_exception("unreachable code!!");
+  default: hb_enc_error("unreachable code!!");
   }
   return (z3::expr)(tmp_v);
 }

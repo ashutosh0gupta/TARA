@@ -164,7 +164,7 @@ bool bugs::race_condition(nf::row_type& conj)
         // check data-flow
         if (hb1.loc1->thread == hb2.loc2->thread) {
           const tara::instruction& lastloc = lookup(hb2.loc2);
-          cssa::variable_set common_vars = set_intersection(read_write(hb1), write_write(hb2));
+          auto common_vars = set_intersection(read_write(hb1), write_write(hb2));
           if (common_vars.size()>0 && !intersection_nonempty(common_vars, lastloc.variables_read_orig)) {
             bug_list.emplace_back(bug_type::data_race, list<hb_enc::tstamp_ptr>({hb1.loc1, hb1.loc2, hb2.loc2}));
             return true;
@@ -188,7 +188,7 @@ bool bugs::define_use(nf::row_type& conj)
    * 
    */
   for (const auto& hb : conj) {
-    cssa::variable_set var;
+    tara::variable_set var;
     if ((var=read_write(hb)).size()>0) {
       if (!intersection_nonempty(lookup(hb.loc2).variables_read_orig, lookup(hb.loc2).variables_write_orig) && first_assignment(*(var.begin()), conj.front().loc1, conj)) {
         bug_list.emplace_back(bug_type::define_use, list<hb_enc::tstamp_ptr>({conj.front().loc1, conj.front().loc2}));
@@ -229,7 +229,7 @@ bool bugs::two_stage(nf::row_type& conj, nf::result_type::iterator current, nf::
   return false;
 }
 
-bool bugs::first_assignment(const cssa::variable& variable, hb_enc::tstamp_ptr loc, const nf::row_type& hbs)
+bool bugs::first_assignment(const tara::variable& variable, hb_enc::tstamp_ptr loc, const nf::row_type& hbs)
 {
   z3::expr phi_po = program->phi_po;
   z3::solver sol = z3interf::create_solver(phi_po.ctx());

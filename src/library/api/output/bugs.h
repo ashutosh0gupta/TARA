@@ -79,7 +79,7 @@ private:
    * @param hbs ...
    * @return bool
    */
-  bool first_assignment(const cssa::variable& variable, hb_enc::tstamp_ptr loc, const nf::row_type& hbs);
+  bool first_assignment(const tara::variable& variable, hb_enc::tstamp_ptr loc, const nf::row_type& hbs);
   
   long long unsigned time;
 };

@@ -65,11 +65,11 @@ protected:
    * @param hb ...
    * @return Set of variables in common between these location (empty if none)
    */
-  inline cssa::variable_set read_write(const hb_enc::hb& hb) const; // check if hb.loc1 is reading and hb.loc2 is writing
-  inline cssa::variable_set write_read(const hb_enc::hb& hb) const; // check if hb.loc1 is writing and hb.loc2 is reading
-  inline cssa::variable_set write_write(const hb_enc::hb& hb) const; // check if hb.loc1 is writing and hb.loc2 is writing
-  inline cssa::variable_set read_read(const hb_enc::hb& hb) const; // check if hb.loc1 is reading and hb.loc2 is reading the same variable
-  inline cssa::variable_set access_access(const hb_enc::hb& hb) const; // check if hb.loc1 and hb.loc2 use the same variable
+  inline tara::variable_set read_write(const hb_enc::hb& hb) const; // check if hb.loc1 is reading and hb.loc2 is writing
+  inline tara::variable_set write_read(const hb_enc::hb& hb) const; // check if hb.loc1 is writing and hb.loc2 is reading
+  inline tara::variable_set write_write(const hb_enc::hb& hb) const; // check if hb.loc1 is writing and hb.loc2 is writing
+  inline tara::variable_set read_read(const hb_enc::hb& hb) const; // check if hb.loc1 is reading and hb.loc2 is reading the same variable
+  inline tara::variable_set access_access(const hb_enc::hb& hb) const; // check if hb.loc1 and hb.loc2 use the same variable
   inline bool same_inverted(const hb_enc::hb& hb1, const hb_enc::hb& hb2) const; // check if the hbs are exactly inverted of each other
   inline bool order_hb(hb_enc::hb& hb1, hb_enc::hb& hb2) const; // order the two hb in a way that hb1 -> hb2, returns false if this is not possible
   

@@ -21,7 +21,6 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 
-#include "helpers_exception.h"
 #include <string>
 #include <unordered_set>
 #include <set>
@@ -68,7 +67,8 @@ public:
                                 << triggered_at << std::endl;        \
                              issue_error( ss ); }
 
-#define ctrc_input_error( S )            tara_error( "::ctrc_input",             S )
+#define arg_error( S )               tara_error( "::arg",                S )
+#define ctrc_input_error( S )        tara_error( "::ctrc_input",         S )
 #define cinput_error( S )            tara_error( "::cinput",             S )
 #define program_error( S )           tara_error( "::program",            S )
 #define trace_error( S )             tara_error( "::trace",              S )
@@ -164,71 +164,71 @@ namespace input {
 }
 
 namespace cssa {
-  struct variable {
-    std::string name;
-    z3::sort sort;
-    operator std::string() const { return name;}
-    variable(std::string name, z3::sort sort) : name(name), sort(sort) {}
-    variable(std::string name, z3::context& ctx) : name(name), sort(z3::sort(ctx)) {}
-    variable(z3::context& ctx) : sort(z3::sort(ctx)) {}
-    friend variable operator+ (const variable& v, const std::string& str) {
-      return variable(v.name+str, v.sort);
-    }
-    friend variable operator+ (const std::string& str, const variable& v) {
-      return variable(str+v.name, v.sort);
-    }
+  // struct variable {
+  //   std::string name;
+  //   z3::sort sort;
+  //   operator std::string() const { return name;}
+  //   variable(std::string name, z3::sort sort) : name(name), sort(sort) {}
+  //   variable(std::string name, z3::context& ctx) : name(name), sort(z3::sort(ctx)) {}
+  //   variable(z3::context& ctx) : sort(z3::sort(ctx)) {}
+  //   friend variable operator+ (const variable& v, const std::string& str) {
+  //     return variable(v.name+str, v.sort);
+  //   }
+  //   friend variable operator+ (const std::string& str, const variable& v) {
+  //     return variable(str+v.name, v.sort);
+  //   }
 
-    operator z3::expr() const {
-      return sort.ctx().constant(name.c_str(), sort);
-    }
+  //   operator z3::expr() const {
+  //     return sort.ctx().constant(name.c_str(), sort);
+  //   }
 
-    friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
-      stream << var.name;
-      return stream;
-    }
-    bool operator==(const variable& rhs) const {
-      return std::equal_to<std::string>()(this->name, rhs.name);
-    }
-    bool operator!=(const variable& rhs) const {
-      return !(*this==rhs);
-    }
-    bool operator<( const variable& rhs) const {
-      return this->name < rhs.name;
-    }
-  };
+  //   friend std::ostream& operator<< (std::ostream& stream, const variable& var) {
+  //     stream << var.name;
+  //     return stream;
+  //   }
+  //   bool operator==(const variable& rhs) const {
+  //     return std::equal_to<std::string>()(this->name, rhs.name);
+  //   }
+  //   bool operator!=(const variable& rhs) const {
+  //     return !(*this==rhs);
+  //   }
+  //   bool operator<( const variable& rhs) const {
+  //     return this->name < rhs.name;
+  //   }
+  // };
 
 
 
-  struct variable_hash {
-    size_t operator () (const variable &v) const { return std::hash<std::string>()(v.name); }
-  };
+  // struct variable_hash {
+  //   size_t operator () (const variable &v) const { return std::hash<std::string>()(v.name); }
+  // };
 
-  struct variable_equal : std::binary_function <variable,variable,bool> {
-    bool operator() (const variable& x, const variable& y) const {
-      return x==y;
-    }
-  };
+  // struct variable_equal : std::binary_function <variable,variable,bool> {
+  //   bool operator() (const variable& x, const variable& y) const {
+  //     return x==y;
+  //   }
+  // };
 
-  typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
+  // typedef std::unordered_set<variable, variable_hash, variable_equal> variable_set;
 
-  //--------------------------------------------------------------------------
-  //support for gdb
-  void debug_print( const variable_set& , std::ostream& out);
-  //--------------------------------------------------------------------------
+  // //--------------------------------------------------------------------------
+  // //support for gdb
+  // void debug_print( const variable_set& , std::ostream& out);
+  // //--------------------------------------------------------------------------
 
 }
 
 namespace helpers {
 
-inline cssa::variable get_unprimed(const cssa::variable& variable) {
-  //converting the primed to unprimed by removing the dot
-  if (variable.name[variable.name.size()-1] != '.') {
-    return variable;
-  } else {
-    std::string v1 = variable.name.substr(0, variable.name.size()-1);
-    return cssa::variable(v1, variable.sort);
-  }
-}
+// inline tara::variable get_unprimed(const tara::variable& variable) {
+//   //converting the primed to unprimed by removing the dot
+//   if (variable.name[variable.name.size()-1] != '.') {
+//     return variable;
+//   } else {
+//     std::string v1 = variable.name.substr(0, variable.name.size()-1);
+//     return cssa::variable(v1, variable.sort);
+//   }
+// }
 
 inline std::string get_unprimed(const std::string& variable) {
   if (variable[variable.size()-1] != '.') {
@@ -249,30 +249,30 @@ inline bool has_suffix(const std::string &str, const std::string &suffix)
   // added for wmm code support -- should be eventually removed
   //--------------------------------------------------------------------------
 
-inline bool check_correct_global_variable(const cssa::variable& variable, std:: string prog_name)
-{
-  unsigned vnum_len = variable.name.size();
-  unsigned prog_len = prog_name.size();
-  if( prog_len >= vnum_len) return false;
-  for(unsigned i = prog_len; i < vnum_len;i++) {
-    if( !isdigit(variable.name[i]) ) return false;
-  }
-  for(unsigned i=0; i< prog_len; i++ ) {
-    if( variable.name[i] != prog_name[i] ) return false;
-  }
-  return true;
-}
+// inline bool check_correct_global_variable(const cssa::variable& variable, std:: string prog_name)
+// {
+//   unsigned vnum_len = variable.name.size();
+//   unsigned prog_len = prog_name.size();
+//   if( prog_len >= vnum_len) return false;
+//   for(unsigned i = prog_len; i < vnum_len;i++) {
+//     if( !isdigit(variable.name[i]) ) return false;
+//   }
+//   for(unsigned i=0; i< prog_len; i++ ) {
+//     if( variable.name[i] != prog_name[i] ) return false;
+//   }
+//   return true;
+// }
 
-  inline cssa::variable find_orig_variable( const cssa::variable& var,
-                                             const cssa::variable_set& vars ) {
-    for( auto& v : vars ) {
-      if( check_correct_global_variable( var, v.name ) ) {
-        return v; // TODO: This return value may trigger copy operation;
-                  // resolve this issue
-      }
-    }
-    throw helpers_exception("variable is not find in a set!");
-  }
+  // inline cssa::variable find_orig_variable( const cssa::variable& var,
+  //                                            const cssa::variable_set& vars ) {
+  //   for( auto& v : vars ) {
+  //     if( check_correct_global_variable( var, v.name ) ) {
+  //       return v; // TODO: This return value may trigger copy operation;
+  //                 // resolve this issue
+  //     }
+  //   }
+  //   throw helpers_exception("variable is not find in a set!");
+  // }
 
   //--------------------------------------------------------------------------
   // End of wmm support code

@@ -23,6 +23,7 @@
 #include "constants.h"
 #include "helpers/z3interf.h"
 #include "encoding.h"
+#include "program/variable.h"
 #include <vector>
 #include <list>
 #include <unordered_map>
@@ -125,7 +126,7 @@ public:
   public:
     symbolic_event( helpers::z3interf& z3,
                     unsigned _tid, se_set& _prev_events, unsigned i,
-                    const cssa::variable& _v, const cssa::variable& _prog_v,
+                    const tara::variable& _v, const tara::variable& _prog_v,
                     std::string loc, event_t _et );
 
     symbolic_event( helpers::z3interf& z3,
@@ -134,14 +135,14 @@ public:
 
   public:
     unsigned tid;
-    cssa::variable v;            // variable with ssa name
-    cssa::variable v_copy;       // variable with ssa name
+    tara::variable v;            // variable with ssa name
+    tara::variable v_copy;       // variable with ssa name
                                  // v_copy is same as v for normal rd and wr
                                  // only for update instruction v_copy is diff
-    cssa::variable prog_v;       // variable name in the program
+    tara::variable prog_v;       // variable name in the program
     std::string loc_name;
-    cssa::variable rd_v() { return v; }
-    cssa::variable wr_v() { return v_copy; }
+    tara::variable rd_v() { return v; }
+    tara::variable wr_v() { return v_copy; }
   private:
     unsigned topological_order;
   public:
@@ -274,18 +275,18 @@ public:
       return stream;
     }
     void debug_print(std::ostream& stream );
-    z3::expr get_rd_expr(const cssa::variable&);
-    z3::expr get_wr_expr(const cssa::variable&);
+    z3::expr get_rd_expr(const tara::variable&);
+    z3::expr get_wr_expr(const tara::variable&);
   };
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
   inline se_ptr
   mk_se_ptr_old( hb_enc::encoding& hb_enc, unsigned tid, unsigned instr_no,
-                 const cssa::variable& prog_v, std::string loc,
+                 const tara::variable& prog_v, std::string loc,
                  event_t et, se_set& prev_es) {
     std::string prefix = et == hb_enc::event_t::r ? "pi_" : "";
-    cssa::variable n_v = prefix + prog_v + "#" + loc;
+    tara::variable n_v = prefix + prog_v + "#" + loc;
     se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, instr_no,
                                                  n_v, prog_v, loc, et );
     e->guard = hb_enc.z3.mk_true();
@@ -311,9 +312,9 @@ public:
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
-             const cssa::variable& prog_v, std::string loc,
+             const tara::variable& prog_v, std::string loc,
              event_t _et, hb_enc::o_tag_t ord_tag ) {
-    cssa::variable ssa_v = prog_v + "#" + loc;
+    tara::variable ssa_v = prog_v + "#" + loc;
     se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0,
                                                  ssa_v, prog_v, loc, _et);
     e->guard = path_cond;
@@ -390,11 +391,11 @@ public:
   typedef std::set< se_ptr, se_cmp > se_tord_set;
   // typedef std::unordered_set<se_ptr, se_hash, se_equal> se_set;
 
-  typedef std::unordered_map<cssa::variable, se_ptr, cssa::variable_hash, cssa::variable_equal> var_to_se_map;
+  typedef std::unordered_map<tara::variable, se_ptr, tara::variable_hash, tara::variable_equal> var_to_se_map;
 
-  typedef std::unordered_map<cssa::variable, se_set, cssa::variable_hash, cssa::variable_equal> var_to_ses_map;
+  typedef std::unordered_map<tara::variable, se_set, tara::variable_hash, tara::variable_equal> var_to_ses_map;
 
-  typedef std::unordered_map<cssa::variable, se_vec, cssa::variable_hash, cssa::variable_equal> var_to_se_vec_map;
+  typedef std::unordered_map<tara::variable, se_vec, tara::variable_hash, tara::variable_equal> var_to_se_vec_map;
 
   typedef std::unordered_map<se_ptr, se_set, se_hash, se_equal> se_to_ses_map;
 
@@ -409,10 +410,10 @@ public:
   };
 
   typedef std::unordered_map<se_ptr, depends_set, se_hash, se_equal> se_to_depends_map;
-  typedef std::unordered_map< cssa::variable,
+  typedef std::unordered_map< tara::variable,
                               depends_set,
-                              cssa::variable_hash,
-                              cssa::variable_equal> var_to_depends_map;
+                              tara::variable_hash,
+                              tara::variable_equal> var_to_depends_map;
 
 
   depends pick_maximal_depends_set( hb_enc::depends_set& set );

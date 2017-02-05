@@ -68,11 +68,11 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   return stream;
 }
 
-  cssa::variable_set instruction::variables() const {
+  variable_set instruction::variables() const {
     return helpers::set_union(variables_read, variables_write);
   }
 
-  cssa::variable_set instruction::variables_orig() const {
+  variable_set instruction::variables_orig() const {
     return helpers::set_union(variables_read_orig, variables_write_orig);
   }
 
@@ -91,7 +91,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   //==========================================================================
 
   thread::thread( helpers::z3interf& z3_,
-                  const std::string& name, const tara::cssa::variable_set locals)
+                  const std::string& name, const tara::variable_set locals)
     : z3(z3_)
     , name(name)
     , locals(locals)
@@ -132,7 +132,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   void program::set_c11_rs_heads( hb_enc::se_ptr e,
-                                  std::map< cssa::variable,
+                                  std::map< variable,
                                             hb_enc::depends_set >& rs_heads_map ) {
     //for read and barrier events there are no relase heads
     if( is_mm_c11() && e->is_wr() ) {
@@ -153,9 +153,9 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     return threads.size();
   }
 
-  bool program::is_global(const cssa::variable& name) const
+  bool program::is_global(const variable& name) const
   {
-    return globals.find(cssa::variable(name))!=globals.end();
+    return globals.find(variable(name))!=globals.end();
   }
 
   const tara::instruction&
@@ -164,7 +164,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
   std::vector< std::shared_ptr<const tara::instruction> >
-  program::get_assignments_to_variable(const cssa::variable& variable) const
+  program::get_assignments_to_variable(const variable& variable) const
   {
     assert( prog_type == prog_t::original );
     std::string name = (get_unprimed(variable)).name;
@@ -447,7 +447,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     }
 
     // // old inefficient sorting of write events
-    // for(const cssa::variable& v1 : globals ) {
+    // for(const variable& v1 : globals ) {
     //   std::set< hb_enc::se_ptr > wrs;
     //   auto it = wr_events.find( v1 );
     //   for( const auto& wr : it->second ) {
@@ -477,7 +477,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     // }
 
 
-    for(const cssa::variable& v1 : globals ) {
+    for(const variable& v1 : globals ) {
       std::vector< std::pair< hb_enc::se_ptr, int > > wrs;
       auto it = wr_events.find( v1 );
       for( const auto& wr : it->second ) {

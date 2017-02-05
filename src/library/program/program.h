@@ -23,15 +23,15 @@
 #include "helpers/helpers.h"
 #include "helpers/z3interf.h"
 #include "api/options.h"
+#include "program/variable.h"
 #include "hb_enc/symbolic_event.h"
 #include "api/metric.h"
-
-// #include "cinput/cinput_exception.h"
 
 namespace tara {
   namespace ctrc{
     class program;
   }
+
   class thread;
   class loc{
   public:
@@ -48,14 +48,14 @@ namespace tara {
     thread* in_thread;
     std::string name;
     // variable_set variables_read_copy;
-    cssa::variable_set variables_read; // the variable names with the hash
-    cssa::variable_set variables_write; // the variable names with the hash
-    cssa::variable_set variables_read_orig; // the original variable names
-    cssa::variable_set variables_write_orig; // the original variable names, unprimed
-    cssa::variable_set variables() const;
-    cssa::variable_set variables_orig() const;
+    variable_set variables_read; // the variable names with the hash
+    variable_set variables_write; // the variable names with the hash
+    variable_set variables_read_orig; // the original variable names
+    variable_set variables_write_orig; // the original variable names, unprimed
+    variable_set variables() const;
+    variable_set variables_orig() const;
     instruction_type type;
-    cssa::variable_set havok_vars;
+    variable_set havok_vars;
 
     //--------------------------------------------------------------------------
     // WMM support
@@ -119,14 +119,14 @@ namespace tara {
     //old thread
 
     thread( helpers::z3interf& z3_,
-            const std::string& name, cssa::variable_set locals );
+            const std::string& name, variable_set locals );
     thread(thread& ) = delete;
     thread& operator=(thread&) = delete;
 
     std::vector<std::shared_ptr<instruction>> instructions;
     // const std::string name;
     std::unordered_map<std::string,std::vector<std::shared_ptr<instruction>>> global_var_assign;
-    cssa::variable_set locals;
+    variable_set locals;
 
     bool operator==(const thread &other) const;
     bool operator!=(const thread &other) const;
@@ -163,8 +163,8 @@ namespace tara {
       mm = _o.mm;
     }
 
-    cssa::variable_set globals;
-    cssa::variable_set allocated; // temp allocations
+    variable_set globals;
+    variable_set allocated; // temp allocations
     std::map< unsigned, loc> inst_to_loc;
     std::map< std::string, hb_enc::se_ptr> create_map;
     std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr > > join_map;
@@ -173,7 +173,7 @@ namespace tara {
      * @brief Set of uninitialized variables (used to get input values)
      *        or non-deterministic branches
      */
-    cssa::variable_set initial_variables;
+    variable_set initial_variables;
     hb_enc::se_set all_sc;
 
     inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
@@ -269,15 +269,15 @@ namespace tara {
       threads[thread_id]->append_property( prp );
     }
 
-    void append_pre( cssa::variable g,  z3::expr val) {
+    void append_pre( variable g,  z3::expr val) {
       phi_pre = phi_pre && (init_loc->get_wr_expr( g) == val);
     }
 
     void add_event( unsigned i, hb_enc::se_ptr e );
-    void set_c11_rs_heads( hb_enc::se_ptr e, std::map< cssa::variable,
+    void set_c11_rs_heads( hb_enc::se_ptr e, std::map< variable,
                                                        hb_enc::depends_set >& );
     void set_c11_rs_heads( hb_enc::se_set es,
-                           std::map< cssa::variable,
+                           std::map< variable,
                                      hb_enc::depends_set >& rs_heads ){
       assert( es.size() == 1 );
       for( auto e : es ) {
@@ -292,7 +292,7 @@ namespace tara {
     }
 
     void add_event_with_rs_heads( unsigned i, hb_enc::se_set es,
-                                  std::map< cssa::variable,
+                                  std::map< variable,
                                             hb_enc::depends_set >& rs_hs) {
       add_event( i, es );
       set_c11_rs_heads( es, rs_hs );
@@ -322,31 +322,31 @@ namespace tara {
     }
 
     void add_global( std::string g, z3::sort sort ) {
-      globals.insert( cssa::variable(g, sort) );
+      globals.insert( variable(g, sort) );
     }
 
     // todo: only return const reference??
-    cssa::variable get_global( std::string gname ) {
+    variable get_global( std::string gname ) {
       for( auto& g : globals ) {
         if( gname == g.name )
           return g;
       }
       program_error( "global variable " << gname << " not found!" );
-      cssa::variable g(_z3.c); // dummy code to suppress warning
+      variable g(_z3.c); // dummy code to suppress warning
       return g;
     }
 
     void add_allocated( std::string g, z3::sort sort ) {
-      allocated.insert( cssa::variable(g, sort) );
+      allocated.insert( variable(g, sort) );
     }
 
-    cssa::variable get_allocated( std::string gname ) {
+    variable get_allocated( std::string gname ) {
       for( auto& g : allocated ) {
         if( gname == g.name )
           return g;
       }
       program_error( "allocated name " << gname << " not found!" );
-      cssa::variable g(_z3.c); // dummy code to suppress warning
+      variable g(_z3.c); // dummy code to suppress warning
       return g;
     }
     // void gather_statistics(metric& metric); //todo: add this
@@ -357,7 +357,7 @@ namespace tara {
     z3::expr get_initial(const z3::model& m) const;
 
     const instruction& lookup_location(const tara::hb_enc::tstamp_ptr&) const;
-    bool is_global(const cssa::variable& name) const;
+    bool is_global(const variable& name) const;
     void print_dependency( std::ostream& );
     void print_dot( std::ostream& );
     void print_dot( const std::string& );
@@ -369,7 +369,7 @@ namespace tara {
 
     //todo : used in bug detecting -- from old code needs removal
     std::vector< std::shared_ptr<const instruction> >
-    get_assignments_to_variable(const cssa::variable& variable) const;
+    get_assignments_to_variable(const variable& variable) const;
 
     friend ctrc::program;
   };

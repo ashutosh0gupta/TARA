@@ -199,9 +199,9 @@ expr z3interf::parseFormula(string str, const input::variable_set& vars)
   return parseFormula(str, names, declarations);
 }
 
-cssa::variable_set z3interf::get_variables(const expr& expr)
+tara::variable_set z3interf::get_variables(const expr& expr)
 {
-  cssa::variable_set result;
+  tara::variable_set result;
   if ((Z3_ast)expr != 0) {
     get_variables(expr, result);
   }
@@ -209,7 +209,7 @@ cssa::variable_set z3interf::get_variables(const expr& expr)
 }
 
 
-void z3interf::get_variables(const expr& expr, cssa::variable_set& result)
+void z3interf::get_variables(const expr& expr, tara::variable_set& result)
 {
   switch(expr.kind()) {
     case Z3_APP_AST:
@@ -219,7 +219,7 @@ void z3interf::get_variables(const expr& expr, cssa::variable_set& result)
       switch(dk) {
         case Z3_OP_UNINTERPRETED : 
           {
-            result.insert(cssa::variable(d.name().str(), expr.get_sort()));
+            result.insert(tara::variable(d.name().str(), expr.get_sort()));
           }
           break;
         default: 
@@ -346,10 +346,10 @@ bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
   return is_sat( e1 && !e2 );
 }
 
-cssa::variable_set z3interf::translate_variables(input::variable_set vars) {
-  cssa::variable_set newvars;
+tara::variable_set z3interf::translate_variables(input::variable_set vars) {
+  tara::variable_set newvars;
   for (input::variable v: vars) {
-    cssa::variable newv(v.name, get_variable_sort(v));
+    tara::variable newv(v.name, get_variable_sort(v));
     newvars.insert(newv);
   }
   return newvars;

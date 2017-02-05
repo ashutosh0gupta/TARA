@@ -37,9 +37,9 @@ namespace tara{
 namespace ctrc {
 
 struct pi_function_part {
-  cssa::variable_set variables;
+  tara::variable_set variables;
   z3::expr hb_exression;
-  pi_function_part(cssa::variable_set variables, z3::expr hb_exression);
+  pi_function_part(tara::variable_set variables, z3::expr hb_exression);
   pi_function_part(z3::expr hb_exression);
 };
 
@@ -55,14 +55,14 @@ public:
 private:
 
   struct pi_needed {
-    cssa::variable name;
-    cssa::variable orig_name;
+    tara::variable name;
+    tara::variable orig_name;
     std::shared_ptr<instruction> last_local; // can be NULL if none
     unsigned thread;
     hb_enc::tstamp_ptr loc;
 
-    pi_needed( cssa::variable name,
-               cssa::variable orig_name,
+    pi_needed( tara::variable name,
+               tara::variable orig_name,
                std::shared_ptr<instruction> last_local,
                unsigned thread, hb_enc::tstamp_ptr loc)
       : name(name)

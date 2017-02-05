@@ -20,7 +20,6 @@
 
 #include <string>
 #include "build_program.h"
-#include "cinput_exception.h"
 #include "helpers/z3interf.h"
 #include <z3.h>
 using namespace tara;

@@ -23,7 +23,6 @@
 #include "helpers/helpers.h"
 #include <utility>
 #include <algorithm>
-#include "cssa/cssa_exception.h"
 #include "helpers/helpers.h"
 #include <vector>
 using namespace tara::cssa;

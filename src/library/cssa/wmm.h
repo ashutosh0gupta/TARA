@@ -87,7 +87,7 @@ namespace cssa {
     // z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
     // z3::expr wmm_mk_ghb     (const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
 
-    z3::expr get_rf_bvar( const variable& v1,
+    z3::expr get_rf_bvar( const tara::variable& v1,
                           hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                           bool record=true );
 

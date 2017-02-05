@@ -339,13 +339,13 @@ bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
     throw logic_error("Input needs to be initialised first.");
   
   // rename the variables to make the different
-  cssa::variable_set po_vars = z3.get_variables(program->phi_po);
-  cssa::variable_set vars = z3.get_variables(program->phi_vd && program->phi_pi && program->phi_pre && program->phi_prp);
+  auto po_vars = z3.get_variables(program->phi_po);
+  auto vars = z3.get_variables(program->phi_vd && program->phi_pi && program->phi_pre && program->phi_prp);
   
   z3::expr_vector o(z3.c);
   z3::expr_vector n(z3.c);
     
-  for (cssa::variable v: vars) {
+  for (auto v: vars) {
     if (po_vars.find(v)==po_vars.end()) {
       o.push_back(z3.c.constant(v.name.c_str(), v.sort));
       n.push_back(z3.c.constant((v.name+"_g").c_str(), v.sort));
@@ -362,9 +362,9 @@ bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
   assert(r!=z3::unknown);
   if (r==z3::sat) {
     z3::model m = sol1.get_model();
-    for (cssa::variable g : program->globals) {
-      cssa::variable g1 = g + "#pre";
-      cssa::variable g2 = g1 + "_g";
+    for (auto g : program->globals) {
+      tara::variable g1 = g + "#pre";
+      tara::variable g2 = g1 + "_g";
       z3::expr e = m.eval((z3::expr)g1 != g2);
       Z3_lbool b = Z3_get_bool_value(e.ctx(), e);
       if (b == Z3_L_TRUE) 

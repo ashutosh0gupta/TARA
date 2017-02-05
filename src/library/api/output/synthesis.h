@@ -33,7 +33,7 @@ struct lock {
   lock(std::string name);
   std::string name;
   lock_locations locations;
-  cssa::variable_set variables;
+  tara::variable_set variables;
   friend std::ostream& operator<< (std::ostream& stream, const lock& lock);
 };
 

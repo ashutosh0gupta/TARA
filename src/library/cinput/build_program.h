@@ -26,7 +26,6 @@
 #include "helpers/helpers.h"
 #include "program/program.h"
 #include "cinput/cinput.h"
-#include "cinput/cinput_exception.h"
 #include <utility>
 #include "hb_enc/symbolic_event.h"
 #pragma GCC diagnostic push
@@ -81,14 +80,14 @@ namespace cinput {
   };
 
   // conditional pointing; conditions may overlap due to non-determinism
-  typedef std::vector< std::pair< z3::expr, cssa::variable > > points_set_t;
+  typedef std::vector< std::pair< z3::expr, tara::variable > > points_set_t;
 
   class build_program : public llvm::FunctionPass {
 
   public:
     typedef std::map< const llvm::Value*, z3::expr > ValueExprMap;
     ValueExprMap m;
-    std::map< const llvm::Value*, cssa::variable > localVars;
+    std::map< const llvm::Value*, tara::variable > localVars;
     typedef std::map< const llvm::Value*, hb_enc::depends_set > local_data_dependency;
     typedef std::map< const llvm::BasicBlock*, hb_enc::depends_set > local_ctrl_dependency;
     static char ID;
@@ -116,7 +115,7 @@ namespace cinput {
     build_program::local_data_dependency local_map;
     build_program::local_ctrl_dependency local_ctrl;
     std::map< const llvm::BasicBlock*,
-              std::map< cssa::variable, hb_enc::depends_set > >
+              std::map< tara::variable, hb_enc::depends_set > >
     local_release_heads;
     //-----------------------------------
 

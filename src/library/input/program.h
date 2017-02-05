@@ -38,7 +38,7 @@ typedef std::pair<std::string,std::string> location_pair;
 struct thread
 {
   std::string name;
-  variable_set locals;
+  input::variable_set locals;
   std::vector<std::shared_ptr<instruction>> instrs;
   
   unsigned size() const;
@@ -52,7 +52,7 @@ class program
 {
 public:
   program();
-  variable_set globals;
+  input::variable_set globals;
   std::vector<thread> threads;
   
   std::shared_ptr<instruction> precondition; 
@@ -78,9 +78,9 @@ public:
 // end of wmm support
 //----------------------------------------------------------------------------
 
-  bool is_global(const variable& name) const;
+  bool is_global(const input::variable& name) const;
   bool is_global(const std::string& name) const;
-  variable find_variable(int thread, const std::string& name) const;
+  input::variable find_variable(int thread, const std::string& name) const;
   
   void convert_instructions(helpers::z3interf& z3, hb_enc::encoding& hb_enc);
   /**

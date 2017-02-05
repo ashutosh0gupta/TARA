@@ -18,7 +18,6 @@
  */
 
 #include "wmm.h"
-#include "cssa_exception.h"
 #include "helpers/helpers.h"
 #include <string.h>
 #include "helpers/z3interf.h"
@@ -93,7 +92,7 @@ bool wmm_event_cons::is_rd_rd_coherance_preserved() {
 // In original implementation this part of constraints are
 // referred as pi constraints
 
-z3::expr wmm_event_cons::get_rf_bvar( const variable& v1,
+z3::expr wmm_event_cons::get_rf_bvar( const tara::variable& v1,
                                       hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                                       bool record ) {
   std::string bname = v1+"-"+wr->name()+"-"+rd->name();
@@ -186,7 +185,7 @@ void wmm_event_cons::ses() {
     }
   }
 
-  for( const variable& v1 : p.globals ) {
+  for( const auto& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
     for( const hb_enc::se_ptr& rd : rds ) {
@@ -285,7 +284,7 @@ void wmm_event_cons::ses_c11() {
   //   }
   // }
 
-  for( const variable& v1 : p.globals ) {
+  for( const auto& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
     for( const hb_enc::se_ptr& wr : wrs ) {
@@ -1149,7 +1148,7 @@ void wmm_event_cons::old_ses() {
 
   // z3::context& c = _z3.c;
 
-  for( const variable& v1 : p.globals ) {
+  for( const auto& v1 : p.globals ) {
     const auto& rds = p.rd_events[v1];
     const auto& wrs = p.wr_events[v1];
     unsigned c_tid = 0;
@@ -1304,7 +1303,7 @@ void wmm_event_cons::pso_ppo_old( const tara::thread& thread ) {
       }
 
       for( auto wr : wrs ) {
-        const variable& v = wr->prog_v;
+        const auto& v = wr->prog_v;
         po = po && hb_encoding.mk_hbs( last_wr[v], wr );
         last_wr[v] = wr;
         if( !no_rd_occurred ) {
@@ -1352,7 +1351,7 @@ void wmm_event_cons::rmo_ppo_old( const tara::thread& thread ) {
       }
 
       for( auto wr : thread[j].wrs ) {
-        variable v = wr->prog_v;
+        auto v = wr->prog_v;
 
         po = po && hb_encoding.mk_hbs( last_wr[v], wr );
         po = po && hb_encoding.mk_hbs( last_rd[v], wr );
@@ -1389,12 +1388,12 @@ void wmm_event_cons::alpha_ppo_old( const tara::thread& thread ) {
       }
     }else{
       for( auto rd : thread[j].rds ) {
-        const variable& v = rd->prog_v;
+        const auto& v = rd->prog_v;
         po = po && hb_encoding.mk_hbs( last_rd[v], rd ); //read-read to same loc
         last_rd[v] = rd;
       }
       for( auto wr : thread[j].wrs ){
-        const variable& v = wr->prog_v;
+        const auto& v = wr->prog_v;
         po = po && hb_encoding.mk_hbs( last_wr[v], wr ); //write-write to same loc
         po = po && hb_encoding.mk_hbs( last_rd[v], wr ); //read-write to same loc
         last_wr[v] = wr;
@@ -1451,13 +1450,13 @@ z3::expr wmm_event_cons::insert_pso_barrier( const tara::thread & thread,
   //todo stop at barriers
   z3::expr hbs = z3.mk_true();
 
-  variable_set found_wrs = p.globals;
+  auto found_wrs = p.globals;
   bool before_found = false;
   unsigned j = instr;
   while( j != 0 )  {
     j--;
     for( auto wr: thread[j].wrs ) {
-      const variable& v = wr->prog_v;
+      const auto& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
         hbs = hbs && hb_encoding.mk_hbs( wr, new_barr );
@@ -1481,7 +1480,7 @@ z3::expr wmm_event_cons::insert_pso_barrier( const tara::thread & thread,
       break;
     }
     for( auto wr: thread[j].wrs ) {
-      const variable& v = wr->prog_v;
+      const auto& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
         hbs = hbs && hb_encoding.mk_hbs( wr, new_barr );
@@ -1503,11 +1502,11 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
   bool before_found = false;
   unsigned j = instr;
   hb_enc::se_set collected_rds;
-  variable_set found_wrs = p.globals;
+  auto found_wrs = p.globals;
   while( j != 0 )  {
     j--;
     for( auto wr: thread[j].wrs ) {
-      const variable& v = wr->prog_v;
+      const auto& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
         hbs = hbs && hb_encoding.mk_hbs( wr, new_barr );
@@ -1535,7 +1534,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
   for( unsigned j = instr; j < thread.size(); j++ ) {
 
     for( auto rd : thread[j].rds ) {
-      const variable& v = rd->prog_v;
+      const auto& v = rd->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end() ) {
         hbs = hbs && hb_encoding.mk_hbs( new_barr, rd );
@@ -1545,7 +1544,7 @@ z3::expr wmm_event_cons::insert_rmo_barrier( const tara::thread & thread,
     }
 
     for( auto wr: thread[j].wrs ) {
-      const variable& v = wr->prog_v;
+      const auto& v = wr->prog_v;
       auto it = found_wrs.find(v);
       if( it != found_wrs.end()
           // && wr->data_dependency.empty() // todo: optimization

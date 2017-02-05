@@ -18,25 +18,25 @@
  *
  */
 
-#ifndef TARA_API_OUTPUT_EXCEPTION_H
-#define TARA_API_OUTPUT_EXCEPTION_H
+// #ifndef TARA_API_OUTPUT_EXCEPTION_H
+// #define TARA_API_OUTPUT_EXCEPTION_H
 
-#include <stdexcept>
-#include <string>
+// #include <stdexcept>
+// #include <string>
 
-namespace tara {
-namespace api {
-namespace output {
+// namespace tara {
+// namespace api {
+// namespace output {
 
-class output_exception : public std::runtime_error
-{
-public:
-  output_exception(const char* what) : runtime_error(what){}
-  output_exception(const std::string& what) : runtime_error(what){}
-};
+// class output_exception : public std::runtime_error
+// {
+// public:
+//   output_exception(const char* what) : runtime_error(what){}
+//   output_exception(const std::string& what) : runtime_error(what){}
+// };
 
-}
-}
-}
+// }
+// }
+// }
 
-#endif // TARA_API_OUTPUT_EXCEPTION_H
+// #endif // TARA_API_OUTPUT_EXCEPTION_H

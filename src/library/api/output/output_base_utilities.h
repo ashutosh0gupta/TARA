@@ -13,27 +13,27 @@ const tara::instruction& output_base::lookup(const hb_enc::tstamp_ptr& loc) cons
   return program->lookup_location(loc); 
 }
 
-cssa::variable_set output_base::read_write(const hb_enc::hb& hb) const
+variable_set output_base::read_write(const hb_enc::hb& hb) const
 {
   return helpers::set_intersection(lookup(hb.loc1).variables_read_orig, lookup(hb.loc2).variables_write_orig);
 }
 
-cssa::variable_set output_base::access_access(const hb_enc::hb& hb) const
+variable_set output_base::access_access(const hb_enc::hb& hb) const
 {
   return helpers::set_intersection(lookup(hb.loc1).variables_orig(), lookup(hb.loc2).variables_orig());
 }
 
-cssa::variable_set output_base::write_read(const hb_enc::hb& hb) const
+variable_set output_base::write_read(const hb_enc::hb& hb) const
 {
   return helpers::set_intersection(lookup(hb.loc1).variables_write_orig, lookup(hb.loc2).variables_read_orig);
 }
 
-cssa::variable_set output_base::write_write(const hb_enc::hb& hb) const
+variable_set output_base::write_write(const hb_enc::hb& hb) const
 {
   return helpers::set_intersection(lookup(hb.loc1).variables_write_orig, lookup(hb.loc2).variables_write_orig);
 }
 
-cssa::variable_set output_base::read_read(const hb_enc::hb& hb) const
+variable_set output_base::read_read(const hb_enc::hb& hb) const
 {
   return helpers::set_intersection(lookup(hb.loc1).variables_read_orig, lookup(hb.loc2).variables_read_orig);
 }

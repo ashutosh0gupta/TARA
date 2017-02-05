@@ -24,7 +24,6 @@
 #include <iostream>
 #include <boost/filesystem/fstream.hpp>
 #include <boost/tokenizer.hpp>
-#include "arg_exception.h"
 
 using namespace tara;
 using namespace tara::api;
@@ -79,7 +78,7 @@ void options::parse_config(boost::filesystem::path filename) {
     interpret_options(vm);
     
   } catch ( const boost::program_options::error& e ) {
-    throw arg_exception(e.what());
+    arg_error(e.what());
   }
 }
 
@@ -100,7 +99,7 @@ void options::interpret_options(po::variables_map& vm) {
         else if( p == input_s   ) print_input++;
         else {
           std::string s = string_of_print_options();
-          throw arg_exception("Invalid printing type. Must be combination of "+s+".");
+          arg_error("Invalid printing type. Must be combination of "+s+".");
         }
       }
     }
@@ -111,7 +110,7 @@ void options::interpret_options(po::variables_map& vm) {
     mm = mm_of_string( _mode );
     if( mm == mm_t::wrong ) {
       std::string names = string_of_mm_names();
-      throw arg_exception( "Memory model must be one of: " + names );
+      arg_error( "Memory model must be one of: " + names );
     }
     // if (_mode == "sc")
     //   mm = mm_t::sc;
@@ -128,7 +127,7 @@ void options::interpret_options(po::variables_map& vm) {
     // else if (_mode == "none")
     //   mm = mm_t::none;
     // else {
-    //   throw arg_exception("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
+    //   arg_error("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
     // }
   }
 

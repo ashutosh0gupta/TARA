@@ -164,8 +164,8 @@ bool synthesis::find_lock(const nf::row_type& disjunct)
             l.locations.push_back(make_pair(loc2b,loc2a));
             l.locations.push_back(make_pair(loc1b,loc1a));
           }
-          cssa::variable_set vars1 = set_intersection(lookup(loc1a).variables_orig(), lookup(loc1b).variables_orig());
-          cssa::variable_set vars2 = set_intersection(lookup(loc2a).variables_orig(), lookup(loc2b).variables_orig());
+          auto vars1 = set_intersection(lookup(loc1a).variables_orig(), lookup(loc1b).variables_orig());
+          auto vars2 = set_intersection(lookup(loc2a).variables_orig(), lookup(loc2b).variables_orig());
           l.variables = set_union(vars1, vars2);
           locks.push_back(l);
           found = true;

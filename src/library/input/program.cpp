@@ -20,7 +20,6 @@
 
 #include "program.h"
 #include "helpers/helpers.h"
-#include "input/input_exception.h"
 #include <boost/iterator/iterator_concepts.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -106,7 +105,7 @@ mm_t program::get_mm() const
 //----------------------------------------------------------------------------
 
 void program::convert_instructions(z3interf& z3, hb_enc::encoding& hb_enc) {
-  variable_set all_variables = globals;
+  auto all_variables = globals;
   for (unsigned i=0; i<threads.size(); i++) {
     for( auto& local: threads[i].locals ) {
       variable v1( threads[i].name + "." + local.name, local.type );
@@ -115,7 +114,7 @@ void program::convert_instructions(z3interf& z3, hb_enc::encoding& hb_enc) {
     for (unsigned j=0; j<threads[i].size(); j++) {
       //instruction* in = instrs[i][j];
       if (shared_ptr<instruction_str> ins = dynamic_pointer_cast<instruction_str>(threads[i][j])) {
-        variable_set havok_vars;
+        input::variable_set havok_vars;
         for (string v : ins->havok_vars) {
           havok_vars.insert(find_variable(i, v));
         }
@@ -170,7 +169,7 @@ void program::convert_names(z3interf& z3, hb_enc::encoding& hb_enc)
 
         locations.push_back(loc);
       } else {
-        throw input_exception("Instruction must be Z3");
+        ctrc_input_error("Instruction must be Z3");
       }
     }
   }
@@ -179,29 +178,29 @@ void program::convert_names(z3interf& z3, hb_enc::encoding& hb_enc)
 }
 
 
-bool program::is_global(const variable& name) const
+bool program::is_global(const input::variable& name) const
 {
-  return globals.find(variable(name))!=globals.end();
+  return globals.find(input::variable(name))!=globals.end();
 }
 
 bool program::is_global(const string& name) const
 {
-  return is_global(variable(name, data_type::boolean));
+  return is_global(input::variable(name, data_type::boolean));
 }
 
-variable program::find_variable(int thread, const string& name) const
+input::variable program::find_variable(int thread, const string& name) const
 {
-  auto var = globals.find(variable(name, data_type::boolean));
+  auto var = globals.find(input::variable(name, data_type::boolean));
   if (var!=globals.end()) {
     return *var;
   }
   if (thread >= 0 && thread < (int)threads.size()) {
-    var = threads[thread].locals.find(variable(name, data_type::boolean));
+    var = threads[thread].locals.find(input::variable(name, data_type::boolean));
     if (var!=threads[thread].locals.end()) {
       return *var;
     }
   }
-  throw input_exception("Variable " + name + " is unknown");
+  ctrc_input_error("Variable " + name + " is unknown");
 }
 
 
@@ -212,7 +211,7 @@ void program::check_correctness()
   for (unsigned t=0; t<threads.size(); t++) {
     string& n = threads[t].name;
     if (thread_names.find(n) != thread_names.end()) 
-      throw input_exception("Thread name \"" + n + "\" is duplicate");
+      ctrc_input_error("Thread name \"" + n + "\" is duplicate");
     thread_names.insert(n);
     
     for (unsigned j=0; j<threads[t].size(); j++) {
@@ -220,50 +219,50 @@ void program::check_correctness()
       if (shared_ptr<instruction_z3> ins = dynamic_pointer_cast<instruction_z3>(threads[t][j])) {
         // location name
         if (loc_names.find(ins->name) != loc_names.end()) 
-          throw input_exception("Location name \"" + ins->name + "\" is duplicate");
+          ctrc_input_error("Location name \"" + ins->name + "\" is duplicate");
         loc_names.insert(ins->name);
         
         unsigned primed = 0; // count primed variables
         // variables
-        for(cssa::variable v : ins->variables()) {
+        for(auto v : ins->variables()) {
           if (is_primed(v)) primed++;
           // check no primed variables in assume and assert
           if ((ins->type==instruction_type::assume || ins->type==instruction_type::assert) && is_primed(v)) {
-            throw input_exception("Primed variables are not allowed in assumptions and assertions.");
+            ctrc_input_error("Primed variables are not allowed in assumptions and assertions.");
           }
           // check if it is declared
           v = get_unprimed(v);
           if (!is_global(v.name) && threads[t].locals.find(variable(v, data_type::boolean))==threads[t].locals.end()) {
-            throw input_exception("Variable " + v.name + " not declared");
+            ctrc_input_error("Variable " + v.name + " not declared");
           }
         }
         
-        for (cssa::variable v : ins->havok_vars) {
+        for (auto v : ins->havok_vars) {
           // check only unprimed variables in havok
           if (is_primed(v)) {
-            throw input_exception("Unprimed variables are not allowed in havok.");
+            ctrc_input_error("Unprimed variables are not allowed in havok.");
           }
           find_variable(t,v.name);
         }
         
       } else {
-        throw input_exception("Instruction not in Z3 format found");
+        ctrc_input_error("Instruction not in Z3 format found");
       }
     }
   }
   
   // check if all variables in the precondition are global
   if (shared_ptr<instruction_z3> ins = dynamic_pointer_cast<instruction_z3>(precondition)) {
-    for (const cssa::variable& v: ins->variables()) {
+    for (const auto& v: ins->variables()) {
       if (is_primed(v)) 
-        throw input_exception("Primed variable found in precondition");
+        ctrc_input_error("Primed variable found in precondition");
       if (!is_global(v)) 
-        throw input_exception("Variable \"" + v.name + "\" used in precondition, but not global");
+        ctrc_input_error("Variable \"" + v.name + "\" used in precondition, but not global");
     }   
     if (ins->havok_vars.size() > 0)
-      throw input_exception("Precondition may not havok.");
+      ctrc_input_error("Precondition may not havok.");
   } else {
-    throw input_exception("Precondition is not in Z3 format");
+    ctrc_input_error("Precondition is not in Z3 format");
   }
   
   // check if thread names are unique
@@ -271,19 +270,19 @@ void program::check_correctness()
   for (unsigned t=0; t<threads.size(); t++) {
     string& n = threads[t].name;
     if (names.find(n) != names.end()) 
-      throw input_exception("Thread name \"" + n + "\" is duplicate");
+      ctrc_input_error("Thread name \"" + n + "\" is duplicate");
     names.insert(n);
   }
   
   // check if atomic sections and happens-befores describe valid locations
   for (location_pair as: atomic_sections) {
     if (loc_names.find(get<0>(as))==loc_names.end() || loc_names.find(get<1>(as))==loc_names.end()) {
-      throw input_exception("Atomic section [" + get<0>(as) + "," + get<1>(as) + "] has unknown locations.");
+      ctrc_input_error("Atomic section [" + get<0>(as) + "," + get<1>(as) + "] has unknown locations.");
     }
   }
   for (location_pair as: happens_befores) {
     if (loc_names.find(get<0>(as))==loc_names.end() || loc_names.find(get<1>(as))==loc_names.end()) {
-      throw input_exception("Order " + get<0>(as) + "<" + get<1>(as) + " has unknown locations.");
+      ctrc_input_error("Order " + get<0>(as) + "<" + get<1>(as) + " has unknown locations.");
     }
   }
 
