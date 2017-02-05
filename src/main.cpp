@@ -39,8 +39,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <boost/bind.hpp>
 
-#include "api/arg_exception.h"
-
 using namespace std;
 using namespace tara::api;
 
@@ -106,7 +104,7 @@ void real_main(int argc, char **argv) {
 
   if ( !boost::filesystem::exists( input_path ) )
   {
-      throw arg_exception("Input file " + o.input_file + " not found");
+      arg_error("Input file " + o.input_file + " not found");
   }
 
   //boost::filesystem::remove_all(o.output_dir);
