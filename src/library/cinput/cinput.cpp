@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, IST Austria
+ * Copyright 2017, TIFR
  *
  * This file is part of TARA.
  *
@@ -73,6 +73,7 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
+//todo: directly conver c to object file without creating bc file
 void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;

@@ -42,9 +42,6 @@
 using namespace std;
 using namespace tara::api;
 
-//---------------------------------------------
-// gdb workaround, ask Ashutosh
-ostream mout(cerr.rdbuf());
 
 void copy_to_output(istream& in, ostream& display, ostream& file, const string& comment_symbol) {
   string line;
@@ -109,7 +106,7 @@ void real_main(int argc, char **argv) {
 
   //boost::filesystem::remove_all(o.output_dir);
   //boost::filesystem::create_directories(o.output_dir);
-  
+
   ofstream file_out;
   if (o.output_to_file) {
     //========================================================================
@@ -175,14 +172,14 @@ void real_main(int argc, char **argv) {
     if (ambigious.size() > 0) {
       cerr << "WARNING: Some traces are good and bad depending on input variables:" << endl;
       cerr << "   ";
-      for (string a : ambigious) 
+      for (string a : ambigious)
         cerr << a << " ";
       cerr << endl;
     } else {
       cerr << "WARNING: Some traces are good and bad depending on other sources of non-determinism." << endl;
     }
   }*/
-  
+
   bool synthesis = o.mode == modes::synthesis;
   bool fsynth = o.mode == modes::fsynth;
   bool bugs = o.mode == modes::bugs;
@@ -196,47 +193,26 @@ void real_main(int argc, char **argv) {
       if (o.mode_options.size()>0 && o.mode_options[0]=="smt") {
         output = unique_ptr<output::output_base>(new output::smt(o,z3));
       } if (synthesis||bugs||fsynth) {
-        // bool verify = false;
-        // bool print_nfs = false;
-        // for (string p : o.mode_options) {
-        //   if (p=="verify") verify = true;
-        //   else if (p=="nfs") print_nfs = true;
-        // }
         output =
             fsynth    ? unique_ptr<output::output_base>(new output::fence_synth(o,z3))
           : synthesis ? unique_ptr<output::output_base>( new output::synthesis(o,z3) )
           :             unique_ptr<output::output_base>( new output::bugs(o, z3)     );
       } else {
-        // bool bad_dnf = false;
-        // bool bad_cnf = false;
-        // bool good_dnf = false;
-        // bool good_cnf = false;
-        // bool verify = false;
-        // bool no_opt = false;
-        // for (string p : o.mode_options) {
-          // if      (p== "bad_dnf" ) bad_dnf = true;
-          // else if (p== "bad_cnf" ) bad_cnf = true;
-          // else if (p== "good_dnf") good_dnf = true;
-          // else if (p== "good_cnf") good_cnf = true;
-          // else if (p== "verify"  ) verify = true;
-          // else if (p=="noopt") no_opt = true;
-        //   else if (p=="silent") silent = true;
-        // }
         silent = o.has_sub_option( "silent" );
         // if (!bad_dnf && !bad_cnf && !good_dnf && !good_cnf) { bad_dnf=true;}
         output = unique_ptr<output::output_base>( new output::nf(o,z3) );
       }
-            
+
       trace_result res = ts.seperate(*output, run_metric);
       o.out() << endl;
 
       switch (res) {
-        case trace_result::undecided: 
+        case trace_result::undecided:
           resultbuf << "Solver undecided." << endl;
           if (o.machine)
             cout << "undecided" << endl;
           break;
-        case trace_result::always: 
+        case trace_result::always:
           resultbuf << "All traces are bad or infeasable." << endl;
           if (o.machine)
             cout << "true" << endl;
@@ -247,7 +223,7 @@ void real_main(int argc, char **argv) {
         case trace_result::depends:{
           output->gather_statistics(run_metric);
           resultbuf << "Final result" << endl;
-          if (!silent) {         
+          if (!silent) {
             resultbuf << *output;
             if (o.machine)
               output->print(cout, true);
@@ -256,11 +232,11 @@ void real_main(int argc, char **argv) {
       }
       break;
     }
-    
+
     case modes::as: {
       vector<tara::hb_enc::as> res_as;
       bool success_as = ts.atomic_sections(res_as);
-      
+
       if (!success_as)
         resultbuf << "Atomic sections cannot fix the program" << endl;
       else {
@@ -269,9 +245,9 @@ void real_main(int argc, char **argv) {
       }
     }
   }
-  
 
-  
+
+
   copy_to_output(resultbuf, o.out(), file_out, "# ");
   if (o.output_to_file) {
     file_out.close();
@@ -290,9 +266,9 @@ int main(int argc, char **argv) {
   signals.async_wait(handler);
   std::thread runner = std::thread(boost::bind(&boost::asio::io_service::run, &io_service));
   //runner.detach();
-  
+
   int retval = 0;
-  
+
   try {
     real_main(argc, argv);
   }
@@ -300,7 +276,7 @@ int main(int argc, char **argv) {
     cerr << "Error: " << e.what() << endl;
     retval = 1;
   }
-  
+
   io_service.stop();
   runner.join();
   return retval;

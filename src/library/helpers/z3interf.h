@@ -54,7 +54,7 @@ private:
   // hb_enc::integer _hb_encoding = hb_enc::integer(c);
 
   //
-  // functions for fu-malik maxsat
+  // functions for internal fu-malik maxsat
   //
   void assert_soft_constraints( z3::solver&s , std::vector<z3::expr>& cnstrs,
                                 std::vector<z3::expr>& aux_vars );
