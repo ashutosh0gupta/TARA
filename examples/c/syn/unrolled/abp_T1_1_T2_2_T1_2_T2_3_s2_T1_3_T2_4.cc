@@ -40,7 +40,7 @@ void p0(void *arg)
         if( lAck == lSSt ){
             lSSt = ! lSSt;
             ++lSCnt;
-            store(&Msg, lSSt, std::memory_order_seq_cst);
+            store(&Msg, lSSt, std::memory_order_relaxed);
             //point to check invariant
             model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
@@ -56,7 +56,7 @@ void p1(void *arg)
     bool lRSt = false;
     while(++i_t2 <= t2_loop_itr_bnd){
         //while(true){
-        lMsg = load(&Msg,  std::memory_order_seq_cst);
+        lMsg = load(&Msg,  std::memory_order_relaxed);
         if( lMsg != lRSt ){
             lRSt = lMsg;
             ++lRCnt;

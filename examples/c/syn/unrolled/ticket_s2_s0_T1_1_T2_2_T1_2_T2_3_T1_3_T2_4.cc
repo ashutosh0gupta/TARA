@@ -24,7 +24,7 @@ void p0(void *arg)
     while(++i_t1 <= t1_loop_itr_bnd){
         
         int t1q = fetch_add(&que, 1, std::memory_order_seq_cst);
-        while (t1q != load(&deq, std::memory_order_seq_cst)){
+        while (t1q != load(&deq, std::memory_order_relaxed)){
             thrd_yield();
         }
         // critical section
@@ -32,7 +32,7 @@ void p0(void *arg)
 
         int t1deq = load(&deq,  std::memory_order_relaxed);
         ++t1deq;
-        store(&deq, t1deq, std::memory_order_seq_cst);
+        store(&deq, t1deq, std::memory_order_relaxed);
     }
 }
 
@@ -43,7 +43,7 @@ void p1(void *arg)
     while(++i_t2 <= t2_loop_itr_bnd){
 
         int t2q = fetch_add(&que, 1, std::memory_order_seq_cst);
-        while (t2q != load(&deq, std::memory_order_seq_cst)){
+        while (t2q != load(&deq, std::memory_order_relaxed)){
             thrd_yield();
         }
         // critical section
@@ -51,7 +51,7 @@ void p1(void *arg)
 
         int t2deq = load(&deq,  std::memory_order_relaxed);
         ++t2deq;
-        store(&deq, t2deq, std::memory_order_seq_cst);
+        store(&deq, t2deq, std::memory_order_relaxed);
     }
 }
 

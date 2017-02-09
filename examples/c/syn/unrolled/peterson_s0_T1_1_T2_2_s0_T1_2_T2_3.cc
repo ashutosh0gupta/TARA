@@ -23,12 +23,12 @@ void p0(void *arg)
     int t1_loop_itr_bnd = 3; // 2; // 1;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
-        store(&flag0, true, std::memory_order_seq_cst);
-        store(&turn, 1, std::memory_order_seq_cst);
+        store(&flag0, true, std::memory_order_relaxed);
+        store(&turn, 1, std::memory_order_relaxed);
 
         int loop_bnd = 0;
-        while (load(&flag1, std::memory_order_seq_cst)
-                && 1 ==load(&turn, std::memory_order_seq_cst)
+        while (load(&flag1, std::memory_order_relaxed)
+                && 1 ==load(&turn, std::memory_order_relaxed)
                 && ++loop_bnd <= 2){
             thrd_yield();
         }
@@ -37,7 +37,7 @@ void p0(void *arg)
         // critical section
         store_32(&critical_section, 1);
 
-        store(&flag0, false,std::memory_order_seq_cst);
+        store(&flag0, false,std::memory_order_relaxed);
     }
 }
 
@@ -46,12 +46,12 @@ void p1(void *arg)
     int t2_loop_itr_bnd = 3; // 2; // 1;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
-        store(&flag1, true,std::memory_order_seq_cst);
-        store(&turn, 0, std::memory_order_seq_cst);
+        store(&flag1, true,std::memory_order_relaxed);
+        store(&turn, 0, std::memory_order_relaxed);
 
         int loop_bnd = 0;
-        while (load(&flag0, std::memory_order_seq_cst)
-        		&& load(&turn, std::memory_order_seq_cst)==0
+        while (load(&flag0, std::memory_order_relaxed)
+        		&& load(&turn, std::memory_order_relaxed)==0
                 && ++loop_bnd <= 2){
             thrd_yield();
         }
@@ -61,7 +61,7 @@ void p1(void *arg)
         store_32(&critical_section, 2);
 
         //std::atomic_thread_fence release);
-        store(&flag1, false,std::memory_order_release);
+        store(&flag1, false,std::memory_order_relaxed);
     }
 }
 

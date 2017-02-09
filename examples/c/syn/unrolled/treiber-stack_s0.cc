@@ -127,10 +127,10 @@ void push(stack_t *s, unsigned int val) {
 	bool success;
 	while (true) {
 		// acquire
-		oldTop = load(&s->top, memory_order_acquire);
+		oldTop = load(&s->top, memory_order_relaxed);
 		newTop = MAKE_POINTER(nodeIdx, get_count(oldTop) + 1);
 		// relaxed
-		store(&node->next, oldTop, memory_order_release);
+		store(&node->next, oldTop, memory_order_relaxed);
 
 		// release & relaxed
 		success = compare_exchange_strong(&s->top, &oldTop,
@@ -148,7 +148,7 @@ unsigned int pop(stack_t *s)
 	int val;
 	while (true) {
 		// acquire
-		oldTop = load(&s->top, memory_order_acquire);
+		oldTop = load(&s->top, memory_order_relaxed);
 		if (get_ptr(oldTop) == 0)
 			return 0;
 		node = &s->nodes[get_ptr(oldTop)];
@@ -196,10 +196,10 @@ static void main_task(void *param)
 	int pid = *((int *)param);
 
 	if (pid % 4 == 0) {
-		store(&x[1], 17, memory_order_release);
+		store(&x[1], 17, memory_order_relaxed);
 		push(stack, 1);
 	} else if (pid % 4 == 1) {
-		store(&x[2], 37, memory_order_release);
+		store(&x[2], 37, memory_order_relaxed);
 		push(stack, 2);
 	} else if (pid % 4 == 2) {
 		idx1 = pop(stack);

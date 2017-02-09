@@ -30,11 +30,11 @@ void p0(void *arg)
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
 		//while(true){
-		store(&Q0, true, std::memory_order_seq_cst);
-		int local = load(&R1,  std::memory_order_seq_cst);
-		store(&R0, local,  std::memory_order_seq_cst);
+		store(&Q0, true, std::memory_order_relaxed);
+		int local = load(&R1,  std::memory_order_relaxed);
+		store(&R0, local,  std::memory_order_relaxed);
 		int loop_bnd = 0;
-		while(load(&Q1, std::memory_order_seq_cst) && local == load(&R1, std::memory_order_seq_cst) &&
+		while(load(&Q1, std::memory_order_relaxed) && local == load(&R1, std::memory_order_relaxed) &&
 			++loop_bnd <= 2){
 			thrd_yield();
 		}
@@ -42,7 +42,7 @@ void p0(void *arg)
 
 		store_32(&critical_section, 1); //  critical section
 
-		store(&Q0, false,  std::memory_order_seq_cst)
+		store(&Q0, false,  std::memory_order_relaxed)
 
 	//}end while true
 	}
@@ -54,11 +54,11 @@ void p1(void *arg)
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
 	//while(true){
-		store(&Q1, true, std::memory_order_seq_cst);
-		int local = 1 - load(&R0,  std::memory_order_seq_cst);
-		store(&R1, local, std::memory_order_seq_cst);
+		store(&Q1, true, std::memory_order_relaxed);
+		int local = 1 - load(&R0,  std::memory_order_relaxed);
+		store(&R1, local, std::memory_order_relaxed);
 		int loop_bnd = 0;
-		while( load(&Q0, std::memory_order_seq_cst) && local == 1 - load(&R0, std::memory_order_seq_cst) 
+		while( load(&Q0, std::memory_order_relaxed) && local == 1 - load(&R0, std::memory_order_relaxed) 
 			&& (++loop_bnd <= 2)){ 
 			thrd_yield(); 
 		}
@@ -67,7 +67,7 @@ void p1(void *arg)
 		store_32(&critical_section, 1); //  critical section
 		
 
-		store(&Q1, false,  std::memory_order_seq_cst)
+		store(&Q1, false,  std::memory_order_relaxed)
 	}
 	//}end while true
 }

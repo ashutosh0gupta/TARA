@@ -36,7 +36,7 @@ void p0(void *arg)
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
         //while(true){
-        lAck = load(&Ack,  std::memory_order_seq_cst);
+        lAck = load(&Ack,  std::memory_order_relaxed);
         if( lAck == lSSt ){
             lSSt = ! lSSt;
             ++lSCnt;
@@ -60,7 +60,7 @@ void p1(void *arg)
         if( lMsg != lRSt ){
             lRSt = lMsg;
             ++lRCnt;
-            store(&Ack, lRSt, std::memory_order_seq_cst);
+            store(&Ack, lRSt, std::memory_order_relaxed);
             //point to check invariant
             model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );

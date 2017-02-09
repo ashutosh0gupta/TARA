@@ -43,12 +43,12 @@ static void r(void *obj)
     int t1_loop_itr_bnd = 3; // 2; // 1;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
-        int b = load(&gate, memory_order_acquire);
+        int b = load(&gate, memory_order_relaxed);
         fetch_add(&(readers[b]), 1, memory_order_seq_cst);
 
-        r1 = load(&x, memory_order_seq_cst);
+        r1 = load(&x, memory_order_relaxed);
         if (r1)
-            r2 = load(&y, memory_order_acquire);
+            r2 = load(&y, memory_order_relaxed);
 
         fetch_add(&(readers[b]), -1, memory_order_relaxed);
     }
@@ -60,15 +60,15 @@ static void w(void *obj)
     int t2_loop_itr_bnd = 3; // 2; // 1;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
-       store(&x, 0, memory_order_seq_cst); // disconnect node
+       store(&x, 0, memory_order_relaxed); // disconnect node
 
        // wait-for-readers
        int g = load(&gate, memory_order_relaxed);
        while (load(&(readers[1-g]), memory_order_relaxed) != 0) thrd_yield();
-       store(&gate, 1-g, memory_order_release);
-       while (load(&(readers[g]), memory_order_seq_cst) != 0) thrd_yield(); //was acquire
+       store(&gate, 1-g, memory_order_relaxed);
+       while (load(&(readers[g]), memory_order_relaxed) != 0) thrd_yield(); //was acquire
 
-       store(&y, 2, memory_order_release); // free
+       store(&y, 2, memory_order_relaxed); // free
    }
 }
 

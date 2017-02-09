@@ -42,7 +42,7 @@ static void r(void *obj)
     while(++i_t1 <= t1_loop_itr_bnd){
         fetch_add(&readers, 1, memory_order_seq_cst);
 
-        r1 = load(&x, memory_order_seq_cst);
+        r1 = load(&x, memory_order_relaxed);
         if (r1){
             r2 = load(&y, memory_order_relaxed);
             MODEL_ASSERT(!(r1 == 1 && r2 == 2));
@@ -57,14 +57,14 @@ static void w(void *obj)
     int t2_loop_itr_bnd = 2; // 1;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
-        store(&x, 0, memory_order_seq_cst); // disconnect node
+        store(&x, 0, memory_order_relaxed); // disconnect node
         
         // wait-for-readers
-        while (load(&readers, memory_order_seq_cst) != 0){
+        while (load(&readers, memory_order_relaxed) != 0){
             thrd_yield();
         }
 
-        store(&y, 2, memory_order_seq_cst); // free
+        store(&y, 2, memory_order_relaxed); // free
     }
 }
 

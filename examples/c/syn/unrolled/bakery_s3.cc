@@ -29,21 +29,21 @@ void p1(void *arg)
     int t1_loop_itr_bnd = 1;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){    //while(true){
-        store(&Ch1, 1, std::memory_order_seq_cst);
-        int t12 = load(&Y2,  std::memory_order_seq_cst);
+        store(&Ch1, 1, std::memory_order_relaxed);
+        int t12 = load(&Y2,  std::memory_order_relaxed);
         t12 = t12 + 1;
-        store(&Y1, t12,  std::memory_order_seq_cst)
-        store(&Ch1, 0, std::memory_order_seq_cst);
+        store(&Y1, t12,  std::memory_order_relaxed)
+        store(&Ch1, 0, std::memory_order_relaxed);
 
-        while(1 == load(&Ch2, std::memory_order_seq_cst)) thrd_yield();
+        while(1 == load(&Ch2, std::memory_order_relaxed)) thrd_yield();
 
         int t14;
 
-        while(0 < (t14 = load(&Y2,  std::memory_order_acquire)) && t12 >= t14) thrd_yield();
+        while(0 < (t14 = load(&Y2,  std::memory_order_relaxed)) && t12 >= t14) thrd_yield();
 
         store_32(&critical_section, 1);
 
-        store(&Y1, 0,  std::memory_order_seq_cst)
+        store(&Y1, 0,  std::memory_order_relaxed)
 
     }//}end while true
 }
@@ -54,21 +54,21 @@ void p2(void *arg)
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
         //while(true){
-        store(&Ch2, 1, std::memory_order_seq_cst);
-        int t21 = load(&Y1,  std::memory_order_seq_cst);
+        store(&Ch2, 1, std::memory_order_relaxed);
+        int t21 = load(&Y1,  std::memory_order_relaxed);
         t21 = t21 + 1;
-        store(&Y2, t21,  std::memory_order_seq_cst)
-        store(&Ch2, 0, std::memory_order_seq_cst);
+        store(&Y2, t21,  std::memory_order_relaxed)
+        store(&Ch2, 0, std::memory_order_relaxed);
 
-        while(1 == load(&Ch1, std::memory_order_seq_cst))     thrd_yield();
+        while(1 == load(&Ch1, std::memory_order_relaxed))     thrd_yield();
 
         int t24;
 
-        while(0 < (t24 = load(&Y1,  std::memory_order_seq_cst)) && t21 > t24) thrd_yield();
+        while(0 < (t24 = load(&Y1,  std::memory_order_relaxed)) && t21 > t24) thrd_yield();
 
         store_32(&critical_section, 1);
 
-        store(&Y2, 0,  std::memory_order_release)
+        store(&Y2, 0,  std::memory_order_relaxed)
     }//}end while true
 }
 
