@@ -44,13 +44,13 @@ static void r(void *obj)
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
         int b = load(&gate, memory_order_relaxed);
-        fetch_add(&(readers[b]), 1, memory_order_seq_cst);
+        fetch_add(&(readers[b]), 1, memory_order_relaxed);
 
         r1 = load(&x, memory_order_relaxed);
         if (r1)
             r2 = load(&y, memory_order_relaxed);
 
-        fetch_add(&(readers[b]), -1, memory_order_seq_cst);
+        fetch_add(&(readers[b]), -1, memory_order_relaxed);
     }
 
 }

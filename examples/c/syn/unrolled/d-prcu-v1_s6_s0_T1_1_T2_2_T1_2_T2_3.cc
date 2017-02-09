@@ -40,7 +40,7 @@ static void r(void *obj)
     int t1_loop_itr_bnd = 3; // 2; // 1;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
-        fetch_add(&readers, 1, memory_order_seq_cst);
+        fetch_add(&readers, 1, memory_order_relaxed);
 
         r1 = load(&x, memory_order_relaxed);
         if (r1){

@@ -134,7 +134,7 @@ void push(stack_t *s, unsigned int val) {
 
 		// release & relaxed
 		success = compare_exchange_strong(&s->top, &oldTop,
-			newTop, memory_order_acq_rel, memory_order_acq_rel);
+			newTop, memory_order_relaxed, memory_order_relaxed);
 		if (success)
 			break;
 	} 
@@ -156,7 +156,7 @@ unsigned int pop(stack_t *s)
 		next = load(&node->next, memory_order_relaxed);
 		newTop = MAKE_POINTER(get_ptr(next), get_count(oldTop) + 1);
 		// release & relaxed
-		success = compare_exchange_strong(&s->top, &oldTop, newTop, memory_order_release, memory_order_release);
+		success = compare_exchange_strong(&s->top, &oldTop, newTop, memory_order_relaxed, memory_order_relaxed);
 		if (success)
 			break;
 	}

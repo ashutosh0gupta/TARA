@@ -40,7 +40,7 @@ static void r(void *obj)
     int t1_loop_itr_bnd = 1;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
-        fetch_add(&readers, 1, memory_order_seq_cst);
+        fetch_add(&readers, 1, memory_order_relaxed);
 
         r1 = load(&x, memory_order_relaxed);
         if (r1){
@@ -48,7 +48,7 @@ static void r(void *obj)
             MODEL_ASSERT(!(r1 == 1 && r2 == 2));
         }
 
-        fetch_add(&readers, -1, memory_order_release);
+        fetch_add(&readers, -1, memory_order_relaxed);
     }
 }
 

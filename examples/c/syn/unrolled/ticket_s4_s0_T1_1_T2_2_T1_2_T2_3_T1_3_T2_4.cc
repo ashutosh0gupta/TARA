@@ -23,7 +23,7 @@ void p0(void *arg)
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
         
-        int t1q = fetch_add(&que, 1, std::memory_order_seq_cst);
+        int t1q = fetch_add(&que, 1, std::memory_order_relaxed);
         while (t1q != load(&deq, std::memory_order_relaxed)){
             thrd_yield();
         }
@@ -42,7 +42,7 @@ void p1(void *arg)
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
 
-        int t2q = fetch_add(&que, 1, std::memory_order_seq_cst);
+        int t2q = fetch_add(&que, 1, std::memory_order_relaxed);
         while (t2q != load(&deq, std::memory_order_relaxed)){
             thrd_yield();
         }
