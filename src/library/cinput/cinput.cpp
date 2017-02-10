@@ -77,7 +77,7 @@ using namespace tara::helpers;
 void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
-  cmd << "clang-3.6 -emit-llvm -O0 -g " << filename << " -o " << outname << " -c";
+  cmd << "clang-3.6 -emit-llvm -O0 -g -std=c++11 " << filename << " -o " << outname << " -c";
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 

@@ -9,7 +9,7 @@
  */
 
 #include <atomic>
-#include <threads.h>
+#include "threads.h"
 #include <assert.h>
 #include <stdlib.h>/* srand, rand */
 #include <time.h>       /* time */
@@ -29,7 +29,7 @@ int lSCnt = 0;
  * */
 
 
-void p0(void *arg)
+void * p0(void *arg)
 {
     bool lSSt = false;
     int t1_loop_itr_bnd = 2; // 1;
@@ -42,13 +42,13 @@ void p0(void *arg)
             ++lSCnt;
             store(&Msg, lSSt, std::memory_order_relaxed);
             //point to check invariant
-            model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
+            //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
         }
     }//}end while true
 }
 
-void p1(void *arg)
+void * p1(void *arg)
 {
 
     int t2_loop_itr_bnd = 2; // 1;
@@ -62,13 +62,13 @@ void p1(void *arg)
             ++lRCnt;
             store(&Ack, lRSt, std::memory_order_relaxed);
             //point to check invariant
-            model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
+            //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
         }
     }//}end while true
 }
 
-int user_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     thrd_t a, b;
     /* initialize random seed: */
@@ -82,7 +82,7 @@ int user_main(int argc, char **argv)
     thrd_join(a);
     thrd_join(b);
 
-    //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
+    ////model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
     //MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
     return 0;
 }

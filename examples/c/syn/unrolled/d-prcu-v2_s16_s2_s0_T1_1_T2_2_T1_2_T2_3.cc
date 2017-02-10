@@ -21,7 +21,7 @@
 // The assertion is that the reader cannot access a freed node.
 //
 #include <stdio.h>
-#include <threads.h>
+#include "threads.h"
 #include <stdatomic.h>
 #include <model-assert.h>
 
@@ -38,7 +38,7 @@ atomic<int> y("y");
 
 int r1, r2;
 
-static void r(void *obj)
+static void * r(void *obj)
 {
     int t1_loop_itr_bnd = 3; // 2; // 1;
     int i_t1 = 0;
@@ -55,7 +55,7 @@ static void r(void *obj)
 
 }
 
-static void w(void *obj)
+static void * w(void *obj)
 {
     int t2_loop_itr_bnd = 3; // 2; // 1;
     int i_t2 = 0;
@@ -72,7 +72,7 @@ static void w(void *obj)
    }
 }
 
-int user_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	thrd_t t1, t2;
 

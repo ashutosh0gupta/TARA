@@ -1,6 +1,6 @@
 // Examples borrowed from http://www.practicalsynthesis.org/PSynSyn.html
 
-#include <threads.h>
+#include "threads.h"
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <stdio.h>
@@ -30,8 +30,8 @@ typedef atomic_ullong pointer_t;
 #define PTR_MASK 0xffffffffLL
 #define COUNT_MASK (0xffffffffLL << 32)
 
-static inline void set_count(pointer *p, unsigned int val) { *p = (*p & ~COUNT_MASK) | ((pointer)val << 32); }
-static inline void set_ptr(pointer *p, unsigned int val) { *p = (*p & ~PTR_MASK) | val; }
+static inline void * set_count(pointer *p, unsigned int val) { *p = (*p & ~COUNT_MASK) | ((pointer)val << 32); }
+static inline void * set_ptr(pointer *p, unsigned int val) { *p = (*p & ~PTR_MASK) | val; }
 static inline unsigned int get_count(pointer p) { return (p & COUNT_MASK) >> 32; }
 static inline unsigned int get_ptr(pointer p) { return p & PTR_MASK; }
 
@@ -46,8 +46,8 @@ typedef struct {
 	node_t nodes[MAX_NODES + 1];
 } stack_t;
 
-void init_stack(stack_t *s, int num_threads);
-void push(stack_t *s, unsigned int val);
+void * init_stack(stack_t *s, int num_threads);
+void * push(stack_t *s, unsigned int val);
 unsigned int pop(stack_t *s);
 int get_thread_num();
 
@@ -72,7 +72,7 @@ static unsigned int new_node()
 }
 
 /* Place this node index back on this thread's free list */
-static void reclaim(unsigned int node)
+static void * reclaim(unsigned int node)
 {
 	int i;
 	int t = get_thread_num();
@@ -96,7 +96,7 @@ static void reclaim(unsigned int node)
 	MODEL_ASSERT(0);
 }
 
-void init_stack(stack_t *s, int num_threads)
+void * init_stack(stack_t *s, int num_threads)
 {
 	int i, j;
 
@@ -119,7 +119,7 @@ void init_stack(stack_t *s, int num_threads)
 
 }
 
-void push(stack_t *s, unsigned int val) {
+void * push(stack_t *s, unsigned int val) {
 	unsigned int nodeIdx = new_node();
 	node_t *node = &s->nodes[nodeIdx];
 	node->value = val;
@@ -190,7 +190,7 @@ int get_thread_num()
 	return -1;
 }
 
-static void main_task(void *param)
+static void * main_task(void *param)
 {
 	unsigned int val;
 	int pid = *((int *)param);
@@ -216,7 +216,7 @@ static void main_task(void *param)
 	}
 }
 
-int user_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	int i;
 	int *param;

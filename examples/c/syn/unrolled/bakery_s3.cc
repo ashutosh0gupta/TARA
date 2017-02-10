@@ -9,7 +9,7 @@
  */
 
 #include <atomic>
-#include <threads.h>
+#include "threads.h"
 #include <assert.h>
 
 #include "librace.h"
@@ -23,7 +23,7 @@ uint32_t critical_section = 0;
  * */
 
 
-void p1(void *arg)
+void * p1(void *arg)
 {
 
     int t1_loop_itr_bnd = 1;
@@ -48,7 +48,7 @@ void p1(void *arg)
     }//}end while true
 }
 
-void p2(void *arg)
+void * p2(void *arg)
 {
     int t2_loop_itr_bnd = 1;
     int i_t2 = 0;
@@ -72,7 +72,7 @@ void p2(void *arg)
     }//}end while true
 }
 
-int user_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     thrd_t a, b;
 

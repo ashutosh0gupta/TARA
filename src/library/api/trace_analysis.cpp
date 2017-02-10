@@ -48,7 +48,8 @@ trace_analysis::trace_analysis(options& options, helpers::z3interf& _z3) :
 
 // void trace_analysis::input(string input_file, mm_t mm) {
 void trace_analysis::input(string input_file) {
-  if( has_suffix(input_file, ".c" ) || has_suffix(input_file, ".cpp" ) ) {
+  if( has_suffix( input_file, ".c" ) ||
+      has_suffix( input_file, ".cpp" ) || has_suffix( input_file, ".cc" ) ) {
 
     program = unique_ptr<tara::program>(cinput::parse_cpp_file( z3, _options,
                                                                 hb_encoding,
@@ -58,12 +59,14 @@ void trace_analysis::input(string input_file) {
     }else{
       trace_error( "cinput and no memory model specified!!" );
     }
-  }else{
+  }else if( has_suffix( input_file, ".ctrc" ) ) {
     program = unique_ptr<ctrc::program>(ctrc_input::parse_ctrc_file(z3,_options,
                                                                     hb_encoding,
                                                                     input_file ));
+  }else{
+    trace_error( "a file with unknown extensition passed!!" );
   }
-
+  
   if( program->is_mm_declared() ) {
     cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
     mk_cons.run();

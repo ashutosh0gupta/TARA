@@ -8,7 +8,7 @@
  */
 
 #include <atomic>
-#include <threads.h>
+#include "threads.h"
 
 #include "librace.h"
 #include "mem_op_macros.h"
@@ -17,7 +17,7 @@ std::atomic<int> que("queu"), deq("deq");
 
 uint32_t critical_section = 0;
 
-void p0(void *arg)
+void * p0(void *arg)
 {
     int t1_loop_itr_bnd = 2; // 1;
     int i_t1 = 0;
@@ -36,7 +36,7 @@ void p0(void *arg)
     }
 }
 
-void p1(void *arg)
+void * p1(void *arg)
 {
     int t2_loop_itr_bnd = 2; // 1;
     int i_t2 = 0;
@@ -55,7 +55,7 @@ void p1(void *arg)
     }
 }
 
-int user_main(int argc, char **argv)
+int main(int argc, char **argv)
 {
     thrd_t a, b;
 
