@@ -2,7 +2,26 @@ cmake_minimum_required(VERSION 2.8.7)
 
 project(TARA)
 
-find_package(LLVM REQUIRED CONFIG)
+SET (LLVM_DEBUG FALSE CACHE BOOL "Use Locally compiled and debug enabled LLVM")
+SET (Z3_DEBUG FALSE CACHE BOOL "Link debug verion of Z3")
+
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+    message("debug mode")
+    SET (LLVM_DEBUG TRUE)
+    SET (Z3_DEBUG TRUE)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
+message(STATUS "DEBUG : LLVM - ${LLVM_DEBUG}, Z3 - ${Z3_DEBUG} ")
+
+IF(LLVM_DEBUG)
+  # SET ( CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/../llvm/share/llvm/cmake" )
+  # message(STATUS "Module paths ${CMAKE_MODULE_PATH}")
+  find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH HINTS "${PROJECT_BINARY_DIR}/../llvm-${LLVM_VERSION}/share/llvm/cmake")
+ELSE(LLVM_DEBUG)
+  find_package(LLVM REQUIRED CONFIG)
+ENDIF(LLVM_DEBUG)
+
+
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
@@ -27,7 +46,6 @@ find_package(Boost 1.52.0 COMPONENTS regex program_options system filesystem REQ
 find_package (Threads)
 
 SET (HB_UNICODE TRUE CACHE BOOL "Enable unicode output")
-SET (Z3_DEBUG FALSE CACHE BOOL "Link debug verion of Z3")
 
 IF(Z3_DEBUG)
   LINK_DIRECTORIES("${PROJECT_BINARY_DIR}/../z3/buildd")
@@ -49,7 +67,11 @@ LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
-llvm_map_components_to_libnames(llvm_libs aarch64 aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis arm armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core cppbackend cppbackendcodegen cppbackendinfo debuginfo executionengine hexagon hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipa ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mips mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430 msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptx nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpc powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata r600 r600asmparser r600asmprinter r600codegen r600desc r600info runtimedyld scalaropts selectiondag sparc sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+# IF(LLVM_DEBUG)
+#   llvm_map_components_to_libnames(llvm_libs aarch64 aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis arm armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core cppbackend cppbackendcodegen cppbackendinfo executionengine hexagon hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mips mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430 msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptx nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpc powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata runtimedyld scalaropts selectiondag sparc sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+# ELSE(LLVM_DEBUG)
+  llvm_map_components_to_libnames(llvm_libs aarch64 aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis arm armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core cppbackend cppbackendcodegen cppbackendinfo debuginfo executionengine hexagon hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipa ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mips mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430 msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptx nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpc powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata r600 r600asmparser r600asmprinter r600codegen r600desc r600info runtimedyld scalaropts selectiondag sparc sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+# ENDIF(LLVM_DEBUG)
 # engine 
 
 LINK_DIRECTORIES(${LLVM_LIBRARY_DIRS})

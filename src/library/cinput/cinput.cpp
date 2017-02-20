@@ -42,7 +42,8 @@ using namespace tara::helpers;
 
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Pass.h"
-#include "llvm/PassManager.h"
+// #include "llvm/PassManager.h" // 3.6
+#include "llvm/IR/PassManager.h"
 #include "llvm/IR/DebugInfo.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/LLVMContext.h"
@@ -56,7 +57,7 @@ using namespace tara::helpers;
 
 
 #include "llvm/IRReader/IRReader.h"
-// #include "llvm/Support/Debug.h"
+#include "llvm/Support/Debug.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
@@ -100,7 +101,8 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
   llvm::LLVMContext& context = llvm::getGlobalContext();
-  llvm::PassManager passMan;
+  //llvm::PassManager passMan; // 3.6
+  llvm::legacy::PassManager passMan;
   llvm::PassRegistry& reg = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeAnalysis(reg);
 
@@ -129,13 +131,12 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
     iter_glb != end_glb; ++iter_glb ) {
-    llvm::GlobalVariable* glb = iter_glb;
+    llvm::GlobalVariable* glb = &*iter_glb; //3.8
     const std::string gvar = (std::string)(glb->getName());
     llvm::Type* ty = glb->getType();
     if( o.print_input  > 0 ) {
       llvm::outs() << "Global : " ;
-      glb->print( llvm::outs() );
-      llvm::outs() << "\n";
+      glb->print( llvm::outs() ); llvm::outs() << "\n";
       //ty->print( llvm::outs() ); llvm::outs() << " "
     }
     if( auto pty = llvm::dyn_cast<llvm::PointerType>(ty) ) {
@@ -151,12 +152,20 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
+  // llvm::DebugFlag = true;
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
+  passMan.add( llvm::createLoopUnrollPass( 100, 3 ) );
   passMan.add( new SplitAtAssumePass() );
-  // passMan.add( llvm::createCFGPrinterPass() );
+#ifndef NDEBUG
+  if( 0 ) {
+    // define a dumping folder
+    passMan.add( llvm::createCFGPrinterPass() );
+  }
+#endif
   auto build_p = new build_program( z3_, o, hb_encoding, p );
   passMan.add( build_p );
+
   passMan.run( *module.get() );
 
   for( const auto& g : p->globals ) {

@@ -117,7 +117,7 @@ public:
   void find_cycles( const hb_enc::hb_vec& c, std::vector<cycle>& cycles );
 
   const tara::program* program;
-
+  int verbose = 0;
 private:
   typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
   const helpers::z3interf& z3;

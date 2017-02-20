@@ -7,7 +7,10 @@ extern "C" {
 // #include <stdbool.h>
 #endif
 
-#define MODEL_ASSERT(expr) assert( (expr) )
+void assume( bool );
+void assert( bool );
+
+#define MODEL_ASSERT(expr) assert( expr )
 
 #if __cplusplus
 }

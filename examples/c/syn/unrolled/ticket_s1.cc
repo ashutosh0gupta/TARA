@@ -34,7 +34,7 @@ void * p0(void *arg)
         ++t1deq;
         store(&deq, t1deq, std::memory_order_relaxed);
     }
-}
+return NULL;}
 
 void * p1(void *arg)
 {
@@ -53,7 +53,7 @@ void * p1(void *arg)
         ++t2deq;
         store(&deq, t2deq, std::memory_order_relaxed);
     }
-}
+return NULL;}
 
 int main(int argc, char **argv)
 {

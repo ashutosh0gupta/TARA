@@ -10,7 +10,7 @@
 
 #include <atomic>
 #include "threads.h"
-#include <assert.h>
+// #include <assert.h>
 #include <stdlib.h>/* srand, rand */
 #include <time.h>       /* time */
 
@@ -18,7 +18,8 @@
 #include "mem_op_macros.h"
 #include "model-assert.h"
 
-std::atomic<bool> Msg("Msg"), Ack("Ack");
+// std::atomic<bool> Msg("Msg"), Ack("Ack");
+atomic_bool Msg("Msg"), Ack("Ack");
 
 
 bool lAck, lMsg;
@@ -46,7 +47,7 @@ void * p0(void *arg)
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
         }
     }//}end while true
-}
+return NULL;}
 
 void * p1(void *arg)
 {
@@ -66,7 +67,7 @@ void * p1(void *arg)
             MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
         }
     }//}end while true
-}
+return NULL;}
 
 int main(int argc, char **argv)
 {

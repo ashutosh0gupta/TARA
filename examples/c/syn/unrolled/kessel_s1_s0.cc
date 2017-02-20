@@ -10,7 +10,7 @@
 
 #include <atomic>
 #include "threads.h"
-#include <assert.h>
+//#include <assert.h>
 
 #include "librace.h"
 #include "mem_op_macros.h"
@@ -46,7 +46,7 @@ void * p0(void *arg)
 
 	//}end while true
 	}
-}
+return NULL;}
 
 void * p1(void *arg)
 {
@@ -70,7 +70,7 @@ void * p1(void *arg)
 		store(&Q1, false,  std::memory_order_relaxed)
 	}
 	//}end while true
-}
+return NULL;}
 
 int main(int argc, char **argv)
 {

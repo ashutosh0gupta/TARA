@@ -53,7 +53,7 @@ static void * r(void *obj)
         fetch_add(&(readers[b]), -1, memory_order_relaxed);
     }
 
-}
+return NULL;}
 
 static void * w(void *obj)
 {
@@ -70,7 +70,7 @@ static void * w(void *obj)
 
        store(&y, 2, memory_order_relaxed); // free
    }
-}
+return NULL;}
 
 int main(int argc, char **argv)
 {

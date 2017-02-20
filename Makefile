@@ -2,6 +2,8 @@ git = git -c user.name="Auto" -c user.email="auto@auto.com"
 
 BUILDDIR = $(PWD)/build
 SRCDIR = $(PWD)/src
+# LLVM_VERSION=3.8.0
+LLVM_VERSION=3.6.2
 
 all : release
 
@@ -19,9 +21,9 @@ build/buildr/Makefile: build/z3/buildr/libz3.so
 	mkdir -p $(BUILDDIR)/buildr
 	cd $(BUILDDIR)/buildr; cmake -DCMAKE_BUILD_TYPE=Release $(SRCDIR)
 
-build/buildd/Makefile: build/z3/buildd/libz3.so
+build/buildd/Makefile: build/z3/buildd/libz3.so build/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a
 	mkdir -p $(BUILDDIR)/buildd
-	cd $(BUILDDIR)/buildd; cmake -DCMAKE_BUILD_TYPE=Debug -DZ3_DEBUG:BOOL=TRUE $(SRCDIR)
+	cd $(BUILDDIR)/buildd; cmake -DCMAKE_BUILD_TYPE=Debug -DLLVM_VERSION=$(LLVM_VERSION) -DZ3_DEBUG:BOOL=TRUE $(SRCDIR)
 
 clean :
 	rm -rf $(BUILDDIR)/buildr
@@ -42,21 +44,6 @@ build/z3/README.md :
 	cd $(BUILDDIR);$(git) clone git@github.com:Z3Prover/z3.git
 	cd $(BUILDDIR)/z3;$(git) checkout b8716b333908273ad8e27e325a8bea9be0596be3
 
-#-----------------------------------------------------------------------------
-#old rules
-
-# todo: fix this patch rule; Should it be working in BUILDDIR ???? 
-# patch :
-# 	mkdir -p z3-patch
-# 	cd z3; $(git) diff > ../z3-patch/z3.patch
-
-# todo: git commit may fail; needs some $(git) diff-index --quiet HEAD ||  <<??
-# build/z3/README : 
-# 	mkdir -p $(BUILDDIR)
-# 	wget -O $(BUILDDIR)/z3.zip 'http://download-codeplex.sec.s-msft.com/Download/SourceControlFileDownload.ashx?ProjectName=z3&changeSetId=4732e03259487da4a45391a6acc45b6adb8a4a3e'
-# 	cd $(BUILDDIR);$(git) init z3
-# 	cd $(BUILDDIR);unzip z3.zip -d z3
-# 	cd $(BUILDDIR)/z3; $(git) add -A; $(git) commit -m "clean z3 version"
 
 NEW_Z3_FILES =  src/z3-patch/smt_model_reporter.cpp \
 		src/z3-patch/special_relations_decl_plugin.cpp \
@@ -85,11 +72,21 @@ build/z3/buildd/libz3.so : build/z3/patched
 	cd $(BUILDDIR)/z3; python scripts/mk_make.py --staticlib -d -b buildd
 	+make -C $(BUILDDIR)/z3/buildd
 
+#---------------------------------------------------------------------------
+# fetch and install local llvm with debugging enabled
+
+build/llvm-$(LLVM_VERSION).src/README.txt:
+	cd $(BUILDDIR);wget http://releases.llvm.org/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).src.tar.xz
+	cd $(BUILDDIR);tar -xvJf llvm-$(LLVM_VERSION).src.tar.xz; mkdir -p llvm-$(LLVM_VERSION).src/build; mkdir -p llvm-$(LLVM_VERSION)
+
+build/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : build/llvm-$(LLVM_VERSION).src/README.txt
+	cd $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build;cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=DEBUG -DLLVM_ENABLE_RTTI:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=../../llvm-$(LLVM_VERSION) ../
+	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build
+	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build install
+
+#---------------------------------------------------------------------------
 
 runtest:
 	make -C examples/tester/
 
 test: release runtest
-	# for f in examples/*.ctrc; do \
-	# 	echo -n "$$f: "; ./tara --ofile "$$f" > /dev/null; echo "Done"; \
-	# done; true

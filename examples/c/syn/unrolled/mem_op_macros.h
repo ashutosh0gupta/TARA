@@ -11,6 +11,8 @@
  * C11/C++11 compiler.
  */
 
+#include <stdatomic.h>
+
 #if __cplusplus
 #ifndef __MEM_OP_MACROS_H__
 #define __MEM_OP_MACROS_H__

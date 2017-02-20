@@ -46,7 +46,7 @@ void * p0(void *arg)
         store(&turn, 1,std::memory_order_relaxed);
         store(&flag0, false,std::memory_order_relaxed);
     }
-}
+return NULL;}
 
 void * p1(void *arg)
 {
@@ -77,7 +77,7 @@ void * p1(void *arg)
         //std::atomic_thread_fence release);
         store(&flag1, false,std::memory_order_relaxed);
     }
-}
+return NULL;}
 
 int main(int argc, char **argv)
 {

@@ -114,7 +114,8 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       arg_error("Mode must be one of: " + names);
     }
     if( mode == modes::fsynth ) {
-      prune_chain = prune_chain + ",remove_non_cycled";
+      if( mm != tara::mm_t::c11 )
+        prune_chain = prune_chain + ",remove_non_cycled";
     }
 
     // if (_mode == "seperate")

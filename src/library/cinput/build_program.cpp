@@ -18,15 +18,17 @@
  */
 
 
-#include <string> 
-#include "build_program.h"
-#include "helpers/z3interf.h"
+#include <string>
+#include <stdexcept>
 #include <z3.h>
+#include "helpers/z3interf.h"
+
+// #pragma GCC optimize ("no-rtti")
+#include "build_program.h"
 using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
 
-#include <stdexcept>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -39,7 +41,8 @@ using namespace tara::helpers;
 
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Pass.h"
-#include "llvm/PassManager.h"
+// #include "llvm/PassManager.h"
+// #include "llvm/IR/PassManager.h"
 #include "llvm/IR/DebugInfo.h"
 
 #include "llvm/IR/LLVMContext.h"
@@ -221,7 +224,7 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
     if( bw == 32 ) {
       int i = readInt( c );
       return z3_.c.int_val(i);
-    }else if(bw == 1) {
+    }else if(bw == 1 || bw == 8) { // << ----
       int i = readInt( c );
       assert( i == 0 || i == 1 );
       if( i == 1 ) z3_.mk_true(); else z3_.mk_false();
@@ -750,7 +753,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       z3::expr prev_cond = z3.mk_true();
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
         z3::expr b = block_to_exit_bit.at(prev);
-        unsigned succ_num = PI.getOperandNo();
+        unsigned succ_num = PI.getUse().getOperandNo();
         llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
         hb_enc::depends_set ctrl_temp;
         if( !br->isUnconditional() ) {

@@ -603,12 +603,12 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
         }
       }
     }
-    // if( verbose ) {
+    if( verbose > 1 ) {
       for( auto& ed : new_edges ) {
         debug_print( std::cerr, ed ); std::cerr << "\n";
         // std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
       }
-    // }
+    }
   }
 
 

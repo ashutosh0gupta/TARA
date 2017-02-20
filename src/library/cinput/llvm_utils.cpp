@@ -20,8 +20,10 @@
 
 #include <string>
 #include "build_program.h"
-#include "helpers/z3interf.h"
+// #include "helpers/z3interf.h"
 #include <z3.h>
+#pragma GCC optimize ("no-rtti")
+
 using namespace tara;
 using namespace tara::cinput;
 using namespace tara::helpers;
@@ -37,7 +39,8 @@ using namespace tara::helpers;
 
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Pass.h"
-#include "llvm/PassManager.h"
+// #include "llvm/PassManager.h" //3.6
+#include "llvm/IR/PassManager.h"
 #include "llvm/IR/DebugInfo.h"
 
 #include "llvm/IR/LLVMContext.h"
@@ -103,6 +106,7 @@ z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
     if( t->isIntegerTy( 64 ) ) return c.int_sort();
     if( t->isIntegerTy( 8 ) ) return c.bool_sort();
   }
+  llvm::outs() << "ty :" ; t->print( llvm::outs() ); llvm::outs() << "\n";
   cinput_error( "only int and bool sorts are supported");
   // return c.bv_sort(32); // needs to be added
   // return c.bv_sort(16);
@@ -132,12 +136,13 @@ void cinput::initBlockCount( llvm::Function &f,
 
 void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
     if( branch->isUnconditional() ) return;
-    llvm::Value* cond = branch->getCondition();
+    auto cond = branch->getCondition();
     if( llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(cond) ) {
       llvm::BasicBlock* phiBlock = branch->getParent();
       llvm::BasicBlock* phiDstTrue = branch->getSuccessor(0);
       llvm::BasicBlock* phiDstFalse = branch->getSuccessor(1);
-      if( phiBlock->size() == 2 && cond == (phiBlock->getInstList()).begin()) {
+      llvm::Instruction* first_inst = &*(phiBlock->getInstList()).begin();//3.8
+      if( phiBlock->size() == 2 && cond == first_inst ) {
         unsigned num = phi->getNumIncomingValues();
         for( unsigned i = 0; i <= num - 2; i++ ) {
         llvm::Value* val0      = phi->getIncomingValue(i);
@@ -173,9 +178,9 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
 char SplitAtAssumePass::ID = 0;
 bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     llvm::LLVMContext &C = f.getContext();
-    llvm::BasicBlock *dum = llvm::BasicBlock::Create( C, "dummy", &f, f.end());
+    llvm::BasicBlock *dum = llvm::BasicBlock::Create( C, "dummy", &f, &*f.end());
     new llvm::UnreachableInst(C, dum);
-    llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, f.end() );
+    llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, &*f.end() );
     new llvm::UnreachableInst(C, err);
 
     std::vector<llvm::BasicBlock*> splitBBs;
@@ -187,13 +192,13 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
      //collect calls to assume statements
     auto bit = f.begin(), end = f.end();
     for( ; bit != end; ++bit ) {
-      llvm::BasicBlock* bb = bit;
+      llvm::BasicBlock* bb = &*bit;
       // bb->print( llvm::outs() );
       auto iit = bb->begin(), iend = bb->end();
       size_t bb_sz = bb->size();
       for( unsigned i = 0; iit != iend; ++iit ) {
 	i++;
-        llvm::Instruction* I = iit;
+        llvm::Instruction* I = &*iit;
         if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
           llvm::Function* fp = call->getCalledFunction();
 	  if( fp != NULL &&
@@ -204,14 +209,14 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
             llvm::Value * arg0 = call->getArgOperand(0);
             if( !llvm::isa<llvm::Constant>(arg0) ) {
               auto arg_iit = iit;
-              llvm::Instruction* arg = --arg_iit;
+              llvm::Instruction* arg = &*(--arg_iit);
               if( arg != arg0 )
                 cinput_error( "previous instruction not passed!!\n" );
             }
             calls.push_back( call );
             args.push_back( arg0 );
 	    auto local_iit = iit;
-            splitIs.push_back( ++local_iit );
+            splitIs.push_back( &*(++local_iit) );
             isAssume.push_back( (fp->getName() == "_Z6assumeb") );
 	  }
         }
@@ -226,11 +231,13 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
       llvm::BranchInst *branch;
       if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
         cmp = c;
-        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this );
+        // llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
         branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       } else if( is_llvm_false(args[i]) ) { // jump to else block
-        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this );
+        // llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
         //todo: remove tail block and any other block that is unreachable now
         branch = llvm::BranchInst::Create( elseBlock );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
