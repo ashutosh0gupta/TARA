@@ -2,8 +2,8 @@ git = git -c user.name="Auto" -c user.email="auto@auto.com"
 
 BUILDDIR = $(PWD)/build
 SRCDIR = $(PWD)/src
-# LLVM_VERSION=3.8.0
-LLVM_VERSION=3.6.2
+LLVM_VERSION=3.8.0
+# LLVM_VERSION=3.6.2
 
 all : release
 

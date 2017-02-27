@@ -56,6 +56,7 @@ using namespace tara::helpers;
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Support/Dwarf.h"
+#include "llvm/Support/CommandLine.h"
 
 #include "llvm/Analysis/CFGPrinter.h"
 
@@ -118,10 +119,14 @@ z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
 
 std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
-  unsigned line = d.getLine();
-  unsigned col  = d.getCol();
-
-  return "_l"+std::to_string(line)+"_c"+std::to_string(col);
+  if( d ) {
+    unsigned line = d.getLine();
+    unsigned col  = d.getCol();
+    return "_l" + std::to_string(line) + "_c" + std::to_string(col);
+  }else{
+    static unsigned unknown_location_counter = 0;
+    return "_u_" + std::to_string(unknown_location_counter++);
+  }
 }
 
 void cinput::initBlockCount( llvm::Function &f,
@@ -132,6 +137,19 @@ void cinput::initBlockCount( llvm::Function &f,
     llvm::BasicBlock* b = &(*it);
     block_to_id[b] = l++;
   }
+}
+
+void cinput::setLLVMConfigViaCommandLineOptions( std::string strs ) {
+  std::string n = "test";
+  // char str[2][30];
+  // strcpy( str[0], "test" );
+  // strcpy( str[1], "-debug-pass" );
+  const char* array[2];
+  array[0] = n.c_str();
+  array[1] = strs.c_str();
+  // str[0] = "test";
+  // str[1] = "-debug-pass";
+  llvm::cl::ParseCommandLineOptions( 2, array );
 }
 
 void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
@@ -231,13 +249,13 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
       llvm::BranchInst *branch;
       if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
         cmp = c;
-        // llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
+        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+        // llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
         branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       } else if( is_llvm_false(args[i]) ) { // jump to else block
-        // llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
+        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+        // llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
         //todo: remove tail block and any other block that is unreachable now
         branch = llvm::BranchInst::Create( elseBlock );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );

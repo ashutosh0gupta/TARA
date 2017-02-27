@@ -74,11 +74,13 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
+#define CLANG_VERSION 3.8
+
 //todo: directly conver c to object file without creating bc file
 void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
-  cmd << "clang-3.6 -emit-llvm -O0 -g -std=c++11 " << filename << " -o " << outname << " -c";
+  cmd << "clang-" << CLANG_VERSION <<" -emit-llvm -O0 -g -std=c++11 " << filename << " -o " << outname << " -c";
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 
@@ -97,6 +99,11 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   }
 
   c2bc( cfile, bc_file.string() );
+
+  if( o.print_input > 3 ) {
+    setLLVMConfigViaCommandLineOptions( "-debug-pass=Structure" );
+  }
+
 
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
@@ -152,13 +159,19 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     }else
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
-  // llvm::DebugFlag = true;
+#ifndef NDEBUG
+  if( o.print_input > 2 ) { // verbosity 
+    llvm::DebugFlag = true;
+  }
+#endif
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
-  passMan.add( llvm::createLoopUnrollPass( 100, 3 ) );
+  passMan.add( llvm::createCFGSimplificationPass() ); // some params
+  passMan.add( llvm::createLoopRotatePass() ); // some params
+  passMan.add( llvm::createLoopUnrollPass( 100, 2 ) );
   passMan.add( new SplitAtAssumePass() );
 #ifndef NDEBUG
-  if( 0 ) {
+  if( 1 ) {
     // define a dumping folder
     passMan.add( llvm::createCFGPrinterPass() );
   }

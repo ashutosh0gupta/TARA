@@ -51,6 +51,9 @@ namespace cinput {
   void initBlockCount( llvm::Function &f,
                        std::map<const llvm::BasicBlock*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
+
+  void setLLVMConfigViaCommandLineOptions( std::string strs );
+
   //-------------------------------------------------------
 
   class split_step {

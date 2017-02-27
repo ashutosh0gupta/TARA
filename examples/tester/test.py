@@ -19,7 +19,15 @@ import difflib
 import argparse
 
 
-known_files=[ '../locks.ctrc',
+known_files=[
+              '../c/iriw-ra.cpp',
+              '../c/sbmp-ra.cpp',
+              '../c/mp-ra.cpp',
+              '../c/sb-ra.cpp',
+              '../c/mp-rlx.cpp',
+              '../c/double-mp-rlx.cpp',
+              '../c/screads.cpp',
+              '../locks.ctrc',
               '../wmm-simple.ctrc',
               '../wmm-simple-fence.ctrc',
               '../wmm-litmus/mp.ctrc',
@@ -59,14 +67,7 @@ known_files=[ '../locks.ctrc',
               '../wmm-fib-2.ctrc',
               '../wmm-fib-3.ctrc',
               '../wmm-fib-4.ctrc',
-              '../wmm-fib-5.ctrc',
-              '../c/iriw-ra.cpp',
-              '../c/sbmp-ra.cpp',
-              '../c/mp-ra.cpp',
-              '../c/sb-ra.cpp',
-              '../c/mp-rlx.cpp',
-              '../c/double-mp-rlx.cpp',
-              '../c/screads.cpp'
+              '../wmm-fib-5.ctrc'
             ]
 
 #wmm-litmus-sb-self-read.ctrc
