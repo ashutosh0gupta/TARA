@@ -191,3 +191,18 @@ Known issues
 - todo: is_po_new add memoization
 - delare the_launcher and the_finisher as sc
 - populate all sc
+
+LLVM 3.8 Bug
+-------------
+
+https://github.com/iovisor/bcc/issues/492
+
+LLVM FIX as suggested in the above webpage
+
+sudo apt-get install -y llvm-3.8-dev libclang-3.8-dev
+sudo mkdir -p /usr/lib/llvm-3.8/share/llvm
+sudo ln -s /usr/share/llvm-3.8/cmake /usr/lib/llvm-3.8/share/llvm/cmake
+sudo sed -i -e '/get_filename_component(LLVM_INSTALL_PREFIX/ {s|^|#|}' -e '/^# Compute the installation prefix/i set(LLVM_INSTALL_PREFIX "/usr/lib/llvm-3.8")' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMConfig.cmake
+sudo sed -i '/_IMPORT_CHECK_TARGETS Polly/ {s|^|#|}' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMExports-relwithdebinfo.cmake
+sudo sed -i '/_IMPORT_CHECK_TARGETS sancov/ {s|^|#|}' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMExports-relwithdebinfo.cmake
+sudo ln -s /usr/lib/x86_64-linux-gnu/libLLVM-3.8.so.1 /usr/lib/llvm-3.8/lib/

@@ -118,7 +118,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   // why are we parsing IR file.. why not directly .cpp??
   module = llvm::parseIRFile( bc_file.string(), err, context);
   if( module.get() == 0 ) {
-    // give err msg
+    cinput_error( "failed to parse the input file!");
   }
   program* p = new program( z3_, o, hb_encoding );
 
@@ -160,7 +160,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
 #ifndef NDEBUG
-  if( o.print_input > 2 ) { // verbosity 
+  if( o.print_input > 2 ) { // verbosity
     llvm::DebugFlag = true;
   }
 #endif
@@ -168,11 +168,12 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   passMan.add( llvm::createCFGSimplificationPass() ); // some params
   passMan.add( llvm::createLoopRotatePass() ); // some params
-  passMan.add( llvm::createLoopUnrollPass( 100, 2 ) );
+  passMan.add( llvm::createLoopUnrollPass( 100, o.loop_unroll_count ) );
+  // passMan.add( llvm::create );
   passMan.add( new SplitAtAssumePass() );
 #ifndef NDEBUG
-  if( 1 ) {
-    // define a dumping folder
+  if( 0 ) {
+    // todo: define a dumping folder
     passMan.add( llvm::createCFGPrinterPass() );
   }
 #endif

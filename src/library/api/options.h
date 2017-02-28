@@ -48,11 +48,13 @@ public:
   boost::filesystem::path output_dir = "/tmp/";
   
   bool machine; // produce machine-readable output
-  
+
   std::string prune_chain;
-  
+
   mm_t mm = mm_t::none;
   std::vector<std::string> mm_options;
+
+  unsigned loop_unroll_count = 3;
 
   std::vector<std::string> mode_options;
 

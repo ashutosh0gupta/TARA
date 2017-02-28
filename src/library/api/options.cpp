@@ -60,6 +60,7 @@ void options::get_description(po::options_description& desc, po::positional_opti
   ("prune,r", po::value<string>(), "select a chain of prune engines (see readme)")
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
   ("mm,M", po::value<string>()->default_value("none"), mm_select.c_str() )
+  ("unroll-loop,u", po::value<unsigned>(), "unroll count of loops (default 3)")
   ;
   pd.add("input", -1);
 }

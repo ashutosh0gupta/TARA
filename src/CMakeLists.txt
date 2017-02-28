@@ -18,7 +18,7 @@ IF(LLVM_DEBUG)
   # message(STATUS "Module paths ${CMAKE_MODULE_PATH}")
   find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH HINTS "${PROJECT_BINARY_DIR}/../llvm-${LLVM_VERSION}/share/llvm/cmake")
 ELSE(LLVM_DEBUG)
-  find_package(LLVM REQUIRED CONFIG)
+  find_package(LLVM 3.8 REQUIRED CONFIG)
 ENDIF(LLVM_DEBUG)
 
 
