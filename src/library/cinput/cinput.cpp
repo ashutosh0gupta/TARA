@@ -25,6 +25,8 @@
 #include <algorithm>
 #include "helpers/helpers.h"
 #include <vector>
+#include <boost/filesystem.hpp>
+
 using namespace tara::cssa;
 using namespace std;
 using namespace tara;
@@ -80,7 +82,8 @@ using namespace tara::helpers;
 void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
-  cmd << "clang-" << CLANG_VERSION <<" -emit-llvm -O0 -g -std=c++11 " << filename << " -o " << outname << " -c";
+  cmd << "clang-" << CLANG_VERSION <<" -emit-llvm -O0 -g -std=c++11 "
+      << filename << " -o " << outname << " -c";
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 
@@ -100,10 +103,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   c2bc( cfile, bc_file.string() );
 
-  if( o.print_input > 3 ) {
+  if( o.print_input > 2 ) {
     setLLVMConfigViaCommandLineOptions( "-debug-pass=Structure" );
   }
-
 
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
@@ -130,11 +132,8 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
                           "the_finisher", hb_enc::event_t::post, hb_enc::o_tag_t::sc);
 
-  // add_event( INT_MAX, start );
   p->init_loc = start;
   p->post_loc = final;
-
-  // llvm::PointerType* iptr = llvm::Type::getInt32PtrTy( context );
 
   for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
     iter_glb != end_glb; ++iter_glb ) {
@@ -160,7 +159,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
       cinput_error( (std::string)(glb->getName()) << " not a global pointer!");
   }
 #ifndef NDEBUG
-  if( o.print_input > 2 ) { // verbosity
+  if( o.print_input > 3 ) { // verbosity
     llvm::DebugFlag = true;
   }
 #endif
@@ -169,18 +168,13 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( llvm::createCFGSimplificationPass() ); // some params
   passMan.add( llvm::createLoopRotatePass() ); // some params
   passMan.add( llvm::createLoopUnrollPass( 100, o.loop_unroll_count ) );
-  // passMan.add( llvm::create );
   passMan.add( new SplitAtAssumePass() );
-#ifndef NDEBUG
-  if( 0 ) {
-    // todo: define a dumping folder
-    passMan.add( llvm::createCFGPrinterPass() );
-  }
-#endif
+  // passMan.add( llvm::createCFGPrinterPass() );
   auto build_p = new build_program( z3_, o, hb_encoding, p );
   passMan.add( build_p );
-
   passMan.run( *module.get() );
+
+  dump_dot_module( o.output_dir, module );
 
   for( const auto& g : p->globals ) {
     p->rd_events[g].push_back( final );
@@ -190,7 +184,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
     p->print_dot( "" );
   }
 
-  // delete build_p;
+  // delete build_p; // todo: deletion of pass object build_p
 
   return p;
 }

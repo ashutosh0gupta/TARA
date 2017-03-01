@@ -53,17 +53,19 @@ namespace cinput {
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
 
   void setLLVMConfigViaCommandLineOptions( std::string strs );
+  void dump_dot_module( boost::filesystem::path&,
+                        std::unique_ptr<llvm::Module>& );
 
   //-------------------------------------------------------
 
   class split_step {
   public:
-    split_step( llvm::BasicBlock* b_,
+    split_step( const llvm::BasicBlock* b_,
                 unsigned block_id_,
                 unsigned succ_num_,
                 z3::expr e_):
       b(b_), block_id(block_id_), succ_num(succ_num_), cond(e_) {}
-    llvm::BasicBlock* b;
+    const llvm::BasicBlock* b;
     unsigned block_id;
     unsigned succ_num;
     z3::expr cond;
@@ -80,6 +82,7 @@ namespace cinput {
     SplitAtAssumePass() : llvm::FunctionPass(ID) {}
     virtual bool runOnFunction( llvm::Function &f );
     virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const;
+    const char * getPassName() const;
   };
 
   // conditional pointing; conditions may overlap due to non-determinism
@@ -109,8 +112,8 @@ namespace cinput {
     std::map< const llvm::BasicBlock*, unsigned> block_to_id;
     std::map< const llvm::BasicBlock*, split_history > block_to_split_stack;
     std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
-    std::map< llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
-
+    std::map< const llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
+    std::map< const llvm::BasicBlock*, std::set<const llvm::BasicBlock*> > loop_ignore_edge;
     //-----------------------------------
     // local data structure of dependency
     //hb_enc::depends_set data_dep_ses;
@@ -145,7 +148,7 @@ namespace cinput {
     z3::expr phi_instr = z3.mk_true();
     z3::expr phi_cond = z3.mk_true();
 
-    void join_histories( const std::vector<llvm::BasicBlock*>& preds,
+    void join_histories( const std::vector<const llvm::BasicBlock*>& preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
                          z3::expr& path_cond,
@@ -172,11 +175,9 @@ namespace cinput {
 
     virtual bool runOnFunction( llvm::Function & );
 
-    virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const {
-      au.setPreservesAll();
-      //TODO: ...
-      // au.addRequired<llvm::Analysis>();
-    }
+    virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const;
+
+    const char * getPassName() const;
 
   private:
     // EHandler* eHandler;
@@ -235,7 +236,7 @@ namespace cinput {
       return true;
     }
 
-
+    void collect_loop_backedges();
   public:
     static z3::expr get_term( helpers::z3interf& z3_,
                               const llvm::Value* op ,ValueExprMap& m );

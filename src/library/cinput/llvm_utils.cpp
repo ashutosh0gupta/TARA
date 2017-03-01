@@ -41,6 +41,7 @@ using namespace tara::helpers;
 #include "llvm/Pass.h"
 // #include "llvm/PassManager.h" //3.6
 #include "llvm/IR/PassManager.h"
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/DebugInfo.h"
 
 #include "llvm/IR/LLVMContext.h"
@@ -191,6 +192,16 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
     }
 }
 
+void cinput::dump_dot_module( boost::filesystem::path& dump_path,
+                              std::unique_ptr<llvm::Module>& module ) {
+  auto c_path = boost::filesystem::current_path();
+  current_path( dump_path );
+  llvm::legacy::PassManager passMan;
+  passMan.add( llvm::createCFGPrinterPass() );
+  passMan.run( *module.get() );
+  current_path( c_path );
+}
+
 //----------------------------------------------------------------------------
 // Splitting for assume pass
 char SplitAtAssumePass::ID = 0;
@@ -271,6 +282,10 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
       }
     }
     return false;
+}
+
+const char * SplitAtAssumePass::getPassName() const {
+  return "Split blocks at assume/assert statements";
 }
 
 void SplitAtAssumePass::getAnalysisUsage(llvm::AnalysisUsage &au) const {

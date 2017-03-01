@@ -97,11 +97,11 @@ void cinput::print( std::ostream& os, const split_history&  hs ) {
 
 char build_program::ID = 0;
 void
-build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
-                               const std::vector< split_history >& hs,
-                               split_history& h,
-                               z3::expr& path_cond,
-                               std::map< const llvm::BasicBlock*, z3::expr >& conds) {
+build_program::join_histories(const std::vector<const llvm::BasicBlock*>& preds,
+                              const std::vector< split_history >& hs,
+                              split_history& h,
+                              z3::expr& path_cond,
+                              std::map< const llvm::BasicBlock*, z3::expr >& conds) {
   h.clear();
   if(hs.size() == 0 ) {
     split_step ss( NULL, 0, 0, z3.mk_false() );
@@ -113,7 +113,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
     h = hs[0];
     for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
     if( preds.size() == 1 ) {
-      auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
+      auto pr = std::pair<const llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
       conds.insert( pr );
     }
     return;
@@ -149,7 +149,7 @@ build_program::join_histories( const std::vector< llvm::BasicBlock* >& preds,
       for(;i1 < old_h.size();i1++) {
         c1 = c1 && old_h[i1].cond;
       }
-      auto pr = std::pair<llvm::BasicBlock*,z3::expr>( preds[j++], c1 );
+      auto pr = std::pair<const llvm::BasicBlock*,z3::expr>( preds[j++], c1 );
       conds.insert( pr );
       or_vec.push_back( c1 );
       // c = c || c1;
@@ -332,9 +332,11 @@ translateBlock( unsigned thr_id,
   assert(b);
   z3::expr block_ssa = z3.mk_true();
   z3::expr join_conds = z3.mk_true();
-  // hb_enc::depends_set ctrl;
-  // std::vector<typename EHandler::expr> blockTerms;
-  // //iterate over instructions
+
+  // collect loop back edges that should be ignored
+  std::set<const llvm::BasicBlock*> ignore_edges;
+  if( exists( loop_ignore_edge, b) ) ignore_edges = loop_ignore_edge.at(b);
+
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
     const llvm::Instruction* I = &(Iobj);
     assert( I );
@@ -487,19 +489,20 @@ translateBlock( unsigned thr_id,
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       std::vector<hb_enc::depends_set> dep_ses;
-      assert( conds.size() > 1 ); //todo:if not,review initialization of conds
+      // assert( conds.size() > 1 ); //todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       if( phi->getType()->isIntegerTy() ) {
         z3::expr phi_cons = z3.mk_false();
         z3::expr ov = getTerm(I,m);
 
         for ( unsigned i = 0 ; i < num ; i++ ) {
-          const llvm::BasicBlock* b = phi->getIncomingBlock(i);
+          const llvm::BasicBlock* prev = phi->getIncomingBlock(i);
           const llvm::Value* v_ = phi->getIncomingValue(i);
+          if( exists( ignore_edges, prev ) ) continue;
           z3::expr v = getTerm (v_, m );
-          phi_cons = phi_cons || (conds.at(b) && ov == v);
+          phi_cons = phi_cons || (conds.at(prev) && ov == v);
           hb_enc::depends_set temp;
-          hb_enc::pointwise_and( get_depends( v_ ), conds.at(b), temp );
+          hb_enc::pointwise_and( get_depends( v_ ), conds.at(prev), temp );
 	  dep_ses.push_back( temp );
         }
         hb_enc::join_depends_set( dep_ses, local_map[I] );
@@ -687,9 +690,9 @@ translateBlock( unsigned thr_id,
 }
 
 void
-join_depends_set( const std::map<const llvm::BasicBlock*, hb_enc::depends_set>& deps,
-                  const std::map<const llvm::BasicBlock*,z3::expr>& conds,
-                  hb_enc::depends_set& result ) {
+join_depends_set(const std::map<const llvm::BasicBlock*,hb_enc::depends_set>& deps,
+                 const std::map<const llvm::BasicBlock*,z3::expr>& conds,
+                 hb_enc::depends_set& result ) {
   result.clear();
   for( auto& pr : deps ) {
     const llvm::BasicBlock* b = pr.first;
@@ -704,7 +707,24 @@ join_depends_set( const std::map<const llvm::BasicBlock*, hb_enc::depends_set>& 
   // tara::debug_print( std::cout, result );
 }
 
+void build_program::collect_loop_backedges() {
+  auto &LIWP = getAnalysis<llvm::LoopInfoWrapperPass>();
+  auto LI = &LIWP.getLoopInfo();
+  for (auto I = LI->rbegin(), E = LI->rend(); I != E; ++I) {
+    llvm::Loop *L = *I;
+    llvm::BasicBlock* h = L->getHeader();
+    llvm::SmallVector<llvm::BasicBlock*,10> LoopLatches;
+    L->getLoopLatches( LoopLatches );
+    for( llvm::BasicBlock* bb : LoopLatches ) {
+      loop_ignore_edge[h].insert( bb );
+    }
+    L->print( llvm::outs(), 3 );
+  }
+}
+
 bool build_program::runOnFunction( llvm::Function &f ) {
+  collect_loop_backedges();
+
   std::string name = (std::string)f.getName();
   unsigned thread_id = p->add_thread( name );
   hb_enc::se_set prev_events, final_prev_events;
@@ -728,10 +748,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   prev_events.insert( start );
 
   std::vector< split_history     > final_histories;
-  std::vector< llvm::BasicBlock* > final_preds;
+  std::vector< const llvm::BasicBlock* > final_preds;
 
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
-    llvm::BasicBlock* src = &(*it);
+    const llvm::BasicBlock* src = &(*it);
     std::map<const llvm::BasicBlock*,hb_enc::depends_set> ctrl_ses;
     std::map< const tara::variable,
       std::map<const llvm::BasicBlock*,hb_enc::depends_set> > last_rls_ses;
@@ -744,11 +764,16 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     if( src->hasName() && (src->getName() == "dummy")) continue;
 
     std::vector< split_history > histories; // needs to be ref
-    std::vector<llvm::BasicBlock*> preds;
+    std::vector<const llvm::BasicBlock*> preds;
     std::map<const hb_enc::se_ptr, z3::expr > branch_conds;
     //iterate over predecessors
-    for( auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
-      llvm::BasicBlock *prev = *PI;
+    std::set<const llvm::BasicBlock*> ignore_edges;
+    if( exists( loop_ignore_edge, src) ) {
+      ignore_edges = loop_ignore_edge.at(src);
+    }
+    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI) {
+      const llvm::BasicBlock *prev = *PI;
+      if( exists( ignore_edges, prev ) ) continue; // ignoring loop back edges
       split_history h = block_to_split_stack[prev];
       z3::expr prev_cond = z3.mk_true();
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
@@ -854,4 +879,15 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   if( o.print_input > 1 ) p->print_dependency( o.out());
 
   return false;
+}
+
+const char * build_program::getPassName() const {
+  return "Constructs tara::program from llvm IR";
+}
+
+void build_program::getAnalysisUsage(llvm::AnalysisUsage &au) const {
+  au.setPreservesAll();
+  //TODO: ...
+  // au.addRequired<llvm::Analysis>();
+  au.addRequired<llvm::LoopInfoWrapperPass>();
 }
