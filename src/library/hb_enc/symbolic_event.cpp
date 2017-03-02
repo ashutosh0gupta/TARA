@@ -103,6 +103,27 @@ std::string hb_enc::event_t_name( event_t et ) {
     }
 }
 
+
+std::string source_loc::name() {
+  static std::set< std::pair<unsigned, unsigned> > seen_before;
+  static unsigned unknown_location_counter = 0;
+  if( line == 0 && col == 0 ) {
+    if( pretty_name != "" )
+      return "_u" + std::to_string(unknown_location_counter++);
+    else
+      return pretty_name;
+  }else{
+    std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
+    auto line_col = std::make_pair(line, col);
+    if( exists( seen_before, line_col ) ) {
+      return l_name + "_u" + std::to_string(unknown_location_counter++);
+    }else{
+      seen_before.insert( line_col );
+    }
+    return l_name;
+  }
+}
+
 tstamp_var_ptr
 symbolic_event::create_internal_event( helpers::z3interf& z3,
                                        std::string e_name, unsigned tid,
@@ -509,3 +530,16 @@ void tara::debug_print( std::ostream& out, const hb_enc::depends_set& set ) {
   out << std::endl;
 }
 
+void tara::hb_enc::full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
+                               z3::expr& path_cond, std::vector<z3::expr>& history_,
+                               hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
+                               std::map<const hb_enc::se_ptr, z3::expr>& branch_conds) {
+  e->guard = path_cond;
+  e->history = history_;
+  e->o_tag = ord_tag;
+  e->loc = loc;
+  hb_enc.record_event( e );
+    for(se_ptr ep  : prev_es) {
+      ep->add_post_events( e, branch_conds.at(ep) );
+    }
+  }

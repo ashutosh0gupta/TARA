@@ -120,14 +120,34 @@ z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
 
 std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
+  static std::set< std::pair<unsigned, unsigned> > seen_before;
+  static unsigned unknown_location_counter = 0;
   if( d ) {
     unsigned line = d.getLine();
     unsigned col  = d.getCol();
-    return "_l" + std::to_string(line) + "_c" + std::to_string(col);
+    std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
+    auto line_col = std::make_pair(line, col);
+    if( exists( seen_before, line_col ) ) {
+      return l_name + "_u" + std::to_string(unknown_location_counter++);
+    }else{
+      seen_before.insert( line_col );
+    }
+    return l_name;
+    // return "_l" + std::to_string(line) + "_c" + std::to_string(col);
   }else{
-    static unsigned unknown_location_counter = 0;
     return "_u_" + std::to_string(unknown_location_counter++);
   }
+}
+
+hb_enc::source_loc cinput::getInstructionLocation(const llvm::Instruction* I ) {
+  const llvm::DebugLoc d = I->getDebugLoc();
+  hb_enc::source_loc l;
+  if( d ) {
+    l.line = d.getLine();
+    l.col  = d.getCol();
+    //l.file //todo: get filename
+  }
+  return l;
 }
 
 void cinput::initBlockCount( llvm::Function &f,

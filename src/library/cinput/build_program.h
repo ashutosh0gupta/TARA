@@ -48,6 +48,7 @@ namespace cinput {
   bool is_llvm_true( llvm::Value* );
   z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t );
   std::string getInstructionLocationName(const llvm::Instruction* I );
+  hb_enc::source_loc getInstructionLocation(const llvm::Instruction* I );
   void initBlockCount( llvm::Function &f,
                        std::map<const llvm::BasicBlock*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
@@ -104,7 +105,7 @@ namespace cinput {
   private:
     helpers::z3interf& z3;
     api::options& o;
-    hb_enc::encoding& hb_encoding;
+    hb_enc::encoding& hb_enc;
     // Cfrontend::Config& config;
     tara::program* p;
     unsigned inst_counter = 0;
@@ -164,12 +165,12 @@ namespace cinput {
   public:
     build_program( helpers::z3interf& z3_,
                    api::options& o_,
-                   hb_enc::encoding& hb_encoding_,
+                   hb_enc::encoding& hb_enc_,
                    tara::program* program_ )
     : llvm::FunctionPass(ID)
     , z3(z3_)
     , o(o_)
-    , hb_encoding( hb_encoding_ )
+    , hb_enc( hb_enc_ )
     , p( program_ )
 {}
 

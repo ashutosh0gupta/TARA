@@ -171,24 +171,6 @@ void split_history_to_exprs( const split_history& h,
 }
 
 
-// z3::expr build_program::fresh_int( helpers::z3interf& z3_ ) {
-//   return z3_.get_fresh_int();
-//   // static unsigned count = 0;
-//   // count++;
-//   // std::string loc_name = "i_" + std::to_string(count);
-//   // z3::expr loc_expr = z3_.c.int_const(loc_name.c_str());
-//   // return loc_expr;
-// }
-
-// z3::expr build_program::fresh_bool( helpers::z3interf& z3_ ) {
-//   return z3_.get_fresh_bool();
-//   // static unsigned count = 0;
-//   // count++;
-//   // std::string loc_name = "b_" + std::to_string(count);
-//   // z3::expr loc_expr = z3_.c.bool_const(loc_name.c_str());
-//   // return loc_expr;
-// }
-
 //todo: this function returns object not reference too bad programming
 //
 hb_enc::depends_set build_program::get_depends( const llvm::Value* op ) {
@@ -321,7 +303,7 @@ translateBlock( unsigned thr_id,
 
   std::string loc_name = "block__" + std::to_string(thr_id)
                              + "__"+ std::to_string(block_to_id[b]);
-  auto block = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+  auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                           history, loc_name, hb_enc::event_t::block,
                           branch_conds );
   p->add_event( thr_id, block );
@@ -343,13 +325,13 @@ translateBlock( unsigned thr_id,
     bool recognized = false;
     if( auto store = llvm::dyn_cast<llvm::StoreInst>(I) ) {
       llvm::Value* addr = store->getOperand(1);
-      std::string loc_name = getInstructionLocationName( I );
+      auto loc = getInstructionLocation( I );
       z3::expr val = getTerm( store->getOperand(0), m );
       hb_enc::se_set new_events;
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         auto gv = p->get_global( (std::string)(g->getName()) );
-        auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                             history, gv, loc_name, hb_enc::event_t::w,
+        auto wr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                             history, gv, loc, hb_enc::event_t::w,
                              translate_ordering_tags( store->getOrdering()) );
         new_events.insert( wr );
         const auto& data_dep_set = get_depends( store->getOperand(0) );
@@ -366,8 +348,8 @@ translateBlock( unsigned thr_id,
           z3::expr c = a_pair.first;
           auto gv = a_pair.second;
           z3::expr path_cond_c = path_cond && c;
-          auto wr = mk_se_ptr( hb_encoding, thr_id, prev_events,path_cond_c,
-                               history, gv, loc_name, hb_enc::event_t::w,
+          auto wr = mk_se_ptr( hb_enc, thr_id, prev_events,path_cond_c,
+                               history, gv, loc, hb_enc::event_t::w,
                                translate_ordering_tags( store->getOrdering()));
           block_ssa = block_ssa && implies( c , ( wr->wr_v() == val ) );
           new_events.insert( wr);
@@ -387,13 +369,13 @@ translateBlock( unsigned thr_id,
     if( llvm::isa<llvm::UnaryInstruction>(I) ) {
       if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
         llvm::Value* addr = load->getOperand(0);
-        std::string loc_name = getInstructionLocationName( I );
+        auto loc = getInstructionLocation( I );
         z3::expr l_v = getTerm( I, m);
         hb_enc::se_set new_events;
         if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
           auto gv = p->get_global( (std::string)(g->getName()) );
-          auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                               history, gv, loc_name, hb_enc::event_t::r,
+          auto rd = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                               history, gv, loc, hb_enc::event_t::r,
                                translate_ordering_tags( load->getOrdering()) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
@@ -407,8 +389,8 @@ translateBlock( unsigned thr_id,
             z3::expr c = a_pair.first;
             auto gv = a_pair.second;
             z3::expr path_cond_c = path_cond && c;
-            auto rd = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond_c,
-                                 history, gv, loc_name, hb_enc::event_t::r,
+            auto rd = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond_c,
+                                 history, gv, loc, hb_enc::event_t::r,
                                  translate_ordering_tags( load->getOrdering()));
             block_ssa = block_ssa && implies( c , ( rd->rd_v() == l_v ) );
             new_events.insert( rd );
@@ -428,9 +410,8 @@ translateBlock( unsigned thr_id,
             !alloc->getType()->getElementType()->isIntegerTy() ) {
           cinput_error( "only pointers to intergers is allowed!" );
         }
-        std::string alloc_name = "alloc__" + getInstructionLocationName( I );
-        z3::sort sort = llvm_to_z3_sort( z3.c,
-                                         alloc->getType()->getElementType() );
+        auto alloc_name = "alloc__" + getInstructionLocation( I ).name();
+        z3::sort sort = llvm_to_z3_sort(z3.c, alloc->getType()->getElementType());
         p->add_allocated( alloc_name, sort );
         auto v = p->get_allocated( alloc_name );
         points_set_t p_set = { std::make_pair( z3.mk_true(), v ) };
@@ -452,12 +433,13 @@ translateBlock( unsigned thr_id,
       case llvm::Instruction::Add : insert_term_map( I, a+b,     m); break;
       case llvm::Instruction::Sub : insert_term_map( I, a-b,     m); break;
       case llvm::Instruction::Mul : insert_term_map( I, a*b,     m); break;
-      case llvm::Instruction::Xor :
-        insert_term_map( I, helpers::_xor(a,b), m); break;
+      case llvm::Instruction::And : insert_term_map( I, a && b,  m); break;
+      case llvm::Instruction::Or  : insert_term_map( I, a || b,  m); break;
+      case llvm::Instruction::Xor:insert_term_map(I,helpers::_xor(a,b),m);break;
       case llvm::Instruction::SDiv: insert_term_map( I, a/b,     m); break;
       default: {
         const char* opName = bop->getOpcodeName();
-        cinput_error("unsupported instruction " << opName << " occurred!!");
+        cinput_error("unsupported instruction \"" << opName << "\" occurred!!");
       }
       }
       join_depends( op0, op1, local_map[I] );
@@ -544,8 +526,9 @@ translateBlock( unsigned thr_id,
     }
     if( auto fence = llvm::dyn_cast<llvm::FenceInst>(I) ) {
       assert( fence->getSynchScope()==llvm::SynchronizationScope::CrossThread);
-      std::string loc_name = "fence__" + getInstructionLocationName( I );
-      auto fnce = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+      // auto loc_name = "fence__" + getInstructionLocation( I ).name();
+      auto loc_name = getInstructionLocation( I );
+      auto fnce = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                              history, loc_name, hb_enc::event_t::barr,
                              translate_ordering_tags( fence->getOrdering() ) );
       p->add_event( thr_id, fnce );
@@ -559,9 +542,10 @@ translateBlock( unsigned thr_id,
       }else{
         llvm::Function* fp = call->getCalledFunction();
         unsigned argnum = call->getNumArgOperands();
+        auto loc_name = getInstructionLocation( I );
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
-          std::string loc_name = "fence__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+          // auto loc_name = "fence__" + getInstructionLocation( I ).name();
+          auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
           p->set_c11_rs_heads( barr, local_release_heads[b] );
@@ -574,8 +558,8 @@ translateBlock( unsigned thr_id,
             v->getType()->print( llvm::outs() ); llvm::outs() << "\n";
             cinput_error("unnamed call to function pointers is not supported!");
           }
-          std::string loc_name = "create__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+          // auto loc_name = "create__" + getInstructionLocation( I ).name();
+          auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr_b );
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
@@ -591,8 +575,8 @@ translateBlock( unsigned thr_id,
           ptr_to_create.erase( thr_ptr );
           z3::expr join_cond = z3.get_fresh_bool();
           path_cond = path_cond && join_cond;
-          std::string loc_name = "join__" + getInstructionLocationName( I );
-          auto barr = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
+          // auto loc_name = "join__" + getInstructionLocation( I ).name();
+          auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, join_cond, fname);
           p->set_c11_rs_heads( barr, local_release_heads[b] );
@@ -608,13 +592,13 @@ translateBlock( unsigned thr_id,
     }
 
     if( auto rmw = llvm::dyn_cast<llvm::AtomicRMWInst>(I) ) {
-      std::string loc_name = getInstructionLocationName( I );
+      auto loc = getInstructionLocation( I );
 
       const llvm::Value* addr = rmw->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         auto gv = p->get_global( (std::string)(g->getName()) );
-        auto up = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                             history, gv, loc_name, hb_enc::event_t::u,
+        auto up = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                             history, gv, loc, hb_enc::event_t::u,
                              translate_ordering_tags( rmw->getOrdering()) );
         z3::expr wr_v = getTerm( rmw->getValOperand(), m );
         z3::expr rd_v = getTerm( I, m );
@@ -645,21 +629,21 @@ translateBlock( unsigned thr_id,
     }
     if( auto xchg = llvm::dyn_cast<llvm::AtomicCmpXchgInst>(I) ) {
       assert( !xchg->isWeak() ); //todo: semantics of weak xchg is not clear!!
-      std::string loc_name = getInstructionLocationName( I );
+      auto loc = getInstructionLocation( I );
       const llvm::Value* addr = xchg->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         auto gv = p->get_global( (std::string)(g->getName()) );
         z3::expr cmp_v = getTerm( xchg->getCompareOperand(), m );
         z3::expr new_v = getTerm( xchg->getNewValOperand(), m );
         // fail event
-        auto rd=mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                           history, gv, loc_name, hb_enc::event_t::r,
+        auto rd=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                           history, gv, loc, hb_enc::event_t::r,
                            translate_ordering_tags(xchg->getFailureOrdering()));
         rd->append_history( rd->rd_v() != cmp_v );
         rd->set_dependencies( get_depends( xchg->getCompareOperand() ), get_ctrl(b));
         // success event
-        auto up=mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                           history, gv, loc_name, hb_enc::event_t::u,
+        auto up=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                           history, gv, loc, hb_enc::event_t::u,
                            translate_ordering_tags(xchg->getSuccessOrdering()));
         up->append_history( up->rd_v() == cmp_v );
         hb_enc::depends_set dep;
@@ -668,8 +652,8 @@ translateBlock( unsigned thr_id,
         prev_events = { rd, up };
         p->add_event_with_rs_heads(thr_id, prev_events, local_release_heads[b]);
         // join event
-        auto blk = mk_se_ptr( hb_encoding, thr_id, prev_events, path_cond,
-                              history, loc_name, hb_enc::event_t::block,
+        auto blk = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                              history, loc.name(), hb_enc::event_t::block,
                               branch_conds );
         prev_events = { blk };
         p->add_event(thr_id, prev_events);
@@ -718,7 +702,7 @@ void build_program::collect_loop_backedges() {
     for( llvm::BasicBlock* bb : LoopLatches ) {
       loop_ignore_edge[h].insert( bb );
     }
-    L->print( llvm::outs(), 3 );
+    // L->print( llvm::outs(), 3 );
   }
 }
 
@@ -735,8 +719,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   z3::expr start_bit = z3.get_fresh_bool();
   std::vector< z3::expr > history = { start_bit };
-  auto start = mk_se_ptr( hb_encoding, thread_id, prev_events, start_bit,
-                          history, name, hb_enc::event_t::barr );
+  hb_enc::source_loc loc; loc.pretty_name = name;
+  auto start = mk_se_ptr( hb_enc, thread_id, prev_events, start_bit,
+                          history, loc, //name,
+                          hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
     p->create_map[ "main" ] = p->init_loc;
@@ -844,9 +830,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     }
     std::vector<z3::expr> history_exprs;
     split_history_to_exprs( h, history_exprs );
-    z3::expr ssa = translateBlock( thread_id, src, prev_events,
-                                   path_cond, history_exprs, conds,
-                                   branch_conds);
+    z3::expr ssa = translateBlock( thread_id, src, prev_events, path_cond,
+                                   history_exprs, conds, branch_conds);
     block_to_trailing_events[src] = prev_events;
     if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
       final_prev_events.insert( prev_events.begin(), prev_events.end() );
@@ -871,8 +856,11 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   std::vector<z3::expr> history_exprs;
   split_history_to_exprs( final_h, history_exprs );
 
-  auto final = mk_se_ptr( hb_encoding, thread_id, final_prev_events, exit_cond,
-                          history_exprs, name+"_final", hb_enc::event_t::barr );
+  hb_enc::source_loc floc; floc.pretty_name = name+"_final";
+
+  auto final = mk_se_ptr( hb_enc, thread_id, final_prev_events, exit_cond,
+                          history_exprs, floc, //name+"_final",
+                          hb_enc::event_t::barr );
 
   p->set_final_event( thread_id, final, exit_cond );
 
