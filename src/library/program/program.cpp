@@ -332,8 +332,8 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   }
 
 
-  bool compare_events( std::pair< hb_enc::se_ptr, int >& a,
-                       std::pair< hb_enc::se_ptr, int >& b ) {
+  bool compare_events( const std::pair< hb_enc::se_ptr, int >& a,
+                       const std::pair< hb_enc::se_ptr, int >& b ) {
     return a.second < b.second;
   }
 
