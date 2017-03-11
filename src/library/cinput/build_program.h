@@ -38,6 +38,10 @@
 #include "llvm/IR/IntrinsicInst.h"
 #pragma GCC diagnostic pop
 
+typedef llvm::BasicBlock bb;
+typedef std::set<const bb*> bb_set_t;
+typedef std::vector<const bb*> bb_vec_t;
+
 namespace tara {
 namespace cinput {
 
@@ -49,24 +53,30 @@ namespace cinput {
   z3::sort llvm_to_z3_sort( z3::context& c, llvm::Type* t );
   std::string getInstructionLocationName(const llvm::Instruction* I );
   hb_enc::source_loc getInstructionLocation(const llvm::Instruction* I );
+  hb_enc::source_loc getBlockLocation(const bb* b );
   void initBlockCount( llvm::Function &f,
-                       std::map<const llvm::BasicBlock*, unsigned>& block_to_id);
+                       std::map<const bb*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
 
   void setLLVMConfigViaCommandLineOptions( std::string strs );
   void dump_dot_module( boost::filesystem::path&,
                         std::unique_ptr<llvm::Module>& );
 
+
+  void ordered_blocks( const llvm::Function &F,
+                       std::map<const bb*,bb_set_t> back_edges,
+                       std::vector<const bb*>& bs );
+
   //-------------------------------------------------------
 
   class split_step {
   public:
-    split_step( const llvm::BasicBlock* b_,
+    split_step( const bb* b_,
                 unsigned block_id_,
                 unsigned succ_num_,
                 z3::expr e_):
       b(b_), block_id(block_id_), succ_num(succ_num_), cond(e_) {}
-    const llvm::BasicBlock* b;
+    const bb* b;
     unsigned block_id;
     unsigned succ_num;
     z3::expr cond;
@@ -96,11 +106,9 @@ namespace cinput {
     ValueExprMap m;
     std::map< const llvm::Value*, tara::variable > localVars;
     typedef std::map< const llvm::Value*, hb_enc::depends_set > local_data_dependency;
-    typedef std::map< const llvm::BasicBlock*, hb_enc::depends_set > local_ctrl_dependency;
+    typedef std::map< const bb*, hb_enc::depends_set > local_ctrl_dependency;
     static char ID;
     std::string name;
-    //SimpleMultiThreadedProgram<z3:expr>::location_id_type program_location_id_t;
-    // SimpleMultiThreadedProgram<z3:expr>::thread_id_type thread_id_t;
 
   private:
     helpers::z3interf& z3;
@@ -110,19 +118,19 @@ namespace cinput {
     tara::program* p;
     unsigned inst_counter = 0;
     ValueExprMap valMap;
-    std::map< const llvm::BasicBlock*, unsigned> block_to_id;
-    std::map< const llvm::BasicBlock*, split_history > block_to_split_stack;
-    std::map< const llvm::BasicBlock*, z3::expr > block_to_exit_bit;
-    std::map< const llvm::BasicBlock*, hb_enc::se_set>  block_to_trailing_events;
-    std::map< const llvm::BasicBlock*, std::set<const llvm::BasicBlock*> > loop_ignore_edge;
+    std::map< const bb*, unsigned> block_to_id;
+    std::map< const bb*, split_history > block_to_split_stack;
+    std::map< const bb*, z3::expr > block_to_exit_bit;
+    std::map< const bb*, hb_enc::se_set> block_to_trailing_events;
+    std::map< const bb*, bb_set_t > loop_ignore_edge;
+    std::map< const bb*, bb_set_t > rev_loop_ignore_edge;
     //-----------------------------------
     // local data structure of dependency
     //hb_enc::depends_set data_dep_ses;
     //hb_enc::depends_set ctrl_dep_ses;
     build_program::local_data_dependency local_map;
     build_program::local_ctrl_dependency local_ctrl;
-    std::map< const llvm::BasicBlock*,
-              std::map< tara::variable, hb_enc::depends_set > >
+    std::map< const bb*, std::map< tara::variable, hb_enc::depends_set > >
     local_release_heads;
     //-----------------------------------
 
@@ -145,22 +153,22 @@ namespace cinput {
     std::map< const llvm::Value*, std::string > ptr_to_create;
 
     //
-    std::map< llvm::BasicBlock*, z3::expr > block_to_path_con;
+    std::map< bb*, z3::expr > block_to_path_con;
     z3::expr phi_instr = z3.mk_true();
     z3::expr phi_cond = z3.mk_true();
 
-    void join_histories( const std::vector<const llvm::BasicBlock*>& preds,
+    void join_histories( const std::vector<const bb*>& preds,
                          const std::vector<split_history>& hs,
                          split_history& h,
                          z3::expr& path_cond,
-                         std::map<const llvm::BasicBlock*,z3::expr>& conds
+                         std::map<const bb*,z3::expr>& conds
                          );
 
    hb_enc::depends_set get_depends( const llvm::Value* op );
     void join_depends( const llvm::Value* op1,const llvm::Value* op2,
                        hb_enc::depends_set& result );
 
-   hb_enc::depends_set get_ctrl( const llvm::BasicBlock* b);
+   hb_enc::depends_set get_ctrl( const bb* b);
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,
@@ -181,35 +189,14 @@ namespace cinput {
     const char * getPassName() const;
 
   private:
-    // EHandler* eHandler;
-    // SimpleMultiThreadedProgram<z3:expr>* program;
-    // std::map< const llvm::BasicBlock*, program_location_id_t > numBlocks;
-    // std::vector<unsigned> pendingSrc;
-    // std::vector<unsigned> pendingDst;
-    // std::vector<z3:expr> pendingTerms;
-
-    //private functions
-    // program_location_id_t getBlockCount( const llvm::BasicBlock* b  );
-    // void initBlockCount( llvm::Function &f, size_t threadId );
-
-    // z3:expr getPhiMap( const llvm::PHINode*, StringVec, ValueExprMap& );
-
-    // z3:expr
-    // getPhiMap( const llvm::PHINode* p, ValueExprMap& m );
 
     z3::expr translateBlock( unsigned thr_id,
-                             const llvm::BasicBlock*,
+                             const bb*,
                              hb_enc::se_set& prev_events,
                              z3::expr& path_cond,
                              std::vector< z3::expr >& history,
-                             std::map<const llvm::BasicBlock*,z3::expr>& conds,
-                             std::map<const hb_enc::se_ptr, z3::expr>& branch_cond);
-
-    // void post_insertEdge( unsigned, unsigned, z3:expr );
-
-    // void resetPendingInsertEdge();
-    // void addPendingInsertEdge( unsigned, unsigned, z3:expr);
-    // void applyPendingInsertEdges( unsigned );
+                             std::map<const bb*,z3::expr>& conds,
+                             std::map<const hb_enc::se_ptr, z3::expr>& bconds );
 
     z3::expr getTerm( const llvm::Value* op ,ValueExprMap& m ) {
       return get_term( z3, op, m );
@@ -219,18 +206,9 @@ namespace cinput {
                                  z3::expr e, ValueExprMap& m ) {
       auto pair = std::make_pair( op, e );
       m.insert( pair );
-      // m.at(op) = e;
-      // implement this
+      // m.at(op) = e; //todo: implement this
     }
-    // bool isValueMapped( const llvm::Value* op ,ValueExprMap& m ) {
-    //   if( const llvm::Constant* c = llvm::dyn_cast<llvm::Constant>(op) ) {
-    //   }else if( !eHandler->isLocalVar( op ) ) {
-    //     auto it = m.find( op );
-    //     if( it == m.end() )
-    //       return false;
-    //   }
-    //   return true;
-    // }
+
     bool isLocalVar( const llvm::Value* g  ) {
       auto it = localVars.find( g );
       if( it == localVars.end() ) return false;
@@ -239,10 +217,8 @@ namespace cinput {
 
     void collect_loop_backedges();
   public:
-    static z3::expr get_term( helpers::z3interf& z3_,
-                              const llvm::Value* op ,ValueExprMap& m );
-    // static z3::expr fresh_int( helpers::z3interf& z3_ );
-    // static z3::expr fresh_bool( helpers::z3interf& z3_ );
+    static
+    z3::expr get_term(helpers::z3interf&, const llvm::Value*,ValueExprMap&);
 
   };
 

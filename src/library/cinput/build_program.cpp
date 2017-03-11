@@ -97,11 +97,11 @@ void cinput::print( std::ostream& os, const split_history&  hs ) {
 
 char build_program::ID = 0;
 void
-build_program::join_histories(const std::vector<const llvm::BasicBlock*>& preds,
+build_program::join_histories(const std::vector<const bb*>& preds,
                               const std::vector< split_history >& hs,
                               split_history& h,
                               z3::expr& path_cond,
-                              std::map< const llvm::BasicBlock*, z3::expr >& conds) {
+                              std::map< const bb*, z3::expr >& conds) {
   h.clear();
   if(hs.size() == 0 ) {
     split_step ss( NULL, 0, 0, z3.mk_false() );
@@ -113,7 +113,7 @@ build_program::join_histories(const std::vector<const llvm::BasicBlock*>& preds,
     h = hs[0];
     for( auto split_step : h ) { path_cond = path_cond && split_step.cond; }
     if( preds.size() == 1 ) {
-      auto pr = std::pair<const llvm::BasicBlock*,z3::expr>( preds[0], z3.mk_true() );
+      auto pr = std::pair<const bb*,z3::expr>( preds[0], z3.mk_true() );
       conds.insert( pr );
     }
     return;
@@ -149,7 +149,7 @@ build_program::join_histories(const std::vector<const llvm::BasicBlock*>& preds,
       for(;i1 < old_h.size();i1++) {
         c1 = c1 && old_h[i1].cond;
       }
-      auto pr = std::pair<const llvm::BasicBlock*,z3::expr>( preds[j++], c1 );
+      auto pr = std::pair<const bb*,z3::expr>( preds[j++], c1 );
       conds.insert( pr );
       or_vec.push_back( c1 );
       // c = c || c1;
@@ -188,7 +188,7 @@ void build_program::join_depends( const llvm::Value* op1,const llvm::Value* op2,
   hb_enc::join_depends_set( dep_ses0, dep_ses1, result );
 }
 
-hb_enc::depends_set build_program::get_ctrl( const llvm::BasicBlock* b ) {
+hb_enc::depends_set build_program::get_ctrl( const bb* b ) {
   if( b->empty() ) {
     hb_enc::depends_set ctrl_dep;
     return ctrl_dep;
@@ -294,18 +294,20 @@ translate_ordering_tags( llvm::AtomicOrdering ord ) {
 z3::expr
 build_program::
 translateBlock( unsigned thr_id,
-                const llvm::BasicBlock* b,
+                const bb* b,
                 hb_enc::se_set& prev_events,
                 z3::expr& path_cond,
                 std::vector< z3::expr >& history,
-                std::map<const llvm::BasicBlock*,z3::expr>& conds,
+                std::map<const bb*,z3::expr>& conds,
                 std::map<const hb_enc::se_ptr, z3::expr>& branch_conds ) {
 
-  std::string loc_name = "block__" + std::to_string(thr_id)
-                             + "__"+ std::to_string(block_to_id[b]);
-  auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                          history, loc_name, hb_enc::event_t::block,
-                          branch_conds );
+  // std::string loc_name = "block__" + std::to_string(thr_id)
+  //                            + "__"+ std::to_string(block_to_id[b]);
+  // auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
+  //                         loc_name, hb_enc::event_t::block, branch_conds );
+  hb_enc::source_loc loc_name = getBlockLocation(b);
+  auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
+                          loc_name, hb_enc::event_t::block, branch_conds );
   p->add_event( thr_id, block );
   p->set_c11_rs_heads( block, local_release_heads[b] );
 
@@ -316,8 +318,9 @@ translateBlock( unsigned thr_id,
   z3::expr join_conds = z3.mk_true();
 
   // collect loop back edges that should be ignored
-  std::set<const llvm::BasicBlock*> ignore_edges;
-  if( exists( loop_ignore_edge, b) ) ignore_edges = loop_ignore_edge.at(b);
+  bb_set_t ignore_edges;
+  if( helpers::exists( loop_ignore_edge, b ) )
+    ignore_edges = loop_ignore_edge.at(b);
 
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
     const llvm::Instruction* I = &(Iobj);
@@ -424,8 +427,8 @@ translateBlock( unsigned thr_id,
     }
 
     if( auto bop = llvm::dyn_cast<llvm::BinaryOperator>(I) ) {
-      llvm::Value* op0 = bop->getOperand( 0 );
-      llvm::Value* op1 = bop->getOperand( 1 );
+      auto op0 = bop->getOperand( 0 );
+      auto op1 = bop->getOperand( 1 );
       z3::expr a = getTerm( op0, m );
       z3::expr b = getTerm( op1, m );
       unsigned op = bop->getOpcode();
@@ -478,7 +481,7 @@ translateBlock( unsigned thr_id,
         z3::expr ov = getTerm(I,m);
 
         for ( unsigned i = 0 ; i < num ; i++ ) {
-          const llvm::BasicBlock* prev = phi->getIncomingBlock(i);
+          const bb* prev = phi->getIncomingBlock(i);
           const llvm::Value* v_ = phi->getIncomingValue(i);
           if( exists( ignore_edges, prev ) ) continue;
           z3::expr v = getTerm (v_, m );
@@ -552,8 +555,8 @@ translateBlock( unsigned thr_id,
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
                   argnum == 4 ) {
-          llvm::Value* thr_ptr = call->getArgOperand(0);
-          llvm::Value* v = call->getArgOperand(2);
+          auto thr_ptr = call->getArgOperand(0);
+          auto v = call->getArgOperand(2);
           if( !v->hasName() ) {
             v->getType()->print( llvm::outs() ); llvm::outs() << "\n";
             cinput_error("unnamed call to function pointers is not supported!");
@@ -569,7 +572,7 @@ translateBlock( unsigned thr_id,
           // create
         }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
           // join
-          llvm::Value* val = call->getArgOperand(0);
+          auto val = call->getArgOperand(0);
           auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
           auto fname = ptr_to_create.at(thr_ptr);
           ptr_to_create.erase( thr_ptr );
@@ -594,7 +597,7 @@ translateBlock( unsigned thr_id,
     if( auto rmw = llvm::dyn_cast<llvm::AtomicRMWInst>(I) ) {
       auto loc = getInstructionLocation( I );
 
-      const llvm::Value* addr = rmw->getPointerOperand();
+      const auto addr = rmw->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         auto gv = p->get_global( (std::string)(g->getName()) );
         auto up = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
@@ -635,15 +638,16 @@ translateBlock( unsigned thr_id,
         auto gv = p->get_global( (std::string)(g->getName()) );
         z3::expr cmp_v = getTerm( xchg->getCompareOperand(), m );
         z3::expr new_v = getTerm( xchg->getNewValOperand(), m );
-        // fail event
-        auto rd=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                           history, gv, loc, hb_enc::event_t::r,
+        // exchange fail event
+        auto rd=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history, gv,
+                           loc, hb_enc::event_t::r,
                            translate_ordering_tags(xchg->getFailureOrdering()));
         rd->append_history( rd->rd_v() != cmp_v );
-        rd->set_dependencies( get_depends( xchg->getCompareOperand() ), get_ctrl(b));
-        // success event
-        auto up=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                           history, gv, loc, hb_enc::event_t::u,
+        rd->set_dependencies( get_depends( xchg->getCompareOperand() ),
+                              get_ctrl(b) );
+        // exchange success event
+        auto up=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,gv,
+                           loc, hb_enc::event_t::u,
                            translate_ordering_tags(xchg->getSuccessOrdering()));
         up->append_history( up->rd_v() == cmp_v );
         hb_enc::depends_set dep;
@@ -651,16 +655,16 @@ translateBlock( unsigned thr_id,
         rd->set_dependencies( dep, get_ctrl(b) );
         prev_events = { rd, up };
         p->add_event_with_rs_heads(thr_id, prev_events, local_release_heads[b]);
-        // join event
-        auto blk = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                              history, loc.name(), hb_enc::event_t::block,
-                              branch_conds );
+        // joining success and fail events
+        auto blk = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
+                              loc, hb_enc::event_t::block, branch_conds );
         prev_events = { blk };
         p->add_event(thr_id, prev_events);
         block_ssa = block_ssa &&
           (((up->rd_v() ==cmp_v)&&(up->wr_v() == new_v))||(rd->rd_v() !=cmp_v));
+        cinput_error( "untested code!! for exchange operation!! check clock variable naming")
       }else{
-        cinput_error( "Pointers are not supported in atomoic xchg!!");
+        cinput_error( "Pointers are not yet supported in atomoic xchg!!");
       }
 
       assert( !recognized );recognized = true;
@@ -674,12 +678,12 @@ translateBlock( unsigned thr_id,
 }
 
 void
-join_depends_set(const std::map<const llvm::BasicBlock*,hb_enc::depends_set>& deps,
-                 const std::map<const llvm::BasicBlock*,z3::expr>& conds,
+join_depends_set(const std::map<const bb*,hb_enc::depends_set>& deps,
+                 const std::map<const bb*,z3::expr>& conds,
                  hb_enc::depends_set& result ) {
   result.clear();
   for( auto& pr : deps ) {
-    const llvm::BasicBlock* b = pr.first;
+    const bb* b = pr.first;
     const hb_enc::depends_set& dep = pr.second;
     // tara::debug_print( std::cout, dep );
     z3::expr cond = conds.at(b);
@@ -692,17 +696,22 @@ join_depends_set(const std::map<const llvm::BasicBlock*,hb_enc::depends_set>& de
 }
 
 void build_program::collect_loop_backedges() {
+  //todo: llvm::FindFunctionBackedges could have done the job
   auto &LIWP = getAnalysis<llvm::LoopInfoWrapperPass>();
   auto LI = &LIWP.getLoopInfo();
+  loop_ignore_edge.clear();
   for (auto I = LI->rbegin(), E = LI->rend(); I != E; ++I) {
     llvm::Loop *L = *I;
-    llvm::BasicBlock* h = L->getHeader();
-    llvm::SmallVector<llvm::BasicBlock*,10> LoopLatches;
+    auto h = L->getHeader();
+    llvm::SmallVector<bb*,10> LoopLatches;
     L->getLoopLatches( LoopLatches );
-    for( llvm::BasicBlock* bb : LoopLatches ) {
+    for( bb* bb : LoopLatches ) {
       loop_ignore_edge[h].insert( bb );
+      rev_loop_ignore_edge[bb].insert(h);
     }
-    // L->print( llvm::outs(), 3 );
+    if( o.print_input > 1 ) {
+      L->print( llvm::outs(), 3 );
+    }
   }
 }
 
@@ -719,7 +728,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   z3::expr start_bit = z3.get_fresh_bool();
   std::vector< z3::expr > history = { start_bit };
-  hb_enc::source_loc loc; loc.pretty_name = name;
+  hb_enc::source_loc loc( name );
   auto start = mk_se_ptr( hb_enc, thread_id, prev_events, start_bit,
                           history, loc, //name,
                           hb_enc::event_t::barr );
@@ -733,14 +742,17 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
   prev_events.insert( start );
 
+  bb_vec_t bb_vec;
+  ordered_blocks( f, rev_loop_ignore_edge, bb_vec );
+
   std::vector< split_history     > final_histories;
-  std::vector< const llvm::BasicBlock* > final_preds;
+  std::vector< const bb* > final_preds;
 
   for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
-    const llvm::BasicBlock* src = &(*it);
-    std::map<const llvm::BasicBlock*,hb_enc::depends_set> ctrl_ses;
+    const bb* src = &(*it);
+    std::map<const bb*,hb_enc::depends_set> ctrl_ses;
     std::map< const tara::variable,
-      std::map<const llvm::BasicBlock*,hb_enc::depends_set> > last_rls_ses;
+      std::map<const bb*,hb_enc::depends_set> > last_rls_ses;
     if( o.print_input > 0 ) {
       std::cout << "=====================================================\n";
       std::cout << "Processing block" << " block__" << thread_id << "__"
@@ -750,16 +762,19 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     if( src->hasName() && (src->getName() == "dummy")) continue;
 
     std::vector< split_history > histories; // needs to be ref
-    std::vector<const llvm::BasicBlock*> preds;
+    std::vector<const bb*> preds;
     std::map<const hb_enc::se_ptr, z3::expr > branch_conds;
     //iterate over predecessors
-    std::set<const llvm::BasicBlock*> ignore_edges;
+    std::set<const bb*> ignore_edges;
     if( exists( loop_ignore_edge, src) ) {
       ignore_edges = loop_ignore_edge.at(src);
     }
-    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI) {
-      const llvm::BasicBlock *prev = *PI;
-      if( exists( ignore_edges, prev ) ) continue; // ignoring loop back edges
+    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
+      // const llvm::BasicBlock *prev = *PI;
+      const bb* prev = *PI;
+      if( exists( ignore_edges, prev ) ) {
+        continue; // ignoring loop back edges
+      }
       split_history h = block_to_split_stack[prev];
       z3::expr prev_cond = z3.mk_true();
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
@@ -808,7 +823,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
       branch_conds.insert( std::make_pair( start, z3.mk_true()) );
     }
     split_history h;
-    std::map<const llvm::BasicBlock*, z3::expr> conds;
+    std::map<const bb*, z3::expr> conds;
     z3::expr path_cond = z3.mk_true();
     join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
@@ -849,14 +864,14 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   }
 
   split_history final_h;
-  std::map<const llvm::BasicBlock*, z3::expr> conds;
+  std::map<const bb*, z3::expr> conds;
   z3::expr exit_cond = z3.mk_true();
   join_histories( final_preds, final_histories, final_h, exit_cond, conds);
 
   std::vector<z3::expr> history_exprs;
   split_history_to_exprs( final_h, history_exprs );
 
-  hb_enc::source_loc floc; floc.pretty_name = name+"_final";
+  hb_enc::source_loc floc( name+"_final" ); //floc.pretty_name = name+"_final";
 
   auto final = mk_se_ptr( hb_enc, thread_id, final_prev_events, exit_cond,
                           history_exprs, floc, //name+"_final",

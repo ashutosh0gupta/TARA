@@ -125,12 +125,12 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   program* p = new program( z3_, o, hb_encoding );
 
   hb_enc::se_set prev_events;
-  hb_enc::source_loc loc;
+  hb_enc::source_loc sloc("the_launcher"),floc("the_finisher");
   std::vector<z3::expr> history;
   z3::expr tru = z3_.mk_true();
-  auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history, loc,
+  auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history, sloc,
                           hb_enc::event_t::pre, hb_enc::o_tag_t::sc);
-  auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history, loc,
+  auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history, floc,
                           hb_enc::event_t::post, hb_enc::o_tag_t::sc);
 
   // auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
@@ -180,13 +180,12 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( build_p );
   passMan.run( *module.get() );
 
-  // dump_dot_module( o.output_dir, module );
-
   for( const auto& g : p->globals ) {
     p->rd_events[g].push_back( final );
   }
 
   if( o.print_input > 0 ) {
+    dump_dot_module( o.output_dir, module );
     p->print_dot( "" );
   }
 

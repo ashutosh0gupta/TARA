@@ -109,9 +109,9 @@ std::string source_loc::name() {
   static unsigned unknown_location_counter = 0;
   if( line == 0 && col == 0 ) {
     if( pretty_name != "" )
-      return "_u" + std::to_string(unknown_location_counter++);
-    else
       return pretty_name;
+    else
+      return "_u" + std::to_string(unknown_location_counter++);
   }else{
     std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
     auto line_col = std::make_pair(line, col);

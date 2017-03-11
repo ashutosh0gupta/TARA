@@ -79,6 +79,10 @@ public:
 struct source_loc{
   // (0,0,"") is unknown location
   // (0,0,something) is an unknown location with a pretty name!!!
+  source_loc() {};
+  source_loc( unsigned l, unsigned c, std::string s) :
+    line(l), col(c), file(s) {}; // constructor for locations in a file
+  source_loc( std::string s) : file(s) {}; // constructor for pretty named locs
   unsigned line = 0;
   unsigned col = 0;
   std::string file;
@@ -332,16 +336,7 @@ struct source_loc{
   void full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
                            z3::expr& path_cond, std::vector<z3::expr>& history_,
                            hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
-                           std::map<const hb_enc::se_ptr, z3::expr>& branch_conds);//  {
-  //   e->guard = path_cond;
-  //   e->history = history_;
-  //   e->o_tag = ord_tag;
-  //   e->loc = loc;
-  //   hb_enc.record_event( e );
-  //   for(se_ptr ep  : prev_es) {
-  //     ep->add_post_events( e, branch_conds.at(ep) );
-  //   }
-  // }
+                           std::map<const hb_enc::se_ptr, z3::expr>& branch_conds);
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
@@ -357,40 +352,41 @@ struct source_loc{
     se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0,
                                                  ssa_v, prog_v, loc_name, _et);
     full_initialize_se(hb_enc, e,prev_es,path_cond,history_,loc,ord_tag,bconds);
-    // e->guard = path_cond;
-    // e->history = history_;
-    // e->o_tag = ord_tag;
-    // e->loc = loc;
-    // hb_enc.record_event( e );
-    // for(se_ptr ep  : prev_es) {
-    //   ep->add_post_events( e, hb_enc.z3.mk_true() );
-    // }
     return e;
   }
 
   //todo: enable tagging for the fences of all kinds
+  // inline se_ptr
+  // mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
+  //            z3::expr& path_cond, std::vector<z3::expr>& history_,
+  //            std::string loc_name, event_t et,
+  //            std::map<const hb_enc::se_ptr, z3::expr>& branch_conds,
+  //            hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na  ) {
+  //   se_ptr e =
+  //     std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0, loc_name, et );
+  //   hb_enc::source_loc loc;
+  //   full_initialize_se( hb_enc, e, prev_es, path_cond, history_, loc, ord_tag, branch_conds );
+  //   return e;
+  // }
+
+
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
-             std::string loc_name, event_t et,
-             std::map<const hb_enc::se_ptr, z3::expr>& branch_conds,
+             hb_enc::source_loc& loc, event_t et,
+             std::map<const hb_enc::se_ptr, z3::expr>& bconds,
              hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na  ) {
-    se_ptr e =
-      std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0, loc_name, et );
-    hb_enc::source_loc loc;
-    full_initialize_se( hb_enc, e, prev_es, path_cond, history_, loc, ord_tag, branch_conds );
-    // e->guard = path_cond;
-    // e->history = history_;
-    // e->o_tag = ord_tag;
-    // hb_enc.record_event( e );
-    // // assert( z3::eq( branch_cond, hb_enc.z3.mk_true() ) ||
-    // //                 prev_es.size() == 1 );
-    // for( se_ptr ep  : prev_es ) {
-    //   ep->add_post_events( e, branch_conds.at(ep) );
-    // }
+    std::string lname;
+    if( et == hb_enc::event_t::block ) {
+      hb_enc::source_loc loc_d;
+      lname = "block__" + std::to_string(tid) + "__"+ loc_d.name();
+    }else{
+      lname = loc.name();
+    }
+    se_ptr e =std::make_shared<symbolic_event>(hb_enc.z3,tid,prev_es,0,lname,et);
+    full_initialize_se( hb_enc, e, prev_es, path_cond, history_,loc,ord_tag,bconds);
     return e;
   }
-
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
@@ -401,13 +397,9 @@ struct source_loc{
     for( auto& ep : prev_es ) {
       branch_conds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
     }
-    std::string loc_name;
-    if      ( et == event_t::pre  ) { loc_name = "the_launcher";
-    }else if( et == event_t::post ) { loc_name = "the_finisher";
-      loc_name = loc.name();
-    }
+    // std::string loc_name = loc.name();
     se_ptr e = mk_se_ptr( hb_enc, tid, prev_es, path_cond, history_,
-                          loc_name, et, branch_conds, ord_tag );
+                          loc, et, branch_conds, ord_tag );
     e->loc = loc;
     return e;
   }

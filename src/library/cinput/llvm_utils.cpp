@@ -20,6 +20,8 @@
 
 #include <string>
 #include "build_program.h"
+#include "helpers/graph_utils.h"
+
 // #include "helpers/z3interf.h"
 #include <z3.h>
 #pragma GCC optimize ("no-rtti")
@@ -31,7 +33,7 @@ using namespace tara::helpers;
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-// pragam'ed to aviod warnings due to llvm included files
+// pragam'ed to avoid warnings due to llvm included files
 
 #include "llvm/IRReader/IRReader.h"
 
@@ -150,12 +152,17 @@ hb_enc::source_loc cinput::getInstructionLocation(const llvm::Instruction* I ) {
   return l;
 }
 
+hb_enc::source_loc cinput::getBlockLocation(const bb* b ) {
+  auto I = b->getFirstNonPHIOrDbg();
+  return getInstructionLocation(I);
+}
+
 void cinput::initBlockCount( llvm::Function &f,
-                     std::map<const llvm::BasicBlock*, unsigned>& block_to_id) {
+                     std::map<const bb*, unsigned>& block_to_id) {
   unsigned l = 0;
   block_to_id.clear();
   for( auto it  = f.begin(), end = f.end(); it != end; it++ ) {
-    llvm::BasicBlock* b = &(*it);
+    bb* b = &(*it);
     block_to_id[b] = l++;
   }
 }
@@ -177,25 +184,25 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
     if( branch->isUnconditional() ) return;
     auto cond = branch->getCondition();
     if( llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(cond) ) {
-      llvm::BasicBlock* phiBlock = branch->getParent();
-      llvm::BasicBlock* phiDstTrue = branch->getSuccessor(0);
-      llvm::BasicBlock* phiDstFalse = branch->getSuccessor(1);
+      bb* phiBlock = branch->getParent();
+      bb* phiDstTrue = branch->getSuccessor(0);
+      bb* phiDstFalse = branch->getSuccessor(1);
       llvm::Instruction* first_inst = &*(phiBlock->getInstList()).begin();//3.8
       if( phiBlock->size() == 2 && cond == first_inst ) {
         unsigned num = phi->getNumIncomingValues();
         for( unsigned i = 0; i <= num - 2; i++ ) {
         llvm::Value* val0      = phi->getIncomingValue(i);
-        llvm::BasicBlock* src0 = phi->getIncomingBlock(i);
+        bb* src0 = phi->getIncomingBlock(i);
         llvm::BranchInst* br0  = (llvm::BranchInst*)(src0->getTerminator());
         unsigned br0_branch_idx = ( br0->getSuccessor(0) ==  phiBlock ) ? 0 : 1;
         if( llvm::ConstantInt* b = llvm::dyn_cast<llvm::ConstantInt>(val0) ) {
           assert( b->getType()->isIntegerTy(1) );
-          llvm::BasicBlock* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
+          bb* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
           br0->setSuccessor( br0_branch_idx, newDst );
         }else{ cinput_error("unseen case!");}
         }
         llvm::Value*      val1 = phi->getIncomingValue(num-1);
-        llvm::BasicBlock* src1 = phi->getIncomingBlock(num-1);
+        bb* src1 = phi->getIncomingBlock(num-1);
         llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
         llvm::Instruction* cmp1 = llvm::dyn_cast<llvm::Instruction>(val1);
         assert( cmp1 );
@@ -222,6 +229,101 @@ void cinput::dump_dot_module( boost::filesystem::path& dump_path,
   current_path( c_path );
 }
 
+class bb_succ_iter : public llvm::succ_const_iterator {
+public:
+  bb_succ_iter( llvm::succ_const_iterator begin_,llvm::succ_const_iterator end_,
+                bb_set_t& back_edges ) :
+    llvm::succ_const_iterator( begin_ ), end(end_), b_edges( back_edges ) {};
+  bb_succ_iter( llvm::succ_const_iterator end_,bb_set_t& back_edges ) :
+    llvm::succ_const_iterator( end_ ), end(end_), b_edges(back_edges) {};
+  // llvm::succ_const_iterator it;
+  llvm::succ_const_iterator end;
+  bb_set_t& b_edges;
+  bb_succ_iter& operator++() {
+    llvm::succ_const_iterator& it = (llvm::succ_const_iterator&)*this;
+    do{
+      ++it;
+    }while( it != end && helpers::exists( b_edges, (const bb*)*it) );
+    return *this;
+  }
+  // bool operator!=( rand_iterator<const bb*> rhs) {
+  //   return it != rhs;
+  // }
+};
+
+
+
+void cinput::ordered_blocks( const llvm::Function &F,
+                             std::map<const bb*,bb_set_t> bedges,
+                             std::vector<const bb*>& bs ) {
+
+  const bb* h = &F.getEntryBlock();
+  auto f = [&bedges](const bb* b) { //-> bb_succ_iter {
+      return bb_succ_iter( llvm::succ_begin(b), llvm::succ_end(b),bedges.at(b));
+  };
+  auto e = [&bedges](const bb* b) { //-> bb_succ_iter {
+    return bb_succ_iter( llvm::succ_end(b), bedges.at(b) );
+  };
+  std::vector<const bb* > bs_;
+  // topological_sort( h, // llvm::succ_begin, llvm::succ_end,
+  //                   &f,&e,
+  //                   // (bb_succ_iter(*)(const bb*))&f,
+  //                   // (bb_succ_iter(*)(const bb*))&e,
+  //                   bs_ );
+
+  // auto e = (llvm::succ_const_iterator(*)(const bb*)) llvm::succ_end;
+  // auto ep = (rand_iterator<const bb*>(*)(const bb*)) e;
+  // topological_sort( h, //(llvm::succ_iterator(*)(bb*))llvm::succ_begin
+  //                   (rand_iterator<const bb*>(*)(const bb*))&f,
+  //                   (rand_iterator<const bb*>(*)(const bb*))&f,
+  //                   // ep,
+  //                   // (rand_iterator<const bb*>(*)(const bb*)) e,
+  //                   bs );
+
+//   const bb* BB = &F.getEntryBlock();
+//   // if( succ_empty( BB ) ) return;
+
+//   bb_set_t visited;
+//   std::vector< std::pair<const bb*, llvm::succ_const_iterator> > visit_stack;
+//   bb_set_t in_stack;
+
+// //   // SmallPtrSet<const BasicBlock*, 8> Visited;
+// //   // SmallVector<std::pair<const BasicBlock*, succ_const_iterator>, 8> VisitStack;
+// //   // SmallPtrSet<const BasicBlock*, 8> InStack;
+
+//   visited.insert(BB);
+//   visit_stack.push_back( std::make_pair( BB, llvm::succ_begin(BB) ) );
+//   in_stack.insert(BB);
+
+//   do {
+//     std::pair<const bb*, llvm::succ_const_iterator>& top = visit_stack.back();
+//     const bb* b = top.first;
+//     llvm::succ_const_iterator &I = top.second;
+
+//     // bool FoundNew = false;
+//     while( I != succ_end( b ) ) {
+//       auto succ_b = *I++;
+//       if( Visited.insert(BB).second ) {
+// //         FoundNew = true;
+// //         break;
+// //       }
+// //       // Successor is in VisitStack, it's a back edge.
+// //       if( InStack.count(BB) )
+// //         Result.push_back( std::make_pair(b, BB) );
+// //     }
+
+// //     if (FoundNew) {
+// //       // Go down one level if there is a unvisited successor.
+// //       InStack.insert(BB);
+// //       VisitStack.push_back(std::make_pair(BB, succ_begin(BB)));
+// //     } else {
+// //       // Go up one level.
+// //       InStack.erase(VisitStack.pop_back_val().first);
+//     }
+//   } while (!VisitStack.empty());
+}
+
+
 //----------------------------------------------------------------------------
 // Splitting for assume pass
 char SplitAtAssumePass::ID = 0;
@@ -232,7 +334,7 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, &*f.end() );
     new llvm::UnreachableInst(C, err);
 
-    std::vector<llvm::BasicBlock*> splitBBs;
+    std::vector<bb*> splitBBs;
     std::vector<llvm::CallInst*> calls;
     std::vector<llvm::Value*> args;
     std::vector<llvm::Instruction*> splitIs;
@@ -241,7 +343,7 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
      //collect calls to assume statements
     auto bit = f.begin(), end = f.end();
     for( ; bit != end; ++bit ) {
-      llvm::BasicBlock* bb = &*bit;
+      bb* bb = &*bit;
       // bb->print( llvm::outs() );
       auto iit = bb->begin(), iend = bb->end();
       size_t bb_sz = bb->size();
@@ -274,19 +376,20 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     // Reverse order splitting for the case if there are more than
     // one assumes in one basic block
     for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
-      llvm::BasicBlock* head = splitBBs[i];
-      llvm::BasicBlock* elseBlock = isAssume[i] ? dum : err;
+      bb* head = splitBBs[i];
+      bb* elseBlock = isAssume[i] ? dum : err;
       llvm::Instruction* cmp = NULL;
       llvm::BranchInst *branch;
       if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
         cmp = c;
-        llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-        // llvm::BasicBlock* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
+        bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+        // bb* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
         branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       } else if( is_llvm_false(args[i]) ) { // jump to else block
-        llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-        // llvm::BasicBlock* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
+        // bb* _tail =
+          llvm::SplitBlock( head, splitIs[i] ); //3.8
+        // bb* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
         //todo: remove tail block and any other block that is unreachable now
         branch = llvm::BranchInst::Create( elseBlock );
         llvm::ReplaceInstWithInst( head->getTerminator(), branch );
