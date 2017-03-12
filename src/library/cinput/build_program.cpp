@@ -748,8 +748,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   std::vector< split_history     > final_histories;
   std::vector< const bb* > final_preds;
 
-  for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
-    const bb* src = &(*it);
+  for( const bb* src : bb_vec ) {
+  // for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
+  //   const bb* src = &(*it);
     std::map<const bb*,hb_enc::depends_set> ctrl_ses;
     std::map< const tara::variable,
       std::map<const bb*,hb_enc::depends_set> > last_rls_ses;

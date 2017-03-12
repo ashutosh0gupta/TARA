@@ -231,24 +231,31 @@ void cinput::dump_dot_module( boost::filesystem::path& dump_path,
 
 class bb_succ_iter : public llvm::succ_const_iterator {
 public:
-  bb_succ_iter( llvm::succ_const_iterator begin_,llvm::succ_const_iterator end_,
+  bb_succ_iter( llvm::succ_const_iterator begin_,
+                llvm::succ_const_iterator end_,
                 bb_set_t& back_edges ) :
-    llvm::succ_const_iterator( begin_ ), end(end_), b_edges( back_edges ) {};
-  bb_succ_iter( llvm::succ_const_iterator end_,bb_set_t& back_edges ) :
-    llvm::succ_const_iterator( end_ ), end(end_), b_edges(back_edges) {};
-  // llvm::succ_const_iterator it;
+    llvm::succ_const_iterator( begin_ ), end(end_), b_edges( back_edges ) {
+    llvm::succ_const_iterator& it = (llvm::succ_const_iterator&)*this;
+    while( it != end && helpers::exists( b_edges, (const bb*)*it) ) ++it;
+  };
+
+  bb_succ_iter( llvm::succ_const_iterator begin_,
+                llvm::succ_const_iterator end_ ) :
+    llvm::succ_const_iterator( begin_ ), end(end_) {};
+
+  bb_succ_iter( llvm::succ_const_iterator end_ ) :
+    llvm::succ_const_iterator( end_ ), end( end_ ) {};
+
   llvm::succ_const_iterator end;
-  bb_set_t& b_edges;
+  bb_set_t b_edges;
   bb_succ_iter& operator++() {
     llvm::succ_const_iterator& it = (llvm::succ_const_iterator&)*this;
     do{
       ++it;
     }while( it != end && helpers::exists( b_edges, (const bb*)*it) );
+    // std::cout << b_edges.size() << "\n";
     return *this;
   }
-  // bool operator!=( rand_iterator<const bb*> rhs) {
-  //   return it != rhs;
-  // }
 };
 
 
@@ -257,70 +264,18 @@ void cinput::ordered_blocks( const llvm::Function &F,
                              std::map<const bb*,bb_set_t> bedges,
                              std::vector<const bb*>& bs ) {
 
-  const bb* h = &F.getEntryBlock();
-  auto f = [&bedges](const bb* b) { //-> bb_succ_iter {
+  auto f = [&bedges](const bb* b) {
+    if( exists( bedges, b ) ) {
       return bb_succ_iter( llvm::succ_begin(b), llvm::succ_end(b),bedges.at(b));
+    }else{
+      return bb_succ_iter( llvm::succ_begin(b), llvm::succ_end(b));
+    }
   };
-  auto e = [&bedges](const bb* b) { //-> bb_succ_iter {
-    return bb_succ_iter( llvm::succ_end(b), bedges.at(b) );
-  };
-  std::vector<const bb* > bs_;
-  // topological_sort( h, // llvm::succ_begin, llvm::succ_end,
-  //                   &f,&e,
-  //                   // (bb_succ_iter(*)(const bb*))&f,
-  //                   // (bb_succ_iter(*)(const bb*))&e,
-  //                   bs_ );
 
-  // auto e = (llvm::succ_const_iterator(*)(const bb*)) llvm::succ_end;
-  // auto ep = (rand_iterator<const bb*>(*)(const bb*)) e;
-  // topological_sort( h, //(llvm::succ_iterator(*)(bb*))llvm::succ_begin
-  //                   (rand_iterator<const bb*>(*)(const bb*))&f,
-  //                   (rand_iterator<const bb*>(*)(const bb*))&f,
-  //                   // ep,
-  //                   // (rand_iterator<const bb*>(*)(const bb*)) e,
-  //                   bs );
+  auto e = [](const bb* b) { return bb_succ_iter( llvm::succ_end(b) ); };
 
-//   const bb* BB = &F.getEntryBlock();
-//   // if( succ_empty( BB ) ) return;
-
-//   bb_set_t visited;
-//   std::vector< std::pair<const bb*, llvm::succ_const_iterator> > visit_stack;
-//   bb_set_t in_stack;
-
-// //   // SmallPtrSet<const BasicBlock*, 8> Visited;
-// //   // SmallVector<std::pair<const BasicBlock*, succ_const_iterator>, 8> VisitStack;
-// //   // SmallPtrSet<const BasicBlock*, 8> InStack;
-
-//   visited.insert(BB);
-//   visit_stack.push_back( std::make_pair( BB, llvm::succ_begin(BB) ) );
-//   in_stack.insert(BB);
-
-//   do {
-//     std::pair<const bb*, llvm::succ_const_iterator>& top = visit_stack.back();
-//     const bb* b = top.first;
-//     llvm::succ_const_iterator &I = top.second;
-
-//     // bool FoundNew = false;
-//     while( I != succ_end( b ) ) {
-//       auto succ_b = *I++;
-//       if( Visited.insert(BB).second ) {
-// //         FoundNew = true;
-// //         break;
-// //       }
-// //       // Successor is in VisitStack, it's a back edge.
-// //       if( InStack.count(BB) )
-// //         Result.push_back( std::make_pair(b, BB) );
-// //     }
-
-// //     if (FoundNew) {
-// //       // Go down one level if there is a unvisited successor.
-// //       InStack.insert(BB);
-// //       VisitStack.push_back(std::make_pair(BB, succ_begin(BB)));
-// //     } else {
-// //       // Go up one level.
-// //       InStack.erase(VisitStack.pop_back_val().first);
-//     }
-//   } while (!VisitStack.empty());
+  const bb* h = &F.getEntryBlock();
+  topological_sort<const bb*, bb_succ_iter>( h, f, e, bs );
 }
 
 

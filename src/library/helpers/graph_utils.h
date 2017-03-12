@@ -28,44 +28,41 @@
 namespace tara {
 namespace helpers {
 
-  template <class T>
-  using rand_iterator = std::iterator< std::random_access_iterator_tag, T >;
-
   //todo: should throw error if cycles detected
   //todo: record iterator
   template <class T, class n_iter> void
-  topological_sort( const T head,
-                    n_iter(succ_begin)(const T),
-                    n_iter(succ_end)(const T),
+  topological_sort( T h,
+                    std::function<n_iter(T)> succ_begin,
+                    std::function<n_iter(T)> succ_end,
                     std::vector< T >& ord_vec ) {
-    // typedef std::iterator< std::random_access_iterator_tag, T > n_iter;
     ord_vec.clear();
-    std::vector< std::tuple< const T, unsigned, n_iter, n_iter > > stack;
-    auto tup = std::make_tuple(head, 0, succ_begin(head), succ_end(head) );
-    stack.push_back( tup );
+    std::vector< std::tuple< T, unsigned, n_iter, n_iter > > stack;
+    stack.push_back( std::make_tuple( h, 0, succ_begin(h), succ_end(h) ) );
     std::map< T, unsigned > o_map;
 
     while( !stack.empty() ) {
-      auto& tup = stack.back(); //std::cerr << e->name() << "\n";
-      const T& n    = std::get<0>(tup);
+      auto& tup     = stack.back();
+      T& n          = std::get<0>(tup);
       unsigned& max = std::get<1>(tup);
       n_iter& it    = std::get<2>(tup);
-      n_iter& end   = std::get<3>(tup);
+      n_iter& end   = std::get<3>(tup); //std::cerr << n << "\n";
       assert( !helpers::exists( o_map, n ) );
       while( 1 ) {
         if( it != end ) {
-          const T& np = *it;
-          auto o_it = o_map.find( n );
-          if( o_it == o_map.end() ) {
+          const T& np     = *it;
+          auto o_it = o_map.find( np );
+          if( o_it != o_map.end() ) {
             unsigned m_new = o_it->second;
             if( m_new > max ) max = m_new;
             ++it;
           }else{
-            stack.push_back( std::make_tuple(np, 0, succ_begin(np), succ_end(np)) );
+            stack.push_back(std::make_tuple(np,0,succ_begin(np),succ_end(np)));
             break;
           }
         }else{
           o_map[n] = max + 1;
+          // std::cout << max+1 << "\n";
+          ord_vec.push_back(n);
           stack.pop_back();
           break;
         }
@@ -73,7 +70,7 @@ namespace helpers {
     }
 
     std::sort( ord_vec.begin(), ord_vec.end(),
-               [&](const T& x, const T& y) {return o_map.at(x) < o_map.at(y);});
+               [&](const T& x, const T& y) {return o_map.at(x) > o_map.at(y);});
   }
 
 }}
