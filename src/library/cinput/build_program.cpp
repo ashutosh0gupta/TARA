@@ -723,17 +723,21 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   hb_enc::se_set prev_events, final_prev_events;
   if( o.print_input > 0 ) std::cout << "Processing Function: " << name << "\n";
 
-  initBlockCount( f, block_to_id );
+  bb_vec_t bb_vec;
+  initBlockCount( f, rev_loop_ignore_edge, bb_vec, block_to_id );
+  // ordered_blocks( f, ,  );
 
-
+  // creating the first event of function; needs to initialize several
+  // parameters: start_bit, history, location name,
   z3::expr start_bit = z3.get_fresh_bool();
   std::vector< z3::expr > history = { start_bit };
   hb_enc::source_loc loc( name );
-  auto start = mk_se_ptr( hb_enc, thread_id, prev_events, start_bit,
-                          history, loc, //name,
-                          hb_enc::event_t::barr );
+  auto start = mk_se_ptr( hb_enc, thread_id, prev_events, start_bit, history,
+                          loc, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
+    // if the function is main then we have declare that it is the
+    // entry point of the full program
     p->create_map[ "main" ] = p->init_loc;
     hb_enc::se_ptr post_loc = p->post_loc;
     auto pr = std::make_pair( post_loc, z3.mk_true() );
@@ -741,9 +745,6 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   }
 
   prev_events.insert( start );
-
-  bb_vec_t bb_vec;
-  ordered_blocks( f, rev_loop_ignore_edge, bb_vec );
 
   std::vector< split_history     > final_histories;
   std::vector< const bb* > final_preds;

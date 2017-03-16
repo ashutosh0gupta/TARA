@@ -55,6 +55,8 @@ namespace cinput {
   hb_enc::source_loc getInstructionLocation(const llvm::Instruction* I );
   hb_enc::source_loc getBlockLocation(const bb* b );
   void initBlockCount( llvm::Function &f,
+                       std::map<const bb*,bb_set_t> back_edges,
+                       std::vector<const bb*>& bs,
                        std::map<const bb*, unsigned>& block_to_id);
   void removeBranchingOnPHINode( llvm::BranchInst *branch );
 
@@ -63,9 +65,8 @@ namespace cinput {
                         std::unique_ptr<llvm::Module>& );
 
 
-  void ordered_blocks( const llvm::Function &F,
-                       std::map<const bb*,bb_set_t> back_edges,
-                       std::vector<const bb*>& bs );
+ //  void ordered_blocks( const llvm::Function &F,
+ // );
 
   //-------------------------------------------------------
 

@@ -157,15 +157,6 @@ hb_enc::source_loc cinput::getBlockLocation(const bb* b ) {
   return getInstructionLocation(I);
 }
 
-void cinput::initBlockCount( llvm::Function &f,
-                     std::map<const bb*, unsigned>& block_to_id) {
-  unsigned l = 0;
-  block_to_id.clear();
-  for( auto it  = f.begin(), end = f.end(); it != end; it++ ) {
-    bb* b = &(*it);
-    block_to_id[b] = l++;
-  }
-}
 
 void cinput::setLLVMConfigViaCommandLineOptions( std::string strs ) {
   std::string n = "test";
@@ -259,10 +250,22 @@ public:
 };
 
 
+// void cinput::ordered_blocks( const llvm::Function &F,
+//                               ) {
 
-void cinput::ordered_blocks( const llvm::Function &F,
+// }
+
+void cinput::initBlockCount( llvm::Function &F,
                              std::map<const bb*,bb_set_t> bedges,
-                             std::vector<const bb*>& bs ) {
+                             std::vector<const bb*>& bs,
+                             std::map<const bb*, unsigned>& block_to_id) {
+
+  // unsigned l = 0;
+  // block_to_id.clear();
+  // for( auto it  = F.begin(), end = F.end(); it != end; it++ ) {
+  //   bb* b = &(*it);
+  //   block_to_id[b] = l++;
+  // }
 
   auto f = [&bedges](const bb* b) {
     if( exists( bedges, b ) ) {
@@ -275,91 +278,95 @@ void cinput::ordered_blocks( const llvm::Function &F,
   auto e = [](const bb* b) { return bb_succ_iter( llvm::succ_end(b) ); };
 
   const bb* h = &F.getEntryBlock();
+  bs.clear();
   topological_sort<const bb*, bb_succ_iter>( h, f, e, bs );
-}
 
+  unsigned l = 0;
+  block_to_id.clear();
+  for( auto b : bs )
+    block_to_id[b] = l++;
+}
 
 //----------------------------------------------------------------------------
 // Splitting for assume pass
 char SplitAtAssumePass::ID = 0;
 bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
-    llvm::LLVMContext &C = f.getContext();
-    llvm::BasicBlock *dum = llvm::BasicBlock::Create( C, "dummy", &f, &*f.end());
-    new llvm::UnreachableInst(C, dum);
-    llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, &*f.end() );
-    new llvm::UnreachableInst(C, err);
+  llvm::LLVMContext &C = f.getContext();
+  llvm::BasicBlock *dum = llvm::BasicBlock::Create(C, "dummy", &f, &*f.end());
+  new llvm::UnreachableInst(C, dum);
+  llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, &*f.end() );
+  new llvm::UnreachableInst(C, err);
 
-    std::vector<bb*> splitBBs;
-    std::vector<llvm::CallInst*> calls;
-    std::vector<llvm::Value*> args;
-    std::vector<llvm::Instruction*> splitIs;
-    std::vector<bool> isAssume;
+  std::vector<bb*> splitBBs;
+  std::vector<llvm::CallInst*> calls;
+  std::vector<llvm::Value*> args;
+  std::vector<llvm::Instruction*> splitIs;
+  std::vector<bool> isAssume;
 
-     //collect calls to assume statements
-    auto bit = f.begin(), end = f.end();
-    for( ; bit != end; ++bit ) {
-      bb* bb = &*bit;
-      // bb->print( llvm::outs() );
-      auto iit = bb->begin(), iend = bb->end();
-      size_t bb_sz = bb->size();
-      for( unsigned i = 0; iit != iend; ++iit ) {
-	i++;
-        llvm::Instruction* I = &*iit;
-        if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
-          llvm::Function* fp = call->getCalledFunction();
-	  if( fp != NULL &&
-              ( fp->getName() == "_Z6assumeb" ||
-                fp->getName() == "_Z6assertb" ) &&
-              i < bb_sz ) {
-	    splitBBs.push_back( bb );
-            llvm::Value * arg0 = call->getArgOperand(0);
-            if( !llvm::isa<llvm::Constant>(arg0) ) {
-              auto arg_iit = iit;
-              llvm::Instruction* arg = &*(--arg_iit);
-              if( arg != arg0 )
-                cinput_error( "previous instruction not passed!!\n" );
-            }
-            calls.push_back( call );
-            args.push_back( arg0 );
-	    auto local_iit = iit;
-            splitIs.push_back( &*(++local_iit) );
-            isAssume.push_back( (fp->getName() == "_Z6assumeb") );
-	  }
+  //collect calls to assume statements
+  auto bit = f.begin(), end = f.end();
+  for( ; bit != end; ++bit ) {
+    bb* bb = &*bit;
+    // bb->print( llvm::outs() );
+    auto iit = bb->begin(), iend = bb->end();
+    size_t bb_sz = bb->size();
+    for( unsigned i = 0; iit != iend; ++iit ) {
+      i++;
+      llvm::Instruction* I = &*iit;
+      if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
+        llvm::Function* fp = call->getCalledFunction();
+        if( fp != NULL &&
+            (fp->getName() == "_Z6assumeb" || fp->getName() == "_Z6assertb") &&
+            i < bb_sz ) {
+          splitBBs.push_back( bb );
+          llvm::Value * arg0 = call->getArgOperand(0);
+          if( !llvm::isa<llvm::Constant>(arg0) ) {
+            auto arg_iit = iit;
+            llvm::Instruction* arg = &*(--arg_iit);
+            if( arg != arg0 )
+              cinput_error( "previous instruction not passed!!\n" );
+          }
+          calls.push_back( call );
+          args.push_back( arg0 );
+          auto local_iit = iit;
+          splitIs.push_back( &*(++local_iit) );
+          isAssume.push_back( (fp->getName() == "_Z6assumeb") );
         }
       }
     }
-    // Reverse order splitting for the case if there are more than
-    // one assumes in one basic block
-    for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
-      bb* head = splitBBs[i];
-      bb* elseBlock = isAssume[i] ? dum : err;
-      llvm::Instruction* cmp = NULL;
-      llvm::BranchInst *branch;
-      if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
-        cmp = c;
-        bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-        // bb* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
-        branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
-        llvm::ReplaceInstWithInst( head->getTerminator(), branch );
-      } else if( is_llvm_false(args[i]) ) { // jump to else block
-        // bb* _tail =
-          llvm::SplitBlock( head, splitIs[i] ); //3.8
-        // bb* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
-        //todo: remove tail block and any other block that is unreachable now
-        branch = llvm::BranchInst::Create( elseBlock );
-        llvm::ReplaceInstWithInst( head->getTerminator(), branch );
-      } else if( is_llvm_true(args[i]) ) { // in case of true
-        // do nothing and delete the call
-      }else{
-        head->print( llvm::outs() );
-        cinput_error( "instruction expected here!!\n" );
-      }
-      calls[i]->eraseFromParent();
-      if( cmp != NULL && llvm::isa<llvm::PHINode>(cmp) ) {
-	removeBranchingOnPHINode( branch );
-      }
+  }
+  // Reverse order splitting for the case if there are more than
+  // one assumes in one basic block
+  for( unsigned i = splitBBs.size(); i != 0 ; ) { i--;
+    bb* head = splitBBs[i];
+    bb* elseBlock = isAssume[i] ? dum : err;
+    llvm::Instruction* cmp = NULL;
+    llvm::BranchInst *branch;
+    if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
+      cmp = c;
+      bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
+      // bb* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
+      branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
+      llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+    } else if( is_llvm_false(args[i]) ) { // jump to else block
+      // bb* _tail =
+      llvm::SplitBlock( head, splitIs[i] ); //3.8
+      // bb* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
+      //todo: remove tail block and any other block that is unreachable now
+      branch = llvm::BranchInst::Create( elseBlock );
+      llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+    } else if( is_llvm_true(args[i]) ) { // in case of true
+      // do nothing and delete the call
+    }else{
+      head->print( llvm::outs() );
+      cinput_error( "instruction expected here!!\n" );
     }
-    return false;
+    calls[i]->eraseFromParent();
+    if( cmp != NULL && llvm::isa<llvm::PHINode>(cmp) ) {
+      removeBranchingOnPHINode( branch );
+    }
+  }
+  return false;
 }
 
 const char * SplitAtAssumePass::getPassName() const {
