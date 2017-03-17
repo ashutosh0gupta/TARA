@@ -225,7 +225,7 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
       }else if(      bw == 1  ) { return z3_.get_fresh_bool();
       }
     }
-    cinput_error("unsupported type!!");
+    cinput_error("unsupported type: "<< ty << "!!");
   }else if( llvm::isa<llvm::Constant>(op) ) {
     cinput_error( "non int constants are not implemented!!" );
     std::cerr << "un recognized constant!";
@@ -260,13 +260,14 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
           insert_term_map( op, i, vmap );
           // m.at(op) = i;
           return i;
-        }else if(bw == 1) {
+        }else if(bw == 1 || bw == 8) {
           z3::expr bit =  z3_.get_fresh_bool();
           insert_term_map( op, bit, vmap );
           // m.at(op) = bit;
           return bit;
         }
       }
+      ty->print( llvm::errs() ); llvm::errs() << "\n";
       cinput_error("unsupported type!!");
     }
     return it->second;
@@ -370,7 +371,25 @@ translateBlock( unsigned thr_id,
     }
 
     if( llvm::isa<llvm::UnaryInstruction>(I) ) {
-      if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
+      if( auto cast = llvm::dyn_cast<llvm::CastInst>(I) ) {
+        if( auto trunc = llvm::dyn_cast<llvm::TruncInst>(cast) ) {
+          auto v = trunc->getOperand(0);
+          if( v->getType()->isIntegerTy(8) && I->getType()->isIntegerTy(1) ) {
+            insert_term_map( I, getTerm( v, m), m );
+            local_map[I] = get_depends(v);
+            assert( !recognized );recognized = true;
+          }
+        }else if( auto zext = llvm::dyn_cast<llvm::ZExtInst>(I) ) {
+          auto v = zext->getOperand(0);
+          if( v->getType()->isIntegerTy(1) &&
+              (I->getType()->isIntegerTy(8) ||I->getType()->isIntegerTy(32)) ) {
+            insert_term_map( I, getTerm( v, m), m );
+            local_map[I] = get_depends(v);
+            assert( !recognized );recognized = true;
+          }
+        }
+        if( !recognized ) cinput_error( "unspported cast instruction!" );
+      }else if( auto load = llvm::dyn_cast<llvm::LoadInst>(I) ) {
         llvm::Value* addr = load->getOperand(0);
         auto loc = getInstructionLocation( I );
         z3::expr l_v = getTerm( I, m);
@@ -587,7 +606,7 @@ translateBlock( unsigned thr_id,
           prev_events.clear(); prev_events.insert( barr );
         }else{
           if( o.print_input > 0 )
-            llvm::outs() << "Unknown function" << fp->getName() << "\n";
+            llvm::outs() << "Unknown function " << fp->getName() << "!\n";
           cinput_error( "Unknown function called");
         }
       }
@@ -699,9 +718,18 @@ void build_program::collect_loop_backedges() {
   //todo: llvm::FindFunctionBackedges could have done the job
   auto &LIWP = getAnalysis<llvm::LoopInfoWrapperPass>();
   auto LI = &LIWP.getLoopInfo();
+  std::vector<llvm::Loop*> loops,stack;
+  for(auto I = LI->rbegin(), E = LI->rend(); I != E; ++I) stack.push_back(*I);
+  while( !stack.empty() ) {
+    llvm::Loop *L = stack.back();
+    stack.pop_back();
+    loops.push_back( L );
+    // for( auto lp : L ) stack.push_back( lp );
+    for(auto I = L->begin(), E = L->end(); I != E; ++I) stack.push_back(*I);
+  }
   loop_ignore_edge.clear();
-  for (auto I = LI->rbegin(), E = LI->rend(); I != E; ++I) {
-    llvm::Loop *L = *I;
+  rev_loop_ignore_edge.clear();
+  for( llvm::Loop *L : loops ) {
     auto h = L->getHeader();
     llvm::SmallVector<bb*,10> LoopLatches;
     L->getLoopLatches( LoopLatches );
@@ -842,27 +870,26 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
     if( src->hasName() && (src->getName() == "err") ) {
       p->append_property( thread_id, !path_cond );
-      // for( auto pair_ : conds ) p->append_property( thread_id, pair_.second );
-      continue;
-    }
-    std::vector<z3::expr> history_exprs;
-    split_history_to_exprs( h, history_exprs );
-    z3::expr ssa = translateBlock( thread_id, src, prev_events, path_cond,
-                                   history_exprs, conds, branch_conds);
-    block_to_trailing_events[src] = prev_events;
-    if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
-      final_prev_events.insert( prev_events.begin(), prev_events.end() );
-      final_histories.push_back( h );
-      final_preds.push_back( src );
+    }else{
+      std::vector<z3::expr> history_exprs;
+      split_history_to_exprs( h, history_exprs );
+      z3::expr ssa = translateBlock( thread_id, src, prev_events, path_cond,
+                                     history_exprs, conds, branch_conds);
+      block_to_trailing_events[src] = prev_events;
+      if( llvm::isa<llvm::ReturnInst>( src->getTerminator() ) ) {
+        final_prev_events.insert( prev_events.begin(), prev_events.end() );
+        final_histories.push_back( h );
+        final_preds.push_back( src );
+      }
+      p->append_ssa( thread_id, ssa );
+      if( o.print_input > 0 ) {
+        std::cout << "path cond : "<< path_cond << "\n";
+        std::cout << "path ssa  : \n";
+        tara::debug_print(ssa );
+        std::cout << "\n";
+      }
     }
     prev_events.clear();
-    p->append_ssa( thread_id, ssa );
-    if( o.print_input > 0 ) {
-      std::cout << "path cond : "<< path_cond << "\n";
-      std::cout << "path ssa  : \n";
-      tara::debug_print(ssa );
-      std::cout << "\n";
-    }
   }
 
   split_history final_h;

@@ -316,7 +316,8 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
       if( llvm::CallInst* call = llvm::dyn_cast<llvm::CallInst>(I) ) {
         llvm::Function* fp = call->getCalledFunction();
         if( fp != NULL &&
-            (fp->getName() == "_Z6assumeb" || fp->getName() == "_Z6assertb") &&
+            (fp->getName() == "_Z6assumeb" || fp->getName() == "_Z6assertb"
+             || fp->getName() == "assert" ) &&
             i < bb_sz ) {
           splitBBs.push_back( bb );
           llvm::Value * arg0 = call->getArgOperand(0);
