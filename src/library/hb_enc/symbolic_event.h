@@ -76,6 +76,9 @@ public:
   void debug_print(std::ostream& stream );
 };
 
+  // This object has dual use
+  // - identify events originated from specific location
+  // - give events pretty names. For example ''the_launcher''
 struct source_loc{
   // (0,0,"") is unknown location
   // (0,0,something) is an unknown location with a pretty name!!!
@@ -218,6 +221,11 @@ struct source_loc{
     inline bool is_rlsacq() const { return o_tag == o_tag_t::acqrls; }
     inline bool is_sc()     const { return o_tag == o_tag_t::sc;  }
     inline bool is_atomic() const { return o_tag != o_tag_t::na;  }
+
+    inline bool is_at_most_rlx() const {
+      // assert( is_wr() || is_pre() );
+      return is_na() || is_rlx();
+    }
 
     inline bool is_at_least_rls() const {
       // assert( is_wr() || is_pre() );

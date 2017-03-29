@@ -11,7 +11,7 @@
 #include <atomic>
 #include "threads.h"
 // #include <assert.h>
-#include <stdlib.h>/* srand, rand */
+#include <stdlib.h>/* //srand, rand */
 #include <time.h>       /* time */
 
 #include "librace.h"
@@ -23,8 +23,8 @@ atomic_bool Msg("Msg"), Ack("Ack");
 
 
 bool lAck, lMsg;
-int lRCnt = 0;
-int lSCnt = 0;
+atomic_int lRCnt = 0;
+atomic_int lSCnt = 0;
 /*
  * possible initialization to the two above (lRCnt, lSCnt) = (0,0),(1,0)Err,(0,1) + data independance to prove correctness
  * */
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
 {
     thrd_t a, b;
     /* initialize random seed: */
-    srand (time(NULL));
+    //srand (time(NULL));
     store(&Msg, false, std::memory_order_seq_cst);
     store(&Ack, false, std::memory_order_seq_cst);
 

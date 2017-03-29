@@ -55,11 +55,13 @@ namespace cinput {
   hb_enc::source_loc getInstructionLocation(const llvm::Instruction* I );
   hb_enc::source_loc getBlockLocation(const bb* b );
   void initBlockCount( llvm::Function &f,
-                       std::map<const bb*,bb_set_t> back_edges,
+                       std::map<const bb*, bb_set_t>& back_edges,
                        std::vector<const bb*>& bs,
                        std::map<const bb*, unsigned>& block_to_id);
-  void removeBranchingOnPHINode( llvm::BranchInst *branch );
+  bool is_dangling( const bb* b, std::map<const bb*, bb_set_t>& back_edges );
 
+  void removeBranchingOnPHINode( llvm::BranchInst *branch );
+  void remove_unreachable_blocks( llvm::BasicBlock* b );
   void setLLVMConfigViaCommandLineOptions( std::string strs );
   void dump_dot_module( boost::filesystem::path&,
                         std::unique_ptr<llvm::Module>& );
@@ -123,8 +125,8 @@ namespace cinput {
     std::map< const bb*, split_history > block_to_split_stack;
     std::map< const bb*, z3::expr > block_to_exit_bit;
     std::map< const bb*, hb_enc::se_set> block_to_trailing_events;
-    std::map< const bb*, bb_set_t > loop_ignore_edge;
-    std::map< const bb*, bb_set_t > rev_loop_ignore_edge;
+    std::map< const bb*, bb_set_t > loop_ignore_edges;
+    std::map< const bb*, bb_set_t > rev_loop_ignore_edges;
     //-----------------------------------
     // local data structure of dependency
     //hb_enc::depends_set data_dep_ses;

@@ -305,15 +305,16 @@ void wmm_event_cons::ses_c11() {
       if( wr->is_update() ) {
         for( auto& wrp : wrs ) {
           if( wrp->is_at_least_rls() && wrp->tid != wr->tid ) {
-            z3::expr no_interup = z3.mk_true();
+            z3::expr no_between = z3.mk_true();
             for( auto& wrpp : wrs ) {
               if( wrpp->tid != wrp->tid && !wrpp->is_update() ) {
-                no_interup = no_interup && ( hb_encoding.mk_ghb_c11_mo(wrpp, wrp) ||
-                                             hb_encoding.mk_ghb_c11_mo( wr, wrpp) );
+                no_between = no_between &&
+                  ( hb_encoding.mk_ghb_c11_mo(wrpp, wrp) ||
+                    hb_encoding.mk_ghb_c11_mo( wr, wrpp) );
               }
             }
             z3::expr b = get_rel_seq_bvar( wrp, wr );
-            rel_seq = rel_seq && implies(wr->guard && wrp->guard && no_interup, b );
+            rel_seq = rel_seq && implies(wr->guard && wrp->guard && no_between, b );
           }
         }
       }
@@ -324,6 +325,7 @@ void wmm_event_cons::ses_c11() {
       z3::expr rd_v = rd->get_rd_expr( v1 );
       for( const hb_enc::se_ptr& wr : wrs ) {
         if( wr->tid == rd->tid && ( wr==rd || !is_po_new( wr, rd ) )) continue;
+        // enter here only if wr,rd from diff thread or wr --po-->rd
         z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
@@ -356,11 +358,15 @@ void wmm_event_cons::ses_c11() {
             }
           }
         }
-        if( rd->is_na() || wr->is_na() ) {
-          // to do something
-          wmm_error( "c11 non atomics not supported!!" );
-        }else if( rd->is_rlx() || wr->is_rlx() ) {
+        // if( rd->is_na() || wr->is_na() ) {
+        //   if( !is_po_new( wr, rd ) ) {// if po ordered no need to do anything
+        //     wmm_error( "c11 non atomics not supported!!" );
+        //   }
+        // }else
+        if( rd->is_at_most_rlx() || wr->is_at_most_rlx() ) {
           if( !is_po_new( wr, rd ) ) {
+            // if po does not order wr,rd, we need to say that the
+            // rest does not order rd,wr
             z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
             rf = rf && implies( b, ! hb_rd_wr );
           }
@@ -475,27 +481,53 @@ void wmm_event_cons::ses_c11() {
         }else if( is_po_new( wr2, wr1 ) ) {
           fr = fr && hb_encoding.mk_ghb_c11_mo( wr2, wr1 );
         }else{
-          //todo: should the following condition should be gaurded
+          //todo: should the following condition be gaurded?
           fr = fr
             && z3::implies( hb_encoding.mk_hb_c11_hb(wr1,wr2),
                             hb_encoding.mk_hb_c11_mo(wr1,wr2) )
             && z3::implies( hb_encoding.mk_hb_c11_hb(wr2,wr1),
-                                  hb_encoding.mk_hb_c11_mo(wr2,wr1) );
+                            hb_encoding.mk_hb_c11_mo(wr2,wr1) );
         }
       }
       dists.push_back( wr1->get_c11_mo_solver_symbol() );
     }
     if( dists.size() != 0)  ws = ws && distinct( dists );
 
+    //non-atomic
+    for(auto it1 = wrs.begin(); it1 != wrs.end() ; it1++ ) {
+      const hb_enc::se_ptr& wr1 = *it1;
+      auto it2 = it1; it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const hb_enc::se_ptr& wr2 = *it2;
+        if( wr1->tid == wr2->tid ) continue;
+        if( is_po_new( wr1, wr2 ) || is_po_new( wr2, wr1 ) ) continue;
+
+        if( wr1->is_na() || wr2->is_na() ) {
+          z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, wr2 );
+          z3::expr ord_2_1 = hb_encoding.mk_hb_c11_hb( wr2, wr1 );
+          p.append_property( !ord_1_2 || !ord_2_1 );
+        }
+      }
+      for( auto& rd : rds ) {
+        if( wr1->tid == rd->tid ) continue;
+        if( is_po_new( wr1, rd ) || is_po_new( rd, wr1 ) ) continue;
+        if( rd->is_update() ) continue;
+        if( wr1->is_na() || rd->is_na() ) {
+          z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, rd );
+          z3::expr ord_2_1 = hb_encoding.mk_hb_c11_hb( rd, wr1 );
+          p.append_property( !ord_1_2 || !ord_2_1 );
+        }
+      }
+    }
   }
+
 
   // sc events
   auto it1 = p.all_sc.begin();
   z3::expr_vector dists(z3.c);
   for( ; it1 != p.all_sc.end() ; it1++ ) {
     const hb_enc::se_ptr& e1 = *it1;
-    auto it2 = it1;
-    it2++;
+    auto it2 = it1; it2++;
     for( ; it2 != p.all_sc.end() ; it2++ ) {
       const hb_enc::se_ptr& e2 = *it2;
       if( is_po_new( e1, e2 ) ) {
@@ -503,16 +535,10 @@ void wmm_event_cons::ses_c11() {
       }else if( is_po_new( e2, e1 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
       }else{
-        // fr = fr && z3::implies( hb_encoding.mk_hb_c11_sc( e1, e2 ),
-        //                         hb_encoding.mk_hb_c11_hb( e1, e2 ) )
-        //   && z3::implies( hb_encoding.mk_hb_c11_sc( e2, e1 ),
-        //                   hb_encoding.mk_hb_c11_hb( e2, e1 ) );
         fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
                                 hb_encoding.mk_hb_c11_sc( e1, e2 ) )
           && z3::implies( hb_encoding.mk_hb_c11_hb( e2, e1 ),
                           hb_encoding.mk_hb_c11_sc( e2, e1 ) );
-        // fr = fr && ( (z3::expr)hb_encoding.mk_hb_c11_hb( e1, e2 ) ||
-        //              (z3::expr)hb_encoding.mk_hb_c11_hb( e2, e1 ) );
       }
     }
     dists.push_back( e1->get_c11_sc_solver_symbol() );

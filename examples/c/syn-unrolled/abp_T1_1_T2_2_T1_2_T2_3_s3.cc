@@ -11,7 +11,7 @@
 #include <atomic>
 #include "threads.h"
 //#include <assert.h>
-#include <stdlib.h>/* srand, rand */
+#include <stdlib.h>/* //srand, rand */
 #include <time.h>       /* time */
 
 #include "librace.h"
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 {
     thrd_t a, b;
     /* initialize random seed: */
-    srand (time(NULL));
+    //srand (time(NULL));
     store(&Msg, false, std::memory_order_seq_cst);
     store(&Ack, false, std::memory_order_seq_cst);
 

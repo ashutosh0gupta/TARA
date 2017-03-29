@@ -209,7 +209,7 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
     }else if(bw == 1 || bw == 8) { // << ----
       int i = readInt( c );
       assert( i == 0 || i == 1 );
-      if( i == 1 ) z3_.mk_true(); else z3_.mk_false();
+      if( i == 1 ) return z3_.mk_true(); else return z3_.mk_false();
     }else
       cinput_error( "unrecognized constant!" );
 
@@ -320,8 +320,8 @@ translateBlock( unsigned thr_id,
 
   // collect loop back edges that should be ignored
   bb_set_t ignore_edges;
-  if( helpers::exists( loop_ignore_edge, b ) )
-    ignore_edges = loop_ignore_edge.at(b);
+  if( helpers::exists( loop_ignore_edges, b ) )
+    ignore_edges = loop_ignore_edges.at(b);
 
   for( const llvm::Instruction& Iobj : b->getInstList() ) {
     const llvm::Instruction* I = &(Iobj);
@@ -489,6 +489,20 @@ translateBlock( unsigned thr_id,
       }
       }
       join_depends( lhs, rhs, local_map[I] );
+      assert( !recognized );recognized = true;
+    }
+    if( const llvm::SelectInst* sel = llvm::dyn_cast<llvm::SelectInst>(I) ) {
+      const llvm::Value* cnd = sel->getCondition();
+      const llvm::Value* tr = sel->getTrueValue(),*fl = sel->getFalseValue();
+      z3::expr c=getTerm(cnd,m), t=getTerm(tr,m), f=getTerm(fl,m), v=getTerm(I,m);
+      block_ssa = ( !c || v == t ) && ( c || v == f );
+      //todo: depdency for select needs to be clarified
+      std::vector<hb_enc::depends_set> dep_ses;
+      dep_ses.push_back( get_depends( cnd ) );
+      dep_ses.push_back( get_depends( tr  ) );
+      dep_ses.push_back( get_depends( fl  ) );
+      hb_enc::join_depends_set( dep_ses, local_map[I] );
+      // cinput_error( "select not implemented yet!!");
       assert( !recognized );recognized = true;
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
@@ -675,6 +689,7 @@ translateBlock( unsigned thr_id,
         prev_events = { rd, up };
         p->add_event_with_rs_heads(thr_id, prev_events, local_release_heads[b]);
         // joining success and fail events
+        //todo: passed branch_conds seems to be wrong; if error fix it!
         auto blk = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
                               loc, hb_enc::event_t::block, branch_conds );
         prev_events = { blk };
@@ -727,15 +742,15 @@ void build_program::collect_loop_backedges() {
     // for( auto lp : L ) stack.push_back( lp );
     for(auto I = L->begin(), E = L->end(); I != E; ++I) stack.push_back(*I);
   }
-  loop_ignore_edge.clear();
-  rev_loop_ignore_edge.clear();
+  loop_ignore_edges.clear();
+  rev_loop_ignore_edges.clear();
   for( llvm::Loop *L : loops ) {
     auto h = L->getHeader();
     llvm::SmallVector<bb*,10> LoopLatches;
     L->getLoopLatches( LoopLatches );
     for( bb* bb : LoopLatches ) {
-      loop_ignore_edge[h].insert( bb );
-      rev_loop_ignore_edge[bb].insert(h);
+      loop_ignore_edges[h].insert( bb );
+      rev_loop_ignore_edges[bb].insert(h);
     }
     if( o.print_input > 1 ) {
       L->print( llvm::outs(), 3 );
@@ -752,7 +767,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   if( o.print_input > 0 ) std::cout << "Processing Function: " << name << "\n";
 
   bb_vec_t bb_vec;
-  initBlockCount( f, rev_loop_ignore_edge, bb_vec, block_to_id );
+  initBlockCount( f, rev_loop_ignore_edges, bb_vec, block_to_id );
   // ordered_blocks( f, ,  );
 
   // creating the first event of function; needs to initialize several
@@ -764,8 +779,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
                           loc, hb_enc::event_t::barr );
   p->set_start_event( thread_id, start, start_bit );
   if( name == "main" ) {
-    // if the function is main then we have declare that it is the
-    // entry point of the full program
+    // if the function is main then we have to declare that it is the
+    // entry and exit point of the full program
     p->create_map[ "main" ] = p->init_loc;
     hb_enc::se_ptr post_loc = p->post_loc;
     auto pr = std::make_pair( post_loc, z3.mk_true() );
@@ -782,7 +797,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   //   const bb* src = &(*it);
     std::map<const bb*,hb_enc::depends_set> ctrl_ses;
     std::map< const tara::variable,
-      std::map<const bb*,hb_enc::depends_set> > last_rls_ses;
+              std::map<const bb*,hb_enc::depends_set> > last_rls_ses;
     if( o.print_input > 0 ) {
       std::cout << "=====================================================\n";
       std::cout << "Processing block" << " block__" << thread_id << "__"
@@ -796,21 +811,26 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     std::map<const hb_enc::se_ptr, z3::expr > branch_conds;
     //iterate over predecessors
     std::set<const bb*> ignore_edges;
-    if( exists( loop_ignore_edge, src) ) {
-      ignore_edges = loop_ignore_edge.at(src);
+    if( exists( loop_ignore_edges, src) ) {
+      ignore_edges = loop_ignore_edges.at(src);
     }
-    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI){
+    for(auto PI = llvm::pred_begin(src),E = llvm::pred_end(src);PI != E;++PI) {
       // const llvm::BasicBlock *prev = *PI;
       const bb* prev = *PI;
       if( exists( ignore_edges, prev ) ) {
         continue; // ignoring loop back edges
       }
+
       split_history h = block_to_split_stack[prev];
       z3::expr prev_cond = z3.mk_true();
       if( llvm::isa<llvm::BranchInst>( prev->getTerminator() ) ) {
+        // read information about the edge
         z3::expr b = block_to_exit_bit.at(prev);
         unsigned succ_num = PI.getUse().getOperandNo();
-        llvm::BranchInst* br  = (llvm::BranchInst*)(prev->getTerminator());
+        llvm::BranchInst* br  = (llvm::BranchInst*)( prev->getTerminator() );
+        assert( br->getOperand(succ_num) == src );
+
+        // compute control dependencies
         hb_enc::depends_set ctrl_temp;
         if( !br->isUnconditional() ) {
           llvm::Value* op = prev->getTerminator()->getOperand(0);
@@ -820,44 +840,57 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         }else if( br->isUnconditional() ) {
 	  ctrl_temp = get_ctrl( prev );
         }
-        assert( br->getOperand(succ_num) == src );
+        ctrl_ses[prev] = ctrl_temp;
+
+        // history extension
         if( br->getNumOperands() >= 2 ) {
+          // if br is branch insustruction, extend histroy
           if( succ_num == 1 ) b = !b;
           split_step ss(prev, block_to_id[prev], succ_num, b);
           h.push_back(ss);
           prev_cond = b; //todo: hack needs streamlining
         }
-        ctrl_ses[prev] = ctrl_temp;
       }
       histories.push_back(h);
+
+      //collect incoming branch conditions
       hb_enc::se_set& prev_trail = block_to_trailing_events.at( prev );
       prev_events.insert( prev_trail.begin(), prev_trail.end() );
       assert( prev_trail.size() < 2 );
       for( auto& prev_e : prev_trail ) {
         if( branch_conds.find( prev_e ) != branch_conds.end() ) {
+          // if an event is ancestor in multiple paths
+          // todo: due to the block events it is never needed.( depreicate )
+          cinput_error( "this code is not expected to be executed!!");
           prev_cond = prev_cond || branch_conds.at(prev_e);
         }
         branch_conds.insert( std::make_pair( prev_e, prev_cond) );
       }
       preds.push_back( prev );
+
+      // relase heads calculation for c11
       if( o.mm == mm_t::c11 ) {
         for( const auto& v : p->globals )
           last_rls_ses[v][ prev ] = local_release_heads[prev][v];
       }
     }
     if( src == &(f.getEntryBlock()) ) {
+      // initialize the first block
       split_history h;
       split_step ss( NULL, 0, 0, start_bit ); // todo : second param??
       h.push_back( ss );
       histories.push_back( h );
       branch_conds.insert( std::make_pair( start, z3.mk_true()) );
     }
+
+    // join all the histories incoming from the preds
     split_history h;
     std::map<const bb*, z3::expr> conds;
     z3::expr path_cond = z3.mk_true();
     join_histories( preds, histories, h, path_cond, conds);
     block_to_split_stack[src] = h;
 
+    // compute the control dependencies
     local_ctrl[src].clear();
     if( o.mm == mm_t::rmo )
       join_depends_set( ctrl_ses, conds, local_ctrl[src] );
@@ -880,6 +913,12 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         final_prev_events.insert( prev_events.begin(), prev_events.end() );
         final_histories.push_back( h );
         final_preds.push_back( src );
+      }else if( is_dangling( src, rev_loop_ignore_edges ) ) {
+        final_prev_events.insert( prev_events.begin(), prev_events.end() );
+        final_histories.push_back( h );
+        final_preds.push_back( src );
+        llvm::outs() << "A dangling block found!!\n";
+        src->print( llvm::outs() );
       }
       p->append_ssa( thread_id, ssa );
       if( o.print_input > 0 ) {
@@ -892,23 +931,20 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     prev_events.clear();
   }
 
+  // create final event of the thread
   split_history final_h;
   std::map<const bb*, z3::expr> conds;
   z3::expr exit_cond = z3.mk_true();
-  join_histories( final_preds, final_histories, final_h, exit_cond, conds);
-
   std::vector<z3::expr> history_exprs;
+  hb_enc::source_loc floc( name+"_final" );
+  join_histories( final_preds, final_histories, final_h, exit_cond, conds );
   split_history_to_exprs( final_h, history_exprs );
-
-  hb_enc::source_loc floc( name+"_final" ); //floc.pretty_name = name+"_final";
-
   auto final = mk_se_ptr( hb_enc, thread_id, final_prev_events, exit_cond,
-                          history_exprs, floc, //name+"_final",
-                          hb_enc::event_t::barr );
-
+                          history_exprs, floc, hb_enc::event_t::barr );
   p->set_final_event( thread_id, final, exit_cond );
 
-  if( o.print_input > 1 ) p->print_dependency( o.out());
+  //todo: should only print for a single thread!!
+  if( o.print_input > 1 ) p->print_dependency( o.out() );
 
   return false;
 }

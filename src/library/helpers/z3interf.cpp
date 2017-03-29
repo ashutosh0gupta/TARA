@@ -342,7 +342,7 @@ bool z3interf::is_true( z3::expr f ) const {
 }
 
 bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
-  // if e1 /\ !e2 is unsat then e1 => e2 is valid
+  // if e1 /\ !e2 is unsat, e1 => e2 is valid
   return is_sat( e1 && !e2 );
 }
 

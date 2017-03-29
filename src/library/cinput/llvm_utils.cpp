@@ -172,16 +172,16 @@ void cinput::setLLVMConfigViaCommandLineOptions( std::string strs ) {
 }
 
 void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
-    if( branch->isUnconditional() ) return;
-    auto cond = branch->getCondition();
-    if( llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(cond) ) {
-      bb* phiBlock = branch->getParent();
-      bb* phiDstTrue = branch->getSuccessor(0);
-      bb* phiDstFalse = branch->getSuccessor(1);
-      llvm::Instruction* first_inst = &*(phiBlock->getInstList()).begin();//3.8
-      if( phiBlock->size() == 2 && cond == first_inst ) {
-        unsigned num = phi->getNumIncomingValues();
-        for( unsigned i = 0; i <= num - 2; i++ ) {
+  if( branch->isUnconditional() ) return;
+  auto cond = branch->getCondition();
+  if( llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(cond) ) {
+    bb* phiBlock = branch->getParent();
+    bb* phiDstTrue = branch->getSuccessor(0);
+    bb* phiDstFalse = branch->getSuccessor(1);
+    llvm::Instruction* first_inst = &*(phiBlock->getInstList()).begin();//3.8
+    if( phiBlock->size() == 2 && cond == first_inst ) {
+      unsigned num = phi->getNumIncomingValues();
+      for( unsigned i = 0; i <= num - 2; i++ ) {
         llvm::Value* val0      = phi->getIncomingValue(i);
         bb* src0 = phi->getIncomingBlock(i);
         llvm::BranchInst* br0  = (llvm::BranchInst*)(src0->getTerminator());
@@ -191,27 +191,42 @@ void cinput::removeBranchingOnPHINode( llvm::BranchInst *branch ) {
           bb* newDst = b->getZExtValue() ?phiDstTrue:phiDstFalse;
           br0->setSuccessor( br0_branch_idx, newDst );
         }else{ cinput_error("unseen case!");}
-        }
-        llvm::Value*      val1 = phi->getIncomingValue(num-1);
-        bb* src1 = phi->getIncomingBlock(num-1);
-        llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
-        llvm::Instruction* cmp1 = llvm::dyn_cast<llvm::Instruction>(val1);
-        assert( cmp1 );
-        assert( br1->isUnconditional() );
-        if( cmp1 != NULL && br1->isUnconditional() ) {
-          llvm::BranchInst *newBr =
-            llvm::BranchInst::Create( phiDstTrue, phiDstFalse, cmp1);
-          llvm::ReplaceInstWithInst( br1, newBr );
-          // TODO: memory leaked here? what happend to br1 was it deleted??
-          llvm::DeleteDeadBlock( phiBlock );
-          removeBranchingOnPHINode( newBr );
-        }else{ cinput_error("unseen case, not known how to handle!"); }
+      }
+      llvm::Value* val1 = phi->getIncomingValue(num-1);
+      bb* src1 = phi->getIncomingBlock(num-1);
+      llvm::BranchInst* br1  = (llvm::BranchInst*)(src1->getTerminator());
+      llvm::Instruction* cmp1 = llvm::dyn_cast<llvm::Instruction>(val1);
+      assert( cmp1 );
+      assert( br1->isUnconditional() );
+      if( cmp1 != NULL && br1->isUnconditional() ) {
+        llvm::BranchInst *newBr =
+          llvm::BranchInst::Create( phiDstTrue, phiDstFalse, cmp1);
+        llvm::ReplaceInstWithInst( br1, newBr );
+        // TODO: memory leaked here? what happend to br1 was it deleted??
+        llvm::DeleteDeadBlock( phiBlock );
+        removeBranchingOnPHINode( newBr );
       }else{ cinput_error("unseen case, not known how to handle!"); }
+    }else{ cinput_error("unseen case, not known how to handle!"); }
+  }
+}
+
+void cinput::remove_unreachable_blocks( llvm::BasicBlock* b ) {
+  std::vector< llvm::BasicBlock* > bbs;
+  bbs.push_back( b );
+  while( !bbs.empty() ) {
+    llvm::BasicBlock* bb = bbs.back();
+    bbs.pop_back();
+    if( llvm::pred_begin(bb) == llvm::pred_end(bb) ) {
+      for( llvm::BasicBlock *succ : bb->getTerminator()->successors() )
+        bbs.push_back( succ );
+      llvm::DeleteDeadBlock( bb );
     }
+  }
 }
 
 void cinput::dump_dot_module( boost::filesystem::path& dump_path,
                               std::unique_ptr<llvm::Module>& module ) {
+  std::cerr << "dumping llvm program files in folder:" << dump_path << "\n";
   auto c_path = boost::filesystem::current_path();
   current_path( dump_path );
   llvm::legacy::PassManager passMan;
@@ -250,13 +265,8 @@ public:
 };
 
 
-// void cinput::ordered_blocks( const llvm::Function &F,
-//                               ) {
-
-// }
-
 void cinput::initBlockCount( llvm::Function &F,
-                             std::map<const bb*,bb_set_t> bedges,
+                             std::map<const bb*,bb_set_t>& bedges,
                              std::vector<const bb*>& bs,
                              std::map<const bb*, unsigned>& block_to_id) {
 
@@ -286,6 +296,19 @@ void cinput::initBlockCount( llvm::Function &F,
   for( auto b : bs )
     block_to_id[b] = l++;
 }
+
+bool cinput::is_dangling( const bb* b, std::map<const bb*,bb_set_t>& bedges ) {
+  if( exists( bedges, b ) ) {
+    auto& latches = bedges.at(b);
+    for( auto it = llvm::succ_begin(b); it != llvm::succ_end(b); it++ ) {
+      const bb* succ_b = *it;
+      if( !exists( latches, succ_b ) ) return false;
+    }
+    return true;
+  }
+  return llvm::succ_begin(b) == llvm::succ_end(b);
+}
+
 
 //----------------------------------------------------------------------------
 // Splitting for assume pass
@@ -350,12 +373,12 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
       branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
       llvm::ReplaceInstWithInst( head->getTerminator(), branch );
     } else if( is_llvm_false(args[i]) ) { // jump to else block
-      // bb* _tail =
-      llvm::SplitBlock( head, splitIs[i] ); //3.8
+      bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
       // bb* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
-      //todo: remove tail block and any other block that is unreachable now
       branch = llvm::BranchInst::Create( elseBlock );
       llvm::ReplaceInstWithInst( head->getTerminator(), branch );
+      remove_unreachable_blocks( tail );
+      //todo: remove tail block and any other block that is unreachable now
     } else if( is_llvm_true(args[i]) ) { // in case of true
       // do nothing and delete the call
     }else{

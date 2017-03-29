@@ -132,10 +132,13 @@ void options::interpret_options(po::variables_map& vm) {
     // }
   }
 
+  if( vm.count("unroll-loop") ) {
+    loop_unroll_count = vm["unroll-loop"].as<unsigned>();
+  }
+
   if (vm.count("prune")) {
     prune_chain = vm["prune"].as<string>();
-  }else
-    {
+  }else{
     if( mm != mm_t::none ) {
       // default options for pruning under wmm
       prune_chain = "diffvar,unsat_core,remove_thin,remove_implied";
@@ -144,7 +147,7 @@ void options::interpret_options(po::variables_map& vm) {
       }
       //prune_chain = "diffvar,unsat_core,remove_implied,remove_thin";
     }
-    }
+  }
 }
 
 

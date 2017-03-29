@@ -144,6 +144,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   //z3::solver sol_good = make_good(false);
   z3::solver sol_bad = make_bad();
+  std::cout << sol_bad;
 
   prune::prune_chain prune_chain;
   if (o.prune_chain.find(string("data_flow"))!=string::npos) metric.data_flow = true;
@@ -177,18 +178,18 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         else
           p->print_hb(m, o.out());
       }else{
-        program->print_execution( "dump", m );
+        // static unsigned iter = 0; iter++;
+        program->print_execution( "round-"+std::to_string(o.round), m );
       }
     }
 
-    // list<z3::expr> hbs = hb_encoding.get_hbs(m);
-    // z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
-
     hb_enc::hb_vec hbs = hb_encoding.get_hbs(m);
-    z3::expr forbid = prune::apply_prune_chain(prune_chain, hbs, m, o.print_pruning, o.out(), hb_encoding);
+    z3::expr forbid = prune::apply_prune_chain( prune_chain, hbs, m,
+                                                o.print_pruning, o.out(),
+                                                hb_encoding );
 
     if (o.machine && o.print_pruning >=1 ) {
-      Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(), forbid.simplify());
+      Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(),forbid.simplify());
       if (forbid_value == Z3_L_UNDEF) {
         output::nf::result_type disj;
         output::nf::create_dnf(forbid, disj, hb_encoding);

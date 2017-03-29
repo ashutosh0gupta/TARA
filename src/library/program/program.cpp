@@ -195,13 +195,14 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     myfile.close();
   }
   // local function
-  void print_node( std::ostream& os,
-                   const hb_enc::se_ptr& e,
-                   std::string color = "" ) {
+  void print_node( std::ostream& os, const hb_enc::se_ptr& e,
+                   std::string color = "", std::string val = "" ) {
     assert( e );
+    // std::string val = "";
     if( color == "" ) color = "black";
-    os << "\"" << e->name() << "\"" << " [label=\"" << e->name()
-       << "\",color=" << color << "]\n";
+    os << "\""        << e->name() << "\"" << " [label=\"" << e->name();
+    if( val != "" ) os << " := "    << val;
+    os << "\",color=" << color     << "]\n";
   }
 
   void print_edge( std::ostream& os,
@@ -347,14 +348,29 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       stream << "subgraph cluster_" << t << " {\n";
       stream << "color=lightgrey;\n";
       stream << "label = \"" << thread.name << "\"\n";
+      print_node( stream, thread.start_event );
+      print_node( stream, thread.final_event );
       for( const auto& e : thread.events ) {
         z3::expr v = m.eval( e->guard );
         if( Z3_get_bool_value( v.ctx(), v)  != Z3_L_TRUE) {
           print_node( stream, e , "gray");
-        }else
-          print_node( stream, e );
-        print_node( stream, thread.start_event );
-        print_node( stream, thread.final_event );
+        }else{
+          if( e->is_mem_op() ) {
+            std::stringstream ss;
+            if( e->is_rd() ) {
+              z3::expr e_expr = (e->rd_v());
+              ss << m.eval( e_expr );
+            }
+            if( e->is_wr() ) {
+              z3::expr e_expr = (e->wr_v());
+              if( e->is_rd() ) ss << ",";
+              ss << m.eval( e_expr );
+            }
+            print_node( stream, e, "black", ss.str() );
+          }else{
+            print_node( stream, e );
+          }
+        }
         for( const auto& ep : e->prev_events )
           print_edge( stream, ep , e, "white" );
         for( const auto& ep : thread.final_event->prev_events )

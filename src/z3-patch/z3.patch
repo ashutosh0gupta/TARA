@@ -749,7 +749,7 @@ index 1778ce0..36f30f6 100644
  
          virtual void get_unsat_core(ptr_vector<expr> & r) {
 diff --git a/src/smt/tactic/smt_tactic.cpp b/src/smt/tactic/smt_tactic.cpp
-index 7fa3328..b8a7a31 100644
+index 7fa3328..e049507 100644
 --- a/src/smt/tactic/smt_tactic.cpp
 +++ b/src/smt/tactic/smt_tactic.cpp
 @@ -25,6 +25,11 @@ Notes:
@@ -764,15 +764,19 @@ index 7fa3328..b8a7a31 100644
  typedef obj_map<expr, expr *> expr2expr_map;
  
  void extract_clauses_and_dependencies(goal_ref const& g, expr_ref_vector& clauses, ptr_vector<expr>& assumptions, expr2expr_map& bool2dep, ref<filter_model_converter>& fmc) {
-@@ -178,6 +183,12 @@ public:
+@@ -178,6 +183,16 @@ public:
          ~scoped_init_ctx() {
              smt::kernel * d = m_owner.m_ctx;
              m_owner.m_ctx = 0;
 +            //BEGIN: ASHU
-+            asserted_linear_constr_vector->reset();
-+            d->collect_asserted_linear_constr(*asserted_linear_constr_vector);
-+            asserted_po_constr_vector->reset();
-+            d->collect_asserted_po_constr(*asserted_po_constr_vector);
++            if( asserted_linear_constr_vector ) {
++              asserted_linear_constr_vector->reset();
++              d->collect_asserted_linear_constr(*asserted_linear_constr_vector);
++            }
++            if( asserted_po_constr_vector ) {
++              asserted_po_constr_vector->reset();
++              d->collect_asserted_po_constr(*asserted_po_constr_vector);
++            }
 +            //END: ASHU
  
              if (d)

@@ -86,7 +86,8 @@ namespace tara {
     const std::string name;
     hb_enc::se_vec events; // topologically sorted events
     z3::expr phi_ssa = z3.mk_true();
-    z3::expr phi_prp = z3.mk_false();
+    z3::expr phi_prp = z3.mk_true();
+    // z3::expr phi_prp = z3.mk_false(); //todo : phi_prp was false; why?
     z3::expr start_cond = z3.mk_true();
     z3::expr final_cond = z3.mk_true();
 
@@ -108,12 +109,13 @@ namespace tara {
       final_cond = cond;
     }
 
-    void append_ssa( z3::expr e) {
+    void append_ssa( z3::expr e ) {
       phi_ssa = phi_ssa && e;
     }
 
-    void append_property( z3::expr prp) {
-      phi_prp = phi_prp || prp;
+    void append_property( z3::expr prp ) {
+      // phi_prp = phi_prp || prp;
+      phi_prp = phi_prp && prp;
     }
 
     //old thread
@@ -264,9 +266,15 @@ namespace tara {
       threads[thread_id]->append_ssa( e );
     }
 
-    void append_property( unsigned thread_id, z3::expr prp) {
+    void append_property( unsigned thread_id, z3::expr prp ) {
       phi_prp = phi_prp && prp;
       threads[thread_id]->append_property( prp );
+    }
+
+    // multithead properties
+    void append_property( z3::expr prp ) {
+      phi_prp = phi_prp && prp;
+      // threads[thread_id]->append_property( prp );
     }
 
     void append_pre( variable g,  z3::expr val) {
