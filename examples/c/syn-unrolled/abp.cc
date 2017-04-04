@@ -18,12 +18,16 @@
 #include "mem_op_macros.h"
 #include "model-assert.h"
 
-std::atomic<bool> Msg("Msg"), Ack("Ack");
+// std::atomic<bool> Msg("Msg"), Ack("Ack");
+atomic_bool Msg("Msg"), Ack("Ack");
 
 
-bool lAck, lMsg;
-int lRCnt = 0;
-int lSCnt = 0;
+// bool lAck, lMsg;
+// int lRCnt = 0;
+// int lSCnt = 0;
+atomic_int lRCnt = 0;
+atomic_int lSCnt = 0;
+
 /*
  * possible initialization to the two above (lRCnt, lSCnt) = (0,0),(1,0)Err,(0,1) + data independance to prove correctness
  * */
@@ -31,42 +35,47 @@ int lSCnt = 0;
 
 void * p0(void *arg)
 {
-    bool lSSt = false;
-    int t1_loop_itr_bnd = 1;
-    int i_t1 = 0;
-    while(++i_t1 <= t1_loop_itr_bnd){
-        //while(true){
-        lAck = load(&Ack,  std::memory_order_relaxed);
-        if( lAck == lSSt ){
-            lSSt = ! lSSt;
-            ++lSCnt;
-            store(&Msg, lSSt, std::memory_order_relaxed);
-            //point to check invariant
-            //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
-            MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
-        }
-    }//}end while true
+  bool lSSt = false;
+  int t1_loop_itr_bnd = 3;
+  int i_t1 = 0;
+  while(++i_t1 <= t1_loop_itr_bnd){
+    //while(true){
+    bool lAck = load(&Ack,  std::memory_order_relaxed);
+    if( lAck == lSSt ){
+      lSSt = ! lSSt;
+      ++lSCnt;
+      store(&Msg, lSSt, std::memory_order_relaxed);
+      //point to check invariant
+      //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
+      // int copy_lRCnt = load(&lRCnt, std::memory_order_seq_cst);
+      // int copy_lSCnt = load(&lSCnt, std::memory_order_seq_cst);
+      int copy_lRCnt = lRCnt;
+      // int copy_lSCnt = lSCnt;
+      MODEL_ASSERT( (copy_lRCnt == lSCnt) || (copy_lRCnt + 1 == lSCnt) );
+      // MODEL_ASSERT( (copy_lRCnt == copy_lSCnt) || (copy_lRCnt + 1 == copy_lSCnt) );
+    }
+  }//}end while true
 return NULL;}
 
 void * p1(void *arg)
 {
-
-    int t2_loop_itr_bnd = 1;
-    int i_t2 = 0;
-    bool lRSt = false;
-    while(++i_t2 <= t2_loop_itr_bnd){
-        //while(true){
-        lMsg = load(&Msg,  std::memory_order_relaxed);
-        if( lMsg != lRSt ){
-            lRSt = lMsg;
-            ++lRCnt;
-            store(&Ack, lRSt, std::memory_order_relaxed);
-            //point to check invariant
-            //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
-            MODEL_ASSERT(  (lRCnt == lSCnt) || (lRCnt + 1 == lSCnt)  );
-        }
-    }//}end while true
-return NULL;}
+  int t2_loop_itr_bnd = 3;
+  int i_t2 = 0;
+  bool lRSt = false;
+  while(++i_t2 <= t2_loop_itr_bnd){
+    //while(true){
+    bool lMsg = load(&Msg,  std::memory_order_relaxed);
+    if( lMsg != lRSt ){
+      lRSt = lMsg;
+      ++lRCnt;
+      store(&Ack, lRSt, std::memory_order_relaxed);
+      //point to check invariant
+      //model_print("\nlRCnt %d; lSCnt %d\n", lRCnt, lSCnt);
+      int copy_lSCnt = lSCnt;
+      MODEL_ASSERT(  (lRCnt == copy_lSCnt) || (lRCnt + 1 == copy_lSCnt)  );
+    }
+  }//}end while true
+  return NULL;}
 
 int main(int argc, char **argv)
 {

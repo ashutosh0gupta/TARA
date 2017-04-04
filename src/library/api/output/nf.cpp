@@ -139,6 +139,32 @@ void nf::print(ostream& stream, bool machine_readable) const
   print(stream, machine_readable, bad_dnf, bad_cnf, good_dnf, good_cnf, verify);
 }
 
+void nf::print_row( ostream& stream, bool machine_readable,
+                     const nf::row_type& conj, bool dnf_not_cnf ) {
+  if (!machine_readable && conj.size()>1)  
+    stream << "( ";
+  for (auto hb = conj.begin(); hb != conj.end(); hb++) {
+      auto hb1 = *hb;
+      if (!machine_readable)
+        stream << hb1 << " ";
+      else
+        stream << hb1.loc1 << "<" << hb1.loc2 << " ";
+      if (!last_element(hb, conj))
+        if (!machine_readable)
+          stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_AND) : z3interf::opSymbol(Z3_OP_OR)) << " ";
+  }
+  if (!machine_readable && conj.size()>1)
+    stream << ") ";
+}
+
+void nf::print_conj( ostream& stream, const nf::row_type& conj ) {
+  print_row( stream, false,  conj, true );
+}
+
+void nf::print_disj( ostream& stream, const nf::row_type& disj ) {
+  print_row( stream, false,  disj, false );
+}
+
 void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type& result, bool dnf_not_cnf)
 {
   for(list<row_type>::const_iterator conj = result.begin(); conj != result.end(); conj++) {
@@ -231,19 +257,20 @@ void nf::create_dnf(const z3::expr& formula, nf::result_type& result, const hb_e
   result.clear();
   z3::context& c = formula.ctx();
   assert (Z3_get_bool_value(c, formula) == Z3_L_UNDEF);
-  
+
   z3::goal g(c);
   g.add(formula);
   z3::tactic s(c, "simplify");
   z3::params p(c);
   p.set("elim-and", true);
   z3::tactic s1(s, p);
-  
+
   z3::tactic sc(c, "split-clause");
   z3::tactic sk(c, "skip");
-  
+
   z3::tactic final = (s1 & (repeat(sc | sk)));
   z3::apply_result res = final.apply(g);
+
   // go through disjuncts
   for(unsigned i=0; i<res.size(); i++) {
     z3::goal conj = res[i];

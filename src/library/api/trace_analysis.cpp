@@ -66,7 +66,7 @@ void trace_analysis::input(string input_file) {
   }else{
     trace_error( "a file with unknown extensition passed!!" );
   }
-  
+
   if( program->is_mm_declared() ) {
     cssa::wmm_event_cons mk_cons( z3, _options, hb_encoding,  *program );
     mk_cons.run();
@@ -113,7 +113,7 @@ z3::solver trace_analysis::make_bad()
   connect_read_writes( result ); //wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
   result.add(!program->phi_prp);
-  
+
   return move(result);
 }
 
@@ -122,7 +122,7 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
   z3::solver result = z3.create_solver();
-  
+
   result.add(program->phi_vd);
   connect_read_writes( result );//wmm diversion//result.add(program->phi_pi);
   result.add(program->phi_pre);
@@ -138,29 +138,29 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
-  
-  
+
+
   options& o = _options;
 
   //z3::solver sol_good = make_good(false);
   z3::solver sol_bad = make_bad();
-  std::cout << sol_bad;
 
   prune::prune_chain prune_chain;
   if (o.prune_chain.find(string("data_flow"))!=string::npos) metric.data_flow = true;
   if (o.prune_chain.find(string("unsat_core"))!=string::npos) metric.unsat_core = true;
   if (!prune::build_prune_chain(o.prune_chain, prune_chain, z3, *program, make_good(true))) // must be true (=include_infeasable) to be sound while pruning (because we use inputs) #(see below)
       throw "Invalid prune chain";
-  
+
   // some check to ensure there are any good feasable traces at all
   // without this check we may get problems down the line
-  // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of 
+  // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of
 
   if (make_good(false).check() == z3::check_result::unsat) {
     return trace_result::always;
   }
-  
+
   z3::expr result = z3.c.bool_val(false);
+  std::vector< hb_enc::hb_vec > hb_result;
   z3::check_result r;
   while ((r=sol_bad.check()) == z3::check_result::sat) {
     auto start_time = chrono::steady_clock::now();
@@ -168,8 +168,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     o.round++;
     if (o.print_rounds >= 1) {
         o.out() << "Round " << o.round << endl;
-    }
-    if (o.print_rounds >= 1) {
       if( program->is_original() ) {
         auto p = (ctrc::program*)(program.get());
         o.out() << "Example found:" << endl;
@@ -178,15 +176,33 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         else
           p->print_hb(m, o.out());
       }else{
-        // static unsigned iter = 0; iter++;
         program->print_execution( "round-"+std::to_string(o.round), m );
       }
+      if( o.print_rounds >=2 ) {
+        o.out() << "Model:" << endl;
+        o.out() << m << endl;
+        o.out() << endl;
+      }
+      o.out() << endl << endl;
     }
 
     hb_enc::hb_vec hbs = hb_encoding.get_hbs(m);
-    z3::expr forbid = prune::apply_prune_chain( prune_chain, hbs, m,
-                                                o.print_pruning, o.out(),
-                                                hb_encoding );
+    // z3::expr forbid = prune::apply_prune_chain( prune_chain, hbs, m,
+    //                                             o.print_pruning, o.out(),
+    //                                             hb_encoding );
+
+    prune::apply_prune_chain( prune_chain, o, m, hbs
+                              // o.print_pruning, o.out(),
+                              // hb_encoding
+                              );
+
+    z3::expr forbid = hb_encoding.mk_expr( hbs );
+    // z3::expr forbid = z3.mk_true(); //m.ctx().bool_val(true);
+    // for(auto hb : hbs) {
+    //   z3::expr hb_e = *hb;
+    //   forbid = forbid && hb_e;
+    // }
+    // return final;
 
     if (o.machine && o.print_pruning >=1 ) {
       Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(),forbid.simplify());
@@ -196,14 +212,6 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         output::nf::print_one(cout, true, disj, true);
       }
     }
-    if (o.print_rounds >=2) {
-        o.out() << "Model:" << endl;
-        o.out() << m << endl;
-        o.out() << endl;
-    }
-    if (o.print_rounds >= 1) {
-      o.out() << endl << endl;
-    }
     //o.out() << forbid.simplify() << endl;
     // if( program->is_mm_declared() ) {
     //   z3::expr guarded_forbid = hb_encoding.mk_guarded_forbid_expr(hbs);
@@ -211,6 +219,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     // }else
     sol_bad.add(!forbid);
     result = result || forbid;
+    hb_result.push_back( hbs );
     auto end_time = chrono::steady_clock::now();
     metric.sum_round_time += chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
     metric.sum_hbs += hbs.size();
@@ -223,14 +232,14 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   }
 
   output.init(hb_encoding, make_bad(), make_good(false), program);
-  
+
   if (o.print_output >= 1) {
     o.out() << "Result as formula:" << endl;
     o.out() << result << endl;
   }
-  
+
   Z3_lbool b = Z3_get_bool_value(result.ctx(), result.simplify());
-  
+
   trace_result return_result;
   switch (b) {
     case Z3_L_TRUE:
@@ -241,49 +250,68 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
       break;
     default: {
 
+      // handling the case of rf exprs which contain event conds
+      // removing the guards before simplification step
+      // todo: make the following step transparent
+      result =  z3.mk_false();
+      for( auto& hbs : hb_result ) {
+        z3::expr forbid = z3.mk_true();
+        for( auto& hb : hbs ) {
+          z3::expr hb_expr = *hb;
+          if( hb->is_rf() && z3.is_implies( hb_expr ) ) {
+            hb_expr = hb_expr.arg(1);
+          }
+          forbid = forbid && hb_expr;
+        }
+        result = result || forbid;
+      }
+
       // check if all traces are bad
       /*sol_good.add(!result);
       if (sol_good.check() == z3::unsat)
         return trace_result::always;*/
-      
+
       // simplify to summarise solutions
-      z3::goal g(z3.c);
-      g.add(result);
-      z3::tactic simp(z3.c, "simplify");
-      
-      z3::tactic ctx_simp(z3.c, "ctx-simplify");
-      
-      z3::tactic final = simp & ctx_simp;
-      
-      z3::apply_result res = final.apply(g);
-      
-      g = res[0];
-      result = z3.c.bool_val(true);
-      for (unsigned i = 0; i < g.size(); i++)
-        result = result && g[i]; // first thing we put in
-        
-      if (o.print_output >= 1) {
-        o.out() << "Simplified formula:" << endl;
-        o.out() << result << endl;
+      // z3::goal g(z3.c);
+      // g.add(result);
+      // z3::tactic simp(z3.c, "simplify");
+
+      // z3::tactic ctx_simp(z3.c, "ctx-simplify");
+
+      // z3::tactic final = simp & ctx_simp;
+
+      // z3::apply_result res = final.apply(g);
+
+      // g = res[0];
+      // result = z3.c.bool_val(true);
+      // for (unsigned i = 0; i < g.size(); i++)
+      //   result = result && g[i]; // first thing we put in
+
+      // if (o.print_output >= 1) {
+      //   o.out() << "Simplified formula:" << endl;
+      //   o.out() << result << endl;
+      // }
+
+      if( o.mm != mm_t::c11 ) {
+        result = z3.simplify( result );
       }
-      
 
       output.output(result);
-      
+
       return_result = trace_result::depends;
       break;
     }
   }
-  
+
   return return_result;
 }
 
 bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as)
 {
   options& o = _options;
-  
+
   z3::solver sol_bad = make_bad();
-  
+
   // list of all atomic sections
   unordered_map<Z3_ast, hb_enc::as> trigger_map;
   z3::expr_vector assumptions(z3.c);
@@ -296,12 +324,12 @@ bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as
       assumptions.push_back(trigger);
       trigger_map.insert(std::make_pair(trigger, a));
     }
-  }  
-  
+  }
+
   if (sol_bad.check(assumptions) != z3::unsat)
     return false; // we cannot find an atomic section
   z3::expr_vector core = sol_bad.unsat_core();
-  
+
   if (o.print_output >= 1)
     o.out() << "Original Atomic sections" << endl;
   unsigned total_instr = 0;
@@ -332,8 +360,8 @@ bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as
     }
   }
   assert (total_instr == core.size());
-  
-  
+
+
   return true;
 }
 
@@ -341,27 +369,27 @@ bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
 {
   if (program==nullptr)
     throw logic_error("Input needs to be initialised first.");
-  
+
   // rename the variables to make the different
   auto po_vars = z3.get_variables(program->phi_po);
   auto vars = z3.get_variables(program->phi_vd && program->phi_pi && program->phi_pre && program->phi_prp);
-  
+
   z3::expr_vector o(z3.c);
   z3::expr_vector n(z3.c);
-    
+
   for (auto v: vars) {
     if (po_vars.find(v)==po_vars.end()) {
       o.push_back(z3.c.constant(v.name.c_str(), v.sort));
       n.push_back(z3.c.constant((v.name+"_g").c_str(), v.sort));
     }
   }
-  
+
   z3::solver sol1 = z3.create_solver();
   sol1.add(program->phi_vd && program->phi_pi && program->phi_pre && program->phi_prp);
   sol1.add(program->phi_po);
   z3::expr good = program->phi_vd && program->phi_pi && program->phi_pre && !program->phi_prp;
   sol1.add(good.substitute(o, n));
-  
+
   z3::check_result r = sol1.check();
   assert(r!=z3::unknown);
   if (r==z3::sat) {
@@ -371,32 +399,32 @@ bool trace_analysis::check_ambigious_traces(unordered_set< string >& result)
       tara::variable g2 = g1 + "_g";
       z3::expr e = m.eval((z3::expr)g1 != g2);
       Z3_lbool b = Z3_get_bool_value(e.ctx(), e);
-      if (b == Z3_L_TRUE) 
+      if (b == Z3_L_TRUE)
         result.insert(g);
     }
-    
+
     //assert(result.size() > 0);
     // there can be other sources of non-determinism
     return true;
   }
-  
+
   return false;
 }
 
 /**
  * # (footnote, this program will go wrong if infeasable is not included in ctp-bar.
  * global: x y z
- * 
- * pre: (= x 0)     
- * 
+ *
+ * pre: (= x 0)
+ *
  * thread t1:
  * a1: (= x. 1)
  * a2: (= y. 1)
- * 
+ *
  * thread t2:
  * b1: assume(= x 1)
  * b2: assert(= y 1)
  * b3: assume(= z 1)
- * 
+ *
  * (Reason: with the inputs we may fix z to 10 and therefore and then remove all HBs)
  */

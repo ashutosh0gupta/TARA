@@ -87,7 +87,7 @@ hb_enc::hb_vec remove_implied::prune( const hb_enc::hb_vec& hbs,
         if( it != it2 ) {
           auto& hb1 = *it;
           auto& hb2 = *it2;
-          assert( hb1 && hb2 );
+          assert( hb1 ); assert( hb2 );
           assert( hb1->e1 && hb1->e2 && hb2->e1 && hb2->e2 );
           if( must_happen_before( hb1->e1, hb2->e1 ) &&
               must_happen_after( hb2->e2, hb1->e2 ) ) {

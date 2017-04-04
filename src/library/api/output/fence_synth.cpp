@@ -62,6 +62,7 @@ void fence_synth::find_cycles(nf::result_type& bad_dnf) {
     vector<cycle>& cs = all_cycles[bad_dnf_num++];
     cycle_finder.find_cycles( hbs, cs );
     if( cs.size() == 0 ) {
+      nf::print_conj( std::cout, hbs);
       fence_synth_error( "a conjunct without any cycles!!");
     }
   }
@@ -138,8 +139,8 @@ void fence_synth::gather_statistics(api::metric& metric) const
 
 
 z3::expr fence_synth::get_h_var_bit( const hb_enc::se_ptr& b,
-                                           const hb_enc::se_ptr& e_i,
-                                           const hb_enc::se_ptr& e_j ) {
+                                     const hb_enc::se_ptr& e_i,
+                                     const hb_enc::se_ptr& e_j ) {
   auto pr = std::make_tuple( b, e_i, e_j );
   auto it = hist_map.find( pr );
   if( it != hist_map.end() )
@@ -150,7 +151,7 @@ z3::expr fence_synth::get_h_var_bit( const hb_enc::se_ptr& b,
 }
 
 z3::expr fence_synth::get_write_order_bit( const hb_enc::se_ptr& b,
-                                                 const hb_enc::se_ptr& e ) {
+                                           const hb_enc::se_ptr& e ) {
   auto pr = std::make_pair( b, e);
   auto it = wr_ord_map.find( pr );
   if( it != wr_ord_map.end() )
@@ -182,40 +183,40 @@ z3::expr fence_synth::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_en
 
 
 z3::expr fence_synth::get_sc_var_bit( const hb_enc::se_ptr& b,
-                                            const hb_enc::se_ptr& e ) {
+                                      const hb_enc::se_ptr& e ) {
   return get_bit_from_map( sc_var_map, b, e );
 }
 
 z3::expr fence_synth::get_rls_var_bit( const hb_enc::se_ptr& b,
-                                            const hb_enc::se_ptr& e ) {
+                                       const hb_enc::se_ptr& e ) {
   return get_bit_from_map( rls_var_map, b, e );
 }
 
 z3::expr fence_synth::get_acq_var_bit( const hb_enc::se_ptr& b,
-                                             const hb_enc::se_ptr& e ) {
+                                       const hb_enc::se_ptr& e ) {
   return get_bit_from_map( acq_var_map, b, e );
 }
 
 z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
-                                                const hb_enc::se_ptr& e ) {
+                                          const hb_enc::se_ptr& e ) {
   return get_bit_from_map( rlsacq_var_map, b, e );
 }
 
 z3::expr fence_synth::get_rls_var_bit( const hb_enc::se_ptr& b,
-                                             const hb_enc::se_ptr& e,
-                                             const tara::variable& v) {
+                                       const hb_enc::se_ptr& e,
+                                       const tara::variable& v) {
   return get_bit_from_map( rls_v_var_map, b, e, v);
 }
 
 z3::expr fence_synth::get_acq_var_bit( const hb_enc::se_ptr& b,
-                                             const hb_enc::se_ptr& e,
-                                             const tara::variable& v) {
+                                       const hb_enc::se_ptr& e,
+                                       const tara::variable& v) {
   return get_bit_from_map( acq_v_var_map, b, e, v);
 }
 
 z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
-                                                const hb_enc::se_ptr& e,
-                                                const tara::variable& v) {
+                                          const hb_enc::se_ptr& e,
+                                          const tara::variable& v) {
   return get_bit_from_map( rlsacq_v_var_map, b, e, v);
 }
 
@@ -603,11 +604,29 @@ create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
                  const std::string prefix,
                  const hb_enc::se_ptr& e,
                  std::vector<z3::expr>& soft ) {
+  // z3::expr bit = z3.get_fresh_bool(prefix+e->get_position_name());
+  e->get_position_name();
   z3::expr bit = z3.get_fresh_bool(prefix+e->name());
   s_map.insert({ e, bit });
   soft.push_back( !bit );
   return bit;
 }
+
+z3::expr fence_synth::
+create_sync_bit( std::map< std::string,
+                           std::pair<hb_enc::se_ptr, z3::expr> >& s_map,
+                 const std::string prefix,
+                 const hb_enc::se_ptr& e,
+                 std::vector<z3::expr>& soft ) {
+  // z3::expr bit = z3.get_fresh_bool(prefix+e->get_position_name());
+  std::string pos_name = e->get_position_name();
+  if( exists( s_map, pos_name)) return s_map.at(pos_name).second;
+  z3::expr bit = z3.get_fresh_bool(prefix+e->name()); //todo: remove argument
+  s_map.insert({pos_name, std::make_pair( e, bit ) });
+  soft.push_back( !bit );
+  return bit;
+}
+
 void fence_synth::gen_max_sat_problem_new() {
   // z3::context& z3_ctx = sol_bad->ctx();
   const_already_made.clear();

@@ -62,6 +62,10 @@ public:
   
   static void create_dnf(const z3::expr& formula, result_type& result, const tara::hb_enc::encoding& hb_encoding);
   static void print_one(std::ostream& stream, bool machine_readable, const result_type& result, bool dnf_not_cnf);
+  static void print_row(std::ostream& stream, bool machine_readable, const row_type& result, bool dnf_not_cnf);
+  static void print_conj( std::ostream& stream, const nf::row_type& conj );
+  static void print_disj( std::ostream& stream, const nf::row_type& disj );
+
   //--------------------------------------------------------------------------
   //start of wmm support
   //--------------------------------------------------------------------------

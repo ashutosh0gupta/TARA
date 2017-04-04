@@ -133,14 +133,10 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history, floc,
                           hb_enc::event_t::post, hb_enc::o_tag_t::sc);
 
-  // auto start = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
-  //                         "the_launcher", hb_enc::event_t::pre, hb_enc::o_tag_t::sc);
-  // auto final = mk_se_ptr( hb_encoding, INT_MAX, prev_events, tru, history,
-  //                         "the_finisher", hb_enc::event_t::post, hb_enc::o_tag_t::sc);
-
   p->init_loc = start;
   p->post_loc = final;
 
+  // setting up events for global variable initializations
   for( auto iter_glb= module->global_begin(),end_glb = module->global_end();
     iter_glb != end_glb; ++iter_glb ) {
     llvm::GlobalVariable* glb = &*iter_glb; //3.8
@@ -171,9 +167,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 #endif
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
-  passMan.add( llvm::createCFGSimplificationPass() ); // some params
+  // passMan.add( llvm::createCFGSimplificationPass() ); // some params
   passMan.add( llvm::createLoopRotatePass() ); // some params
-  passMan.add( llvm::createLoopUnrollPass( 100, o.loop_unroll_count ) );
+  passMan.add( llvm::createLoopUnrollPass( 1000, o.loop_unroll_count ) );
   passMan.add( new SplitAtAssumePass() );
   // passMan.add( llvm::createCFGPrinterPass() );
   auto build_p = new build_program( z3_, o, hb_encoding, p );

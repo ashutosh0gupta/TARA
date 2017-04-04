@@ -34,7 +34,7 @@ namespace tara {
 namespace helpers {
 
 
-  
+
 class z3interf
 {
 public:
@@ -46,9 +46,9 @@ private:
   z3interf & operator=(z3interf const & s);
 
   //void add_hb(z3::expr a, std::string a_name, z3::expr b, std::string b_name);
-    
+
   void _printFormula(const z3::expr& ast, std::ostream& out);
-    
+
   static void get_variables(const z3::expr& expr, tara::variable_set& result);
 
   // hb_enc::integer _hb_encoding = hb_enc::integer(c);
@@ -102,18 +102,18 @@ public:
 
   z3::solver create_solver() const;
   static z3::solver create_solver(z3::context& ctx);
-  
+
   void printFormula(const z3::expr& expr, std::ostream& out);
   z3::expr parseFormula(std::string str, const input::variable_set& vars);
   z3::expr parseFormula(std::string str, const std::vector<std::string>& names, const std::vector<z3::expr>& declarations);
   tara::variable_set translate_variables(input::variable_set vars);
-    
+
   // getting the information which happens-before relations are important
   static tara::variable_set get_variables(const z3::expr& expr);
-  
+
   static std::vector<z3::expr> decompose(z3::expr conj, Z3_decl_kind kind);
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);
-  
+
 
   z3::sort mk_sort(const char* s) const { return c.uninterpreted_sort(s); }
 
@@ -128,6 +128,13 @@ public:
 
   bool is_false( z3::expr ) const;
   bool is_true( z3::expr ) const;
+
+  static bool is_op(const z3::expr& e, const Z3_decl_kind dk_op);
+  static bool is_implies(const z3::expr& e);
+  static bool is_neg    (const z3::expr& e);
+  static bool is_and    (const z3::expr& e);
+  static bool is_or     (const z3::expr& e);
+
   bool is_sat( z3::expr ) const;
   bool entails( z3::expr e1, z3::expr e2 ) const;
 
@@ -140,6 +147,7 @@ public:
   static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate, bool potentially_input_sat = false);
   template <class value>
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
+  z3::expr simplify( z3::expr e );
   z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );
   Z3_decl_kind get_decl_kind( z3::expr e );
 };

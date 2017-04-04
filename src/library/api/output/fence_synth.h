@@ -104,6 +104,13 @@ private:
                             const hb_enc::se_ptr& e,
                             std::vector<z3::expr>& soft );
 
+  z3::expr
+  create_sync_bit( std::map< std::string,
+                             std::pair<hb_enc::se_ptr, z3::expr> >& s_map,
+                   const std::string prefix,
+                   const hb_enc::se_ptr& e,
+                   std::vector<z3::expr>& soft );
+
   z3::expr get_bit_from_map(std::map< std::pair<hb_enc::se_ptr,hb_enc::se_ptr>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e );
   z3::expr get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr, tara::variable>, z3::expr >& map, const hb_enc::se_ptr& b, const hb_enc::se_ptr& e, const tara::variable& v );
   z3::expr get_h_var_bit(const hb_enc::se_ptr& b, const hb_enc::se_ptr& i, const hb_enc::se_ptr& j);

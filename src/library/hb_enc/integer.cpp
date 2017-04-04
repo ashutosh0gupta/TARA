@@ -157,8 +157,12 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
 {
   bool possibly_equal = false;
   bool is_partial = false;
-  if( z3.is_bool_const( hb ) ) {
-    auto it = current_rf_map.find( z3.get_top_func_name( hb ) );
+  z3::expr hb_p = hb;
+  if( z3.is_implies( hb ) ) {
+    hb_p = hb.arg(1);
+  }
+  if( z3.is_bool_const( hb_p ) ) {
+    auto it = current_rf_map.find( z3.get_top_func_name( hb_p ) );
     if( it != current_rf_map.end() ) {
       return it->second;
     }

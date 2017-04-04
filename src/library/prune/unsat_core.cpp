@@ -63,17 +63,19 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   for( auto& hb : hbs ) {
     i++;
     z3::expr h_expr = (*hb);
-    // if( hb->type == hb_enc::hb_t::rf ) {
-    //   rfs_expr.push_back( h_expr );
-    // }else
-      {
-        hbs_expr.push_back( h_expr );
-      }
-    if( hb->e1 && hb->e2 ) {
-      z3::expr e = hb->e1->guard && hb->e2->guard;
-      // std::cout << i << " " << hb->e1->name() << hb->e2->name() << " " << e << "\n";
-      //sol_good.add(e);
+    if( hb->type == hb_enc::hb_t::rf ) {
+      // rfs_expr.push_back( h_expr );
+      z3::expr gurd = hb->e1->guard && hb->e2->guard;
+      h_expr = z3::implies( gurd, h_expr );
     }
+    // else {
+      hbs_expr.push_back( h_expr );
+    // }
+    // if( hb->e1 && hb->e2 ) {
+    //   z3::expr e = hb->e1->guard && hb->e2->guard;
+    //   // std::cout << i << " " << hb->e1->name() << hb->e2->name() << " " << e << "\n";
+    //   //sol_good.add(e);
+    // }
   }
 
   hbs_expr.splice( hbs_expr.begin(), rfs_expr);
@@ -87,9 +89,14 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   sol_good.pop();
   hb_enc::hb_vec final_result;
   for( z3::expr e : hbs_expr ) {
-    auto u_hb = hb_enc.get_hb( e );
-    // hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
-    final_result.push_back( u_hb );
+    if( z3interf::is_implies( e ) ) {
+      auto u_hb = hb_enc.get_hb( e.arg(1) );
+      final_result.push_back( u_hb );
+    }else{
+      auto u_hb = hb_enc.get_hb( e );
+      // hb_enc::hb_ptr hb = make_shared<hb_enc::hb>( *u_hb );
+      final_result.push_back( u_hb );
+    }
   }
   return final_result;
 }

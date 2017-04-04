@@ -103,26 +103,49 @@ std::string hb_enc::event_t_name( event_t et ) {
     }
 }
 
+std::string source_loc::position_name() {
+  if( line == 0 && col == 0 )
+    return pretty_name;
+  else
+    return "_l" + std::to_string(line) + "_c" + std::to_string(col);
+}
 
-std::string source_loc::name() {
-  static std::set< std::pair<unsigned, unsigned> > seen_before;
-  static unsigned unknown_location_counter = 0;
-  if( line == 0 && col == 0 ) {
-    if( pretty_name != "" )
-      return pretty_name;
-    else
-      return "_u" + std::to_string(unknown_location_counter++);
+std::string source_loc::gen_name() {
+  static std::map< std::pair<unsigned, unsigned>, unsigned > seen_before;
+  auto l_name = position_name();
+  if( line == 0 && col == 0 && l_name != "" ) {
+    return l_name;
   }else{
-    std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
     auto line_col = std::make_pair(line, col);
     if( exists( seen_before, line_col ) ) {
-      return l_name + "_u" + std::to_string(unknown_location_counter++);
+      return l_name + "_u" + std::to_string( seen_before[line_col]++ );
     }else{
-      seen_before.insert( line_col );
+      seen_before[line_col] = 0;
+      // seen_before.insert( line_col );
     }
     return l_name;
   }
 }
+
+// std::string source_loc::name() {
+//   static std::set< std::pair<unsigned, unsigned> > seen_before;
+//   static unsigned unknown_location_counter = 0;
+//   if( line == 0 && col == 0 ) {
+//     if( pretty_name != "" )
+//       return pretty_name;
+//     else
+//       return "_u" + std::to_string(unknown_location_counter++);
+//   }else{
+//     std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
+//     auto line_col = std::make_pair(line, col);
+//     if( exists( seen_before, line_col ) ) {
+//       return l_name + "_u" + std::to_string(unknown_location_counter++);
+//     }else{
+//       seen_before.insert( line_col );
+//     }
+//     return l_name;
+//   }
+// }
 
 tstamp_var_ptr
 symbolic_event::create_internal_event( helpers::z3interf& z3,
@@ -138,6 +161,10 @@ symbolic_event::create_internal_event( helpers::z3interf& z3,
 
 std::string symbolic_event::name() const {
   return e_v->name;
+}
+
+std::string symbolic_event::get_position_name() const {
+  return position_name;
 }
 
 unsigned symbolic_event::get_instr_no() const {
@@ -170,8 +197,12 @@ void symbolic_event::update_topological_order() {
   for( const se_ptr e : prev_events)
     if( max < e->get_topological_order() ) max = e->get_topological_order();
   topological_order = max + 1;
-  o_tag = o_tag_t::na;
+  // o_tag = o_tag_t::na;
 }
+
+
+//Old constructors:
+// Move the ctrc calls to the new constructors
 
 symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
                                 se_set& _prev_events, unsigned instr_no,
@@ -193,16 +224,12 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
   if( et == event_t::u ) {
     v_copy = v + "#update_wr";
   }
-  // bool is_read = (et == event_t::r);
-  // std::string et_name = is_read ? "R" : "W";
-  // std::string e_name = et_name + "#" + v.name;
   std::string e_name = hb_enc::event_t_name( et ) + "#" + v.name;
   e_v = create_internal_event(   z3,            e_name,tid,instr_no,false);
   thin_v = create_internal_event(z3,"__thin__" +e_name,tid,instr_no,false);
   c11_hb_v=create_internal_event(z3,"__hb__"   +e_name,tid,instr_no,false);
-  // c11_mo_v=create_internal_event(z3,"__mo__"   +e_name,tid,instr_no,false);
-  // c11_sc_v=create_internal_event(z3,"__sc__"   +e_name,tid,instr_no,false);
   update_topological_order();
+  o_tag = o_tag_t::na;
 }
 
 
@@ -219,24 +246,86 @@ symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
   , prev_events( _prev_events )
   , guard(z3.c)
 {
-  // std::string e_name;
-  // switch( et ) {
-  // case event_t::barr  : { e_name = "barr#";   break; }
-  // case event_t::barr_b: { e_name = "barr_b#"; break; }
-  // case event_t::barr_a: { e_name = "barr_a#"; break; }
-  // case event_t::pre   : { e_name = "pre#" ;   break; }
-  // case event_t::post  : { e_name = "post#";   break; }
-  // default: hb_enc_exception("unreachable code!!");
-  // }
-  // e_name = e_name+loc_name;
   std::string e_name = hb_enc::event_t_name( et ) + "#" + loc_name;
   e_v = create_internal_event    (z3,            e_name,tid,instr_no,true);
   thin_v = create_internal_event (z3, "__thin__"+e_name,tid,instr_no,true);
   c11_hb_v =create_internal_event(z3, "__hb__"  +e_name,tid,instr_no,true);
-  // c11_mo_v =create_internal_event(z3, "__mo__"  +e_name,tid,instr_no,true);
-  // c11_sc_v =create_internal_event(z3, "__sc__"  +e_name,tid,instr_no,true);
-  // (event_t::post == et), prog_v.name );
-  // (event_t::post == et), prog_v.name );
+  update_topological_order();
+  o_tag = o_tag_t::na;
+}
+
+
+// new constructor
+symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
+                                se_set& _prev_events,
+                                const tara::variable& _prog_v,
+                                z3::expr& path_cond,
+                                std::vector<z3::expr>& _history,
+                                hb_enc::source_loc& _loc, event_t _et,
+                                hb_enc::o_tag_t _o_tag )
+  : tid(_tid)
+  , v(_prog_v)      // temp init
+  , v_copy(_prog_v) // temp init
+  , prog_v( _prog_v )
+  , loc(_loc)
+  , et( _et )
+  , o_tag( _o_tag )
+  , prev_events( _prev_events )
+  , guard(path_cond)
+  , history( _history )
+{
+
+  if( et != event_t::r &&  et != event_t::w &&  et != event_t::u ) {
+    hb_enc_error("symboic event with wrong parameters!");
+  }
+
+  loc_name = loc.gen_name();
+  std::string e_t_name = hb_enc::event_t_name( et );
+  position_name = e_t_name + "#" + prog_v.name + "#" + loc.position_name();
+
+  v = prog_v + "#" + loc_name;
+  v_copy = (et != event_t::u) ? v : v + "#update_wr";
+
+  std::string e_name = e_t_name + "#" + v.name;
+  e_v    = create_internal_event( z3,            e_name,tid, 0, false);
+  thin_v = create_internal_event(z3,"__thin__" +e_name,tid, 0, false);
+  c11_hb_v=create_internal_event(z3,"__hb__"   +e_name,tid, 0, false);
+  update_topological_order();
+}
+
+symbolic_event::symbolic_event( helpers::z3interf& z3, unsigned _tid,
+                                se_set& _prev_events,
+                                z3::expr& path_cond,
+                                std::vector<z3::expr>& _history,
+                                hb_enc::source_loc& _loc, event_t _et,
+                                hb_enc::o_tag_t _o_tag )
+  : tid(_tid)
+  , v("dummy",z3.c)
+  , v_copy("dummy",z3.c)
+  , prog_v( "dummy",z3.c)
+  , loc(_loc)
+  , et( _et )
+  , o_tag( _o_tag )
+  , prev_events( _prev_events )
+  , guard(path_cond)
+  , history( _history )
+{
+  std::string e_t_name = hb_enc::event_t_name( et );
+
+  if( et == hb_enc::event_t::block ) {
+    hb_enc::source_loc loc_d;
+    loc_name = "block__" + std::to_string(tid) + "__"+ loc_d.gen_name();
+  }else{
+    loc_name = loc.gen_name();
+  }
+
+  position_name = e_t_name + "#" + loc.position_name();
+
+  std::string e_name = e_t_name + "#" + loc_name;
+  e_v = create_internal_event    (z3,            e_name,tid,0,true);
+  thin_v = create_internal_event (z3, "__thin__"+e_name,tid,0,true);
+  c11_hb_v =create_internal_event(z3, "__hb__"  +e_name,tid,0,true);
+
   update_topological_order();
 }
 
@@ -530,16 +619,26 @@ void tara::debug_print( std::ostream& out, const hb_enc::depends_set& set ) {
   out << std::endl;
 }
 
-void tara::hb_enc::full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
-                               z3::expr& path_cond, std::vector<z3::expr>& history_,
-                               hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
-                               std::map<const hb_enc::se_ptr, z3::expr>& branch_conds) {
-  e->guard = path_cond;
-  e->history = history_;
-  e->o_tag = ord_tag;
-  e->loc = loc;
+void tara::hb_enc::
+full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set& prev_es,
+                    std::map<const hb_enc::se_ptr, z3::expr>& branch_conds) {
   hb_enc.record_event( e );
-    for(se_ptr ep  : prev_es) {
-      ep->add_post_events( e, branch_conds.at(ep) );
-    }
+  for(se_ptr ep  : prev_es) {
+    ep->add_post_events( e, branch_conds.at(ep) );
   }
+}
+
+//todo: remove
+// void tara::hb_enc::full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
+//                                        z3::expr& path_cond, std::vector<z3::expr>& history_,
+//                                hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
+//                                std::map<const hb_enc::se_ptr, z3::expr>& branch_conds) {
+//   e->guard = path_cond;
+//   e->history = history_;
+//   e->o_tag = ord_tag;
+//   e->loc = loc;
+//   hb_enc.record_event( e );
+//     for(se_ptr ep  : prev_es) {
+//       ep->add_post_events( e, branch_conds.at(ep) );
+//     }
+//   }

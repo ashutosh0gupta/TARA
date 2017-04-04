@@ -60,6 +60,22 @@ Z3_decl_kind z3interf::get_decl_kind( z3::expr e ) {
   return d.decl_kind();
 }
 
+bool z3interf::is_op(const expr& e, const Z3_decl_kind dk_op) {
+  if( e.kind() ==  Z3_APP_AST ) {
+      z3::func_decl d = e.decl();
+      // Z3_decl_kind dk = d.decl_kind();
+      if( d.decl_kind() == dk_op ) {
+        return true;
+      }
+  }
+  return false;
+}
+
+bool z3interf::is_implies(const expr& e) {return is_op(e,Z3_OP_IMPLIES); }
+bool z3interf::is_neg    (const expr& e) { return is_op( e, Z3_OP_NOT ); }
+bool z3interf::is_and    (const expr& e) { return is_op( e, Z3_OP_AND ); }
+bool z3interf::is_or     (const expr& e) { return is_op( e, Z3_OP_OR  ); }
+
 ///////////////////////////////////////////////
 // Printing
 ///////////////////////////////////////////////
@@ -242,6 +258,7 @@ void z3interf::get_variables(const expr& expr, tara::variable_set& result)
   }
 }
 
+
 void z3interf::decompose(expr conj, Z3_decl_kind kind, vector< expr >& result)
 {
   switch(conj.kind()) {
@@ -355,6 +372,24 @@ tara::variable_set z3interf::translate_variables(input::variable_set vars) {
   return newvars;
 }
 
+z3::expr z3interf::simplify( z3::expr e ) {
+  z3::goal g(c);
+  g.add(e);
+
+  z3::tactic simp(c, "simplify");
+  z3::tactic ctx_simp(c, "ctx-simplify");
+  z3::tactic final = simp & ctx_simp;
+
+  z3::apply_result res = final.apply(g);
+
+  g = res[0];
+  e = c.bool_val(true);
+  for (unsigned i = 0; i < g.size(); i++)
+    e = e && g[i]; // first thing we put in
+  return e;
+}
+
+//todo: make it a static function
 z3::expr z3interf::simplify_or_vector( std::vector<z3::expr>& o_vec ) {
   unsigned sz = o_vec.size();
 

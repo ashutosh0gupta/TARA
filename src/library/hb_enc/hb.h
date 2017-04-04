@@ -72,6 +72,12 @@ public:
   
   hb negate() const;
 
+  bool is_hb()   const { return type == hb_t::hb; };
+  bool is_rf()   const { return type == hb_t::rf; };
+  bool is_partial_ord_hb() const { return type == hb_t::phb; };
+  bool is_sc()   const { return type == hb_t::sc; };
+  bool is_thin() const { return type == hb_t::thin; };
+
   friend bool operator< (const hb& hb1, const hb& hb2);
 private:
   z3::expr expr;

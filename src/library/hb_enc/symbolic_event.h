@@ -90,7 +90,8 @@ struct source_loc{
   unsigned col = 0;
   std::string file;
   std::string& pretty_name = file; // used as unique event name(user ensured)!!
-  std::string name();
+  std::string position_name();
+  std::string gen_name();
 
   source_loc& operator=(const source_loc &n_loc) {
     line = n_loc.line;
@@ -157,6 +158,16 @@ struct source_loc{
                     unsigned _tid, se_set& _prev_events, unsigned instr_no,
                     std::string _loc, event_t _et );
 
+
+    symbolic_event( helpers::z3interf& z3, unsigned _tid,
+                    se_set& _prev_events, const tara::variable& _prog_v,
+                    z3::expr& path_cond, std::vector<z3::expr>& history_,
+                    source_loc& _loc, event_t _et, o_tag_t ord_tag );
+
+    symbolic_event( helpers::z3interf& z3, unsigned _tid,
+                    se_set& _prev_events, z3::expr& path_cond,
+                    std::vector<z3::expr>& _history,
+                    source_loc& _loc, event_t _et, o_tag_t _o_tag );
   public:
     unsigned tid;
     tara::variable v;            // variable with ssa name
@@ -189,8 +200,11 @@ struct source_loc{
     depends_set data_dependency;
     depends_set ctrl_dependency;
 
+    //in case of loop unrolling. Multiple events have same position name
+    std::string position_name;
 
     std::string name() const;
+    std::string get_position_name() const;
     // inline std::string name() const {
     //   return e_v->name;
     // }
@@ -244,10 +258,6 @@ struct source_loc{
     }
 
     unsigned get_instr_no() const;
-
-    // inline unsigned get_instr_no() const {
-    //   return e_v->instr_no;
-    // }
 
     inline unsigned get_topological_order() const {
       return topological_order;
@@ -319,8 +329,8 @@ struct source_loc{
                  event_t et, se_set& prev_es) {
     std::string prefix = et == hb_enc::event_t::r ? "pi_" : "";
     tara::variable n_v = prefix + prog_v + "#" + loc;
-    se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, instr_no,
-                                                 n_v, prog_v, loc, et );
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es,
+                                                 instr_no, n_v, prog_v, loc, et);
     e->guard = hb_enc.z3.mk_true();
     hb_enc.record_event( e );
     return e;
@@ -341,42 +351,30 @@ struct source_loc{
   // new calls
   // todo: streamline se all tstamps
 
-  void full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
-                           z3::expr& path_cond, std::vector<z3::expr>& history_,
-                           hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
+  void full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set& prev_es,
                            std::map<const hb_enc::se_ptr, z3::expr>& branch_conds);
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
              z3::expr& path_cond, std::vector<z3::expr>& history_,
-             const tara::variable& prog_v, hb_enc::source_loc& loc, //std::string loc_name,
+             const tara::variable& prog_v, hb_enc::source_loc& loc,
              event_t _et, hb_enc::o_tag_t ord_tag ) {
-    std::string loc_name = loc.name();
-    tara::variable ssa_v = prog_v + "#" + loc_name;
-    std::map<const hb_enc::se_ptr, z3::expr> bconds;
+    std::map<const hb_enc::se_ptr, z3::expr > bconds;
     for( auto& ep : prev_es ) {
       bconds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
     }
-    se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0,
-                                                 ssa_v, prog_v, loc_name, _et);
-    full_initialize_se(hb_enc, e,prev_es,path_cond,history_,loc,ord_tag,bconds);
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es,prog_v,
+                                                 path_cond, history_, loc, _et,
+                                                 ord_tag );
+    full_initialize_se( hb_enc, e, prev_es, bconds );
+
+    // std::string loc_name = loc.gen_name();
+    // tara::variable ssa_v = prog_v + "#" + loc_name;
+    // se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0,
+    //                                              ssa_v, prog_v,loc_name,_et);
+    // full_initialize_se( hb_enc, e, prev_es, path_cond, history_,loc,ord_tag,bconds);
     return e;
   }
-
-  //todo: enable tagging for the fences of all kinds
-  // inline se_ptr
-  // mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
-  //            z3::expr& path_cond, std::vector<z3::expr>& history_,
-  //            std::string loc_name, event_t et,
-  //            std::map<const hb_enc::se_ptr, z3::expr>& branch_conds,
-  //            hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na  ) {
-  //   se_ptr e =
-  //     std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es, 0, loc_name, et );
-  //   hb_enc::source_loc loc;
-  //   full_initialize_se( hb_enc, e, prev_es, path_cond, history_, loc, ord_tag, branch_conds );
-  //   return e;
-  // }
-
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,
@@ -384,15 +382,22 @@ struct source_loc{
              hb_enc::source_loc& loc, event_t et,
              std::map<const hb_enc::se_ptr, z3::expr>& bconds,
              hb_enc::o_tag_t ord_tag = hb_enc::o_tag_t::na  ) {
-    std::string lname;
-    if( et == hb_enc::event_t::block ) {
-      hb_enc::source_loc loc_d;
-      lname = "block__" + std::to_string(tid) + "__"+ loc_d.name();
-    }else{
-      lname = loc.name();
-    }
-    se_ptr e =std::make_shared<symbolic_event>(hb_enc.z3,tid,prev_es,0,lname,et);
-    full_initialize_se( hb_enc, e, prev_es, path_cond, history_,loc,ord_tag,bconds);
+
+    se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es,
+                                                 path_cond, history_, loc, et,
+                                                 ord_tag );
+    full_initialize_se( hb_enc, e, prev_es, bconds );
+
+    // std::string lname;
+    // if( et == hb_enc::event_t::block ) {
+    //   hb_enc::source_loc loc_d;
+    //   lname = "block__" + std::to_string(tid) + "__"+ loc_d.gen_name();
+    // }else{
+    //   lname = loc.gen_name();
+    // }
+    // se_ptr e =
+    //   std::make_shared<symbolic_event>(hb_enc.z3,tid,prev_es,0,lname,et);
+    // full_initialize_se( hb_enc, e, prev_es, path_cond, history_,loc,ord_tag,bconds);
     return e;
   }
 
@@ -486,14 +491,14 @@ struct source_loc{
   void pointwise_and( const depends_set&, z3::expr, depends_set& );
 
   //todo: deprecate this function
-  inline bool is_po_old( const se_ptr& x, const se_ptr& y ) {
-    if( x == y ) return true;
-    if( x->tid != y->tid ) return false;
-    if( x->get_instr_no() < y->get_instr_no() ) return true;
-    if( x->get_instr_no() == y->get_instr_no() && x->is_rd() && y->is_wr() )
-      return true;
-    return false;
-  }
+  // inline bool is_po_old( const se_ptr& x, const se_ptr& y ) {
+  //   if( x == y ) return true;
+  //   if( x->tid != y->tid ) return false;
+  //   if( x->get_instr_no() < y->get_instr_no() ) return true;
+  //   if( x->get_instr_no() == y->get_instr_no() && x->is_rd() && y->is_wr() )
+  //     return true;
+  //   return false;
+  // }
 
   bool is_po_new( const se_ptr& x, const se_ptr& y );
   // must_before: if y occurs then, x must occur in the past

@@ -263,7 +263,10 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m )
     if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
       hb_enc::se_ptr wr = std::get<1>(it);
       hb_enc::se_ptr rd = std::get<2>(it);
-      hb_ptr h = make_shared<hb_enc::hb>(wr, rd, b, false, hb_t::rf);
+      // z3::expr bp = z3::implies(wr->guard && rd->guard, b );
+      // z3::expr bp = z3::implies(wr->guard, b );
+      z3::expr bp = b;
+      hb_ptr h = make_shared<hb_enc::hb>(wr, rd, bp, false, hb_t::rf);
       result.push_back( h );
       current_rf_map.insert( std::make_pair( bname, h ) );
     }

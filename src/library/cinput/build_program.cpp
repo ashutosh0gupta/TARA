@@ -432,7 +432,7 @@ translateBlock( unsigned thr_id,
             !alloc->getType()->getElementType()->isIntegerTy() ) {
           cinput_error( "only pointers to intergers is allowed!" );
         }
-        auto alloc_name = "alloc__" + getInstructionLocation( I ).name();
+        auto alloc_name = "alloc__" + getInstructionLocation( I ).gen_name();
         z3::sort sort = llvm_to_z3_sort(z3.c, alloc->getType()->getElementType());
         p->add_allocated( alloc_name, sort );
         auto v = p->get_allocated( alloc_name );
@@ -494,8 +494,8 @@ translateBlock( unsigned thr_id,
     if( const llvm::SelectInst* sel = llvm::dyn_cast<llvm::SelectInst>(I) ) {
       const llvm::Value* cnd = sel->getCondition();
       const llvm::Value* tr = sel->getTrueValue(),*fl = sel->getFalseValue();
-      z3::expr c=getTerm(cnd,m), t=getTerm(tr,m), f=getTerm(fl,m), v=getTerm(I,m);
-      block_ssa = ( !c || v == t ) && ( c || v == f );
+      z3::expr c=getTerm(cnd,m), t=getTerm(tr,m),f=getTerm(fl,m),v=getTerm(I,m);
+      block_ssa = block_ssa && ( !c || v == t ) && ( c || v == f );
       //todo: depdency for select needs to be clarified
       std::vector<hb_enc::depends_set> dep_ses;
       dep_ses.push_back( get_depends( cnd ) );
@@ -507,10 +507,11 @@ translateBlock( unsigned thr_id,
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       std::vector<hb_enc::depends_set> dep_ses;
-      // assert( conds.size() > 1 ); //todo:if not,review initialization of conds
+      // assert( conds.size() > 1 );//todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       if( phi->getType()->isIntegerTy() ) {
-        z3::expr phi_cons = z3.mk_false();
+        // z3::expr phi_cons = z3.mk_false(); //todo:remove;if replacement works
+        z3::expr phi_cons = z3.mk_true();
         z3::expr ov = getTerm(I,m);
 
         for ( unsigned i = 0 ; i < num ; i++ ) {
@@ -518,12 +519,14 @@ translateBlock( unsigned thr_id,
           const llvm::Value* v_ = phi->getIncomingValue(i);
           if( exists( ignore_edges, prev ) ) continue;
           z3::expr v = getTerm (v_, m );
-          phi_cons = phi_cons || (conds.at(prev) && ov == v);
+          phi_cons = phi_cons && (!conds.at(prev) || ov == v);
+          // phi_cons = phi_cons || (conds.at(prev) && ov == v);
           hb_enc::depends_set temp;
           hb_enc::pointwise_and( get_depends( v_ ), conds.at(prev), temp );
 	  dep_ses.push_back( temp );
         }
         hb_enc::join_depends_set( dep_ses, local_map[I] );
+        // block_ssa = block_ssa && z3::implies( path_cond, phi_cons);
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
       }else{
@@ -917,8 +920,10 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         final_prev_events.insert( prev_events.begin(), prev_events.end() );
         final_histories.push_back( h );
         final_preds.push_back( src );
-        llvm::outs() << "A dangling block found!!\n";
-        src->print( llvm::outs() );
+        if( o.print_input > 1 ) {
+          llvm::outs() << "A dangling block found!!\n";
+          src->print( llvm::outs() );
+        }
       }
       p->append_ssa( thread_id, ssa );
       if( o.print_input > 0 ) {
