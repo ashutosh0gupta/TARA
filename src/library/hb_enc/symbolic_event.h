@@ -490,15 +490,6 @@ struct source_loc{
                          hb_enc::depends_set& result );
   void pointwise_and( const depends_set&, z3::expr, depends_set& );
 
-  //todo: deprecate this function
-  // inline bool is_po_old( const se_ptr& x, const se_ptr& y ) {
-  //   if( x == y ) return true;
-  //   if( x->tid != y->tid ) return false;
-  //   if( x->get_instr_no() < y->get_instr_no() ) return true;
-  //   if( x->get_instr_no() == y->get_instr_no() && x->is_rd() && y->is_wr() )
-  //     return true;
-  //   return false;
-  // }
 
   bool is_po_new( const se_ptr& x, const se_ptr& y );
   // must_before: if y occurs then, x must occur in the past

@@ -173,59 +173,13 @@ bool cycle::is_dominated_by( cycle& c ) const {
   std::ostream& operator<<( std::ostream& stream, const cycle& c ) {
     stream << c.name << "(";
     debug_print( stream, c.edges );
-  // bool first = true;
-  // for( const auto& edge : c.edges ) {
-  //   if(first) {
-  //     if( edge.before )
-  //       stream << edge.before->name();
-  //     else
-  //       stream << "null";
-  //     first = false;
-  //   }
-  //   switch( edge.type ) {
-  //   case edge_type::hb:  { stream << "->";  } break;
-  //   case edge_type::ppo: { stream << "=>";  } break;
-  //   case edge_type::rpo: { stream << "~~>"; } break;
-  //   case edge_type::rf:  { stream << "==>"; } break;
-  //   case edge_type::fr:  { stream << "~~~>";} break;
-  //   default:
-  //     hb_enc_error( "uncover case!!" );
-  //   }
-  //   if( edge.after )
-  //     stream << edge.after->name();
-  //   else
-  //     stream << "null";
-  // }
-  stream << ")";
-  return stream;
-}
-
-  // void cycles::insert_event( std::vector<hb_enc::se_vec>& event_lists,
-  //                            hb_enc::se_ptr e ) {
-  // unsigned i_no = e->get_instr_no();
-
-  // hb_enc::se_vec& es = event_lists[e->tid];
-  // auto it = es.begin();
-  // for(; it < es.end() ;it++) {
-  //   hb_enc::se_ptr& e1 = *it;
-  //   if( e1 == e ) return;
-  //   if( e1->get_instr_no() > i_no ||
-  //       ( e1->get_instr_no() == i_no && e1->is_wr() && e->is_rd() ) ) {
-  //     break;
-  //   }
-  // }
-  // es.insert( it, e);
-  // }
+    stream << ")";
+    return stream;
+  }
 
 void cycles::succ( hb_enc::se_ptr e,
                    const hb_enc::se_set& filter,
                    std::vector< std::pair< hb_enc::se_ptr, edge_type> >& next_set ) {
-  // for( auto it : hbs ) {
-  //   if( it.first == e ) {
-  //     if( filter.find( it.second ) == filter.end() ) continue;
-  //     next_set.push_back( {it.second,edge_type::hb} );
-  //   }
-  // }
 
   for( auto ed : hbs ) {
     if( ed.before == e ) {
