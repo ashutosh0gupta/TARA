@@ -471,7 +471,15 @@ translateBlock( unsigned thr_id,
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 ),* rhs = cmp->getOperand( 1 );
       z3::expr l = getTerm( lhs, m ), r = getTerm( rhs, m );
-
+      if( !z3.matched_sort( l, r ) ) {
+        if( z3.is_const( l ) ) {
+          auto s = r.get_sort();
+          l = z3.switch_sort(l, s );
+        }else if( z3.is_const( r ) ) {
+          auto s = l.get_sort();
+          r = z3.switch_sort(r, s );
+        }else cinput_error( "mismatched types in cmp instruction!!");
+      }
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
       switch( pred ) {
       case llvm::CmpInst::ICMP_EQ  : insert_term_map( I, l==r, m ); break;

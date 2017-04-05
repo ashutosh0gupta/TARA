@@ -114,20 +114,16 @@ public:
   static std::vector<z3::expr> decompose(z3::expr conj, Z3_decl_kind kind);
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);
 
+  // solver calls
+  bool is_sat( z3::expr ) const;
+  bool entails( z3::expr e1, z3::expr e2 ) const;
 
-  z3::sort mk_sort(const char* s) const { return c.uninterpreted_sort(s); }
-
-  z3::expr mk_true() const { return c.bool_val(true ); }
-  z3::expr mk_false() const { return c.bool_val(false); }
-  z3::expr mk_emptyexpr(){ return z3::expr(c); }
-
-  z3::sort get_variable_sort(const input::variable& var);
-
-  z3::expr get_fresh_bool( std::string suff = "" );
-  z3::expr get_fresh_int(  std::string suff = "" );
-
+  // test functions
   bool is_false( z3::expr ) const;
   bool is_true( z3::expr ) const;
+  bool is_const( z3::expr& b );
+  bool is_bool_const( z3::expr& );
+  bool matched_sort( const z3::expr& l, const z3::expr& r );
 
   static bool is_op(const z3::expr& e, const Z3_decl_kind dk_op);
   static bool is_implies(const z3::expr& e);
@@ -135,12 +131,20 @@ public:
   static bool is_and    (const z3::expr& e);
   static bool is_or     (const z3::expr& e);
 
-  bool is_sat( z3::expr ) const;
-  bool entails( z3::expr e1, z3::expr e2 ) const;
+  //get/make expression functions
+  z3::expr get_fresh_bool( std::string suff = "" );
+  z3::expr get_fresh_int(  std::string suff = "" );
+  std::string get_top_func_name( z3::expr& b );
+  int get_numeral_int(const z3::expr& i);
+  Z3_decl_kind get_decl_kind( z3::expr e );
+  z3::sort mk_sort(const char* s) const { return c.uninterpreted_sort(s); }
+  z3::expr mk_true() const { return c.bool_val(true ); }
+  z3::expr mk_false() const { return c.bool_val(false); }
+  z3::expr mk_emptyexpr(){ return z3::expr(c); }
+  z3::expr switch_sort( z3::expr& b, z3::sort& s );
+  z3::sort get_variable_sort(const input::variable& var);
 
-  bool is_bool_const( z3::expr );
-  std::string get_top_func_name( z3::expr b );
-
+  //utilities
   z3::model maxsat( z3::expr hard, std::vector<z3::expr>& soft );
 
   template <class value>
@@ -149,7 +153,6 @@ public:
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
   z3::expr simplify( z3::expr e );
   z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );
-  Z3_decl_kind get_decl_kind( z3::expr e );
 };
   // we need this xor, since the default xor in c++ interface is for bvxor
   inline z3::expr _xor( z3::expr const & a, z3::expr const & b ) {

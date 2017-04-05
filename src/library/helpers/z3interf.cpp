@@ -258,6 +258,16 @@ void z3interf::get_variables(const expr& expr, tara::variable_set& result)
   }
 }
 
+int z3interf::get_numeral_int(const expr& i) {
+  int val;
+  if( Z3_get_numeral_int( c, i, &val) ) {
+    return val;
+  }else{
+    z3interf_error( "too large int found!!" );
+  }
+}
+
+
 
 void z3interf::decompose(expr conj, Z3_decl_kind kind, vector< expr >& result)
 {
@@ -289,12 +299,38 @@ vector< expr > z3interf::decompose(expr conj, Z3_decl_kind kind)
   return result;
 }
 
-bool z3interf::is_bool_const( z3::expr b ) {
+
+z3::expr z3interf::switch_sort( z3::expr& b, z3::sort& s ) {
+  z3::sort bs = b.get_sort();
+  if( bs.is_bool() && s.is_int() ) {
+    if( is_false( b) ) {
+      return c.int_val(0);
+    }else if( is_true(b) ) {
+      return c.int_val(1);
+    }
+  }else if( bs.is_int() && s.is_bool() ) {
+    int v = get_numeral_int(b);
+    if( v == 1 ) {
+      return mk_true();
+    }else if ( v  == 0 ) {
+      return mk_false();
+    }
+  }
+  z3interf_error( "failed to change sort!" );
+}
+
+bool z3interf::is_const( z3::expr& b ) {
+  if( b.kind() == Z3_NUMERAL_AST ) return true;
+  return false;
+}
+
+
+bool z3interf::is_bool_const( z3::expr& b ) {
   if( !b.is_bool() || b.kind() != Z3_APP_AST ) return false;
   return b.num_args() == 0;
 }
 
-std::string z3interf::get_top_func_name( z3::expr b ) {
+std::string z3interf::get_top_func_name( z3::expr& b ) {
   assert( b.kind() == Z3_APP_AST );
   z3::func_decl d = b.decl();
   return d.name().str();
@@ -361,6 +397,10 @@ bool z3interf::is_true( z3::expr f ) const {
 bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
   // if e1 /\ !e2 is unsat, e1 => e2 is valid
   return is_sat( e1 && !e2 );
+}
+
+bool z3interf::matched_sort( const z3::expr& l, const z3::expr& r ) {
+  return z3::eq(l.get_sort(),r.get_sort());
 }
 
 tara::variable_set z3interf::translate_variables(input::variable_set vars) {
