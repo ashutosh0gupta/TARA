@@ -89,13 +89,23 @@ private:
 
   std::map< hb_enc::se_ptr, z3::expr > fence_map;
   std::map< hb_enc::se_ptr, z3::expr > light_fence_map;
-  std::map< hb_enc::se_ptr, z3::expr > sc_fence_map;
-  std::map< hb_enc::se_ptr, z3::expr > rls_fence_map;
-  std::map< hb_enc::se_ptr, z3::expr > acq_fence_map;
-  std::map< hb_enc::se_ptr, z3::expr > rlsacq_fence_map;
-  std::map< hb_enc::se_ptr, z3::expr > rls_v_map;
-  std::map< hb_enc::se_ptr, z3::expr > acq_v_map;
-  std::map< hb_enc::se_ptr, z3::expr > rlsacq_v_map;
+
+  //c11 fence maps
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > sc_fence_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > rls_fence_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > acq_fence_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > rlsacq_fence_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > rls_v_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > acq_v_map;
+  std::map< std::string, std::pair<hb_enc::se_ptr, z3::expr> > rlsacq_v_map;
+
+  // std::map< hb_enc::se_ptr, z3::expr > sc_fence_map;
+  // std::map< hb_enc::se_ptr, z3::expr > rls_fence_map;
+  // std::map< hb_enc::se_ptr, z3::expr > acq_fence_map;
+  // std::map< hb_enc::se_ptr, z3::expr > rlsacq_fence_map;
+  // std::map< hb_enc::se_ptr, z3::expr > rls_v_map;
+  // std::map< hb_enc::se_ptr, z3::expr > acq_v_map;
+  // std::map< hb_enc::se_ptr, z3::expr > rlsacq_v_map;
 
   std::set< std::pair<hb_enc::se_ptr, hb_enc::se_ptr> > const_already_made;
 
@@ -124,12 +134,12 @@ private:
   z3::expr get_acq_var_bit(const hb_enc::se_ptr&, const hb_enc::se_ptr&,const tara::variable&);
   z3::expr get_rlsacq_var_bit(const hb_enc::se_ptr&,const hb_enc::se_ptr&,const tara::variable&);
 
-  z3::expr get_fence_bit  (const hb_enc::se_ptr& e ){return fence_map.at(e);}
-  z3::expr get_lw_fence_bit(const hb_enc::se_ptr& e){return light_fence_map.at(e);}
-  z3::expr get_sc_fence_bit(const hb_enc::se_ptr& e){ return sc_fence_map.at(e);}
-  z3::expr get_rls_fence_bit(const hb_enc::se_ptr& e){return rls_fence_map.at(e);}
-  z3::expr get_acq_fence_bit(const hb_enc::se_ptr& e){return acq_fence_map.at(e);}
-  z3::expr get_rlsacq_fence_bit(const hb_enc::se_ptr& e){return rlsacq_fence_map.at(e);}
+  z3::expr get_fence_bit  (const hb_enc::se_ptr& e );
+  z3::expr get_lw_fence_bit(const hb_enc::se_ptr& e);
+  z3::expr get_sc_fence_bit(const hb_enc::se_ptr& e);
+  z3::expr get_rls_fence_bit(const hb_enc::se_ptr& e);
+  z3::expr get_acq_fence_bit(const hb_enc::se_ptr& e);
+  z3::expr get_rlsacq_fence_bit(const hb_enc::se_ptr& e);
 
   z3::expr get_rls_bit   ( const hb_enc::se_ptr& e, const tara::variable& v );
   z3::expr get_acq_bit   ( const hb_enc::se_ptr& e, const tara::variable& v );

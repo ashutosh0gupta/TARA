@@ -181,6 +181,26 @@ z3::expr fence_synth::get_bit_from_map(std::map< std::tuple<hb_enc::se_ptr,hb_en
   return bit;
 }
 
+z3::expr fence_synth::get_fence_bit  (const hb_enc::se_ptr& e ){
+  return fence_map.at(e);
+}
+z3::expr fence_synth::get_lw_fence_bit(const hb_enc::se_ptr& e){
+  return light_fence_map.at(e);
+}
+
+z3::expr fence_synth::get_sc_fence_bit(const hb_enc::se_ptr& e){
+  return sc_fence_map.at(e->get_position_name()).second;
+}
+z3::expr fence_synth::get_rls_fence_bit(const hb_enc::se_ptr& e){
+  return rls_fence_map.at(e->get_position_name()).second;
+}
+z3::expr fence_synth::get_acq_fence_bit(const hb_enc::se_ptr& e){
+  return acq_fence_map.at(e->get_position_name()).second;
+}
+z3::expr fence_synth::get_rlsacq_fence_bit(const hb_enc::se_ptr& e){
+  return rlsacq_fence_map.at(e->get_position_name()).second;
+}
+
 
 z3::expr fence_synth::get_sc_var_bit( const hb_enc::se_ptr& b,
                                       const hb_enc::se_ptr& e ) {
@@ -226,21 +246,21 @@ z3::expr fence_synth::get_rls_bit( const hb_enc::se_ptr& e,
                                          const tara::variable& v ) {
   if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
   if( e->is_at_least_rls() ) return z3.mk_true();
-  return rls_v_map.at( e );
+  return rls_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_acq_bit( const hb_enc::se_ptr& e,
                                          const tara::variable& v ) {
   if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
   if( e->is_at_least_acq() ) return z3.mk_true();
-  return acq_v_map.at( e );
+  return acq_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_rlsacq_bit( const hb_enc::se_ptr& e,
                                             const tara::variable& v ) {
   if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
   if( e->is_at_least_rlsacq() ) return z3.mk_true();
-  return rlsacq_v_map.at( e );
+  return rlsacq_v_map.at( e->get_position_name() ).second;
 }
 
 
@@ -605,7 +625,7 @@ create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
                  const hb_enc::se_ptr& e,
                  std::vector<z3::expr>& soft ) {
   // z3::expr bit = z3.get_fresh_bool(prefix+e->get_position_name());
-  e->get_position_name();
+  // e->get_position_name();
   z3::expr bit = z3.get_fresh_bool(prefix+e->name());
   s_map.insert({ e, bit });
   soft.push_back( !bit );
@@ -690,93 +710,6 @@ void fence_synth::gen_max_sat_problem_new() {
 }
 
 // ===========================================================================
-// max sat code
-
-// void fence_synth::assert_soft_constraints( z3::solver&s ,
-//                                                  std::vector<z3::expr>& cnstrs,
-//                                                  std::vector<z3::expr>& aux_vars
-//                                                  ) {
-//   for( auto f : cnstrs ) {
-//     auto n = z3.get_fresh_bool();
-//     aux_vars.push_back(n);
-//     s.add( f || n ) ;
-//   }
-// }
-
-// z3::expr fence_synth:: at_most_one( z3::expr_vector& vars ) {
-//   z3::expr result = vars.ctx().bool_val(true);
-//   if( vars.size() <= 1 ) return result;
-//   // todo check for size 0
-//   z3::expr last_xor = vars[0];
-  
-//   for( unsigned i = 1; i < vars.size(); i++ ) {
-//     z3::expr curr_xor = (vars[i] != last_xor );
-//     result = result && (!last_xor || curr_xor);
-//     last_xor = curr_xor;
-//   }
-
-//   return result;
-// }
-
-// int fence_synth:: fu_malik_maxsat_step( z3::solver &s,
-//                                               std::vector<z3::expr>& soft_cnstrs,
-//                                               std::vector<z3::expr>& aux_vars ) {
-//     z3::expr_vector assumptions(z3.c);
-//     z3::expr_vector core(z3.c);
-//     for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
-//       assumptions.push_back(!aux_vars[i]);
-//     }
-//     if (s.check(assumptions) != z3::check_result::unsat) {
-//       return 1; // done
-//     }else {
-//       core=s.unsat_core();
-//       // std::cout << core.size() << "\n";
-//       z3::expr_vector block_vars(z3.c);
-//       // update soft-constraints and aux_vars
-//       for (unsigned i = 0; i < soft_cnstrs.size(); i++) {
-//         unsigned j;
-//         // check whether assumption[i] is in the core or not
-//         for( j = 0; j < core.size(); j++ ) {
-//           if( assumptions[i] == core[j] )
-//             break;
-//         }
-//         if (j < core.size()) {
-//           z3::expr block_var = z3.get_fresh_bool();
-//           z3::expr new_aux_var = z3.get_fresh_bool();
-//           soft_cnstrs[i] = ( soft_cnstrs[i] || block_var );
-//           aux_vars[i]    = new_aux_var;
-//           block_vars.push_back( block_var );
-//           s.add( soft_cnstrs[i] || new_aux_var );
-//         }
-//       }
-//       z3::expr at_most_1 = at_most_one( block_vars );
-//       s.add( at_most_1 );
-//       return 0; // not done.
-//     }
-// }
-
-// z3::model
-// fence_synth::fu_malik_maxsat( z3::expr hard,
-//                                     std::vector<z3::expr>& soft_cnstrs ) {
-//     unsigned k;
-//     z3::solver s(z3.c);
-//     s.add( hard );
-//     assert( s.check() != z3::unsat );
-//     assert( soft_cnstrs.size() > 0 );
-
-//     std::vector<z3::expr> aux_vars;
-//     assert_soft_constraints( s, soft_cnstrs, aux_vars );
-//     k = 0;
-//     for (;;) {
-//       if( fu_malik_maxsat_step(s, soft_cnstrs, aux_vars) ) {
-//     	  z3::model m=s.get_model();
-//     	  return m;
-//       }
-//       k++;
-//     }
-// }
-
-// ===========================================================================
 // main function for synthesis
 
 
@@ -829,35 +762,35 @@ void fence_synth::output(const z3::expr& output) {
     }
 
     for( auto it=sc_fence_map.begin(); it != sc_fence_map.end(); it++ ) {
-      hb_enc::se_ptr e = it->first;
-      if( m.eval(it->second).get_bool() ) {
+      hb_enc::se_ptr e = it->second.first;
+      if( m.eval(it->second.second).get_bool() ) {
         result_sc_fences.push_back( e );
-      }else if( m.eval( rlsacq_fence_map.at(e) ).get_bool() ) {
+      }else if( m.eval( get_rlsacq_fence_bit(e) ).get_bool() ) {
         result_rlsacq_fences.push_back( e );
-      }else if( m.eval( rls_fence_map.at(e) ).get_bool() ) {
+      }else if( m.eval( get_rls_fence_bit(e) ).get_bool() ) {
         result_rls_fences.push_back( e );
-      }else if( m.eval( acq_fence_map.at(e) ).get_bool() ) {
+      }else if( m.eval( get_acq_fence_bit(e) ).get_bool() ) {
         result_acq_fences.push_back( e );
       }
     }
 
     for( auto it= rlsacq_v_map.begin(); it != rlsacq_v_map.end(); it++ ) {
-      hb_enc::se_ptr e = it->first;
-      if( m.eval(it->second).get_bool() ) {
+      hb_enc::se_ptr e = it->second.first;
+      if( m.eval(it->second.second).get_bool() ) {
         result_rlsacq_upgrade.push_back(e);
       }
     }
 
     for( auto it= rls_v_map.begin(); it != rls_v_map.end(); it++ ) {
-      hb_enc::se_ptr e = it->first;
-      if( m.eval(it->second).get_bool() ) {
+      hb_enc::se_ptr e = it->second.first;
+      if( m.eval(it->second.second).get_bool() ) {
         result_rls_upgrade.push_back(e);
       }
     }
 
     for( auto it= acq_v_map.begin(); it != acq_v_map.end(); it++ ) {
-      hb_enc::se_ptr e = it->first;
-      if( m.eval(it->second).get_bool() ) {
+      hb_enc::se_ptr e = it->second.first;
+      if( m.eval(it->second.second).get_bool() ) {
         result_acq_upgrade.push_back(e);
       }
     }

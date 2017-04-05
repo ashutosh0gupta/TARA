@@ -19,8 +19,10 @@ fname = sys.argv[l-1]
 
 if fname[-5:] == ".ctrc": 
     comment_string = "#"
-else:
+elif fname[-4:] == ".cpp" or fname[-3:] == ".cc" or fname[-2:] == ".C":
     comment_string = "//"
+else:
+    raise ValueError('unrecognized file extension!!')
 
 clen = len( comment_string ) + 1
 
