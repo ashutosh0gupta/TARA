@@ -176,9 +176,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( build_p );
   passMan.run( *module.get() );
 
-  for( const auto& g : p->globals ) {
-    p->rd_events[g].push_back( final );
-  }
+  // for( const auto& g : p->globals ) {
+  //   p->rd_events[g].push_back( final );
+  // }
 
   if( o.print_input > 0 ) {
     dump_dot_module( o.output_dir, module );

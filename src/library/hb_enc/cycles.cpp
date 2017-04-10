@@ -385,10 +385,20 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
   find_true_cycles_rec( e, scc, found_cycles );
 }
 
+  void add_fr_edge( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
+                    const hb_enc::se_to_ses_map& pasts,
+                    std::vector< cycle_edge >& new_edges ) {
+    if( b != a && !helpers::exists( pasts.at(a), b ) ) {
+      cycle_edge ed( b, a, edge_type::fr );
+      new_edges.push_back( ed );
+      assert( !helpers::exists( pasts.at(b), a) );
+      assert( b->tid != a->tid );
+    }
+  }
 
   void
   cycles::find_fr_edges( const hb_enc::hb_vec& c,
-                         const hb_enc::se_set& all_es,
+                         hb_enc::se_set& all_es,
                          std::vector< cycle_edge >& new_edges ) {
     new_edges.clear();
     hb_enc::hb_vec hbs_local;
@@ -415,6 +425,9 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       all_es_copy.insert( ce );
       all_es_copy.insert( se );
       all_es_copy.insert( fe );
+      for( auto& e : program->get_thread(i).events ) {
+        all_es_copy.insert( e );
+      }
       thread_syncs.push_back({ce,se});
       thread_syncs.push_back({fe,je});
     }
@@ -423,6 +436,9 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
     helpers::set_to_vec( all_es_copy, stack );
     es = stack;
 
+    //Loop for topological sort with hbs_local and thread_syncs
+    //todo: replace the following code with the call to
+    //      template function topological sort
     std::map< se_ptr, unsigned > order_map;
     while( !stack.empty() ) {
       se_ptr e = stack.back(); //std::cerr << e->name() << "\n";
@@ -444,11 +460,12 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       }
       for( const auto& h : hbs_local ) {
         if( h->e2 != e ) continue;
-        if( !helpers::exists( order_map, h->e1 ) ) {
+        auto& ep = h->e1;
+        if( !helpers::exists( order_map, ep ) ) {
           ready = false;
-          stack.push_back( h->e1 );
+          stack.push_back( ep );
         }else{
-          if( ready == true && m < order_map.at(h->e1)) m = order_map.at(h->e1);
+          if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
         }
       }
       for( const auto& sync : thread_syncs ) {
@@ -472,6 +489,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
                  return order_map.at(x) < order_map.at(y);
                } );
 
+    //collect all the past events for each event in pasts
     hb_enc::se_to_ses_map pasts;
     for( auto e : es ) {
       auto& prevs = program->seq_before.at(e);
@@ -496,8 +514,9 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       }
     }
 
+    //collect all the post events for each event in pasts
     hb_enc::se_to_ses_map posts;
-    for (auto rit = es.rbegin(); rit!= es.rend(); ++rit) {
+    for( auto rit = es.rbegin(); rit!= es.rend(); ++rit ) {
       hb_enc::se_ptr e = *rit;
       auto& nexts = program->seq_after.at(e);
       posts[e] = nexts;
@@ -518,48 +537,73 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
         new_nexts.insert( sync.second );
         helpers::set_insert( new_nexts, posts.at(sync.second) );
       }
-      // debug_print( std::cerr, pasts );
     }
-    // debug_print( std::cerr, posts );
+
+    if( verbose > 2 ) {
+      out << "Sotrted events:\n";
+      tara::debug_print( out, es );
+      out << "past events:\n";
+      tara::debug_print( out, pasts );
+      out << "pre events:\n";
+      tara::debug_print( out, posts );
+    }
 
     for( const auto& h : rfs ) {
       hb_enc::se_ptr w = h->e1;
       hb_enc::se_ptr r = h->e2;
+      assert( w->tid != r->tid );
       for( auto wp : pasts.at(w) ) {
-        if( helpers::exists( all_es, wp ) &&
+        if( //helpers::exists( all_es, wp ) &&
             ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
-          cycle_edge ed( wp, r, edge_type::fr );
-          new_edges.push_back(ed);
+          add_fr_edge( wp, r, pasts, new_edges );
+          // if( !helpers::exists( pasts.at(r), wp ) ) {
+          //   cycle_edge ed( wp, r, edge_type::fr );
+          //   new_edges.push_back(ed);
+          // }
           for( const auto& h : rfs ) {
             if( wp == h->e1 && r->access_same_var( h->e2 ) ) {
-              cycle_edge ed( h->e2, r, edge_type::fr );
-              new_edges.push_back(ed);
+              add_fr_edge( h->e2, r, pasts, new_edges );
+              // if( !helpers::exists( pasts.at(r), h->e2 ) ) {
+              //   cycle_edge ed( h->e2, r, edge_type::fr );
+              //   new_edges.push_back(ed);
+              // }
             }
           }
         }
       }
       for( auto wp : posts.at(w) ) {
-        if( wp->is_wr() && w->access_same_var(wp) &&
-            helpers::exists( all_es, wp ) ) {
-          cycle_edge ed( r, wp, edge_type::fr );
-          new_edges.push_back(ed);
+        if( wp->is_wr() && w->access_same_var(wp)
+            // && helpers::exists( all_es, wp )
+            ) {
+          add_fr_edge( r, wp, pasts, new_edges );
+          // cycle_edge ed( r, wp, edge_type::fr );
+          // new_edges.push_back(ed);
         }
       }
       for( auto rp : pasts.at(r) ) {
-        if( helpers::exists( all_es, rp ) &&
+        if( //helpers::exists( all_es, rp ) &&
             ( rp->is_rd() && r->access_same_var(rp) ) ) {
           for( const auto& h : rfs ) {
             if( rp == h->e2 && r->access_same_var( h->e2 ) ) {
-              cycle_edge ed( h->e1, w, edge_type::fr );
-              new_edges.push_back(ed);
+              add_fr_edge( h->e1, w, pasts, new_edges );
+              // cycle_edge ed( h->e1, w, edge_type::fr );
+              // new_edges.push_back(ed);
             }
           }
         }
       }
     }
+
+    for(  auto& ed : new_edges ) {
+      assert( ed.before->tid != ed.after->tid );
+      all_es.insert( ed.before );
+      all_es.insert( ed.after );
+    }
+
     if( verbose > 1 ) {
+      out << "learned fr edges:\n";
       for( auto& ed : new_edges ) {
-        debug_print( std::cerr, ed ); std::cerr << "\n";
+        debug_print( out, ed ); std::cerr << "\n";
         // std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
       }
     }
@@ -567,7 +611,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
 
 
   void cycles::find_cycles( const hb_enc::hb_vec& c,
-                          std::vector<cycle>& found_cycles) {
+                            std::vector<cycle>& found_cycles) {
   hb_enc::se_set all_events;
   hbs.clear();
   // event_lists.clear();

@@ -25,6 +25,8 @@
 #include <unordered_set>
 #include <set>
 #include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <list>
 #include <vector>
 #include <ostream>
@@ -306,6 +308,11 @@ bool exists( const std::set<Key>& set1, const Key& k ) {
 
 template< class Key,  class Val>
 bool exists( const std::map<Key,Val>& map1, const Key& k ) {
+  return map1.find( k ) !=  map1.end();
+}
+
+template< class Key,  class Val, class Hash, class Eq >
+bool exists( const std::unordered_map<Key,Val,Hash,Eq>& map1, const Key& k ) {
   return map1.find( k ) !=  map1.end();
 }
 

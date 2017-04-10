@@ -20,31 +20,36 @@
 //
 // The assertion is that the reader cannot access a freed node.
 //
-#include <stdio.h>
+#include <atomic>
 #include "threads.h"
-#include <stdatomic.h>
-#include <model-assert.h>
+//#include <assert.h>
+#include <stdlib.h>/* //srand, rand */
+#include <time.h>       /* time */
 
 #include "librace.h"
-
 #include "mem_op_macros.h"
+#include "model-assert.h"
 
-atomic<int> readers("readers");
-atomic<int> x("x");
-atomic<int> y("y");
+// atomic<int> readers("readers");
+// atomic<int> x("x");
+// atomic<int> y("y");
 
-int r1, r2;
+atomic_int readers;//("readers");
+atomic_int x;//("x");
+atomic_int y;//("y");
+
+// int r1, r2;
 
 static void * r(void *obj)
 {
-    int t1_loop_itr_bnd = 1;
+    int t1_loop_itr_bnd = 3;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
         fetch_add(&readers, 1, memory_order_relaxed);
 
-        r1 = load(&x, memory_order_relaxed);
+        int r1 = load(&x, memory_order_relaxed);
         if (r1){
-            r2 = load(&y, memory_order_relaxed);
+            int r2 = load(&y, memory_order_relaxed);
             MODEL_ASSERT(!(r1 == 1 && r2 == 2));
         }
 
@@ -54,13 +59,13 @@ return NULL;}
 
 static void * w(void *obj)
 {
-    int t2_loop_itr_bnd = 1;
+    int t2_loop_itr_bnd = 3;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
         store(&x, 0, memory_order_relaxed); // disconnect node
         
         // wait-for-readers
-        while (load(&readers, memory_order_relaxed) != 0){
+        while ( load(&readers, memory_order_relaxed) != 0 ) {
             thrd_yield();
         }
 
@@ -76,16 +81,16 @@ int main(int argc, char **argv)
     store(&y, 1,std::memory_order_seq_cst);
     store(&readers, 0,std::memory_order_seq_cst);
 
-    printf("Main thread: creating 2 threads\n");
+    // printf("Main thread: creating 2 threads\n");
     thrd_create(&t1, (thrd_start_t)&r, NULL);
     thrd_create(&t2, (thrd_start_t)&w, NULL);
 
     thrd_join(t1);
     thrd_join(t2);
 
-    MODEL_ASSERT(!(r1 == 1 && r2 == 2));
+    // MODEL_ASSERT(!(r1 == 1 && r2 == 2));
 
-    printf("Main thread is finished\n");
+    // printf("Main thread is finished\n");
 
     return 0;
 }

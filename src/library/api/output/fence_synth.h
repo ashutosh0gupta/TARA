@@ -107,7 +107,7 @@ private:
   // std::map< hb_enc::se_ptr, z3::expr > acq_v_map;
   // std::map< hb_enc::se_ptr, z3::expr > rlsacq_v_map;
 
-  std::set< std::pair<hb_enc::se_ptr, hb_enc::se_ptr> > const_already_made;
+  std::set< std::pair<hb_enc::se_ptr, hb_enc::se_ptr> > constraints_already_made;
 
   z3::expr create_sync_bit( std::map< hb_enc::se_ptr, z3::expr >& s_map,
                             const std::string prefix,

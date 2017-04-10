@@ -877,14 +877,14 @@ void wmm_event_cons::update_orderings() {
       for( auto& ep : e->prev_events ) {
         // if( ep->is_mem_op() )
         sb_es.insert( ep ); //todo: include fences??
-        helpers::set_insert( sb_es,p.seq_before[ep]);
+        helpers::set_insert( sb_es,p.seq_before.at(ep) );
       }
     }
     auto& sb_es = p.seq_before[p.get_thread(i).final_event];
     for( auto& ep : p.get_thread(i).final_event->prev_events ) {
       // if( ep->is_mem_op() )
         sb_es.insert( ep ); //todo: include fences??
-      helpers::set_insert( sb_es,p.seq_before[ep]);
+        helpers::set_insert( sb_es,p.seq_before.at(ep));
     }
   }
 

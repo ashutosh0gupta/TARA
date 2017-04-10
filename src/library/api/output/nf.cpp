@@ -50,10 +50,19 @@ nf::nf( options& o_, helpers::z3interf& _z3 ) : output_base(o_, _z3), bad_dnf(tr
 }
 
 
-void nf::prune_implied_within(nf::result_type& result, z3::solver& sol)
-{
-  for (auto& v:result) { 
-    z3interf::min_unsat<hb_enc::hb>(sol, v, [](hb_enc::hb hb) { return hb; }, true);
+void nf::prune_implied_within(nf::result_type& result, z3::solver& sol) {
+  std::function <z3::expr(hb_enc::hb)> translator = [&](hb_enc::hb hb) {
+    z3::expr h_expr = hb;
+    if( hb.type == hb_enc::hb_t::rf ) {
+      // rfs_expr.push_back( h_expr );
+      z3::expr gurd = hb.e1->guard && hb.e2->guard;
+      h_expr = z3::implies( gurd, h_expr );
+    }
+    return h_expr;
+  };
+  for (auto& v:result) {
+    // z3interf::min_unsat<hb_enc::hb>(sol, v, [](hb_enc::hb hb) { return hb; }, true);
+    z3interf::min_unsat<hb_enc::hb>(sol, v, translator, true);
   }
 }
 

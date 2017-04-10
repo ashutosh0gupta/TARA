@@ -28,7 +28,7 @@
 		});
 
 #define fetch_add(var, val, mo)	({\
-			atomic_fetch_add_explicit(var, name, val, mo );\
+			atomic_fetch_add_explicit(var, val, mo );\
 		});
 
 #define compare_exchange_strong(var1, var2, val, mo1, mo2)	({\

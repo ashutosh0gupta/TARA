@@ -86,6 +86,7 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   //   z3::model mp = sol_good.get_model();
   //   program.print_execution( "dump", mp );
   // }
+  // std::cout << sol_good;
   sol_good.pop();
   hb_enc::hb_vec final_result;
   for( z3::expr e : hbs_expr ) {

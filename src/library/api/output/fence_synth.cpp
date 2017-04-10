@@ -33,19 +33,21 @@ using namespace tara::helpers;
 using namespace std;
 
 
-fence_synth::fence_synth(options& o_,
-                                     helpers::z3interf& z3_)
+fence_synth::fence_synth( options& o_,
+                          helpers::z3interf& z3_)
   : output_base( o_, z3_)
   , normal_form( o_, z3_, true, false, false, false)
   , cycle_finder( z3_ )
 {
   verbose = helpers::exists( o.mode_options, std::string("verbose") );
+  if( verbose )
+    cycle_finder.verbose = 3;//todo: ability to set value in mode_options
 }
 
 void fence_synth::init( const hb_enc::encoding& hb_encoding,
-                              const z3::solver& sol_desired,
-                              const z3::solver& sol_undesired,
-                              std::shared_ptr< const tara::program > _program )
+                        const z3::solver& sol_desired,
+                        const z3::solver& sol_undesired,
+                        std::shared_ptr< const tara::program > _program )
 {
     output_base::init(hb_encoding, sol_desired, sol_undesired, _program);
     normal_form.init(hb_encoding, sol_desired, sol_undesired, _program);
@@ -243,21 +245,23 @@ z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
 //=====
 
 z3::expr fence_synth::get_rls_bit( const hb_enc::se_ptr& e,
-                                         const tara::variable& v ) {
+                                   const tara::variable& v ) {
+  //todo: does not support na correctly fix it
+  assert( !e->is_mem_op() || !e->is_na() );
   if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
   if( e->is_at_least_rls() ) return z3.mk_true();
   return rls_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_acq_bit( const hb_enc::se_ptr& e,
-                                         const tara::variable& v ) {
+                                   const tara::variable& v ) {
   if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
   if( e->is_at_least_acq() ) return z3.mk_true();
   return acq_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_rlsacq_bit( const hb_enc::se_ptr& e,
-                                            const tara::variable& v ) {
+                                      const tara::variable& v ) {
   if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
   if( e->is_at_least_rlsacq() ) return z3.mk_true();
   return rlsacq_v_map.at( e->get_position_name() ).second;
@@ -353,21 +357,20 @@ z3::expr fence_synth::mk_edge_constraint( hb_enc::se_ptr& b,
   return z3.mk_false(); //todo : may be reachable for unreachable pairs
 }
 
-void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
-                                                hb_enc::se_ptr& a,
-                                                z3::expr& hard ) {
+void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
+                                          z3::expr& hard ) {
   assert( b->tid == a->tid );
-  if( helpers::exists( const_already_made, {b,a}) ) return;
+  if( helpers::exists( constraints_already_made, {b,a}) ) return;
 
-  hb_enc::se_tord_set pending;
   hb_enc::se_vec found;
 
+  // collect events occuring in the paths from b to a in topological order
+  hb_enc::se_tord_set pending;
   pending.insert( b );
   while( !pending.empty() ) {
     hb_enc::se_ptr e = *pending.begin();
     pending.erase( e );
-    // hb_enc::se_ptr e = helpers::pick( pending );
-    found.push_back( e );
+    found.push_back( e ); // output of the loop
     if( e->get_topological_order() > a->get_topological_order() )
       continue;
     if( a == e ) break;
@@ -378,8 +381,10 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
 
   for( auto it = found.begin(); it != found.end();it++ ) {
     hb_enc::se_ptr& i = *it;
-    if( helpers::exists( const_already_made, {b,i}) ) continue;
-    const_already_made.insert( {b,i} );
+    if( helpers::exists( constraints_already_made, {b,i}) ) continue;
+    constraints_already_made.insert( {b,i} );
+
+    // initializing formula to create constraints for event i
     z3::expr conj_sc  = z3.mk_true();
     z3::expr conj_rls = z3.mk_true();
     z3::expr conj_acq = z3.mk_true();
@@ -390,6 +395,8 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
       conj_rls_map.insert( pr  );
       conj_acq_map.insert( pr );
     }
+
+    // create constraints for event i
     for( const hb_enc::se_ptr& k : i->prev_events ) {
       if( helpers::exists( found, k ) ) {
         if( !k->is_sc() || !k->is_fence() ) {
@@ -411,8 +418,8 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
           z3::expr d1 = conj_rls_map.at(v);
           if( !k->is_at_least_rls() || !k->is_wr() || k->prog_v != v ) {
             d1 = d1 && ( get_rls_var_bit(b, k, v) || get_rls_bit(k, v) ||
-                       get_rlsacq_bit(k, v) || get_rls_fence_bit(k) ||
-                       get_rlsacq_fence_bit(k) );
+                         get_rlsacq_bit(k, v) || get_rls_fence_bit(k) ||
+                         get_rlsacq_fence_bit(k) );
           }
           conj_rls_map_copy.insert( {v, d1} );
           z3::expr d2 = conj_acq_map.at(v);
@@ -427,30 +434,24 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b,
         conj_acq_map = conj_acq_map_copy;
       }
     }
+
     if( i == b ) {
+      // in the call the previous loop must have never entered in it's body.
       conj_sc  = z3.mk_false();
       conj_rls = z3.mk_false();
       conj_acq = z3.mk_false();
+      //todo : strange update; some function overiding breaking direct update.
       std::map<tara::variable, z3::expr> conj_rls_map_copy;
       std::map<tara::variable, z3::expr> conj_acq_map_copy;
       for( auto& v : program->globals ) {
         conj_rls_map_copy.insert( { v, get_rls_bit( b, v ) } );
         conj_acq_map_copy.insert( { v, get_acq_bit( b, v ) } );
-
-        // z3::expr bit = get_rls_bit( b, v );
-        // auto pr = std::make_pair(v, bit );
-        // conj_rls_map.insert( pr );
-        // std::cout << conj_rls_map.at(v) << bit << "\n";
-        // conj_rls_map.insert( { v, get_rls_bit( b, v ) } );
-        // conj_acq_map.insert( { v, get_acq_bit( b, v ) } );
-        //<< get_acq_bit( b, v ) << "\n";
+        // conj_rls_map_copy.insert( { v, z3.mk_false() } );
+        // conj_acq_map_copy.insert( { v, z3.mk_false() } );
       }
-    // for( auto& it : conj_rls_map_copy ){std::cout << it.first << it.second << "\n";}
-    // for( auto& it : conj_acq_map_copy ){std::cout << it.first << it.second << "\n";}
       conj_rls_map = conj_rls_map_copy;
       conj_acq_map = conj_acq_map_copy;
-    // for( auto& it : conj_rls_map ){std::cout << it.first << it.second << "\n";}
-    // for( auto& it : conj_acq_map ){std::cout << it.first << it.second << "\n";}
+      // hard = hard && !get_rls_bit( b, b->prog_v );
     }
     z3::expr cs = implies( get_sc_var_bit ( b, i ), conj_sc );
     cs = cs && implies( get_rls_var_bit( b, i ), conj_rls );
@@ -512,6 +513,7 @@ mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
   }
 
   if( o.print_output > 2 ) {
+    std::cerr << "current segment:\n";
     tara::hb_enc::debug_print( std::cerr, segment );  std::cerr << "\n";
     std::cerr << "rf pre posts:\n";
     for( auto& it : rf_segs  ) {
@@ -648,8 +650,7 @@ create_sync_bit( std::map< std::string,
 }
 
 void fence_synth::gen_max_sat_problem_new() {
-  // z3::context& z3_ctx = sol_bad->ctx();
-  const_already_made.clear();
+  constraints_already_made.clear();
   z3::expr hard = z3.mk_true();
 
   for( unsigned t = 0; t < program->size(); t++ ) {
@@ -664,12 +665,14 @@ void fence_synth::gen_max_sat_problem_new() {
          light_fence_map.insert({ e, s_bit });
          soft.push_back( !s_bit );
        }else{
-         //               /--> rls ----------> rls v
+         // todo : design the objective function
+         // 
+         //               /--> rls ------x---> rls v
          // sc -> rlsacq -|                    ^
-         //               |--> acq -> acq v    |
+         //               |--> acq -x-> acq v  |
          //               |               ^    |
          //               |               |    |
-         //               \-------------> rlsacq v
+         //               \-------x-----> rlsacq v
          auto sc_b = create_sync_bit(sc_fence_map,"sc_",e, soft );
          auto rlsacq_b=create_sync_bit(rlsacq_fence_map,"rlsacq_",e,soft);
          auto rls_b = create_sync_bit(rls_fence_map,"rls_",e, soft );
@@ -677,16 +680,18 @@ void fence_synth::gen_max_sat_problem_new() {
          hard = hard && implies(sc_b, rlsacq_b) && implies(rlsacq_b, rls_b)
            && implies(rlsacq_b, acq_b);
          if( e->is_wr() && !e->is_at_least_rls() ) {
+           //todo: incorrect handling of na events
            auto rls_v_b=create_sync_bit(rls_v_map,"rls_v_",e, soft);
-           hard = hard && implies(rls_b, rls_v_b);
+           // hard = hard && implies(rls_b, rls_v_b);
          }
          if( e->is_rd() && !e->is_at_least_acq() ) {
+           //todo: incorrect handling of na events
            auto acq_v_b=create_sync_bit(acq_v_map,"acq_v_",e, soft);
-           hard = hard && implies(acq_b, acq_v_b);
+           // hard = hard && implies(acq_b, acq_v_b);
          }
          if( e->is_update() && !e->is_at_least_rlsacq() ) {
            auto rlsacq_v_b=create_sync_bit(rlsacq_v_map,"rlsacq_v_",e,soft);
-           hard = hard && implies( rlsacq_b,   rlsacq_v_b );
+           // hard = hard && implies( rlsacq_b,   rlsacq_v_b );
            hard = hard && implies( rlsacq_v_b, get_rls_bit(e,e->prog_v) );
            hard = hard && implies( rlsacq_v_b, get_acq_bit(e,e->prog_v) );
          }

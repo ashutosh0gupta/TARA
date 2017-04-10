@@ -278,6 +278,7 @@ z3::expr build_program::get_term( helpers::z3interf& z3_,
 
 hb_enc::o_tag_t
 translate_ordering_tags( llvm::AtomicOrdering ord ) {
+  // return hb_enc::o_tag_t::sc; // test return;
   switch( ord ) {
   case llvm::AtomicOrdering::NotAtomic: return hb_enc::o_tag_t::na; break;
   case llvm::AtomicOrdering::Unordered: return hb_enc::o_tag_t::uo; break;
@@ -629,10 +630,16 @@ translateBlock( unsigned thr_id,
           p->set_c11_rs_heads( barr, local_release_heads[b] );
           join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
+        }else if( fp != NULL && ( fp->getName() == "pthread_yield" ) ) {
+          // Since we are assume fully pre-emptive processor,
+          // pthread_yield has no semantic effect on safety properties.
+          // For liveness properties it may affect fairness condition. 
+          if( o.print_input > 1 )
+            cinput_warning( "pthread_yield ignored!!" );
         }else{
-          if( o.print_input > 0 )
-            llvm::outs() << "Unknown function " << fp->getName() << "!\n";
-          cinput_error( "Unknown function called");
+          std::string fname = fp != NULL ? fp->getName() : "null";
+          // llvm::outs() << "Unknown function " << fp->getName() << "!\n";
+          cinput_error( "Unknown function "  << fname << " called!");
         }
       }
       assert( !recognized );recognized = true;
@@ -793,9 +800,11 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     // if the function is main then we have to declare that it is the
     // entry and exit point of the full program
     p->create_map[ "main" ] = p->init_loc;
-    hb_enc::se_ptr post_loc = p->post_loc;
-    auto pr = std::make_pair( post_loc, z3.mk_true() );
-    p->join_map.insert( std::make_pair( "main" , pr) );
+    if( p->post_loc ) {
+      hb_enc::se_ptr post_loc = p->post_loc;
+      auto pr = std::make_pair( post_loc, z3.mk_true() );
+      p->join_map.insert( std::make_pair( "main" , pr) );
+    }
   }
 
   prev_events.insert( start );

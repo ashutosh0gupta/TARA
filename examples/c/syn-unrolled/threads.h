@@ -19,7 +19,7 @@ typedef void *__thread_identifier;
 extern "C" {
 #endif
 
-  typedef void (*thrd_start_t)(void *);
+  typedef void * (*thrd_start_t)(void *);
 
 	// typedef struct {
 	// 	__thread_identifier priv;

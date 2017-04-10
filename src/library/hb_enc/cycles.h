@@ -121,6 +121,7 @@ public:
 private:
   typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
   const helpers::z3interf& z3;
+  std::ostream& out = std::cerr;// todo : redirected according to option
 
   // hb_conj hbs;
   std::vector<cycle_edge> hbs;
@@ -154,7 +155,7 @@ private:
 
   void cycles_unblock( hb_enc::se_ptr e );
 
-  void find_fr_edges( const hb_enc::hb_vec& c, const hb_enc::se_set& all_es,
+  void find_fr_edges( const hb_enc::hb_vec& c, hb_enc::se_set& all_es,
                       std::vector< cycle_edge >& new_edges );
 
 
