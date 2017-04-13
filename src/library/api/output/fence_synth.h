@@ -53,7 +53,7 @@ public:
 
   // friend class cycle;
 private:
-  bool verbose;
+  // bool verbose;
   nf normal_form;
 
   std::vector< std::vector<cycle> > all_cycles;
@@ -85,7 +85,8 @@ private:
   std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,tara::variable>, z3::expr > acq_v_var_map;
 
   std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,tara::variable>, z3::expr > rlsacq_v_var_map;
-
+  void debug_print( std::ostream& ,
+                    std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,tara::variable>, z3::expr > );
 
   std::map< hb_enc::se_ptr, z3::expr > fence_map;
   std::map< hb_enc::se_ptr, z3::expr > light_fence_map;

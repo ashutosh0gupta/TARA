@@ -81,6 +81,22 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   hbs_expr.splice( hbs_expr.begin(), rfs_expr);
 
   sol_good.add(program.get_initial(m));
+
+#ifndef NDEBUG
+  static unsigned cnt = 0; cnt++;
+  // std::cout << cnt << "\n";
+  if( cnt == 16 ) {
+    sol_good.push();
+    for( auto& hb :  hbs_expr ) sol_good.add( hb );
+    if( sol_good.check() != z3::unsat ) {
+      auto mp = sol_good.get_model();
+      program.print_execution( "unwanted-good", mp );
+      prune_error(  "good is feasible!!" );
+    }
+    sol_good.pop();
+  }
+#endif // NDEBUG
+
   z3interf::min_unsat<z3::expr>(sol_good, hbs_expr, [](z3::expr e) { return e; });
   // { // in return state is sat then we can debug the state
   //   z3::model mp = sol_good.get_model();

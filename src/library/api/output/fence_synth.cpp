@@ -39,9 +39,11 @@ fence_synth::fence_synth( options& o_,
   , normal_form( o_, z3_, true, false, false, false)
   , cycle_finder( z3_ )
 {
-  verbose = helpers::exists( o.mode_options, std::string("verbose") );
-  if( verbose )
-    cycle_finder.verbose = 3;//todo: ability to set value in mode_options
+  // int verb_level = o.print_output;
+  // verbose = verb_level;
+  // verbose = helpers::exists( o.mode_options, std::string("verbose") );
+  // if( verbose )
+  cycle_finder.verbose = o.print_output;
 }
 
 void fence_synth::init( const hb_enc::encoding& hb_encoding,
@@ -93,7 +95,15 @@ void fence_synth::report( ostream& stream,
   if( inserted.size() > 0 ) {
     stream << msg << ":-\n";
     for ( auto e : inserted ) {
-      stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
+      if( e->is_mem_op() )
+        stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
+      else if( e->is_block_head() ) {
+        stream << "thread " << e->get_tid()
+               << ": start of block at" << e->loc.position_name() << endl;
+      }else{
+        fence_synth_error( "no thought how to report these fences!");
+        stream << "thread " << e->get_tid() <<  ":" << e->name() << endl;
+      }
     }
   }
 }
@@ -417,15 +427,15 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
         for( auto& v : program->globals ) {
           z3::expr d1 = conj_rls_map.at(v);
           if( !k->is_at_least_rls() || !k->is_wr() || k->prog_v != v ) {
-            d1 = d1 && ( get_rls_var_bit(b, k, v) || get_rls_bit(k, v) ||
-                         get_rlsacq_bit(k, v) || get_rls_fence_bit(k) ||
+            d1 = d1 && ( get_rls_var_bit(b, k, v) || get_rls_bit(i, v) ||
+                         get_rlsacq_bit(i, v) || get_rls_fence_bit(k) ||
                          get_rlsacq_fence_bit(k) );
           }
           conj_rls_map_copy.insert( {v, d1} );
           z3::expr d2 = conj_acq_map.at(v);
           if( !k->is_at_least_acq() || !k->is_rd() || k->prog_v != v ) {
-            d2 = d2 && (get_acq_var_bit( b, k, v ) || get_acq_bit( k, v )
-                        || get_rlsacq_bit( k, v )
+            d2 = d2 && (get_acq_var_bit( b, k, v ) || get_acq_bit( i, v )
+                        || get_rlsacq_bit( i, v )
                         || get_acq_fence_bit(k) || get_rlsacq_fence_bit(k));
           }
           conj_acq_map_copy.insert( {v, d2} );
@@ -444,8 +454,10 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
       std::map<tara::variable, z3::expr> conj_rls_map_copy;
       std::map<tara::variable, z3::expr> conj_acq_map_copy;
       for( auto& v : program->globals ) {
-        conj_rls_map_copy.insert( { v, get_rls_bit( b, v ) } );
-        conj_acq_map_copy.insert( { v, get_acq_bit( b, v ) } );
+        conj_rls_map_copy.insert( { v, get_rls_bit( b, v ) ||
+              get_rlsacq_bit( b, v ) } );
+        conj_acq_map_copy.insert( { v, get_acq_bit( b, v ) ||
+              get_rlsacq_bit( b, v ) } );
         // conj_rls_map_copy.insert( { v, z3.mk_false() } );
         // conj_acq_map_copy.insert( { v, z3.mk_false() } );
       }
@@ -531,6 +543,7 @@ mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
     mk_c11_edge_constraint( ed1.before, ed1.after, hard );
     mk_c11_edge_constraint( ed2.before, ed2.after, hard );
     auto& v = ed2.before->prog_v;
+    // debug_print( std::cerr, acq_v_var_map );
     r_conj = r_conj && get_rls_var_bit(ed1.before,ed1.after,v) &&
       get_acq_var_bit(ed2.before,ed2.after,v);
   }
@@ -679,6 +692,8 @@ void fence_synth::gen_max_sat_problem_new() {
          auto acq_b = create_sync_bit(acq_fence_map,"acq_",e, soft );
          hard = hard && implies(sc_b, rlsacq_b) && implies(rlsacq_b, rls_b)
            && implies(rlsacq_b, acq_b);
+         // activate following code for disabling fence insertion
+         // hard = hard && !rls_b && !acq_b;
          if( e->is_wr() && !e->is_at_least_rls() ) {
            //todo: incorrect handling of na events
            auto rls_v_b=create_sync_bit(rls_v_map,"rls_v_",e, soft);
@@ -747,7 +762,6 @@ void fence_synth::output(const z3::expr& output) {
       fence_synth_error( "No relaxed edge found in any cycle!!" );
       return;
     }
-    // z3::model m =fu_malik_maxsat( cut[0], soft );
 
     z3::model m = z3.maxsat( cut[0], soft );
 
@@ -772,10 +786,13 @@ void fence_synth::output(const z3::expr& output) {
         result_sc_fences.push_back( e );
       }else if( m.eval( get_rlsacq_fence_bit(e) ).get_bool() ) {
         result_rlsacq_fences.push_back( e );
-      }else if( m.eval( get_rls_fence_bit(e) ).get_bool() ) {
-        result_rls_fences.push_back( e );
-      }else if( m.eval( get_acq_fence_bit(e) ).get_bool() ) {
-        result_acq_fences.push_back( e );
+      }else{
+        if( m.eval( get_rls_fence_bit(e) ).get_bool() ) {
+          result_rls_fences.push_back( e );
+        }
+        if( m.eval( get_acq_fence_bit(e) ).get_bool() ) {
+          result_acq_fences.push_back( e );
+        }
       }
     }
 
@@ -813,6 +830,21 @@ void fence_synth::output(const z3::expr& output) {
 
     auto delay = chrono::steady_clock::now() - start_time;
     time = chrono::duration_cast<chrono::microseconds>(delay).count();
+}
+
+
+void fence_synth::debug_print( std::ostream& o,
+                               std::map< std::tuple<hb_enc::se_ptr,hb_enc::se_ptr,tara::variable>, z3::expr > m ) {
+  for( auto it : m ) {
+    auto tup = it.first;
+    auto e = it.second;
+    auto a = std::get<0>(tup);
+    auto b = std::get<1>(tup);
+    auto v = std::get<2>(tup);
+    o << "(" << a->name() << "," << b->name() << ","<< v.name << ")->"
+      << e << "\n";
+}
+
 }
 
 

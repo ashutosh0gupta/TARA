@@ -387,7 +387,8 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
 
   void add_fr_edge( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
                     const hb_enc::se_to_ses_map& pasts,
-                    std::vector< cycle_edge >& new_edges ) {
+                    std::vector< cycle_edge >& new_edges,
+                    std::map< cycle_edge, hb_enc::hb_vec >& cause_edges ) {
     if( b != a && !helpers::exists( pasts.at(a), b ) ) {
       cycle_edge ed( b, a, edge_type::fr );
       new_edges.push_back( ed );
@@ -397,12 +398,12 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
   }
 
   void
-  cycles::find_fr_edges( const hb_enc::hb_vec& c,
-                         hb_enc::se_set& all_es,
+  cycles::find_fr_edges( const hb_enc::hb_vec& c, hb_enc::se_set& all_es,
                          std::vector< cycle_edge >& new_edges ) {
     new_edges.clear();
     hb_enc::hb_vec hbs_local;
     hb_enc::hb_vec rfs;
+    std::map< cycle_edge, hb_enc::hb_vec > cause_edges;
     std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs; //quick and dirty: thrd create/join orderings
     for( const auto& h : c ) {
       if( h->type == hb_t::phb && !h->is_neg ) {
@@ -426,7 +427,8 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       all_es_copy.insert( se );
       all_es_copy.insert( fe );
       for( auto& e : program->get_thread(i).events ) {
-        all_es_copy.insert( e );
+        if( e->is_mem_op() )
+          all_es_copy.insert( e );
       }
       thread_syncs.push_back({ce,se});
       thread_syncs.push_back({fe,je});
@@ -492,11 +494,18 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
     //collect all the past events for each event in pasts
     hb_enc::se_to_ses_map pasts;
     for( auto e : es ) {
+      // if( !e->is_mem_op() ) continue;
       auto& prevs = program->seq_before.at(e);
-      pasts[e] = prevs;
+      pasts[e].clear();
+      for( auto ep : prevs ) {
+        if( helpers::exists( all_es_copy, ep ) )
+          pasts[e].insert( ep );
+      }
+      // pasts[e] = prevs;
       hb_enc::se_set& new_prevs = pasts.at(e);
       for( auto epp : prevs ) {
-        if( helpers::exists( all_es_copy, epp ) ) {
+        if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
+            ) {
           helpers::set_insert( new_prevs, pasts.at(epp) );
         }
       }
@@ -518,11 +527,18 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
     hb_enc::se_to_ses_map posts;
     for( auto rit = es.rbegin(); rit!= es.rend(); ++rit ) {
       hb_enc::se_ptr e = *rit;
+      // if( !e->is_mem_op() ) continue;
       auto& nexts = program->seq_after.at(e);
-      posts[e] = nexts;
+      posts[e].clear();
+      for( auto ep : nexts ) {
+        if( helpers::exists( all_es_copy, ep ) )
+          posts[e].insert( ep );
+      }
+      // posts[e] = nexts;
       hb_enc::se_set& new_nexts = posts.at(e);
       for( auto epp : nexts ) {
-        if( helpers::exists( all_es_copy, epp ) ) {
+        if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
+            ) {
           helpers::set_insert( new_nexts, posts.at(epp) );
         }
       }
@@ -540,11 +556,11 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
     }
 
     if( verbose > 2 ) {
-      out << "Sotrted events:\n";
+      out << "Sorted events:\n";
       tara::debug_print( out, es );
       out << "past events:\n";
       tara::debug_print( out, pasts );
-      out << "pre events:\n";
+      out << "post events:\n";
       tara::debug_print( out, posts );
     }
 
@@ -553,41 +569,25 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       hb_enc::se_ptr r = h->e2;
       assert( w->tid != r->tid );
       for( auto wp : pasts.at(w) ) {
-        if( //helpers::exists( all_es, wp ) &&
-            ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
-          add_fr_edge( wp, r, pasts, new_edges );
-          // if( !helpers::exists( pasts.at(r), wp ) ) {
-          //   cycle_edge ed( wp, r, edge_type::fr );
-          //   new_edges.push_back(ed);
-          // }
+        if( ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
+          add_fr_edge( wp, r, pasts, new_edges, cause_edges );
           for( const auto& h : rfs ) {
             if( wp == h->e1 && r->access_same_var( h->e2 ) ) {
-              add_fr_edge( h->e2, r, pasts, new_edges );
-              // if( !helpers::exists( pasts.at(r), h->e2 ) ) {
-              //   cycle_edge ed( h->e2, r, edge_type::fr );
-              //   new_edges.push_back(ed);
-              // }
+              add_fr_edge( h->e2, r, pasts, new_edges, cause_edges );
             }
           }
         }
       }
       for( auto wp : posts.at(w) ) {
-        if( wp->is_wr() && w->access_same_var(wp)
-            // && helpers::exists( all_es, wp )
-            ) {
-          add_fr_edge( r, wp, pasts, new_edges );
-          // cycle_edge ed( r, wp, edge_type::fr );
-          // new_edges.push_back(ed);
+        if( wp->is_wr() && w->access_same_var(wp) ) {
+          add_fr_edge( r, wp, pasts, new_edges, cause_edges );
         }
       }
       for( auto rp : pasts.at(r) ) {
-        if( //helpers::exists( all_es, rp ) &&
-            ( rp->is_rd() && r->access_same_var(rp) ) ) {
+        if( ( rp->is_rd() && r->access_same_var(rp) ) ) {
           for( const auto& h : rfs ) {
             if( rp == h->e2 && r->access_same_var( h->e2 ) ) {
-              add_fr_edge( h->e1, w, pasts, new_edges );
-              // cycle_edge ed( h->e1, w, edge_type::fr );
-              // new_edges.push_back(ed);
+              add_fr_edge( h->e1, w, pasts, new_edges, cause_edges );
             }
           }
         }

@@ -144,6 +144,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   //z3::solver sol_good = make_good(false);
   z3::solver sol_bad = make_bad();
+  // std::cout << sol_bad;assert(false);
 
   prune::prune_chain prune_chain;
   if (o.prune_chain.find(string("data_flow"))!=string::npos) metric.data_flow = true;

@@ -20,53 +20,91 @@
 //
 // The assertion is that the reader cannot access a freed node.
 //
-#include <stdio.h>
+#include <atomic>
 #include "threads.h"
-#include <stdatomic.h>
-#include <model-assert.h>
+//#include <assert.h>
+#include <stdlib.h>/* //srand, rand */
+#include <time.h>       /* time */
 
 #include "librace.h"
-
-#include "common.h"
-
 #include "mem_op_macros.h"
+#include "model-assert.h"
 
-atomic<int> gate("gate");
-atomic<int> readers[2] = {atomic<int>("readers1"),atomic<int>("readers2")};
-atomic<int> x("x");
-atomic<int> y("y");
+// #include <stdio.h>
+// #include "threads.h"
+// #include <stdatomic.h>
+// #include <model-assert.h>
 
-int r1, r2;
+// #include "librace.h"
+
+// #include "common.h"
+
+// #include "mem_op_macros.h"
+
+// atomic<int> gate("gate");
+// atomic<int> readers[2] = {atomic<int>("readers1"),atomic<int>("readers2")};
+// atomic<int> x("x");
+// atomic<int> y("y");
+
+atomic_int gate;
+atomic_int reader_0;
+atomic_int reader_1;
+atomic_int x;
+atomic_int y;
+
+// int r1, r2;
 
 static void * r(void *obj)
 {
-    int t1_loop_itr_bnd = 1;
+    int t1_loop_itr_bnd = 3;
     int i_t1 = 0;
-    while(++i_t1 <= t1_loop_itr_bnd){
+    while(++i_t1 <= t1_loop_itr_bnd) {
         int b = load(&gate, memory_order_relaxed);
-        fetch_add(&(readers[b]), 1, memory_order_relaxed);
+        if( b == 0 ){
+          fetch_add(&(reader_0), 1, memory_order_relaxed);
+        }else{
+          fetch_add(&(reader_1), 1, memory_order_relaxed);
+        }
+        // fetch_add(&(readers[b]), 1, memory_order_relaxed);
 
-        r1 = load(&x, memory_order_relaxed);
-        if (r1)
-            r2 = load(&y, memory_order_relaxed);
-
-        fetch_add(&(readers[b]), -1, memory_order_relaxed);
+        int r1 = load(&x, memory_order_relaxed);
+        if (r1) {
+            int r2 = load(&y, memory_order_relaxed);
+            MODEL_ASSERT(!(r1 == 1 && r2 == 2));
+        }
+        if( b == 0 ) {
+          fetch_add(&(reader_0), -1, memory_order_relaxed);
+        }else{
+          fetch_add(&(reader_1), -1, memory_order_relaxed);
+        }
+        // fetch_add(&(readers[b]), -1, memory_order_relaxed);
     }
 
 return NULL;}
 
 static void * w(void *obj)
 {
-    int t2_loop_itr_bnd = 1;
+    int t2_loop_itr_bnd = 3;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
        store(&x, 0, memory_order_relaxed); // disconnect node
 
        // wait-for-readers
        int g = load(&gate, memory_order_relaxed);
-       while (load(&(readers[1-g]), memory_order_relaxed) != 0) thrd_yield();
+       if( g == 0 ){
+         while (load(&(reader_1), memory_order_relaxed) != 0) thrd_yield();
+       }else{
+         while (load(&(reader_0), memory_order_relaxed) != 0) thrd_yield();
+       }
+       // while (load(&(readers[1-g]), memory_order_relaxed) != 0) thrd_yield();
+
        store(&gate, 1-g, memory_order_relaxed);
-       while (load(&(readers[g]), memory_order_relaxed) != 0) thrd_yield(); //was acquire
+       if( g == 0 ) {
+         while (load(&(reader_0), memory_order_relaxed) != 0) thrd_yield(); //was acquire
+       }else{
+         while (load(&(reader_1), memory_order_relaxed) != 0) thrd_yield(); //was acquire
+       }
+       // while (load(&(readers[g]), memory_order_relaxed) != 0) thrd_yield(); //was acquire
 
        store(&y, 2, memory_order_relaxed); // free
    }
@@ -79,19 +117,21 @@ int main(int argc, char **argv)
 	store(&x, 1, memory_order_seq_cst);
 	store(&y, 1, memory_order_seq_cst);
 	store(&gate, 0, memory_order_seq_cst);
-	store(&(readers[0]), 0, memory_order_seq_cst);
-	store(&(readers[1]), 0, memory_order_seq_cst);
+	store(&(reader_0), 0, memory_order_seq_cst);
+	store(&(reader_1), 0, memory_order_seq_cst);
+	// store(&(readers[0]), 0, memory_order_seq_cst);
+	// store(&(readers[1]), 0, memory_order_seq_cst);
 
-	printf("Main thread: creating 2 threads\n");
-	thrd_create(&t1, (thrd_start_t)&r, NULL);
-	thrd_create(&t2, (thrd_start_t)&w, NULL);
+	// printf("Main thread: creating 2 threads\n");
+	thrd_create(&t1, &r, NULL);
+	thrd_create(&t2, &w, NULL);
 
 	thrd_join(t1);
 	thrd_join(t2);
 
-	MODEL_ASSERT(!(r1 == 1 && r2 == 2));
+	// MODEL_ASSERT(!(r1 == 1 && r2 == 2));
 
-	printf("Main thread is finished\n");
+	// printf("Main thread is finished\n");
 
 	return 0;
 }

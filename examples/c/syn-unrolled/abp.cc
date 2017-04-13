@@ -36,7 +36,7 @@ atomic_int lSCnt = 0;
 void * p0(void *arg)
 {
   bool lSSt = false;
-  int t1_loop_itr_bnd = 5;
+  int t1_loop_itr_bnd = 3;
   int i_t1 = 0;
   while(++i_t1 <= t1_loop_itr_bnd){
     //while(true){
@@ -59,7 +59,7 @@ return NULL;}
 
 void * p1(void *arg)
 {
-  int t2_loop_itr_bnd = 5;
+  int t2_loop_itr_bnd = 3;
   int i_t2 = 0;
   bool lRSt = false;
   while(++i_t2 <= t2_loop_itr_bnd){

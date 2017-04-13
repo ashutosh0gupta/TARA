@@ -868,49 +868,50 @@ void wmm_event_cons::update_orderings() {
     }
   }
 
-  if( p.init_loc ) p.seq_before[p.init_loc].clear();
-  if( p.post_loc ) p.seq_before[p.post_loc].clear();
-  for( unsigned i = 0; i < p.size(); i++ ) {
-    p.seq_before[p.get_thread(i).start_event].clear();
-    for( auto& e : p.get_thread(i).events ) {
-      auto& sb_es = p.seq_before[e];
-      for( auto& ep : e->prev_events ) {
-        // if( ep->is_mem_op() )
-        sb_es.insert( ep ); //todo: include fences??
-        helpers::set_insert( sb_es,p.seq_before.at(ep) );
-      }
-    }
-    auto& sb_es = p.seq_before[p.get_thread(i).final_event];
-    for( auto& ep : p.get_thread(i).final_event->prev_events ) {
-      // if( ep->is_mem_op() )
-        sb_es.insert( ep ); //todo: include fences??
-        helpers::set_insert( sb_es,p.seq_before.at(ep));
-    }
-  }
+  p.update_seq_orderings();
+  // if( p.init_loc ) p.seq_before[p.init_loc].clear();
+  // if( p.post_loc ) p.seq_before[p.post_loc].clear();
+  // for( unsigned i = 0; i < p.size(); i++ ) {
+  //   p.seq_before[p.get_thread(i).start_event].clear();
+  //   for( auto& e : p.get_thread(i).events ) {
+  //     auto& sb_es = p.seq_before[e];
+  //     for( auto& ep : e->prev_events ) {
+  //       // if( ep->is_mem_op() )
+  //       sb_es.insert( ep ); //todo: include fences??
+  //       helpers::set_insert( sb_es,p.seq_before.at(ep) );
+  //     }
+  //   }
+  //   auto& sb_es = p.seq_before[p.get_thread(i).final_event];
+  //   for( auto& ep : p.get_thread(i).final_event->prev_events ) {
+  //     // if( ep->is_mem_op() )
+  //       sb_es.insert( ep ); //todo: include fences??
+  //       helpers::set_insert( sb_es,p.seq_before.at(ep));
+  //   }
+  // }
 
-  if( p.init_loc ) p.seq_after[p.init_loc].clear();
-  if( p.post_loc ) p.seq_after[p.post_loc].clear();
-  for( unsigned i = 0; i < p.size(); i++ ) {
-    p.seq_after[p.get_thread(i).final_event].clear();
-    auto rit = p.get_thread(i).events.rbegin();
-    auto rend = p.get_thread(i).events.rend();
-    for (; rit!= rend; ++rit) {
-      hb_enc::se_ptr e = *rit;
-      auto& sa_es = p.seq_after[e];
-      for( auto& ep : e->post_events ) {
-        // if( ep.e->is_mem_op() )
-        sa_es.insert( ep.e ); //todo: include fences??
-        helpers::set_insert( sa_es,  p.seq_after[ep.e]);
-      }
-    }
-    auto& sa_es = p.seq_after[p.get_thread(i).start_event];
-    for( auto& ep : p.get_thread(i).start_event->post_events ) {
-      // if( ep.e->is_mem_op() )
-      sa_es.insert( ep.e ); //todo: include fences??
-      helpers::set_insert( sa_es,  p.seq_after[ep.e]);
-      // tara::debug_print( std::cerr, sa_es );
-    }
-  }
+  // if( p.init_loc ) p.seq_after[p.init_loc].clear();
+  // if( p.post_loc ) p.seq_after[p.post_loc].clear();
+  // for( unsigned i = 0; i < p.size(); i++ ) {
+  //   p.seq_after[p.get_thread(i).final_event].clear();
+  //   auto rit = p.get_thread(i).events.rbegin();
+  //   auto rend = p.get_thread(i).events.rend();
+  //   for (; rit!= rend; ++rit) {
+  //     hb_enc::se_ptr e = *rit;
+  //     auto& sa_es = p.seq_after[e];
+  //     for( auto& ep : e->post_events ) {
+  //       // if( ep.e->is_mem_op() )
+  //       sa_es.insert( ep.e ); //todo: include fences??
+  //       helpers::set_insert( sa_es,  p.seq_after[ep.e]);
+  //     }
+  //   }
+  //   auto& sa_es = p.seq_after[p.get_thread(i).start_event];
+  //   for( auto& ep : p.get_thread(i).start_event->post_events ) {
+  //     // if( ep.e->is_mem_op() )
+  //     sa_es.insert( ep.e ); //todo: include fences??
+  //     helpers::set_insert( sa_es,  p.seq_after[ep.e]);
+  //     // tara::debug_print( std::cerr, sa_es );
+  //   }
+  // }
 
   for( unsigned i = 0; i < p.size(); i ++ ) {
     auto rit = p.get_thread(i).events.rbegin();

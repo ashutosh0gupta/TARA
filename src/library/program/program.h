@@ -229,6 +229,7 @@ namespace tara {
 
     hb_enc::se_to_ses_map seq_before;
     hb_enc::se_to_ses_map seq_after;
+    void update_seq_orderings();
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;
