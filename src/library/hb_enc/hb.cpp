@@ -146,4 +146,11 @@ hb hb::negate() const
 }
 
 
-}}
+}
+  void debug_print( std::ostream& out, const hb_enc::hb_vec& hbs) {
+    for( auto& hb : hbs ) {
+      out << *hb << " ";
+    }
+  }
+
+}

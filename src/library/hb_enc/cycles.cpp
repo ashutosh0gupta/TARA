@@ -34,6 +34,9 @@ cycle_edge::cycle_edge( hb_enc::se_ptr _before,
   , after( _after )
   , type( _type ) {}
 
+bool operator< (const cycle_edge& ed1, const cycle_edge& ed2) {
+  return COMPARE_OBJ3( ed1, ed2, before, after, type );
+}
 
 cycle::cycle( cycle& _c, unsigned i ) {
   edges = _c.edges;
@@ -387,24 +390,87 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
 
   void add_fr_edge( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
                     const hb_enc::se_to_ses_map& pasts,
+                    const hb_enc::hb_vec causes,
                     std::vector< cycle_edge >& new_edges,
-                    std::map< cycle_edge, hb_enc::hb_vec >& cause_edges ) {
+                    std::map< cycle_edge, hb_enc::hb_vec >& cause_map ) {
     if( b != a && !helpers::exists( pasts.at(a), b ) ) {
       cycle_edge ed( b, a, edge_type::fr );
       new_edges.push_back( ed );
+      cause_map[ed] = causes;
       assert( !helpers::exists( pasts.at(b), a) );
       assert( b->tid != a->tid );
     }
   }
 
+  void cycles::reason_edges( const hb_enc::se_ptr& b,
+                             const hb_enc::se_ptr& a,
+                             z3::solver& sol,
+                             const hb_enc::hb_vec& involved_rfs,
+                             const hb_enc::hb_vec& hb_local,
+                             hb_enc::hb_vec& causes ) {
+    causes.clear();
+    helpers::vec_insert( causes, involved_rfs );
+    // causes.append( involved_rfs );
+    if( b->tid == a->tid ) return;
+    //todo: the following line breaks the modularity of the encoding object
+    z3::expr hb_expr = a->get_solver_symbol() < b->get_solver_symbol();
+    // auto& enc = program->_hb_encoding;
+    // z3::expr hb_expr = enc.mk_hbs( a, b );
+
+    z3::expr trigger = sol.ctx().fresh_constant("ass", sol.ctx().bool_sort());
+    sol.add(implies(trigger,hb_expr));
+
+    z3::expr_vector rev_edges(sol.ctx());
+    rev_edges.push_back(  trigger );
+    z3::check_result r = sol.check( rev_edges );
+    assert( r == z3::unsat );
+    z3::expr_vector core = sol.unsat_core();
+    for( unsigned i = 0; i<core.size(); i++ ) {
+      z3::expr c = core[i];
+      for( auto& hb : hb_local ) {
+        z3::expr hb_expr = (z3::expr)*hb;
+        if( z3::eq(hb_expr, c) ) {
+          causes.push_back( hb );
+        }
+      }
+    }
+  }
+
+
+  // new
+
+  void mem_accesses( const hb_enc::se_ptr& ep, const hb_enc::se_set& ep_sets,
+                    hb_enc::se_set& new_prevs ) {
+    if( ep->is_mem_op() ) new_prevs.insert( ep );
+    for( auto& epp : ep_sets ) if( epp->is_mem_op() ) new_prevs.insert( epp );
+  }
+
+  void dominate_accesses( const hb_enc::se_ptr& ep,
+                          const hb_enc::se_set& ep_sets,
+                          hb_enc::se_set& new_prevs ) {
+    if( ep->is_wr() )
+      new_prevs.insert( ep );
+    for( auto& epp : ep_sets )
+      if( epp->is_wr() )
+        if( !ep->is_wr() || !ep->access_same_var( epp ) )
+          new_prevs.insert( epp );
+
+    // new_prevs.insert( ep );
+    // for( auto& epp : ep_sets )
+    //   if( !ep->access_dominates( epp ) )
+    //     new_prevs.insert( epp );
+  }
+
   void
   cycles::find_fr_edges( const hb_enc::hb_vec& c, hb_enc::se_set& all_es,
-                         std::vector< cycle_edge >& new_edges ) {
+                         std::vector< cycle_edge >& new_edges,
+                         std::map< cycle_edge, hb_enc::hb_vec >& cause_map ) {
     new_edges.clear();
+    cause_map.clear();
     hb_enc::hb_vec hbs_local;
     hb_enc::hb_vec rfs;
-    std::map< cycle_edge, hb_enc::hb_vec > cause_edges;
-    std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs; //quick and dirty: thrd create/join orderings
+    // std::map< cycle_edge, hb_enc::hb_vec > cause_map;
+
     for( const auto& h : c ) {
       if( h->type == hb_t::phb && !h->is_neg ) {
         hbs_local.push_back( h );
@@ -415,184 +481,198 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
       }
     }
 
-    hb_enc::se_set all_es_copy = all_es;
-
-    for( unsigned i = 0; i < program->size(); i ++ ) {
-      auto& ce = program->get_create_event(i);
-      auto& je = program->get_join_event(i);
-      auto& se = program->get_thread(i).start_event;
-      auto& fe = program->get_thread(i).final_event;
-      all_es_copy.insert( je );
-      all_es_copy.insert( ce );
-      all_es_copy.insert( se );
-      all_es_copy.insert( fe );
-      for( auto& e : program->get_thread(i).events ) {
-        if( e->is_mem_op() )
-          all_es_copy.insert( e );
-      }
-      thread_syncs.push_back({ce,se});
-      thread_syncs.push_back({fe,je});
+    hb_enc::se_vec all_es_copy;
+    for( auto e: program->all_es ) {
+      if( e->is_mem_op() )
+        all_es_copy.push_back( e );
     }
 
-    hb_enc::se_vec stack,es;
-    helpers::set_to_vec( all_es_copy, stack );
-    es = stack;
+    z3::solver ord_solver = program->ord_solver;
+    ord_solver.push();
+    for( auto& hb : hbs_local ) {
+      z3::expr hb_expr = *hb;
+      ord_solver.add( hb_expr );
+    }
+    auto res = ord_solver.check();
+    assert( res == z3::check_result::sat );
+    auto m = ord_solver.get_model();
 
-    //Loop for topological sort with hbs_local and thread_syncs
-    //todo: replace the following code with the call to
-    //      template function topological sort
-    std::map< se_ptr, unsigned > order_map;
-    while( !stack.empty() ) {
-      se_ptr e = stack.back(); //std::cerr << e->name() << "\n";
-      if( helpers::exists( order_map, e ) ) {
-        stack.pop_back();
-        continue;
-      }
-      auto& prevs = program->seq_before.at(e);
-      bool ready = true;
-      unsigned m = 0;
-      for( auto& ep : prevs ) {
-        if( !helpers::exists( es, ep ) ) continue;
-        if( !helpers::exists( order_map, ep ) ) {
-          ready = false;
-          stack.push_back( ep );
-        }else{
-          if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
-        }
-      }
-      for( const auto& h : hbs_local ) {
-        if( h->e2 != e ) continue;
-        auto& ep = h->e1;
-        if( !helpers::exists( order_map, ep ) ) {
-          ready = false;
-          stack.push_back( ep );
-        }else{
-          if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
-        }
-      }
-      for( const auto& sync : thread_syncs ) {
-        //quick and dirty, prevs should have already included everything
-        if( sync.second != e ) continue;
-        auto& e1 = sync.first;
-        if( !helpers::exists( order_map, e1 ) ) {
-          ready = false;
-          stack.push_back( e1 );
-        }else{
-          if( ready == true && m < order_map.at(e1) ) m = order_map.at(e1);
-        }
-      }
-      if( ready == true ) {
-        order_map[e] = m + 1;
-      }
+    std::map< hb_enc::se_ptr, int > order_map;
+    for( auto e : all_es_copy ) {
+      auto v = m.eval( e->get_solver_symbol() );
+      order_map[e] = z3.get_numeral_int( v );
     }
 
-    std::sort( es.begin(), es.end(),
-               [&](const se_ptr& x, const se_ptr& y) {
+    std::sort( all_es_copy.begin(), all_es_copy.end(),
+               [&](const hb_enc::se_ptr& x, const hb_enc::se_ptr& y) {
                  return order_map.at(x) < order_map.at(y);
                } );
 
+
     //collect all the past events for each event in pasts
+    hb_enc::se_to_ses_map dom_wr_pasts;
     hb_enc::se_to_ses_map pasts;
-    for( auto e : es ) {
-      // if( !e->is_mem_op() ) continue;
-      auto& prevs = program->seq_before.at(e);
-      pasts[e].clear();
-      for( auto ep : prevs ) {
-        if( helpers::exists( all_es_copy, ep ) )
-          pasts[e].insert( ep );
-      }
-      // pasts[e] = prevs;
-      hb_enc::se_set& new_prevs = pasts.at(e);
-      for( auto epp : prevs ) {
-        if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
-            ) {
-          helpers::set_insert( new_prevs, pasts.at(epp) );
+    for( auto e : all_es_copy ) {
+      auto& prevs = program->seq_dom_wr_before.at(e);
+      hb_enc::se_set& new_prevs = dom_wr_pasts[e];
+      for( auto& ep : prevs ) {
+        if( helpers::exists( all_es_copy, ep ) ) {
+          dominate_accesses( ep, dom_wr_pasts.at(ep), new_prevs );
+          // new_prevs.insert( ep );
+          // for( auto& epp : pasts.at( ep ) )
+          //   if( !ep->access_dominates( epp ) )
+          //     new_prevs.insert( epp );
+          // helpers::set_insert( new_prevs, pasts.at( ep ) );
         }
       }
+      auto& mem_prevs = program->seq_rd_before.at(e);
+      hb_enc::se_set& rd_prevs = pasts[e];
+      for( auto& ep : mem_prevs ) {
+        if( helpers::exists( all_es_copy, ep ) ) {
+          mem_accesses( ep, pasts.at(ep), rd_prevs );
+        }
+      }
+
       for( const auto& h : hbs_local ) {
         if( h->e2 == e ) {
-          new_prevs.insert( h->e1 );
-          helpers::set_insert( new_prevs, pasts.at(h->e1) );
+          auto& ep = h->e1;
+          dominate_accesses( ep, dom_wr_pasts.at(ep), new_prevs );
+          mem_accesses( ep, pasts.at(ep), rd_prevs );
+          // new_prevs.insert( ep );
+          // for( auto& epp : pasts.at( ep ) )
+          //   if( !ep->access_dominates( epp ) )
+          //     new_prevs.insert( epp );
+          // new_prevs.insert( h->e1 );
+          // helpers::set_insert( new_prevs, pasts.at(h->e1) );
         }
-      }
-      for( const auto& sync : thread_syncs ) {
-        //quick and dirty, prevs should have already included everything
-        if( sync.second != e ) continue;
-        new_prevs.insert( sync.first );
-        helpers::set_insert( new_prevs, pasts.at(sync.first) );
       }
     }
 
     //collect all the post events for each event in pasts
     hb_enc::se_to_ses_map posts;
-    for( auto rit = es.rbegin(); rit!= es.rend(); ++rit ) {
+    for( auto rit = all_es_copy.rbegin(); rit!= all_es_copy.rend(); ++rit ) {
       hb_enc::se_ptr e = *rit;
-      // if( !e->is_mem_op() ) continue;
-      auto& nexts = program->seq_after.at(e);
-      posts[e].clear();
+      auto& nexts = program->seq_dom_wr_after.at(e);
+      hb_enc::se_set& new_nexts = posts[e];
       for( auto ep : nexts ) {
-        if( helpers::exists( all_es_copy, ep ) )
-          posts[e].insert( ep );
-      }
-      // posts[e] = nexts;
-      hb_enc::se_set& new_nexts = posts.at(e);
-      for( auto epp : nexts ) {
-        if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
-            ) {
-          helpers::set_insert( new_nexts, posts.at(epp) );
+        if( helpers::exists( all_es_copy, ep ) ) {
+          dominate_accesses( ep, posts.at(ep), new_nexts );
+          // new_nexts.insert( ep );
+          // helpers::set_insert( new_nexts, posts.at( ep ) );
         }
       }
+
       for( const auto& h : hbs_local ) {
         if( h->e1 == e ) {
-          helpers::set_insert( new_nexts, posts.at(h->e2) );
+          auto& ep = h->e2;
+          dominate_accesses( ep, posts.at(ep), new_nexts );
+          // new_nexts.insert( h->e2 );
+          // helpers::set_insert( new_nexts, posts.at(h->e2) );
         }
-      }
-      for( const auto& sync : thread_syncs ) {
-        //quick and dirty, prevs should have already included everything
-        if( sync.first != e ) continue;
-        new_nexts.insert( sync.second );
-        helpers::set_insert( new_nexts, posts.at(sync.second) );
       }
     }
 
     if( verbose > 2 ) {
       out << "Sorted events:\n";
-      tara::debug_print( out, es );
+      tara::debug_print( out, all_es_copy );
       out << "past events:\n";
+      tara::debug_print( out, dom_wr_pasts );
+      out << "rd past events:\n";
       tara::debug_print( out, pasts );
       out << "post events:\n";
       tara::debug_print( out, posts );
     }
 
-    for( const auto& h : rfs ) {
-      hb_enc::se_ptr w = h->e1;
-      hb_enc::se_ptr r = h->e2;
-      assert( w->tid != r->tid );
-      for( auto wp : pasts.at(w) ) {
-        if( ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
-          add_fr_edge( wp, r, pasts, new_edges, cause_edges );
-          for( const auto& h : rfs ) {
-            if( wp == h->e1 && r->access_same_var( h->e2 ) ) {
-              add_fr_edge( h->e2, r, pasts, new_edges, cause_edges );
-            }
+    std::map< se_ptr, std::vector< std::pair<se_ptr, hb_ptr> > > rf_map;
+    for( const auto& h : rfs ) rf_map[h->e1].push_back(std::make_pair(h->e2,h));
+    for( auto it : rf_map ) {
+      auto& w = it.first;
+      auto& rs = it.second;
+      std::sort( rs.begin(), rs.end(),
+                 [&](const std::pair<se_ptr, hb_ptr>& x,
+                     const std::pair<se_ptr, hb_ptr>& y) {
+                   return order_map.at(x.first) < order_map.at(y.first);
+                 } );
+      for(auto it = rs.begin();it != rs.end(); it++) {
+        auto pr = *it;
+        se_ptr r = pr.first;
+        hb_ptr h = pr.second;
+        bool dominated = false;
+        auto it_cp = it;
+        for(it_cp++;it_cp != rs.end();it_cp++) {
+          se_ptr rp = it_cp->first;
+          if( helpers::exists( pasts.at(rp), r ) ) {
+            dominated = true;
+            break;
           }
         }
-      }
-      for( auto wp : posts.at(w) ) {
-        if( wp->is_wr() && w->access_same_var(wp) ) {
-          add_fr_edge( r, wp, pasts, new_edges, cause_edges );
-        }
-      }
-      for( auto rp : pasts.at(r) ) {
-        if( ( rp->is_rd() && r->access_same_var(rp) ) ) {
-          for( const auto& h : rfs ) {
-            if( rp == h->e2 && r->access_same_var( h->e2 ) ) {
-              add_fr_edge( h->e1, w, pasts, new_edges, cause_edges );
+        if( !dominated ) {
+          for( auto wp : posts.at(w) ) {
+            if( wp->is_wr() && w->access_same_var(wp) ) {
+              hb_vec causes;
+              reason_edges( w, wp, ord_solver, {h}, hbs_local, causes );
+              add_fr_edge( r, wp, dom_wr_pasts, causes, new_edges, cause_map );//corw
             }
           }
         }
       }
     }
+
+    for( const auto& h : rfs ) {
+      auto w1 = h->e1, r1 = h->e2;
+      // assert( w1->tid != r1->tid );
+      for( const auto& h1 : rfs ) {
+        auto w2 = h1->e1, r2 = h1->e2;
+        if( r1->access_same_var(r2) && w1 != w2
+            && helpers::exists( pasts.at(r2), r1 ) ) {
+          hb_vec causes;
+          reason_edges( r1, r2, ord_solver, {h,h1}, hbs_local, causes );
+          add_fr_edge( w1, w2, dom_wr_pasts, causes, new_edges,cause_map);//corr
+        }
+      }
+    }
+    // fr edges due to the coherance conditions
+    hb_vec causes;
+    for( const auto& h : rfs ) {
+      auto w = h->e1;
+      auto r = h->e2;
+      assert( w->tid != r->tid );
+      // for( auto wp : pasts.at(w) ) {
+      //   if( ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
+      //     reason_edges( wp, w, ord_solver, {h}, hbs_local, causes );
+      //     add_fr_edge( wp, r, pasts, causes, new_edges, cause_map );//cowr
+      //     // rf(w->r) and rf(wp->rp) => fr(r->rp) not needed
+      //     // there must be w->wpp->wp such that r->wp is added
+      //     // for( const auto& h1 : rfs ) {
+      //     //   if( wp == h1->e1 && r->access_same_var( h1->e2 ) ) {
+      //     //     causes.push_back(h1);
+      //     //     add_fr_edge( h1->e2, r, pasts, causes, new_edges,cause_map);//corr
+      //     //     causes.pop_back();
+      //     //   }
+      //     // }
+      //   }
+      // }
+
+      // for( auto wp : posts.at(w) ) {
+      //   if( wp->is_wr() && w->access_same_var(wp) ) {
+      //     reason_edges( w, wp, ord_solver, {h}, hbs_local, causes );
+      //     add_fr_edge( r, wp, pasts, causes, new_edges, cause_map );//corw
+      //   }
+      // }
+
+      // for( auto rp : rd_pasts.at(r) ) {
+      //   if( ( rp->is_rd() && r->access_same_var(rp) ) ) {
+      //     for( const auto& h1 : rfs ) {
+      //       if( rp == h1->e2 && r->access_same_var( h1->e2 ) ) {
+      //         reason_edges( rp, r, ord_solver, {h,h1}, hbs_local, causes );
+      //         add_fr_edge( h1->e1, w,pasts, causes, new_edges,cause_map);//corr
+      //       }
+      //     }
+      //   }
+      // }
+    }
+
+    ord_solver.pop();
 
     for(  auto& ed : new_edges ) {
       assert( ed.before->tid != ed.after->tid );
@@ -603,11 +683,238 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
     if( verbose > 1 ) {
       out << "learned fr edges:\n";
       for( auto& ed : new_edges ) {
-        debug_print( out, ed ); std::cerr << "\n";
-        // std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
+        debug_print( out, ed ); out << "\n";
+        out << "cause :";
+        tara::debug_print( out, cause_map[ed] );
+        out << "\n";
       }
     }
   }
+
+  // old
+  // void add_fr_edge( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
+  //                   const hb_enc::se_to_ses_map& pasts,
+  //                   std::vector< cycle_edge >& new_edges,
+  //                   std::map< cycle_edge, hb_enc::hb_vec >& cause_edges ) {
+  //   if( b != a && !helpers::exists( pasts.at(a), b ) ) {
+  //     cycle_edge ed( b, a, edge_type::fr );
+  //     new_edges.push_back( ed );
+  //     assert( !helpers::exists( pasts.at(b), a) );
+  //     assert( b->tid != a->tid );
+  //   }
+  // }
+
+  // void
+  // cycles::find_fr_edges( const hb_enc::hb_vec& c, hb_enc::se_set& all_es,
+  //                        std::vector< cycle_edge >& new_edges ) {
+  //   new_edges.clear();
+  //   hb_enc::hb_vec hbs_local;
+  //   hb_enc::hb_vec rfs;
+  //   std::map< cycle_edge, hb_enc::hb_vec > cause_edges;
+  //   std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs; //quick and dirty: thrd create/join orderings
+  //   for( const auto& h : c ) {
+  //     if( h->type == hb_t::phb && !h->is_neg ) {
+  //       hbs_local.push_back( h );
+  //     }
+  //     if( h->type == hb_t::rf ) {
+  //       assert( !h->is_neg );
+  //       rfs.push_back( h );
+  //     }
+  //   }
+
+  //   hb_enc::se_set all_es_copy = all_es;
+
+  //   for( unsigned i = 0; i < program->size(); i ++ ) {
+  //     auto& ce = program->get_create_event(i);
+  //     auto& je = program->get_join_event(i);
+  //     auto& se = program->get_thread(i).start_event;
+  //     auto& fe = program->get_thread(i).final_event;
+  //     all_es_copy.insert( je );
+  //     all_es_copy.insert( ce );
+  //     all_es_copy.insert( se );
+  //     all_es_copy.insert( fe );
+  //     for( auto& e : program->get_thread(i).events ) {
+  //       if( e->is_mem_op() )
+  //         all_es_copy.insert( e );
+  //     }
+  //     thread_syncs.push_back({ce,se});
+  //     thread_syncs.push_back({fe,je});
+  //   }
+
+  //   hb_enc::se_vec stack,es;
+  //   helpers::set_to_vec( all_es_copy, stack );
+  //   es = stack;
+
+  //   //Loop for topological sort with hbs_local and thread_syncs
+  //   //todo: replace the following code with the call to
+  //   //      template function topological sort
+  //   std::map< se_ptr, unsigned > order_map;
+  //   while( !stack.empty() ) {
+  //     se_ptr e = stack.back(); //std::cerr << e->name() << "\n";
+  //     if( helpers::exists( order_map, e ) ) {
+  //       stack.pop_back();
+  //       continue;
+  //     }
+  //     auto& prevs = program->seq_before.at(e);
+  //     bool ready = true;
+  //     unsigned m = 0;
+  //     for( auto& ep : prevs ) {
+  //       if( !helpers::exists( es, ep ) ) continue;
+  //       if( !helpers::exists( order_map, ep ) ) {
+  //         ready = false;
+  //         stack.push_back( ep );
+  //       }else{
+  //         if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
+  //       }
+  //     }
+  //     for( const auto& h : hbs_local ) {
+  //       if( h->e2 != e ) continue;
+  //       auto& ep = h->e1;
+  //       if( !helpers::exists( order_map, ep ) ) {
+  //         ready = false;
+  //         stack.push_back( ep );
+  //       }else{
+  //         if( ready == true && m < order_map.at(ep) ) m = order_map.at(ep);
+  //       }
+  //     }
+  //     for( const auto& sync : thread_syncs ) {
+  //       //quick and dirty, prevs should have already included everything
+  //       if( sync.second != e ) continue;
+  //       auto& e1 = sync.first;
+  //       if( !helpers::exists( order_map, e1 ) ) {
+  //         ready = false;
+  //         stack.push_back( e1 );
+  //       }else{
+  //         if( ready == true && m < order_map.at(e1) ) m = order_map.at(e1);
+  //       }
+  //     }
+  //     if( ready == true ) {
+  //       order_map[e] = m + 1;
+  //     }
+  //   }
+
+  //   std::sort( es.begin(), es.end(),
+  //              [&](const se_ptr& x, const se_ptr& y) {
+  //                return order_map.at(x) < order_map.at(y);
+  //              } );
+
+  //   //collect all the past events for each event in pasts
+  //   hb_enc::se_to_ses_map pasts;
+  //   for( auto e : es ) {
+  //     // if( !e->is_mem_op() ) continue;
+  //     auto& prevs = program->seq_before.at(e);
+  //     pasts[e].clear();
+  //     for( auto ep : prevs ) {
+  //       if( helpers::exists( all_es_copy, ep ) )
+  //         pasts[e].insert( ep );
+  //     }
+  //     // pasts[e] = prevs;
+  //     hb_enc::se_set& new_prevs = pasts.at(e);
+  //     for( auto epp : prevs ) {
+  //       if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
+  //           ) {
+  //         helpers::set_insert( new_prevs, pasts.at(epp) );
+  //       }
+  //     }
+  //     for( const auto& h : hbs_local ) {
+  //       if( h->e2 == e ) {
+  //         new_prevs.insert( h->e1 );
+  //         helpers::set_insert( new_prevs, pasts.at(h->e1) );
+  //       }
+  //     }
+  //     for( const auto& sync : thread_syncs ) {
+  //       //quick and dirty, prevs should have already included everything
+  //       if( sync.second != e ) continue;
+  //       new_prevs.insert( sync.first );
+  //       helpers::set_insert( new_prevs, pasts.at(sync.first) );
+  //     }
+  //   }
+
+  //   //collect all the post events for each event in pasts
+  //   hb_enc::se_to_ses_map posts;
+  //   for( auto rit = es.rbegin(); rit!= es.rend(); ++rit ) {
+  //     hb_enc::se_ptr e = *rit;
+  //     // if( !e->is_mem_op() ) continue;
+  //     auto& nexts = program->seq_after.at(e);
+  //     posts[e].clear();
+  //     for( auto ep : nexts ) {
+  //       if( helpers::exists( all_es_copy, ep ) )
+  //         posts[e].insert( ep );
+  //     }
+  //     // posts[e] = nexts;
+  //     hb_enc::se_set& new_nexts = posts.at(e);
+  //     for( auto epp : nexts ) {
+  //       if( helpers::exists( all_es_copy, epp ) //&& epp->is_mem_op()
+  //           ) {
+  //         helpers::set_insert( new_nexts, posts.at(epp) );
+  //       }
+  //     }
+  //     for( const auto& h : hbs_local ) {
+  //       if( h->e1 == e ) {
+  //         helpers::set_insert( new_nexts, posts.at(h->e2) );
+  //       }
+  //     }
+  //     for( const auto& sync : thread_syncs ) {
+  //       //quick and dirty, prevs should have already included everything
+  //       if( sync.first != e ) continue;
+  //       new_nexts.insert( sync.second );
+  //       helpers::set_insert( new_nexts, posts.at(sync.second) );
+  //     }
+  //   }
+
+  //   if( verbose > 2 ) {
+  //     out << "Sorted events:\n";
+  //     tara::debug_print( out, es );
+  //     out << "past events:\n";
+  //     tara::debug_print( out, pasts );
+  //     out << "post events:\n";
+  //     tara::debug_print( out, posts );
+  //   }
+
+  //   for( const auto& h : rfs ) {
+  //     hb_enc::se_ptr w = h->e1;
+  //     hb_enc::se_ptr r = h->e2;
+  //     assert( w->tid != r->tid );
+  //     for( auto wp : pasts.at(w) ) {
+  //       if( ( wp->is_pre() || ( wp->is_wr() && w->access_same_var(wp) )) ) {
+  //         add_fr_edge( wp, r, pasts, new_edges, cause_edges );
+  //         for( const auto& h : rfs ) {
+  //           if( wp == h->e1 && r->access_same_var( h->e2 ) ) {
+  //             add_fr_edge( h->e2, r, pasts, new_edges, cause_edges );
+  //           }
+  //         }
+  //       }
+  //     }
+  //     for( auto wp : posts.at(w) ) {
+  //       if( wp->is_wr() && w->access_same_var(wp) ) {
+  //         add_fr_edge( r, wp, pasts, new_edges, cause_edges );
+  //       }
+  //     }
+  //     for( auto rp : pasts.at(r) ) {
+  //       if( ( rp->is_rd() && r->access_same_var(rp) ) ) {
+  //         for( const auto& h : rfs ) {
+  //           if( rp == h->e2 && r->access_same_var( h->e2 ) ) {
+  //             add_fr_edge( h->e1, w, pasts, new_edges, cause_edges );
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   for(  auto& ed : new_edges ) {
+  //     assert( ed.before->tid != ed.after->tid );
+  //     all_es.insert( ed.before );
+  //     all_es.insert( ed.after );
+  //   }
+
+  //   if( verbose > 1 ) {
+  //     out << "learned fr edges:\n";
+  //     for( auto& ed : new_edges ) {
+  //       debug_print( out, ed ); std::cerr << "\n";
+  //       // std::cerr << ed.before->name() << "->" << ed.after->name() << "\n";
+  //     }
+  //   }
+  // }
 
 
   void cycles::find_cycles( const hb_enc::hb_vec& c,
@@ -643,7 +950,7 @@ void cycles::find_true_cycles( hb_enc::se_ptr e,
   }
 
   if( program->is_mm_c11() )
-    find_fr_edges( c, all_events, learned_fr_edges );
+    find_fr_edges( c, all_events, learned_fr_edges, learned_fr_edges_cause_map );
 
   std::vector< hb_enc::se_set > sccs;
   find_sccs( all_events, sccs );

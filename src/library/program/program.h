@@ -157,6 +157,8 @@ namespace tara {
     hb_enc::encoding& _hb_encoding;
     prog_t prog_type = prog_t::bmc;
 
+    bool seq_ordering_has_been_called = false;
+    //todo: evaluate what else should be private and move the fields here!
   public:
     program( helpers::z3interf& z3_,
              api::options& o_,
@@ -178,6 +180,10 @@ namespace tara {
     variable_set initial_variables;
     hb_enc::se_set all_sc;
 
+    hb_enc::se_vec all_es;
+    z3::solver ord_solver = _z3.create_solver();
+
+    inline const api::options& options() const {return _o; }
     inline const hb_enc::encoding& hb_encoding() const {return _hb_encoding; }
     inline const helpers::z3interf& z3() const { return _z3; }
 
@@ -227,8 +233,9 @@ namespace tara {
     hb_enc::se_to_depends_map ppo_before;
     hb_enc::se_to_depends_map c11_rs_heads; // c11 release sequence heads
 
-    hb_enc::se_to_ses_map seq_before;
-    hb_enc::se_to_ses_map seq_after;
+    hb_enc::se_to_ses_map seq_dom_wr_before;
+    hb_enc::se_to_ses_map seq_rd_before;
+    hb_enc::se_to_ses_map seq_dom_wr_after;
     void update_seq_orderings();
 
     const tara::thread& operator[](unsigned i) const;
@@ -246,13 +253,21 @@ namespace tara {
     inline const hb_enc::se_ptr get_create_event(unsigned t) const {
       assert( t < threads.size() );
       std::string n = threads[t]->name;
-      return create_map.at(n);
+      auto it = create_map.find( n );
+      if( it != create_map.end() )
+        return create_map.at(n); //todo : rewrite to end double search
+      else
+        return nullptr;
     }
 
     inline const hb_enc::se_ptr get_join_event(unsigned t) const {
       assert( t < threads.size() );
       std::string n = threads[t]->name;
-      return join_map.at(n).first;
+      auto it = join_map.find( n );
+      if( it != join_map.end() )
+        return join_map.at(n).first; //todo : rewrite to end double search
+      else
+        return nullptr;
     }
 
     unsigned add_thread( std::string str) {

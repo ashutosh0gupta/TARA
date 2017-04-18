@@ -236,6 +236,7 @@ struct source_loc{
     inline bool is_sc()     const { return o_tag == o_tag_t::sc;  }
     inline bool is_atomic() const { return o_tag != o_tag_t::na;  }
 
+
     inline bool is_at_most_rlx() const {
       // assert( is_wr() || is_pre() );
       return is_na() || is_rlx();
@@ -279,9 +280,17 @@ struct source_loc{
     z3::expr get_c11_mo_solver_symbol() const;
     z3::expr get_c11_sc_solver_symbol() const;
 
-    inline bool access_same_var( se_ptr e ) const {
+    inline bool access_same_var( const se_ptr& e ) const {
       if( is_pre() || is_post() ) return true;
       return prog_v.name == e->prog_v.name;
+    }
+
+    inline bool access_dominates( const se_ptr& e ) const {
+      if( !access_same_var(e) ) return false;
+      if( et == e->et) return true;
+      if( is_pre() || is_post() ) return true;
+      if( is_update() && e->is_mem_op() ) return true;
+      return false;
     }
 
 

@@ -213,6 +213,12 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         output::nf::print_one(cout, true, disj, true);
       }
     }
+
+    if( o.print_rounds >= 1) {
+      o.out() << "Round result:" << endl;
+      tara::debug_print( o.out(), hbs );
+      o.out() << endl;
+    }
     //o.out() << forbid.simplify() << endl;
     // if( program->is_mm_declared() ) {
     //   z3::expr guarded_forbid = hb_encoding.mk_guarded_forbid_expr(hbs);

@@ -25,6 +25,7 @@
 // #include "cssa/program.h"
 #include "api/options.h"
 #include "hb_enc/symbolic_event.h"
+#include "hb_enc/hb.h"
 #include "api/output/nf.h"
 #include <boost/bimap.hpp>
 #include <z3++.h>
@@ -56,6 +57,7 @@ public:
   {
     return b.before == before && b.after == after && b.type == type;
   }
+  friend bool operator< (const cycle_edge& hb1, const cycle_edge& hb2);
 };
 
 class cycle
@@ -110,7 +112,7 @@ typedef std::shared_ptr<cycle> cycle_ptr;
 class cycles {
 
 public:
-  cycles( const helpers::z3interf& _z3) :
+  cycles( const helpers::z3interf& _z3 ) :
     z3(_z3) {};
 
   void find_cycles( const std::list<hb>& c, std::vector<cycle>& cycles );
@@ -118,14 +120,28 @@ public:
 
   const tara::program* program;
   int verbose = 0;
+
+  hb_vec fr_cause( cycle_edge& ed ) {
+    auto it = learned_fr_edges_cause_map.find( ed );
+    if( it != learned_fr_edges_cause_map.end() )
+      return it->second;
+    else{
+      hb_vec v;
+      return v;
+    }
+  }
+
 private:
   typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
   const helpers::z3interf& z3;
+  // const hb_enc::encoding& enc;
+
   std::ostream& out = std::cerr;// todo : redirected according to option
 
   // hb_conj hbs;
   std::vector<cycle_edge> hbs;
   std::vector<cycle_edge> learned_fr_edges;
+  std::map< cycle_edge, hb_enc::hb_vec > learned_fr_edges_cause_map;
 
   std::vector<hb_enc::se_vec> event_lists;
 
@@ -156,7 +172,8 @@ private:
   void cycles_unblock( hb_enc::se_ptr e );
 
   void find_fr_edges( const hb_enc::hb_vec& c, hb_enc::se_set& all_es,
-                      std::vector< cycle_edge >& new_edges );
+                      std::vector< cycle_edge >& new_edges,
+                      std::map< cycle_edge, hb_enc::hb_vec >& cause_map);
 
 
   bool is_relaxed_dominated( const cycle& c , std::vector<cycle>& cs );
@@ -171,6 +188,12 @@ private:
   //                            std::vector<cycle>& cycles);
 
   void insert_event( std::vector<hb_enc::se_vec>& event_lists, hb_enc::se_ptr e );
+
+private:
+  void reason_edges( const hb_enc::se_ptr& b, const hb_enc::se_ptr& a,
+                     z3::solver& ord_solver, const hb_enc::hb_vec& involved_rfs,
+                     const hb_enc::hb_vec& hb_local,
+                     hb_enc::hb_vec& causes );
 
 };
 

@@ -85,6 +85,9 @@ private:
   void update_signature();
 };
 
-}} // end namespaces
+}
+  void debug_print( std::ostream& out, const hb_enc::hb_vec& );
+
+} // end namespaces
 
 #endif // TARA_API_ENCODING_H

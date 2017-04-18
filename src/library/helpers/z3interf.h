@@ -135,7 +135,7 @@ public:
   z3::expr get_fresh_bool( std::string suff = "" );
   z3::expr get_fresh_int(  std::string suff = "" );
   std::string get_top_func_name( z3::expr& b );
-  int get_numeral_int(const z3::expr& i);
+  int get_numeral_int(const z3::expr& i) const;
   Z3_decl_kind get_decl_kind( z3::expr e );
   z3::sort mk_sort(const char* s) const { return c.uninterpreted_sort(s); }
   z3::expr mk_true() const { return c.bool_val(true ); }
@@ -153,6 +153,7 @@ public:
   static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
   z3::expr simplify( z3::expr e );
   z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );
+
 };
   // we need this xor, since the default xor in c++ interface is for bvxor
   inline z3::expr _xor( z3::expr const & a, z3::expr const & b ) {

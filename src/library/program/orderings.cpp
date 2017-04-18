@@ -21,56 +21,125 @@
 
 #include "helpers/helpers.h"
 #include "program/program.h"
+#include "hb_enc/hb.h"
 
 namespace tara {
 
+  void accesses( const hb_enc::se_ptr& ep,
+                    const hb_enc::se_set& ep_sets,
+                    hb_enc::se_set& new_prevs ) {
+    if( ep->is_mem_op() )
+      new_prevs.insert( ep );
+    for( auto& epp : ep_sets )
+      if( epp->is_mem_op() )
+        new_prevs.insert( epp );
+  }
+
+  void dominate_wr_accesses( const hb_enc::se_ptr& ep,
+                             const hb_enc::se_set& ep_sets,
+                             hb_enc::se_set& new_prevs ) {
+    if( ep->is_wr() )
+      new_prevs.insert( ep );
+    for( auto& epp : ep_sets )
+      if( epp->is_wr() )
+        if( !ep->is_wr() || !ep->access_same_var( epp ) )
+          new_prevs.insert( epp );
+  }
+
 void program::update_seq_orderings() {
-  seq_before.clear();
-  seq_after.clear();
+  if( seq_ordering_has_been_called )
+    program_error( "update_seq_orderning must not be called twice!!" );
+  seq_ordering_has_been_called = true;
 
-  if( init_loc ) seq_before[init_loc].clear();
-  if( post_loc ) seq_before[post_loc].clear();
+  seq_dom_wr_before.clear();
+  seq_rd_before.clear();
+  seq_dom_wr_after.clear();
+
+  // create solver
+  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > thread_syncs;
+
+  all_es.push_back( init_loc );
   for( unsigned i = 0; i < size(); i++ ) {
-    seq_before[get_thread(i).start_event].clear();
     for( auto& e : get_thread(i).events ) {
-      auto& sb_es = seq_before[e];
+      all_es.push_back(e);
       for( auto& ep : e->prev_events ) {
-        // if( ep->is_mem_op() )
-        sb_es.insert( ep ); //todo: include fences??
-        helpers::set_insert( sb_es,seq_before.at(ep) );
+        ord_solver.add( _hb_encoding.mk_hbs(ep,e) );
       }
     }
-    auto& sb_es = seq_before[get_thread(i).final_event];
+    auto& se = get_thread(i).start_event;
+    auto& fe = get_thread(i).final_event;
+    all_es.push_back(se);
+    all_es.push_back(fe);//todo: check if the final event is in (i).events
     for( auto& ep : get_thread(i).final_event->prev_events ) {
-      // if( ep->is_mem_op() )
-        sb_es.insert( ep ); //todo: include fences??
-        helpers::set_insert( sb_es,seq_before.at(ep));
+      ord_solver.add( _hb_encoding.mk_hbs(ep,fe) );
+    }
+    auto& ce = get_create_event(i);
+    if( ce ) {
+      ord_solver.add( _hb_encoding.mk_hbs(ce,se));
+      thread_syncs.push_back({ce,se});
+    }
+    auto& je = get_join_event(i);
+    if( je ) {
+      ord_solver.add( _hb_encoding.mk_hbs(fe,je));
+      thread_syncs.push_back({fe,je});
+    }
+  }
+  if( post_loc ) all_es.push_back( post_loc );
+
+  auto res = ord_solver.check();
+  assert( res == z3::check_result::sat);
+  auto m = ord_solver.get_model();
+
+  std::map< hb_enc::se_ptr, int > order_map;
+  for( auto e : all_es ) {
+    auto v = m.eval( e->get_solver_symbol() );
+    order_map[e] = _z3.get_numeral_int( v );
+  }
+
+  std::sort( all_es.begin(), all_es.end(),
+             [&](const hb_enc::se_ptr& x, const hb_enc::se_ptr& y) {
+               return order_map.at(x) < order_map.at(y);
+               } );
+
+  for( auto e : all_es ) {
+    auto& prevs = seq_dom_wr_before[e];
+    auto& rd_prevs = seq_rd_before[e];
+    prevs.clear();
+    for( auto& ep : e->prev_events ) {
+      dominate_wr_accesses( ep, seq_dom_wr_before.at(ep), prevs );
+      accesses( ep, seq_rd_before.at(ep), rd_prevs );
+      // prevs.insert( ep ); //todo: include fences??
+      // helpers::set_insert( prevs,seq_dom_wr_before.at(ep) );
+    }
+    for( const auto& sync : thread_syncs ) {
+      if( sync.second != e ) continue;
+      hb_enc::se_ptr ep = sync.first;
+      dominate_wr_accesses( ep, seq_dom_wr_before.at(ep), prevs );
+      accesses( ep, seq_rd_before.at(ep), rd_prevs );
+      // prevs.insert( sync.first );
+      // helpers::set_insert( prevs, seq_dom_wr_before.at(sync.first) );
     }
   }
 
-  if( init_loc ) seq_after[init_loc].clear();
-  if( post_loc ) seq_after[post_loc].clear();
-  for( unsigned i = 0; i < size(); i++ ) {
-    seq_after[get_thread(i).final_event].clear();
-    auto rit = get_thread(i).events.rbegin();
-    auto rend = get_thread(i).events.rend();
-    for (; rit!= rend; ++rit) {
-      hb_enc::se_ptr e = *rit;
-      auto& sa_es = seq_after[e];
-      for( auto& ep : e->post_events ) {
-        // if( ep.e->is_mem_op() )
-        sa_es.insert( ep.e ); //todo: include fences??
-        helpers::set_insert( sa_es,  seq_after[ep.e]);
-      }
+  auto rit = all_es.rbegin(), rend = all_es.rend();
+  for (; rit!= rend; ++rit) {
+    hb_enc::se_ptr e = *rit;
+    auto& prevs = seq_dom_wr_after[e];
+    prevs.clear();
+    for( auto& ep : e->post_events ) {
+      dominate_wr_accesses( ep.e, seq_dom_wr_after.at(ep.e), prevs );
+      // prevs.insert( ep.e );
+      // helpers::set_insert( prevs,seq_dom_wr_after.at(ep.e) );
     }
-    auto& sa_es = seq_after[get_thread(i).start_event];
-    for( auto& ep : get_thread(i).start_event->post_events ) {
-      // if( ep.e->is_mem_op() )
-      sa_es.insert( ep.e ); //todo: include fences??
-      helpers::set_insert( sa_es,  seq_after[ep.e]);
-      // tara::debug_print( std::cerr, sa_es );
+    for( const auto& sync : thread_syncs ) {
+      if( sync.first != e ) continue;
+      hb_enc::se_ptr ep = sync.second;
+      dominate_wr_accesses( ep, seq_dom_wr_after.at(ep), prevs );
+      // prevs.insert( sync.second );
+      // helpers::set_insert( prevs, seq_dom_wr_after.at(sync.second) );
     }
   }
+
 
 }
 

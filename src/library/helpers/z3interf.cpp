@@ -258,7 +258,7 @@ void z3interf::get_variables(const expr& expr, tara::variable_set& result)
   }
 }
 
-int z3interf::get_numeral_int(const expr& i) {
+int z3interf::get_numeral_int(const expr& i) const {
   int val;
   if( Z3_get_numeral_int( c, i, &val) ) {
     return val;

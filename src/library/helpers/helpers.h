@@ -77,8 +77,8 @@ public:
 #define wmm_error( S )               tara_error( "::wmm",                S )
 #define fence_synth_error( S )       tara_error( "::fence_synth",        S )
 #define bugs_error( S )              tara_error( "::bugs",               S )
-#define prune_error( S )             tara_error( "::prune::data_flow",   S )
-#define prune_data_flow_error( S )   tara_error( "::prune",              S )
+#define prune_error( S )             tara_error( "::prune",              S )
+#define prune_data_flow_error( S )   tara_error( "::prune::data_flow",   S )
 #define cssa_error( S )              tara_error( "::cssa",               S )
 #define hb_enc_error( S )            tara_error( "::hb_enc",             S )
 #define z3interf_error( S )          tara_error( "::z3interf",           S )
@@ -335,6 +335,12 @@ Key pick( std::set<Key>& doner ) {
     Key x = *doner.begin();
     doner.erase( x );
     return x;
+}
+
+
+template< class Key >
+void vec_insert( std::vector<Key>& vector1, const std::vector<Key>& vector2 ) {
+  vector1.insert( vector1.end(), vector2.begin(), vector2.end() );
 }
 
 template< class Key, class cmp >
