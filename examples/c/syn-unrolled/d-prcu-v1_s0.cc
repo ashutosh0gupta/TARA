@@ -94,3 +94,195 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+//###############################################
+//!-M c11 -u 1
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9,R#y#_l52_c22) ) 
+//#
+//~
+
+
+//###############################################
+//!-M c11 -u 2
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9,R#y#_l52_c22) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) 
+//#
+//~
+
+
+//###############################################
+//!-M c11 -u 3
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u0) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u1) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u4) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u5) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u6) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(U#readers#_l56_c9,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u0) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u0) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u1) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u1) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u10) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u2) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u2) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u4) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u5) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u6) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u7) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u8) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(U#readers#_l56_c9_u0,R#readers#_l68_c17_u9) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u0) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u7) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u1,R#y#_l52_c22_u1) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u0) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#readers#_l82_c5,R#readers#_l68_c17_u3) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9_u0,R#y#_l52_c22_u1) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18) ∧ rf(W#y#_l72_c9,R#y#_l52_c22) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u0) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u0) ) ∨
+//#( rf(W#readers#_l82_c5,R#readers#_l68_c17) ∧ rf(W#x#_l80_c5,R#x#_l50_c18_u1) ∧ rf(W#y#_l72_c9,R#y#_l52_c22_u1) ) 
+//#
+//~
+
