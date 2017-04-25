@@ -9,33 +9,32 @@ void fence();
 
 atomic_int x = 0;
 atomic_int y = 0;
-atomic_int r1 = 0;
-atomic_int r2 = 0;
 
 void* p0(void *) {
-  r1 = atomic_load_explicit( &y, memory_order_acquire );
-  // atomic_thread_fence(memory_order_seq_cst);
-  atomic_store_explicit( &x, 1, memory_order_release );
+  int s1 = atomic_load_explicit( &x, memory_order_relaxed );
+  if( s1 == 1 ) {
+    atomic_store_explicit( &y, 1, memory_order_relaxed );
+    assert( false );
+  }
   return NULL;
 }
 
 void* p1(void *) {
-  r2 = atomic_load_explicit( &x, memory_order_acquire );
-  // atomic_thread_fence(memory_order_seq_cst);
-  atomic_store_explicit( &y, 1, memory_order_release );
+  int s1 = atomic_load_explicit( &y, memory_order_relaxed );
+  atomic_store_explicit( &x, s1, memory_order_relaxed );
   return NULL;
 }
 
 int main() {
   pthread_t thr_0;
   pthread_t thr_1;
+  pthread_t thr_2;
+
   pthread_create(&thr_0, NULL, p0, NULL );
   pthread_create(&thr_1, NULL, p1, NULL );
 
   pthread_join(thr_0, NULL);
   pthread_join(thr_1, NULL);
-
-  assert( r1 == 0 || r2 == 0 );
 }
 
 
@@ -45,6 +44,9 @@ int main() {
 //###############################################
 //~
 //#
-//#All traces are good or infeasable.
+//#Final result
+//#Bad DNF
+//#( rf(W#x#_l24_c3,R#x#_l14_c12) ∧ rf(W#y#_l16_c5,R#y#_l23_c12) ) 
+//#
 //~
 

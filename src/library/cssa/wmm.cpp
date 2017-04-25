@@ -95,11 +95,13 @@ bool wmm_event_cons::is_rd_rd_coherance_preserved() {
 z3::expr wmm_event_cons::get_rf_bvar( const tara::variable& v1,
                                       hb_enc::se_ptr wr, hb_enc::se_ptr rd,
                                       bool record ) {
-  std::string bname = v1+"-"+wr->name()+"-"+rd->name();
-  z3::expr b = z3.c.bool_const(  bname.c_str() );
+  z3::expr b = hb_encoding.get_rf_bit( v1, wr, rd );
+  std::string bname = z3.get_top_func_name(b);
+  // std::string bname = v1+"-"+wr->name()+"-"+rd->name();
+  // z3::expr b = z3.c.bool_const(  bname.c_str() );
   if( record ) {
     p.reading_map.insert( std::make_tuple(bname, wr, rd) );
-    if( p.is_mm_c11() )
+    if( p.is_mm_c11() ) // keep a copy in encoding object//todo: remove copy
       hb_encoding.rf_map.insert( std::make_tuple(bname, wr, rd) );
   }
   return b;
@@ -172,6 +174,7 @@ void wmm_event_cons::ses() {
   // - ws  write serialization
 
   //todo: disable the following code if rd rd coherence not preserved
+  //todo: remove the following seq_before also calculates the following info
   hb_enc::se_to_ses_map prev_rds;
   for( unsigned t = 0; t < p.size(); t++ ) {
      const auto& thr = p.get_thread( t );
@@ -217,9 +220,11 @@ void wmm_event_cons::ses() {
               auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
               if( is_rd_rd_coherance_preserved() ) {
                 for( auto before_rd : prev_rds[rd] ) {
-                  z3::expr anti_coherent_b =
-                    get_rf_bvar( v1, after_wr, before_rd, false );
-                  new_fr = !anti_coherent_b && new_fr;
+                  if( rd->access_same_var( before_rd ) ) {
+                    z3::expr anti_coherent_b =
+                      get_rf_bvar( v1, after_wr, before_rd, false );
+                    new_fr = !anti_coherent_b && new_fr;
+                  }
                 }
               }
               fr = fr && implies( cond , new_fr );
@@ -534,6 +539,10 @@ void wmm_event_cons::ses_c11() {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e1, e2 );
       }else if( is_po_new( e2, e1 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
+      }else if( e1->is_fence() && e2->is_fence() ) {
+        fr = fr &&
+          hb_encoding.mk_hb_c11_hb(e1,e2) == hb_encoding.mk_hb_c11_sc(e1,e2) &&
+          hb_encoding.mk_hb_c11_hb(e2,e1) == hb_encoding.mk_hb_c11_sc(e2,e1);
       }else{
         fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
                                 hb_encoding.mk_hb_c11_sc( e1, e2 ) )
@@ -911,10 +920,10 @@ void wmm_event_cons::update_orderings() {
         tara::debug_print( o.out(), p.c11_rs_heads [e] );
         o.out() << "seq dominated wr before: ";
         tara::debug_print( o.out(), p.seq_dom_wr_before [e] );
-        o.out() << "seq dominated after: ";
+        o.out() << "seq dominated wr after: ";
         tara::debug_print( o.out(), p.seq_dom_wr_after [e] );
-        o.out() << "seq rd before: ";
-        tara::debug_print( o.out(), p.seq_rd_before[e] );
+        o.out() << "seq before: ";
+        tara::debug_print( o.out(), p.seq_before[e] );
         o.out() << "\n";
       }
     }

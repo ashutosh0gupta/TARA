@@ -303,10 +303,6 @@ translateBlock( unsigned thr_id,
                 std::map<const bb*,z3::expr>& conds,
                 std::map<const hb_enc::se_ptr, z3::expr>& branch_conds ) {
 
-  // std::string loc_name = "block__" + std::to_string(thr_id)
-  //                            + "__"+ std::to_string(block_to_id[b]);
-  // auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
-  //                         loc_name, hb_enc::event_t::block, branch_conds );
   hb_enc::source_loc loc_name = getBlockLocation(b);
   auto block = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,
                           loc_name, hb_enc::event_t::block, branch_conds );
@@ -472,6 +468,9 @@ translateBlock( unsigned thr_id,
     if( const llvm::CmpInst* cmp = llvm::dyn_cast<llvm::CmpInst>(I) ) {
       llvm::Value* lhs = cmp->getOperand( 0 ),* rhs = cmp->getOperand( 1 );
       z3::expr l = getTerm( lhs, m ), r = getTerm( rhs, m );
+      // l and r may have different types, due to llvm does not record clearly
+      // if something is bool or int. Our translation may incorrectly identify
+      // sort of some constant number. The following code corrects the mismatch
       if( !z3.matched_sort( l, r ) ) {
         if( z3.is_const( l ) ) {
           auto s = r.get_sort();
@@ -516,10 +515,8 @@ translateBlock( unsigned thr_id,
     }
     if( const llvm::PHINode* phi = llvm::dyn_cast<llvm::PHINode>(I) ) {
       std::vector<hb_enc::depends_set> dep_ses;
-      // assert( conds.size() > 1 );//todo:if not,review initialization of conds
       unsigned num = phi->getNumIncomingValues();
       if( phi->getType()->isIntegerTy() ) {
-        // z3::expr phi_cons = z3.mk_false(); //todo:remove;if replacement works
         z3::expr phi_cons = z3.mk_true();
         z3::expr ov = getTerm(I,m);
 
@@ -529,13 +526,11 @@ translateBlock( unsigned thr_id,
           if( exists( ignore_edges, prev ) ) continue;
           z3::expr v = getTerm (v_, m );
           phi_cons = phi_cons && (!conds.at(prev) || ov == v);
-          // phi_cons = phi_cons || (conds.at(prev) && ov == v);
           hb_enc::depends_set temp;
           hb_enc::pointwise_and( get_depends( v_ ), conds.at(prev), temp );
 	  dep_ses.push_back( temp );
         }
         hb_enc::join_depends_set( dep_ses, local_map[I] );
-        // block_ssa = block_ssa && z3::implies( path_cond, phi_cons);
         block_ssa = block_ssa && phi_cons;
         assert( !recognized );recognized = true;
       }else{
@@ -573,8 +568,8 @@ translateBlock( unsigned thr_id,
       assert( !recognized );recognized = true;
     }
     if( auto fence = llvm::dyn_cast<llvm::FenceInst>(I) ) {
+      //llvm native fence instruction
       assert( fence->getSynchScope()==llvm::SynchronizationScope::CrossThread);
-      // auto loc_name = "fence__" + getInstructionLocation( I ).name();
       auto loc_name = getInstructionLocation( I );
       auto fnce = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                              history, loc_name, hb_enc::event_t::barr,
@@ -592,7 +587,7 @@ translateBlock( unsigned thr_id,
         unsigned argnum = call->getNumArgOperands();
         auto loc_name = getInstructionLocation( I );
         if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
-          // auto loc_name = "fence__" + getInstructionLocation( I ).name();
+          //fence instruction as a call
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr );
           p->add_event( thr_id, barr );
@@ -600,13 +595,13 @@ translateBlock( unsigned thr_id,
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
                   argnum == 4 ) {
+          // thread create
           auto thr_ptr = call->getArgOperand(0);
           auto v = call->getArgOperand(2);
           if( !v->hasName() ) {
             v->getType()->print( llvm::outs() ); llvm::outs() << "\n";
             cinput_error("unnamed call to function pointers is not supported!");
           }
-          // auto loc_name = "create__" + getInstructionLocation( I ).name();
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr_b );
           std::string fname = (std::string)v->getName();
@@ -614,16 +609,14 @@ translateBlock( unsigned thr_id,
           p->add_create( thr_id, barr, fname );
           p->set_c11_rs_heads( barr, local_release_heads[b] );
           prev_events.clear(); prev_events.insert( barr );
-          // create
         }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
-          // join
+          // thread join
           auto val = call->getArgOperand(0);
           auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
           auto fname = ptr_to_create.at(thr_ptr);
           ptr_to_create.erase( thr_ptr );
           z3::expr join_cond = z3.get_fresh_bool();
           path_cond = path_cond && join_cond;
-          // auto loc_name = "join__" + getInstructionLocation( I ).name();
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr_a );
           p->add_join( thr_id, barr, join_cond, fname);
@@ -631,14 +624,13 @@ translateBlock( unsigned thr_id,
           join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
         }else if( fp != NULL && ( fp->getName() == "pthread_yield" ) ) {
-          // Since we are assume fully pre-emptive processor,
+          // Since we assume fully pre-emptive processor,
           // pthread_yield has no semantic effect on safety properties.
           // For liveness properties it may affect fairness condition. 
           if( o.print_input > 1 )
             cinput_warning( "pthread_yield ignored!!" );
         }else{
           std::string fname = fp != NULL ? fp->getName() : "null";
-          // llvm::outs() << "Unknown function " << fp->getName() << "!\n";
           cinput_error( "Unknown function "  << fname << " called!");
         }
       }

@@ -412,6 +412,16 @@ tara::variable_set z3interf::translate_variables(input::variable_set vars) {
   return newvars;
 }
 
+bool z3interf::is_true_in_model( const z3::model& m, z3::expr& e ) {
+  z3::expr v = m.eval( e );
+  return is_true( v );
+}
+
+bool z3interf::is_false_in_model( const z3::model& m, z3::expr& e ) {
+  z3::expr v = m.eval( e );
+  return is_false( v );
+}
+
 z3::expr z3interf::simplify( z3::expr e ) {
   z3::goal g(c);
   g.add(e);

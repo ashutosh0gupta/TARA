@@ -479,6 +479,12 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
 z3::expr fence_synth::
 mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
                            z3::expr& hard, bool sc_fence_needed ) {
+  if( segment.size() == 0 ) {
+    // Two possibilities of consecutive frs
+    //  R~~~>W1~~~>W2 : R~~~>W due to corw, so W'-mo->W1-mo->W2, so R~~~W2
+    //  W~~~>W~~~>W : both fr means mo; which is transitive so fr is transitive
+    return z3.mk_true();
+  }
   assert( segment.size() > 0 );
   z3::expr r_conj = z3.mk_true();
   std::vector< std::pair<cycle_edge,cycle_edge> > rf_segs;

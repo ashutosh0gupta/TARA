@@ -54,13 +54,15 @@ string string_of_print_options() {
 void options::get_description(po::options_description& desc, po::positional_options_description& pd)
 {
   std::string mm_select = "select a memory model ("+string_of_mm_names()+")";
+  std::string unroll_count_str = "unroll count of loops (default "+
+    std::to_string(loop_unroll_count) + ")";
   desc.add_options()
   ("hb-enc,e", po::value<string>(), "happens-before encoding (integer)")
   ("print,p", po::value<vector<string>>(), "print details about processing about a component (see readme)")
   ("prune,r", po::value<string>(), "select a chain of prune engines (see readme)")
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
   ("mm,M", po::value<string>()->default_value("none"), mm_select.c_str() )
-  ("unroll-loop,u", po::value<unsigned>(), "unroll count of loops (default 3)")
+  ("unroll-loop,u", po::value<unsigned>(), unroll_count_str.c_str())
   ;
   pd.add("input", -1);
 }

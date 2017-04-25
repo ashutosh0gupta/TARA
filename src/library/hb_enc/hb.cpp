@@ -72,6 +72,8 @@ hb::hb( se_ptr e1_, tstamp_ptr l1_,
   is_neg( is_neg ), is_partial( false ), type( hb_t::hb ),
   expr(expr)
 {
+ if( loc1->name.find( "__thin__" ) == 0 ) { type = hb_t::thin;
+  }
   update_signature();
 }
 
@@ -83,7 +85,9 @@ hb::hb( se_ptr e1_, tstamp_ptr l1_,
   is_neg(is_neg) , is_partial( is_partial ), type( hb_t::hb ),
   expr(expr)
 {
-  if( is_partial ) type = hb_t::phb;
+  if( is_partial ) { type = hb_t::phb;
+  }else if( loc1->name.find( "__thin__" ) == 0 ) { type = hb_t::thin;
+  }
   update_signature();
 }
 
@@ -115,9 +119,6 @@ bool operator< (const hb& hb1, const hb& hb2)
 {
   if( hb1.loc1 != nullptr && hb1.loc2 != nullptr &&
       hb2.loc1 != nullptr && hb2.loc2 != nullptr )
-    // return hb1.loc1->name < hb2.loc1->name ||
-    //   ( hb1.loc1->name ==  hb2.loc1->name &&
-    //     hb1.loc2->name < hb2.loc2->name );
     return COMPARE_OBJ2( hb1, hb2, loc1->name, loc2->name );
   return COMPARE_OBJ2( hb1, hb2, e1->name(), e2->name() );
 }
@@ -125,8 +126,8 @@ bool operator< (const hb& hb1, const hb& hb2)
 ostream& operator<< (std::ostream& stream, const hb& hb) {
   if( hb.type == hb_t::rf ) {
     stream << "rf(" << hb.e1->name() << "," << hb.e2->name() << ")";
-  }else if( hb.type == hb_t::sc ) {
-    stream << "sc(" << hb.e1->name() << "," << hb.e2->name() << ")";
+  }else if( hb.type == hb_t::thin ) {
+    stream << "hb_ar(" << hb.e1->name() << "," << hb.e2->name() << ")";
   }else{
     if( hb.is_partial && hb.is_neg )
       stream << "!hb(" << hb.e2->name() << "," << hb.e1->name() << ")";

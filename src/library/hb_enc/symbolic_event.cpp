@@ -121,31 +121,10 @@ std::string source_loc::gen_name() {
       return l_name + "_u" + std::to_string( seen_before[line_col]++ );
     }else{
       seen_before[line_col] = 0;
-      // seen_before.insert( line_col );
     }
     return l_name;
   }
 }
-
-// std::string source_loc::name() {
-//   static std::set< std::pair<unsigned, unsigned> > seen_before;
-//   static unsigned unknown_location_counter = 0;
-//   if( line == 0 && col == 0 ) {
-//     if( pretty_name != "" )
-//       return pretty_name;
-//     else
-//       return "_u" + std::to_string(unknown_location_counter++);
-//   }else{
-//     std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
-//     auto line_col = std::make_pair(line, col);
-//     if( exists( seen_before, line_col ) ) {
-//       return l_name + "_u" + std::to_string(unknown_location_counter++);
-//     }else{
-//       seen_before.insert( line_col );
-//     }
-//     return l_name;
-//   }
-// }
 
 tstamp_var_ptr
 symbolic_event::create_internal_event( helpers::z3interf& z3,
@@ -336,13 +315,6 @@ z3::expr symbolic_event::get_rd_expr( const tara::variable& g ) {
     return v_expr;
   }
   tara::variable tmp_v = g+"#post";
-  // tara::variable tmp_v(g.sort.ctx());
-  // switch( et ) {
-  // // case event_t::barr: { tmp_v = g+"#barr";  break; }
-  // case event_t::pre : { tmp_v = g+"#pre" ;  break; }
-  // case event_t::post: { tmp_v = g+"#post";  break; }
-  // default: hb_enc_exception("unreachable code!!");
-  // }
   return (z3::expr)(tmp_v);
 }
 
@@ -466,18 +438,15 @@ hb_enc::join_depends_set( const std::vector<hb_enc::depends_set>& dep,
                           hb_enc::depends_set& result ) {
   result.clear();
   unsigned num = dep.size();
-  // hb_enc::depends_set data_dep_ses;
   if ( num == 1 )
     result = dep.at(0);
   else if ( num == 2 )
     join_depends_set( dep.at(0), dep.at( 1 ), result );
   else if ( num > 2 ) {
-    // data_dep_ses = join_depends_set( dep.at(0), dep.at( 1 ), result );
     for ( unsigned i = 0 ; i < num ; i++ ) {
       join_depends_set( dep.at( i ), result );
     }
   }
-  // return data_dep_ses;
 }
 
 //todo : make depends set efficient
@@ -627,18 +596,3 @@ full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set& prev_es,
     ep->add_post_events( e, branch_conds.at(ep) );
   }
 }
-
-//todo: remove
-// void tara::hb_enc::full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set prev_es,
-//                                        z3::expr& path_cond, std::vector<z3::expr>& history_,
-//                                hb_enc::source_loc& loc, hb_enc::o_tag_t ord_tag,
-//                                std::map<const hb_enc::se_ptr, z3::expr>& branch_conds) {
-//   e->guard = path_cond;
-//   e->history = history_;
-//   e->o_tag = ord_tag;
-//   e->loc = loc;
-//   hb_enc.record_event( e );
-//     for(se_ptr ep  : prev_es) {
-//       ep->add_post_events( e, branch_conds.at(ep) );
-//     }
-//   }

@@ -144,13 +144,20 @@ public:
   z3::expr switch_sort( z3::expr& b, z3::sort& s );
   z3::sort get_variable_sort(const input::variable& var);
 
+  bool is_true_in_model( const z3::model& m, z3::expr& e );
+  bool is_false_in_model( const z3::model& m, z3::expr& e );
+
   //utilities
   z3::model maxsat( z3::expr hard, std::vector<z3::expr>& soft );
 
   template <class value>
-  static void min_unsat(z3::solver& sol, std::list<value>& items, std::function <z3::expr(value)> translate, bool potentially_input_sat = false);
+  static bool min_unsat(z3::solver& sol, std::list<value>& items,
+                        std::function <z3::expr(value)> translate,
+                        bool potentially_input_sat = false);
   template <class value>
-  static void remove_implied(const z3::expr& fixed, std::list< value >& items, std::function< z3::expr(value) > translate);
+  static void remove_implied( const z3::expr& fixed,
+                              std::list< value >& items,
+                              std::function< z3::expr(value) > translate);
   z3::expr simplify( z3::expr e );
   z3::expr simplify_or_vector( std::vector<z3::expr>& o_vec );
 

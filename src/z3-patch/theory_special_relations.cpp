@@ -77,6 +77,7 @@ namespace smt {
         SASSERT(m_util.is_special_relation(atm));
         relation* r = 0;
         if (!m_relations.find(atm->get_decl(), r)) {
+          //todo: push pop may get misaligned if the following alloc happens after push
             r = alloc(relation, m_util.get_property(atm), atm->get_decl()); 
             m_relations.insert(atm->get_decl(), r);
         }

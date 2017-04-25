@@ -115,6 +115,8 @@ public:
 // protected:
   std::set< std::tuple<std::string, hb_enc::se_ptr, hb_enc::se_ptr> > rf_map;
   std::map< std::string, hb_enc::hb_ptr > current_rf_map;
+  z3::expr get_rf_bit( const se_ptr&, const se_ptr& ) const;
+  z3::expr get_rf_bit( const tara::variable&, const se_ptr&, const se_ptr& ) const;
 public:
 //--------------------------------------------------------------------------
 //end of wmm support

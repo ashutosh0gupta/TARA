@@ -51,8 +51,8 @@ hb_enc::hb_vec remove_thin::prune( const hb_enc::hb_vec& hbs,
     auto& l1 = hb1->loc1;
     auto& l2 = hb1->loc2;
     if( ( l1->name.find("__thin__") != std::string::npos) &&
-        (l2->name.find("__thin__") != std::string::npos) ) remove = true; 
-    if( remove ) it = result.erase(it); else ++it; 
+        (l2->name.find("__thin__") != std::string::npos) ) remove = true;
+    if( remove ) it = result.erase(it); else ++it;
   }
   return result;
 }

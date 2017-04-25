@@ -28,8 +28,14 @@ using namespace tara::prune;
 
 using namespace std;
 
-unsat_core::unsat_core(const z3interf& z3, const tara::program& program, z3::solver sol_good) : prune_base(z3, program), sol_good(sol_good)
-{}
+unsat_core::unsat_core(const z3interf& z3,
+                       const tara::program& program,
+                       z3::solver sol_good)
+  : prune_base(z3, program), sol_good(sol_good), rf_scc_finder( z3 )
+{
+  rf_scc_finder.program = &program;
+  rf_scc_finder.verbose = program.options().print_pruning;
+}
 
 string unsat_core::name()
 {
@@ -50,12 +56,53 @@ list< z3::expr > unsat_core::prune(const list< z3::expr >& hbs, const z3::model&
   return hbsn;
 }
 
+// return the set of rf edges that form thin-air cycle
+bool unsat_core::find_thin_air_cycles( const hb_enc::hb_vec& hbs,
+                                       const z3::model& m,
+                                       hb_enc::hb_vec& involved_rfs) {
+  std::vector< hb_enc::se_set > sccs;
+  hb_enc::hb_vec rf_hbs;
+  involved_rfs.clear();
+  for( auto& hb : hbs ) {
+    if( hb->type == hb_enc::hb_t::rf || hb->type == hb_enc::hb_t::hb ||
+        ( hb->type == hb_enc::hb_t::phb && !hb->is_neg) ) {
+      auto& wr = hb->e1;
+      auto& rd = hb->e2;
+      if( wr == NULL || rd == NULL ) continue; // pre POPL'15 case
+      if(  wr->is_wr() && rd->is_rd() && wr->access_same_var(rd)) {
+        auto b = hb_enc.get_rf_bit( wr, rd );
+        z3::expr bv = m.eval( b );
+        if( Z3_get_bool_value( bv.ctx(), bv) == Z3_L_TRUE ) {
+          rf_hbs.push_back( hb );
+        }
+      }
+    }
+  }
+  if( rf_hbs.size() == 0 ) return false;
+  rf_scc_finder.find_sccs(rf_hbs, sccs);
+  //todo : inefficient code; prticipating rfs can be computed while calculating
+  //       sccs; now we
+  bool thin_found = false;
+  for( auto& scc : sccs ) {
+    if( scc.size() > 1 ) {
+      thin_found = true;
+      //found an rf cycle
+      for( auto& hb : rf_hbs ) {
+        if( helpers::exists( scc, hb->e1) && helpers::exists( scc, hb->e2 ) ) {
+          involved_rfs.push_back(hb);
+        }
+      }
+    }
+  }
+  return thin_found;
+}
+
 hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
                                   const z3::model& m)
 {
   std::list< z3::expr > hbs_expr;
   std::list< z3::expr > rfs_expr;
-    // test minunsat here
+  // test minunsat here
   sol_good.push();
   // insert initial variable valuation
   z3::expr initial = program.get_initial(m);
@@ -64,44 +111,51 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
     i++;
     z3::expr h_expr = (*hb);
     if( hb->type == hb_enc::hb_t::rf ) {
-      // rfs_expr.push_back( h_expr );
       z3::expr gurd = hb->e1->guard && hb->e2->guard;
       h_expr = z3::implies( gurd, h_expr );
     }
-    // else {
-      hbs_expr.push_back( h_expr );
-    // }
-    // if( hb->e1 && hb->e2 ) {
-    //   z3::expr e = hb->e1->guard && hb->e2->guard;
-    //   // std::cout << i << " " << hb->e1->name() << hb->e2->name() << " " << e << "\n";
-    //   //sol_good.add(e);
-    // }
+    hbs_expr.push_back( h_expr );
   }
-
-  hbs_expr.splice( hbs_expr.begin(), rfs_expr);
-
   sol_good.add(program.get_initial(m));
 
+  auto id_fun = [](z3::expr e) { return e; };
+  bool is_unsat = z3interf::min_unsat<z3::expr>(sol_good,hbs_expr,id_fun,true );
+
 #ifndef NDEBUG
-  // static unsigned cnt = 0; cnt++;
-  // if( cnt == 16 ) {
-  //   sol_good.push();
-  //   for( auto& hb :  hbs_expr ) sol_good.add( hb );
-  //   if( sol_good.check() != z3::unsat ) {
-  //     auto mp = sol_good.get_model();
-  //     program.print_execution( "unwanted-good", mp );
-  //     prune_error(  "good is feasible!!" );
-  //   }
-  //   sol_good.pop();
-  // }
+  if( !is_unsat && program.options().print_pruning > 3 ) {
+    prune_error( "untested_code!!" );
+    sol_good.push();
+    for( auto& hb :  hbs_expr ) sol_good.add( hb );
+    auto res = sol_good.check();
+    assert( res == z3::sat );
+    auto mp = sol_good.get_model();
+    program.print_execution( "unwanted-good", mp );
+    sol_good.pop();
+  }
 #endif // NDEBUG
 
-  z3interf::min_unsat<z3::expr>(sol_good, hbs_expr, [](z3::expr e) { return e; });
-  // { // in return state is sat then we can debug the state
-  //   z3::model mp = sol_good.get_model();
-  //   program.print_execution( "dump", mp );
-  // }
-  // std::cout << sol_good;
+  hb_enc::hb_vec thin_air_rfs;
+  if( !is_unsat ) {
+    // rf cycles are suspected
+    if( find_thin_air_cycles( hbs, m, thin_air_rfs ) ) {
+      hb_enc::se_set rds;
+      z3::expr fix_thin = z3.mk_true();
+      for( auto rf : thin_air_rfs ) {
+        hb_enc::se_ptr rd = rf->e1;
+        z3::expr vname = rd->rd_v();
+        z3::expr e = m.eval(vname);
+        if (((Z3_ast)vname) != ((Z3_ast)e))
+          fix_thin = fix_thin && vname == e;
+      }
+      sol_good.add( fix_thin );
+      if( program.options().print_pruning > 2 ) {
+        debug_print( program.options().out(), thin_air_rfs );
+      }
+    }else{
+      prune_error( "thin air values found!!" );
+    }
+    z3interf::min_unsat<z3::expr>( sol_good, hbs_expr, id_fun );
+  }
   sol_good.pop();
   hb_enc::hb_vec final_result;
   for( z3::expr e : hbs_expr ) {
@@ -114,5 +168,7 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
       final_result.push_back( u_hb );
     }
   }
+  vec_insert( final_result, thin_air_rfs );
+  helpers::remove_duplicates( final_result );
   return final_result;
 }

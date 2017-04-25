@@ -130,6 +130,7 @@ public:
       return v;
     }
   }
+  void find_sccs( const hb_vec& hbs, std::vector< hb_enc::se_set >& );
 
 private:
   typedef  std::vector< std::pair<hb_enc::se_ptr,hb_enc::se_ptr> > hb_conj;
@@ -194,6 +195,7 @@ private:
                      z3::solver& ord_solver, const hb_enc::hb_vec& involved_rfs,
                      const hb_enc::hb_vec& hb_local,
                      hb_enc::hb_vec& causes );
+  void load_edges( const hb_vec& );
 
 };
 

@@ -183,11 +183,10 @@ struct source_loc{
   private:
     unsigned topological_order;
   public:
-    tstamp_var_ptr e_v; // variable for solver
-    tstamp_var_ptr thin_v; // thin air variable
-
-    // c11 variables
-    tstamp_var_ptr c11_hb_v; // po hb variable
+    // several time stamps are needed for modelling memory models
+    tstamp_var_ptr e_v;      // variable for solver // c11 sc variable
+    tstamp_var_ptr thin_v;   // thin air variable   // c11 mo variable
+    tstamp_var_ptr c11_hb_v;                        // c11 hb variables
 
     event_t et;    // type of the event
     o_tag_t o_tag; // ordering tag on the event

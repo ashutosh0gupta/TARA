@@ -28,10 +28,10 @@ namespace tara {
   void accesses( const hb_enc::se_ptr& ep,
                     const hb_enc::se_set& ep_sets,
                     hb_enc::se_set& new_prevs ) {
-    if( ep->is_mem_op() )
+    if( ep->is_pre() || ep->is_mem_op() )
       new_prevs.insert( ep );
     for( auto& epp : ep_sets )
-      if( epp->is_mem_op() )
+      if( ep->is_pre() || epp->is_mem_op() )
         new_prevs.insert( epp );
   }
 
@@ -52,7 +52,7 @@ void program::update_seq_orderings() {
   seq_ordering_has_been_called = true;
 
   seq_dom_wr_before.clear();
-  seq_rd_before.clear();
+  seq_before.clear();
   seq_dom_wr_after.clear();
 
   // create solver
@@ -103,21 +103,17 @@ void program::update_seq_orderings() {
 
   for( auto e : all_es ) {
     auto& prevs = seq_dom_wr_before[e];
-    auto& rd_prevs = seq_rd_before[e];
+    auto& rd_prevs = seq_before[e];
     prevs.clear();
     for( auto& ep : e->prev_events ) {
       dominate_wr_accesses( ep, seq_dom_wr_before.at(ep), prevs );
-      accesses( ep, seq_rd_before.at(ep), rd_prevs );
-      // prevs.insert( ep ); //todo: include fences??
-      // helpers::set_insert( prevs,seq_dom_wr_before.at(ep) );
+      accesses( ep, seq_before.at(ep), rd_prevs );
     }
     for( const auto& sync : thread_syncs ) {
       if( sync.second != e ) continue;
       hb_enc::se_ptr ep = sync.first;
       dominate_wr_accesses( ep, seq_dom_wr_before.at(ep), prevs );
-      accesses( ep, seq_rd_before.at(ep), rd_prevs );
-      // prevs.insert( sync.first );
-      // helpers::set_insert( prevs, seq_dom_wr_before.at(sync.first) );
+      accesses( ep, seq_before.at(ep), rd_prevs );
     }
   }
 
@@ -128,15 +124,11 @@ void program::update_seq_orderings() {
     prevs.clear();
     for( auto& ep : e->post_events ) {
       dominate_wr_accesses( ep.e, seq_dom_wr_after.at(ep.e), prevs );
-      // prevs.insert( ep.e );
-      // helpers::set_insert( prevs,seq_dom_wr_after.at(ep.e) );
     }
     for( const auto& sync : thread_syncs ) {
       if( sync.first != e ) continue;
       hb_enc::se_ptr ep = sync.second;
       dominate_wr_accesses( ep, seq_dom_wr_after.at(ep), prevs );
-      // prevs.insert( sync.second );
-      // helpers::set_insert( prevs, seq_dom_wr_after.at(sync.second) );
     }
   }
 

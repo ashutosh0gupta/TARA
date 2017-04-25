@@ -467,6 +467,19 @@ void remove_duplicates(std::list<content>& v) {
 }
 
 template <class content>
+void remove_duplicates(std::vector<content>& v) {
+  for(auto it = v.begin(); it!=v.end(); it++) {
+    auto j = it;
+    for (j++; j!=v.end(); ) {
+      if (*j==*it)
+        j = v.erase(j);
+      else
+        j++;
+    }
+  }
+}
+
+template <class content>
 void print_list(const std::list<content>& v, std::ostream& out) {
   for(content c: v)
     out << c << std::endl;

@@ -120,6 +120,7 @@ z3::sort cinput::llvm_to_z3_sort( z3::context& c, llvm::Type* t ) {
   return c.int_sort(); // dummy return
 }
 
+//todo: deprecated
 std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
   const llvm::DebugLoc d = I->getDebugLoc();
   static std::set< std::pair<unsigned, unsigned> > seen_before;
@@ -127,6 +128,8 @@ std::string  cinput::getInstructionLocationName(const llvm::Instruction* I ) {
   if( d ) {
     unsigned line = d.getLine();
     unsigned col  = d.getCol();
+    auto *Scope = llvm::cast<llvm::DIScope>(d.getScope());
+    std::string file_name = Scope->getFilename();
     std::string l_name = "_l" + std::to_string(line) + "_c" + std::to_string(col);
     auto line_col = std::make_pair(line, col);
     if( exists( seen_before, line_col ) ) {
@@ -147,7 +150,8 @@ hb_enc::source_loc cinput::getInstructionLocation(const llvm::Instruction* I ) {
   if( d ) {
     l.line = d.getLine();
     l.col  = d.getCol();
-    //l.file //todo: get filename
+    auto *Scope = llvm::cast<llvm::DIScope>(d.getScope());
+    l.file = Scope->getFilename();
   }
   return l;
 }

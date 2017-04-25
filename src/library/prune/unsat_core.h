@@ -22,6 +22,7 @@
 #define TARA_PRUNE_UNSAT_CORE_H
 
 #include "prune/prune_base.h"
+#include "hb_enc/cycles.h"
 
 namespace tara {
 namespace prune {
@@ -35,6 +36,11 @@ public:
   virtual std::string name();
 private:
   z3::solver sol_good;
+  hb_enc::cycles rf_scc_finder;
+  hb_enc::hb_vec find_thin_cycles( const hb_enc::hb_vec& hbs );
+  bool find_thin_air_cycles( const hb_enc::hb_vec& hbs,
+                             const z3::model& m,
+                             hb_enc::hb_vec& involved_rfs );
 };
 }}
 

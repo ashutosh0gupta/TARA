@@ -213,6 +213,30 @@ bool encoding::eval_hb( const z3::model& m,
   return eval_hb( m, before->e_v, after->e_v );
 }
 
+
+  z3::expr encoding::get_rf_bit( const tara::variable& v1,
+                                 const se_ptr& wr,
+                                 const se_ptr& rd ) const {
+    assert( ( wr->is_pre() || wr->is_wr() ) &&
+            ( rd->is_rd() || rd->is_post() ) );
+    assert( !wr->is_wr() || v1 == wr->prog_v );
+    assert( !rd->is_rd() || v1 == rd->prog_v );
+
+    std::string bname = v1+"-"+wr->name()+"-"+rd->name();
+    return z3.c.bool_const(  bname.c_str() );
+  }
+
+  z3::expr encoding::get_rf_bit( const se_ptr& wr,
+                                 const se_ptr& rd ) const {
+    assert( wr->is_wr() && rd->is_rd() );
+    assert( wr->prog_v == rd->prog_v );
+    const tara::variable& v1 = wr->prog_v;
+    return get_rf_bit( v1, wr, rd );
+    // std::string bname = v1+"-"+wr->name()+"-"+rd->name();
+    // return z3.c.bool_const(  bname.c_str() );
+  }
+
+
 vector<hb_ptr> encoding::get_hbs( z3::model& m )
 {
   vector<hb_ptr> result;
@@ -229,11 +253,7 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m )
         z3::expr v2 = m.eval( hb->e2->guard );
         if( Z3_get_bool_value( v1.ctx(), v1)  != Z3_L_TRUE ||
             Z3_get_bool_value( v2.ctx(), v2)  != Z3_L_TRUE ) {
-          // std::cout << "=========== experimental code triggered!!\n";
           continue;
-          // std::cout << hb->e1->name() << "\n";
-          // std::cout << hb->e2->name() << "\n";
-          // hb_enc_error( "failed atom");
         }
       }
       assert(eval_hb(m, hb->loc1, hb->loc2));
@@ -247,6 +267,14 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m )
     auto hb = get_hb( atom );
     if( hb && !hb->loc1->special && !hb->loc2->special &&
         hb->loc1->thread != hb->loc2->thread ) {
+      if( hb->e1 && hb->e2 ) { // for compatibility of the earlier version of tara
+        z3::expr v1 = m.eval( hb->e1->guard );
+        z3::expr v2 = m.eval( hb->e2->guard );
+        if( Z3_get_bool_value( v1.ctx(), v1)  != Z3_L_TRUE ||
+            Z3_get_bool_value( v2.ctx(), v2)  != Z3_L_TRUE ) {
+          continue;
+        }
+      }
       hb_ptr h = make_shared<hb_enc::hb>(*hb);
       result.push_back(h);
       // std::cerr << atom << "\n";

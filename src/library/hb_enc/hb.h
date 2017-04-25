@@ -34,13 +34,12 @@ namespace tara {
 namespace hb_enc {
 
 
-  // memory model there may be several timing constraints
+  // In memory model, there may be several kind of timing constraints
   enum class hb_t {
-     hb  // timing ordering
-   , rf  // rf ordering
-   , phb // partial ordered hb
-   , sc  // sc ordering in c11
-   , thin // thin air hb
+     hb   // timing ordering                  // sc in c11
+   , rf   // rf ordering
+   , phb  // partial ordered hb introduced in // base in c11
+   , thin // thin air hb                      // mo in c11
        };
 
 struct hb {
@@ -63,19 +62,18 @@ public:
       z3::expr expr, bool is_neg, bool is_partial );
   hb( se_ptr e1_, se_ptr e2_, z3::expr expr, bool is_neg, hb_t type_ );
   uint32_t signature(); // a unique integer indentifying the hb
-  
+
   bool operator==(const hb &other) const;
   bool operator!=(const hb &other) const;
-  
+
   friend std::ostream& operator<< (std::ostream& stream, const hb& hb);
   void debug_print(std::ostream& stream );
-  
+
   hb negate() const;
 
   bool is_hb()   const { return type == hb_t::hb; };
   bool is_rf()   const { return type == hb_t::rf; };
   bool is_partial_ord_hb() const { return type == hb_t::phb; };
-  bool is_sc()   const { return type == hb_t::sc; };
   bool is_thin() const { return type == hb_t::thin; };
 
   friend bool operator< (const hb& hb1, const hb& hb2);

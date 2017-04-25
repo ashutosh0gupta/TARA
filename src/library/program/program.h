@@ -233,8 +233,8 @@ namespace tara {
     hb_enc::se_to_depends_map ppo_before;
     hb_enc::se_to_depends_map c11_rs_heads; // c11 release sequence heads
 
+    hb_enc::se_to_ses_map seq_before;
     hb_enc::se_to_ses_map seq_dom_wr_before;
-    hb_enc::se_to_ses_map seq_rd_before;
     hb_enc::se_to_ses_map seq_dom_wr_after;
     void update_seq_orderings();
 

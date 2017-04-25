@@ -94,61 +94,65 @@ bool integer::eval_hb(const z3::model& model, hb_enc::tstamp_ptr loc1, hb_enc::t
   return model.eval(make_hb(loc1, loc2)).get_bool();
 }
 
-pair<integer::mapit,integer::mapit> integer::get_locs(const z3::expr& hb, bool& possibly_equal, bool& is_partial) const {
-  // we need to flip that bool parameter in to know if we are sure about this result or not (two tstamps can be assigned an equal integer)
+pair<integer::mapit,integer::mapit>
+integer::get_locs( const z3::expr& hb,
+                   bool& possibly_equal,
+                   bool& is_partial ) const {
+  // we need to flip that bool parameter in to know if we are sure about
+  // this result or not (two tstamps can be assigned an equal integer)
   auto loc1 = tstamp_lookup.end();
   auto loc2 = tstamp_lookup.end();
   switch(hb.kind()) {
-    case Z3_APP_AST:
-    {
-      z3::func_decl d = hb.decl();
-      Z3_decl_kind dk = d.decl_kind();
-      switch(dk) {
-        case Z3_OP_LE:
-          possibly_equal = true; // fallthrough
-        case Z3_OP_LT: 
-          if (hb.arg(1).kind() == Z3_NUMERAL_AST)
-            return get_locs(hb.arg(0), possibly_equal, is_partial);
-          loc1 = tstamp_lookup.find(hb.arg(0));
-          loc2 = tstamp_lookup.find(hb.arg(1));
-          break;
-        case Z3_OP_GE: 
-          possibly_equal = true; // fallthrough
-        case Z3_OP_GT: 
-          if (hb.arg(1).kind() == Z3_NUMERAL_AST) {
-            return swap_pair(get_locs(hb.arg(0), possibly_equal, is_partial));
-          }
-          loc1 = tstamp_lookup.find(hb.arg(1));
-          loc2 = tstamp_lookup.find(hb.arg(0));
-          break;
-      case Z3_OP_NOT: {
-        auto neg_hb = get_locs(hb.arg(0), possibly_equal, is_partial);
-        auto res = swap_pair( neg_hb );
-        possibly_equal = !possibly_equal;
-        return res;
-        break;
+  case Z3_APP_AST: {
+    z3::func_decl d = hb.decl();
+    Z3_decl_kind dk = d.decl_kind();
+    switch(dk) {
+    case Z3_OP_LE:
+      possibly_equal = true; // fallthrough
+    case Z3_OP_LT:
+      if (hb.arg(1).kind() == Z3_NUMERAL_AST)
+        return get_locs(hb.arg(0), possibly_equal, is_partial);
+      loc1 = tstamp_lookup.find(hb.arg(0));
+      loc2 = tstamp_lookup.find(hb.arg(1));
+      break;
+    case Z3_OP_GE:
+      possibly_equal = true; // fallthrough
+    case Z3_OP_GT:
+      if (hb.arg(1).kind() == Z3_NUMERAL_AST) {
+        return swap_pair(get_locs(hb.arg(0), possibly_equal, is_partial));
       }
-      case Z3_OP_ADD: {
-        loc1 = tstamp_lookup.find(hb.arg(0));
-        z3::expr t1 = hb.arg(1);
-        if (t1.decl().decl_kind() == Z3_OP_MUL) {
-          loc2 = tstamp_lookup.find(t1.arg(1));
-        }
-        break;
+      loc1 = tstamp_lookup.find(hb.arg(1));
+      loc2 = tstamp_lookup.find(hb.arg(0));
+      break;
+    case Z3_OP_NOT: {
+      auto neg_hb = get_locs(hb.arg(0), possibly_equal, is_partial);
+      auto res = swap_pair( neg_hb );
+      possibly_equal = !possibly_equal;
+      return res;
+      break;
+    }
+    case Z3_OP_ADD: {
+      loc1 = tstamp_lookup.find(hb.arg(0));
+      z3::expr t1 = hb.arg(1);
+      if (t1.decl().decl_kind() == Z3_OP_MUL) {
+        // todo: check the the other multiplicant is -1
+        loc2 = tstamp_lookup.find(t1.arg(1));
       }
-      case Z3_OP_SPECIAL_RELATION_PO: {
-        is_partial = true;
-        loc1 = tstamp_lookup.find(hb.arg(0));
-        loc2 = tstamp_lookup.find(hb.arg(1));
-        break;
-      }
-      default:
-        break;
-      }
+      break;
+    }
+    case Z3_OP_SPECIAL_RELATION_PO: {
+      is_partial = true;
+      loc1 = tstamp_lookup.find(hb.arg(0));
+      loc2 = tstamp_lookup.find(hb.arg(1));
       break;
     }
     default:
       break;
+    }
+    break;
+  }
+  default:
+    break;
   }
   return make_pair<integer::mapit,integer::mapit>(std::move(loc1),std::move(loc2));
 }
@@ -179,12 +183,13 @@ hb_ptr integer::get_hb(const z3::expr& hb, bool allow_equal) const
     se_ptr e2;
     if( event_lookup.find( l2->expr ) != event_lookup.end() )
       e2 = event_lookup.at( l2->expr );
-    if( is_partial )
+    if( is_partial ){
       return shared_ptr<hb_enc::hb>(new hb_enc::hb( e1, l1, e2, l2, hb,
                                                     possibly_equal,is_partial));
-    else
+    }else{
       return shared_ptr<hb_enc::hb>(new hb_enc::hb(e1, l1, e2, l2, hb,
                                                    possibly_equal));
+    }
   } else
     return shared_ptr<hb_enc::hb>();
 }
