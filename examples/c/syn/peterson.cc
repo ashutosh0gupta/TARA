@@ -9,18 +9,25 @@
 
 #include <atomic>
 #include "threads.h"
+//#include <assert.h>
+#include <stdlib.h>/* //srand, rand */
+#include <time.h>       /* time */
 
 #include "librace.h"
 #include "mem_op_macros.h"
+#include "model-assert.h"
 
-std::atomic<bool> flag0("flag0"), flag1("flag1");
-std::atomic<int> turn("turn");
+atomic_bool flag0, flag1;
+atomic_int turn;
+
+// std::atomic<bool> flag0("flag0"), flag1("flag1");
+// std::atomic<int> turn("turn");
 
 uint32_t critical_section = 0;
 
 void * p0(void *arg)
 {
-    int t1_loop_itr_bnd = 3; // 2; // 1;
+    int t1_loop_itr_bnd = 3;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){
         store(&flag0, true, std::memory_order_relaxed);
@@ -43,7 +50,7 @@ return NULL;}
 
 void * p1(void *arg)
 {
-    int t2_loop_itr_bnd = 3; // 2; // 1;
+    int t2_loop_itr_bnd = 3;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
         store(&flag1, true,std::memory_order_relaxed);

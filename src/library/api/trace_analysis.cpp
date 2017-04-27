@@ -167,44 +167,28 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
     auto start_time = chrono::steady_clock::now();
     z3::model m = sol_bad.get_model();
     o.round++;
+
+    // printing
     if (o.print_rounds >= 1) {
         o.out() << "Round " << o.round << endl;
       if( program->is_original() ) {
-        auto p = (ctrc::program*)(program.get());
         o.out() << "Example found:" << endl;
-        if (o.machine)
-          p->print_hb(m, cout, true);
-        else
-          p->print_hb(m, o.out());
+        ((ctrc::program*)(program.get()))->print_hb(m, o.out(), o.machine );
       }else{
         program->print_execution( "round-"+std::to_string(o.round), m );
       }
-      if( o.print_rounds >=2 ) {
-        o.out() << "Model:" << endl;
-        o.out() << m << endl;
-        o.out() << endl;
-      }
+      if( o.print_rounds >=2 ) o.out() << "Model:" << endl << m << endl << endl;
       o.out() << endl << endl;
     }
 
+    // read solver for hbs constraints
     hb_enc::hb_vec hbs = hb_encoding.get_hbs(m);
-    // z3::expr forbid = prune::apply_prune_chain( prune_chain, hbs, m,
-    //                                             o.print_pruning, o.out(),
-    //                                             hb_encoding );
-
-    prune::apply_prune_chain( prune_chain, o, m, hbs
-                              // o.print_pruning, o.out(),
-                              // hb_encoding
-                              );
+    // remove unnecessary hbs
+    prune::apply_prune_chain( prune_chain, o, m, hbs );
 
     z3::expr forbid = hb_encoding.mk_expr( hbs );
-    // z3::expr forbid = z3.mk_true(); //m.ctx().bool_val(true);
-    // for(auto hb : hbs) {
-    //   z3::expr hb_e = *hb;
-    //   forbid = forbid && hb_e;
-    // }
-    // return final;
 
+    //printing
     if (o.machine && o.print_pruning >=1 ) {
       Z3_lbool forbid_value = Z3_get_bool_value(forbid.ctx(),forbid.simplify());
       if (forbid_value == Z3_L_UNDEF) {
@@ -213,20 +197,17 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
         output::nf::print_one(cout, true, disj, true);
       }
     }
-
     if( o.print_rounds >= 1) {
       o.out() << "Round result:" << endl;
       tara::debug_print( o.out(), hbs );
       o.out() << endl;
     }
-    //o.out() << forbid.simplify() << endl;
-    // if( program->is_mm_declared() ) {
-    //   z3::expr guarded_forbid = hb_encoding.mk_guarded_forbid_expr(hbs);
-    //   sol_bad.add(guarded_forbid);
-    // }else
+
     sol_bad.add(!forbid);
     result = result || forbid;
     hb_result.push_back( hbs );
+
+    //stats
     auto end_time = chrono::steady_clock::now();
     metric.sum_round_time += chrono::duration_cast<chrono::microseconds>(end_time - start_time).count();
     metric.sum_hbs += hbs.size();

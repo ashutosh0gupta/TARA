@@ -257,22 +257,23 @@ z3::expr fence_synth::get_rlsacq_var_bit( const hb_enc::se_ptr& b,
 z3::expr fence_synth::get_rls_bit( const hb_enc::se_ptr& e,
                                    const tara::variable& v ) {
   //todo: does not support na correctly fix it
-  assert( !e->is_mem_op() || !e->is_na() );
-  if( e->prog_v != v || !e->is_wr() ) return z3.mk_false();
+  // assert( !e->is_mem_op() || !e->is_na() );
+  // assert( e->is_mem_op() );
+  if( e->prog_v != v || !e->is_wr() || e->is_na() ) return z3.mk_false();
   if( e->is_at_least_rls() ) return z3.mk_true();
   return rls_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_acq_bit( const hb_enc::se_ptr& e,
                                    const tara::variable& v ) {
-  if( e->prog_v != v  || !e->is_rd() ) return z3.mk_false();
+  if( e->prog_v != v  || !e->is_rd() || e->is_na() ) return z3.mk_false();
   if( e->is_at_least_acq() ) return z3.mk_true();
   return acq_v_map.at( e->get_position_name() ).second;
 }
 
 z3::expr fence_synth::get_rlsacq_bit( const hb_enc::se_ptr& e,
                                       const tara::variable& v ) {
-  if( e->prog_v != v || !e->is_update() ) return z3.mk_false();
+  if( e->prog_v != v || !e->is_update() || e->is_na() ) return z3.mk_false();
   if( e->is_at_least_rlsacq() ) return z3.mk_true();
   return rlsacq_v_map.at( e->get_position_name() ).second;
 }
@@ -458,12 +459,9 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
               get_rlsacq_bit( b, v ) } );
         conj_acq_map_copy.insert( { v, get_acq_bit( b, v ) ||
               get_rlsacq_bit( b, v ) } );
-        // conj_rls_map_copy.insert( { v, z3.mk_false() } );
-        // conj_acq_map_copy.insert( { v, z3.mk_false() } );
       }
       conj_rls_map = conj_rls_map_copy;
       conj_acq_map = conj_acq_map_copy;
-      // hard = hard && !get_rls_bit( b, b->prog_v );
     }
     z3::expr cs = implies( get_sc_var_bit ( b, i ), conj_sc );
     cs = cs && implies( get_rls_var_bit( b, i ), conj_rls );
@@ -475,14 +473,15 @@ void fence_synth::mk_c11_edge_constraint( hb_enc::se_ptr& b, hb_enc::se_ptr& a,
     hard = hard && cs;
   }
 }
+
 // three possibilites rf,hb,ppo
 z3::expr fence_synth::
 mk_c11_segment_constraint( std::vector<cycle_edge>& segment,
                            z3::expr& hard, bool sc_fence_needed ) {
   if( segment.size() == 0 ) {
     // Two possibilities of consecutive frs
-    //  R~~~>W1~~~>W2 : R~~~>W due to corw, so W'-mo->W1-mo->W2, so R~~~W2
-    //  W~~~>W~~~>W : both fr means mo; which is transitive so fr is transitive
+    // R~~~>W1~~~>W2 : R~~~>W due to corw, so W'-mo->W1-mo->W2, so R~~~>W2
+    // W~~~>W~~~>W : both fr means mo; which is transitive so fr is transitive
     return z3.mk_true();
   }
   assert( segment.size() > 0 );
@@ -611,11 +610,17 @@ z3::expr fence_synth::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
                                    // there are more than two fr in the cycle.
     std::vector<cycle_edge> prefix;
     std::vector<cycle_edge> segment;
+    hb_enc::se_ptr start;
     for( auto& ed : cycle.edges ) {
       if( ed.type == edge_type::fr ) {
         if( prefix_mode == true ) {
           prefix_mode = false;
         }else{
+          if( segment.size() == 0 && ed.before->is_na() )
+            // empty segment with non-atomic event;
+            // there is no way we can cut the cycle!!
+            // todo: think about it? na's are unupgradable
+            return z3.mk_false();
           r_conj = r_conj && mk_c11_segment_constraint( segment, hard);
           sc_fence_needed = true;
           segment.clear();
@@ -629,6 +634,8 @@ z3::expr fence_synth::mk_cycle_constraint(cycle& cycle, z3::expr& hard) {
       }
     }
     segment.insert(segment.end(), prefix.begin(), prefix.end());
+    if( segment.size() == 0 && cycle.edges[0].before->is_na() )
+      return z3.mk_false();
     r_conj = r_conj && mk_c11_segment_constraint(segment, hard,sc_fence_needed);
   }else{
     for( auto edge : cycle.edges ) {
@@ -700,17 +707,17 @@ void fence_synth::gen_max_sat_problem_new() {
            && implies(rlsacq_b, acq_b);
          // activate following code for disabling fence insertion
          // hard = hard && !rls_b && !acq_b;
-         if( e->is_wr() && !e->is_at_least_rls() ) {
+         if( e->is_wr() && !e->is_at_least_rls() && !e->is_na() ) {
            //todo: incorrect handling of na events
            auto rls_v_b=create_sync_bit(rls_v_map,"rls_v_",e, soft);
            // hard = hard && implies(rls_b, rls_v_b);
          }
-         if( e->is_rd() && !e->is_at_least_acq() ) {
+         if( e->is_rd() && !e->is_at_least_acq() && !e->is_na() ) {
            //todo: incorrect handling of na events
            auto acq_v_b=create_sync_bit(acq_v_map,"acq_v_",e, soft);
            // hard = hard && implies(acq_b, acq_v_b);
          }
-         if( e->is_update() && !e->is_at_least_rlsacq() ) {
+         if( e->is_update() && !e->is_at_least_rlsacq() && !e->is_na() ) {
            auto rlsacq_v_b=create_sync_bit(rlsacq_v_map,"rlsacq_v_",e,soft);
            // hard = hard && implies( rlsacq_b,   rlsacq_v_b );
            hard = hard && implies( rlsacq_v_b, get_rls_bit(e,e->prog_v) );

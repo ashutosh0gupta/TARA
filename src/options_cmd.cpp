@@ -114,25 +114,10 @@ void options_cmd::interpret_options(po::variables_map& vm) {
       arg_error("Mode must be one of: " + names);
     }
     if( mode == modes::fsynth ) {
-      if( mm != tara::mm_t::c11 )
+      // if( mm != tara::mm_t::c11 )
         prune_chain = prune_chain + ",remove_non_cycled";
     }
 
-    // if (_mode == "seperate")
-    //   mode = modes::seperate;
-    // else if (_mode == "as")
-    //   mode = modes::as;
-    // else if (_mode == "synthesis")
-    //   mode = modes::synthesis;
-    // else if (_mode == "wmm_synthesis" && _mode == "fsynth") {
-    //   mode = modes::fsynth;
-    //   prune_chain = prune_chain + ",remove_non_cycled";
-    // }else if (_mode == "bugs")
-    //   mode = modes::bugs;
-    // else {
-    //   std::string names = string_mode_names();
-    //   arg_error("Mode must be one of: " + names);
-    // }
   }
 
 }

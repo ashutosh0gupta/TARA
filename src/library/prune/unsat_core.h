@@ -41,6 +41,9 @@ private:
   bool find_thin_air_cycles( const hb_enc::hb_vec& hbs,
                              const z3::model& m,
                              hb_enc::hb_vec& involved_rfs );
+private:
+  void dump_sat_exec( std::list< z3::expr >& hbs_expr, std::string name="" );
+
 };
 }}
 

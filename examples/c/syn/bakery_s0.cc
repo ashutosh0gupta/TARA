@@ -11,11 +11,14 @@
 #include <atomic>
 #include "threads.h"
 //#include <assert.h>
+#include <stdlib.h>/* //srand, rand */
+#include <time.h>       /* time */
 
 #include "librace.h"
 #include "mem_op_macros.h"
+#include "model-assert.h"
 
-std::atomic<int> Y1("Y1"), Y2("Y2"), Ch1("Ch1"), Ch2("Ch2");
+atomic_int Y1, Y2, Ch1, Ch2;
 
 uint32_t critical_section = 0;
 /*
@@ -26,7 +29,7 @@ uint32_t critical_section = 0;
 void * p1(void *arg)
 {
 
-    int t1_loop_itr_bnd = 2; // 1;
+    int t1_loop_itr_bnd = 3;
     int i_t1 = 0;
     while(++i_t1 <= t1_loop_itr_bnd){    //while(true){
         store(&Ch1, 1, std::memory_order_relaxed);
@@ -50,7 +53,7 @@ return NULL;}
 
 void * p2(void *arg)
 {
-    int t2_loop_itr_bnd = 2; // 1;
+    int t2_loop_itr_bnd = 3;
     int i_t2 = 0;
     while(++i_t2 <= t2_loop_itr_bnd){
         //while(true){

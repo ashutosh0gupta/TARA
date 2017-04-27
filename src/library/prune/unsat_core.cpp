@@ -97,9 +97,21 @@ bool unsat_core::find_thin_air_cycles( const hb_enc::hb_vec& hbs,
   return thin_found;
 }
 
+
+void unsat_core::dump_sat_exec( std::list< z3::expr >& hbs_expr,
+                                std::string name ) {
+  sol_good.push();
+  for( auto& hb :  hbs_expr ) sol_good.add( hb );
+  auto res = sol_good.check();
+  assert( res == z3::sat );
+  auto mp = sol_good.get_model();
+  program.print_execution( "unwanted-good-"+name, mp );
+  sol_good.pop();
+}
+
+
 hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
-                                  const z3::model& m)
-{
+                                  const z3::model& m) {
   std::list< z3::expr > hbs_expr;
   std::list< z3::expr > rfs_expr;
   // test minunsat here
@@ -121,18 +133,9 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
   auto id_fun = [](z3::expr e) { return e; };
   bool is_unsat = z3interf::min_unsat<z3::expr>(sol_good,hbs_expr,id_fun,true );
 
-#ifndef NDEBUG
   if( !is_unsat && program.options().print_pruning > 3 ) {
-    prune_error( "untested_code!!" );
-    sol_good.push();
-    for( auto& hb :  hbs_expr ) sol_good.add( hb );
-    auto res = sol_good.check();
-    assert( res == z3::sat );
-    auto mp = sol_good.get_model();
-    program.print_execution( "unwanted-good", mp );
-    sol_good.pop();
+    dump_sat_exec( hbs_expr, "pre-rf-addon" );
   }
-#endif // NDEBUG
 
   hb_enc::hb_vec thin_air_rfs;
   if( !is_unsat ) {
@@ -141,9 +144,10 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
       hb_enc::se_set rds;
       z3::expr fix_thin = z3.mk_true();
       for( auto rf : thin_air_rfs ) {
-        hb_enc::se_ptr rd = rf->e1;
+        hb_enc::se_ptr rd = rf->e2;
         z3::expr vname = rd->rd_v();
         z3::expr e = m.eval(vname);
+        assert( rd->is_rd() );
         if (((Z3_ast)vname) != ((Z3_ast)e))
           fix_thin = fix_thin && vname == e;
       }
@@ -152,9 +156,14 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
         debug_print( program.options().out(), thin_air_rfs );
       }
     }else{
-      prune_error( "thin air values found!!" );
+      dump_sat_exec( hbs_expr );
+      prune_error( "unwanted sat formula found!!" );
     }
-    z3interf::min_unsat<z3::expr>( sol_good, hbs_expr, id_fun );
+    bool is_unsat= z3interf::min_unsat<z3::expr>(sol_good,hbs_expr,id_fun,true);
+    if( !is_unsat ) {
+      dump_sat_exec( hbs_expr );
+      prune_error( "rf value fixing could not remove the unwanted good!!" );
+    }
   }
   sol_good.pop();
   hb_enc::hb_vec final_result;

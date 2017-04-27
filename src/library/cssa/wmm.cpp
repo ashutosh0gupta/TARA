@@ -510,7 +510,8 @@ void wmm_event_cons::ses_c11() {
         if( wr1->is_na() || wr2->is_na() ) {
           z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, wr2 );
           z3::expr ord_2_1 = hb_encoding.mk_hb_c11_hb( wr2, wr1 );
-          p.append_property( !ord_1_2 || !ord_2_1 );
+          z3::expr guard = wr1->guard && wr2->guard;
+          p.append_property( z3::implies( guard, ord_1_2 || ord_2_1) );
         }
       }
       for( auto& rd : rds ) {
@@ -540,9 +541,11 @@ void wmm_event_cons::ses_c11() {
       }else if( is_po_new( e2, e1 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
       }else if( e1->is_fence() && e2->is_fence() ) {
-        fr = fr &&
-          hb_encoding.mk_hb_c11_hb(e1,e2) == hb_encoding.mk_hb_c11_sc(e1,e2) &&
-          hb_encoding.mk_hb_c11_hb(e2,e1) == hb_encoding.mk_hb_c11_sc(e2,e1);
+        z3::expr hb_12 = hb_encoding.mk_hb_c11_hb(e1,e2);
+        z3::expr sc_12 = hb_encoding.mk_hb_c11_sc(e1,e2);
+        z3::expr hb_21 = hb_encoding.mk_hb_c11_hb(e2,e1);
+        z3::expr sc_21 = hb_encoding.mk_hb_c11_sc(e2,e1);
+        fr = fr && hb_12 == sc_12  && hb_21 == sc_21;
       }else{
         fr = fr && z3::implies( hb_encoding.mk_hb_c11_hb( e1, e2 ),
                                 hb_encoding.mk_hb_c11_sc( e1, e2 ) )

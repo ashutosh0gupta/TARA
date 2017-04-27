@@ -237,9 +237,10 @@ bool encoding::eval_hb( const z3::model& m,
   }
 
 
-vector<hb_ptr> encoding::get_hbs( z3::model& m )
-{
+vector<hb_ptr> encoding::get_hbs( z3::model& m ) {
   vector<hb_ptr> result;
+  //todo: how does the following code knows to read from which solver?
+  // the following looks in the context, not in solver ??
   z3::expr_vector asserted = z3.c.collect_last_asserted_linear_constr();
   z3::expr_vector asserted_po = z3.c.collect_last_asserted_po_constr();
 
@@ -261,9 +262,9 @@ vector<hb_ptr> encoding::get_hbs( z3::model& m )
       result.push_back(h);
     }
   }
-
   for( unsigned i = 0; i < asserted_po.size(); i++ ) {
     z3::expr atom = asserted_po[i];
+    // std::cout << atom << std::endl;
     auto hb = get_hb( atom );
     if( hb && !hb->loc1->special && !hb->loc2->special &&
         hb->loc1->thread != hb->loc2->thread ) {
