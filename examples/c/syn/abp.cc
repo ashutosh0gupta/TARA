@@ -124,29 +124,3 @@ int main(int argc, char **argv)
 //~
 
 
-//###############################################
-//!-M c11 -u 3
-//###############################################
-//~
-//#
-//#Final result
-//#Bad DNF
-//#( !hb(U#lRCnt#_l70_c7,R#lRCnt#_l52_c24_u0) ∧ rf(W#Ack#_l71_c7,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u0,R#lRCnt#_l52_c24_u0) ∧ rf(W#Ack#_l71_c7_u0,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u1,R#lRCnt#_l52_c24_u0) ∧ rf(W#Ack#_l71_c7_u1,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7,R#lRCnt#_l52_c24_u1) ∧ rf(W#Ack#_l71_c7,R#Ack#_l43_c17_u1) ∧ rf(W#Ack#_l86_c5,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u0,R#lRCnt#_l52_c24_u1) ∧ rf(W#Ack#_l71_c7_u0,R#Ack#_l43_c17_u1) ∧ rf(W#Ack#_l86_c5,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u0,R#lRCnt#_l52_c24_u1) ∧ rf(W#Ack#_l71_c7_u0,R#Ack#_l43_c17_u1) ∧ rf(W#Msg#_l47_c7_u0,R#Msg#_l67_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u1,R#lRCnt#_l52_c24_u1) ∧ rf(W#Ack#_l71_c7_u1,R#Ack#_l43_c17_u1) ∧ rf(W#Ack#_l86_c5,R#Ack#_l43_c17_u0) ) ∨
-//#( !hb(U#lRCnt#_l70_c7_u1,R#lRCnt#_l52_c24_u1) ∧ rf(W#Ack#_l71_c7_u1,R#Ack#_l43_c17_u1) ∧ rf(W#Msg#_l47_c7_u0,R#Msg#_l67_c17_u1) ) ∨
-//#( !hb(U#lSCnt#_l46_c7,R#lSCnt#_l74_c24) ∧ rf(W#Msg#_l47_c7,R#Msg#_l67_c17) ) ∨
-//#( !hb(U#lSCnt#_l46_c7,R#lSCnt#_l74_c24_u0) ∧ rf(W#Msg#_l47_c7,R#Msg#_l67_c17_u0) ∧ rf(W#Msg#_l85_c5,R#Msg#_l67_c17) ) ∨
-//#( !hb(U#lSCnt#_l46_c7_u0,R#lSCnt#_l74_c24_u0) ∧ rf(W#Msg#_l47_c7_u0,R#Msg#_l67_c17_u0) ) ∨
-//#( !hb(U#lSCnt#_l46_c7_u1,R#lSCnt#_l74_c24_u0) ∧ rf(W#Msg#_l47_c7_u1,R#Msg#_l67_c17_u0) ) ∨
-//#( !hb(U#lSCnt#_l46_c7,R#lSCnt#_l74_c24_u1) ∧ rf(W#Msg#_l47_c7,R#Msg#_l67_c17_u1) ∧ rf(W#Msg#_l85_c5,R#Msg#_l67_c17_u0) ) ∨
-//#( !hb(U#lSCnt#_l46_c7_u0,R#lSCnt#_l74_c24_u1) ∧ rf(W#Msg#_l47_c7,R#Msg#_l67_c17_u0) ∧ rf(W#Msg#_l47_c7_u0,R#Msg#_l67_c17_u1) ) ∨
-//#( !hb(U#lSCnt#_l46_c7_u1,R#lSCnt#_l74_c24_u1) ∧ rf(W#Msg#_l47_c7,R#Msg#_l67_c17_u0) ∧ rf(W#Msg#_l47_c7_u1,R#Msg#_l67_c17_u1) ) ∨
-//#( !hb(U#lSCnt#_l46_c7_u1,R#lSCnt#_l74_c24_u1) ∧ rf(W#Msg#_l47_c7_u0,R#Msg#_l67_c17_u0) ∧ rf(W#Msg#_l47_c7_u1,R#Msg#_l67_c17_u1) ) 
-//#
-//~
-

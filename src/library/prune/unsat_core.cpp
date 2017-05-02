@@ -59,7 +59,7 @@ list< z3::expr > unsat_core::prune(const list< z3::expr >& hbs, const z3::model&
 // return the set of rf edges that form thin-air cycle
 bool unsat_core::find_thin_air_cycles( const hb_enc::hb_vec& hbs,
                                        const z3::model& m,
-                                       hb_enc::hb_vec& involved_rfs) {
+                                       hb_enc::hb_vec& involved_rfs ) {
   std::vector< hb_enc::se_set > sccs;
   hb_enc::hb_vec rf_hbs;
   involved_rfs.clear();

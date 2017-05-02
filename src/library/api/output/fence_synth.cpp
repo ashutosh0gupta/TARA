@@ -776,6 +776,12 @@ void fence_synth::output(const z3::expr& output) {
       return;
     }
 
+#ifndef NDEBUG
+    if( z3.is_unsat( cut[0]) ) {//todo: unnecessary ineffcient
+      fence_synth_error( "max sat problem is unsat!!" );
+    }
+#endif
+
     z3::model m = z3.maxsat( cut[0], soft );
 
     // std::cout << m ;
@@ -795,15 +801,16 @@ void fence_synth::output(const z3::expr& output) {
 
     for( auto it=sc_fence_map.begin(); it != sc_fence_map.end(); it++ ) {
       hb_enc::se_ptr e = it->second.first;
-      if( m.eval(it->second.second).get_bool() ) {
+      if( z3interf::is_true_in_model( m, get_sc_fence_bit(e) ) ) {
+      // if( m.eval(it->second.second).get_bool() ) {
         result_sc_fences.push_back( e );
-      }else if( m.eval( get_rlsacq_fence_bit(e) ).get_bool() ) {
+      }else if( z3interf::is_true_in_model(m, get_rlsacq_fence_bit(e) ) ) {
         result_rlsacq_fences.push_back( e );
       }else{
-        if( m.eval( get_rls_fence_bit(e) ).get_bool() ) {
+        if( z3interf::is_true_in_model(m, get_rls_fence_bit(e) ) ) {
           result_rls_fences.push_back( e );
         }
-        if( m.eval( get_acq_fence_bit(e) ).get_bool() ) {
+        if( z3interf::is_true_in_model(m, get_acq_fence_bit(e) ) ) {
           result_acq_fences.push_back( e );
         }
       }
@@ -818,14 +825,14 @@ void fence_synth::output(const z3::expr& output) {
 
     for( auto it= rls_v_map.begin(); it != rls_v_map.end(); it++ ) {
       hb_enc::se_ptr e = it->second.first;
-      if( m.eval(it->second.second).get_bool() ) {
+      if( z3interf::is_true_in_model(m, it->second.second) ) {
         result_rls_upgrade.push_back(e);
       }
     }
 
     for( auto it= acq_v_map.begin(); it != acq_v_map.end(); it++ ) {
       hb_enc::se_ptr e = it->second.first;
-      if( m.eval(it->second.second).get_bool() ) {
+      if( z3interf::is_true_in_model(m, it->second.second) ) {
         result_acq_upgrade.push_back(e);
       }
     }

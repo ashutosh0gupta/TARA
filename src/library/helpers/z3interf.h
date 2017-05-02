@@ -115,7 +115,7 @@ public:
   static void decompose(z3::expr conj, Z3_decl_kind kind, std::vector< z3::expr >& result);
 
   // solver calls
-  bool is_sat( z3::expr ) const;
+  bool is_unsat( z3::expr ) const;
   bool entails( z3::expr e1, z3::expr e2 ) const;
 
   // test functions
@@ -144,8 +144,8 @@ public:
   z3::expr switch_sort( z3::expr& b, z3::sort& s );
   z3::sort get_variable_sort(const input::variable& var);
 
-  bool is_true_in_model( const z3::model& m, z3::expr& e );
-  bool is_false_in_model( const z3::model& m, z3::expr& e );
+  static bool is_true_in_model( const z3::model& m, z3::expr e );
+  static bool is_false_in_model( const z3::model& m, z3::expr e );
 
   //utilities
   z3::model maxsat( z3::expr hard, std::vector<z3::expr>& soft );

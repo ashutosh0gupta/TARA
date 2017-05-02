@@ -376,7 +376,7 @@ z3::sort z3interf::get_variable_sort(const input::variable& var) {
 }
 
 // todo: should be called is unsat
-bool z3interf::is_sat( z3::expr f ) const {
+bool z3interf::is_unsat( z3::expr f ) const {
   auto s = create_solver();
   s.add( f );
   auto res = s.check();
@@ -396,7 +396,7 @@ bool z3interf::is_true( z3::expr f ) const {
 
 bool z3interf::entails( z3::expr e1, z3::expr e2 ) const {
   // if e1 /\ !e2 is unsat, e1 => e2 is valid
-  return is_sat( e1 && !e2 );
+  return is_unsat( e1 && !e2 );
 }
 
 bool z3interf::matched_sort( const z3::expr& l, const z3::expr& r ) {
@@ -412,14 +412,18 @@ tara::variable_set z3interf::translate_variables(input::variable_set vars) {
   return newvars;
 }
 
-bool z3interf::is_true_in_model( const z3::model& m, z3::expr& e ) {
+bool z3interf::is_true_in_model( const z3::model& m, z3::expr e ) {
   z3::expr v = m.eval( e );
-  return is_true( v );
+  Z3_lbool b = Z3_get_bool_value( (Z3_context)m.ctx(), (Z3_ast)v );
+  return b == Z3_L_TRUE;
+  // return is_true( v );
 }
 
-bool z3interf::is_false_in_model( const z3::model& m, z3::expr& e ) {
+bool z3interf::is_false_in_model( const z3::model& m, z3::expr e ) {
   z3::expr v = m.eval( e );
-  return is_false( v );
+  Z3_lbool b = Z3_get_bool_value( (Z3_context)m.ctx(), (Z3_ast)v );
+  return b == Z3_L_FALSE;
+  // return is_false( v );
 }
 
 z3::expr z3interf::simplify( z3::expr e ) {

@@ -1,8 +1,8 @@
 diff --git a/src/api/api_ast.cpp b/src/api/api_ast.cpp
-index 1f16b2d..3368f67 100644
+index 1f16b2d..430ba99 100644
 --- a/src/api/api_ast.cpp
 +++ b/src/api/api_ast.cpp
-@@ -1219,6 +1219,18 @@ extern "C" {
+@@ -1219,6 +1219,19 @@ extern "C" {
              }
          }
  
@@ -11,6 +11,7 @@ index 1f16b2d..3368f67 100644
 +            switch(_d->get_decl_kind()) {
 +            case OP_SPECIAL_RELATION_LO : return Z3_OP_SPECIAL_RELATION_LO;
 +            case OP_SPECIAL_RELATION_PO : return Z3_OP_SPECIAL_RELATION_PO;
++            case OP_SPECIAL_RELATION_PO_AO : return Z3_OP_SPECIAL_RELATION_PO_AO;
 +            case OP_SPECIAL_RELATION_PLO: return Z3_OP_SPECIAL_RELATION_PLO;
 +            case OP_SPECIAL_RELATION_TO : return Z3_OP_SPECIAL_RELATION_TO;
 +            default: UNREACHABLE();
@@ -149,7 +150,7 @@ index be03e5d..ceea061 100644
 +
  };
 diff --git a/src/api/c++/z3++.h b/src/api/c++/z3++.h
-index 9fb6648..9ad98a2 100644
+index 9fb6648..814e65c 100644
 --- a/src/api/c++/z3++.h
 +++ b/src/api/c++/z3++.h
 @@ -147,7 +147,7 @@ namespace z3 {
@@ -226,7 +227,7 @@ index 9fb6648..9ad98a2 100644
      inline expr context::constant(char const * name, sort const & s) { return constant(str_symbol(name), s); }
      inline expr context::bool_const(char const * name) { return constant(name, bool_sort()); }
      inline expr context::int_const(char const * name) { return constant(name, int_sort()); }
-@@ -2358,6 +2388,33 @@ namespace z3 {
+@@ -2358,6 +2388,40 @@ namespace z3 {
          return expr(re.ctx(), r);
      }
  
@@ -240,6 +241,13 @@ index 9fb6648..9ad98a2 100644
 +    inline expr sr_po(expr const& a, expr const& b) {
 +        check_context(a, b);
 +        Z3_ast r = Z3_mk_sr_po(a.ctx(), a, b);
++        a.check_error();
++        return expr(a.ctx(), r);
++    }
++
++    inline expr sr_po_ao(expr const& a, expr const& b) {
++        check_context(a, b);
++        Z3_ast r = Z3_mk_sr_po_ao(a.ctx(), a, b);
 +        a.check_error();
 +        return expr(a.ctx(), r);
 +    }
@@ -260,7 +268,7 @@ index 9fb6648..9ad98a2 100644
  
      inline expr interpolant(expr const& a) {
          return expr(a.ctx(), Z3_mk_interpolant(a.ctx(), a));
-@@ -2407,7 +2464,29 @@ namespace z3 {
+@@ -2407,7 +2471,29 @@ namespace z3 {
          return expr(ctx(), r);
      }
  
@@ -292,16 +300,17 @@ index 9fb6648..9ad98a2 100644
  }
  
 diff --git a/src/api/z3_api.h b/src/api/z3_api.h
-index 1144900..a314d78 100644
+index 1144900..878d4c1 100644
 --- a/src/api/z3_api.h
 +++ b/src/api/z3_api.h
-@@ -1217,6 +1217,13 @@ typedef enum {
+@@ -1217,6 +1217,14 @@ typedef enum {
      Z3_OP_FPA_MIN_I,
      Z3_OP_FPA_MAX_I,
  
 +    //BEGIN: ASHU
 +    Z3_OP_SPECIAL_RELATION_LO,
 +    Z3_OP_SPECIAL_RELATION_PO,
++    Z3_OP_SPECIAL_RELATION_PO_AO,
 +    Z3_OP_SPECIAL_RELATION_PLO,
 +    Z3_OP_SPECIAL_RELATION_TO,
 +    //END: ASHU
@@ -309,7 +318,7 @@ index 1144900..a314d78 100644
      Z3_OP_UNINTERPRETED
  } Z3_decl_kind;
  
-@@ -3361,6 +3368,43 @@ extern "C" {
+@@ -3361,6 +3369,52 @@ extern "C" {
      /*@}*/
  
  
@@ -330,6 +339,15 @@ index 1144900..a314d78 100644
 +       def_API('Z3_mk_sr_po' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
 +     */
 +    Z3_ast Z3_API Z3_mk_sr_po(Z3_context c, Z3_ast a, Z3_ast b);
++
++    /**
++       \brief declare \c a and \c b are already partial ordered.
++
++       \pre a and b are of same type.
++
++       def_API('Z3_mk_sr_po_ao' ,AST ,(_in(CONTEXT), _in(AST), _in(AST)))
++     */
++    Z3_ast Z3_API Z3_mk_sr_po_ao(Z3_context c, Z3_ast a, Z3_ast b);
 +
 +    /**
 +       \brief declare \c a and \c b are in piecewise linear order.
@@ -353,7 +371,7 @@ index 1144900..a314d78 100644
      /** @name Quantifiers */
      /*@{*/
      /**
-@@ -6015,6 +6059,13 @@ extern "C" {
+@@ -6015,6 +6069,13 @@ extern "C" {
  
      /*@}*/
  

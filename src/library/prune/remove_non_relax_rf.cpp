@@ -34,6 +34,23 @@ remove_non_relax_rf::remove_non_relax_rf( const z3interf& z3, const tara::progra
   }else{
     throw std::runtime_error("remove_non_relax_rf does not support current memory model!");
   }
+
+  //check if each variable has at least on relax write
+  for( auto& g : program.globals ) {
+    for( auto& wr : program.wr_events.at(g) ) {
+      if( wr->is_rlx() ) {
+        relaxed_wrs.insert( g );
+        break;
+      }
+    }
+    // Should rd be included?
+    // for( auto& rd : program.rd_events.at(g) ) {
+    //   if( rd->is_rlx() ) {
+    //     relaxed_wrs.insert( g );
+    //     break;
+    //   }
+    // }
+  }
 }
 
 string remove_non_relax_rf::name()
@@ -49,7 +66,8 @@ hb_enc::hb_vec remove_non_relax_rf::prune( const hb_enc::hb_vec& hbs,
     bool remove = false;
     hb_enc::hb_ptr hb = *it;
     if( hb->type == hb_enc::hb_t::rf ) {
-      if( !hb->e1->is_rlx() && !hb->e2->is_rlx() )
+      if( !helpers::exists( relaxed_wrs, hb->e2->prog_v ) && !hb->e2->is_rlx())
+      // if( !hb->e1->is_rlx() && !hb->e2->is_rlx() )
       // if( !hb->e1->is_rlx() )
         remove = true;
     }

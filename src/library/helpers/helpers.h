@@ -311,6 +311,11 @@ bool exists( const std::map<Key,Val>& map1, const Key& k ) {
   return map1.find( k ) !=  map1.end();
 }
 
+template< class Key,  class Val, class Hash >
+bool exists( const std::unordered_set<Key,Val,Hash>& s, const Key& k ) {
+  return s.find( k ) !=  s.end();
+}
+
 template< class Key,  class Val, class Hash, class Eq >
 bool exists( const std::unordered_map<Key,Val,Hash,Eq>& map1, const Key& k ) {
   return map1.find( k ) !=  map1.end();

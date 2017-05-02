@@ -33,6 +33,7 @@ public:
 
   virtual std::string name();
 private:
+  variable_set relaxed_wrs;
 };
 }}
 

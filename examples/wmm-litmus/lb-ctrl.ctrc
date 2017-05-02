@@ -11,15 +11,14 @@ pre: (and (= x 0) (= y 0))
 thread P0 {r1}:
 w1: (= r1. x)
 w2: assume(= r1 1)
-w3: (= y. r1)
+w3: (= y. 1)
 
 thread P1 {r2}:
 d1: (= r2. y)
 d2: assume(= r2 1)
-d3: (= x. r2)
+d3: (= x. 1)
 
-post: (= P0.r1 P1.r2)
-
+post: (or (= x 0) (= y 0) )
 
 ################################################
 #! -M sc
@@ -62,6 +61,9 @@ post: (= P0.r1 P1.r2)
 ################################################
 #~
 ##
-##All traces are good or infeasable.
+##Final result
+##Bad DNF
+##( hb(W#x#d3,R#pi_x#w1) ∧ hb(W#y#w3,R#pi_y#d1) ) 
+##
 #~
 
