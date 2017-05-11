@@ -15,7 +15,7 @@ void* p0(void *) {
   r1 = 1;
   r2 = 1;
   r3 = 1;
-  return NULL;
+  return 0;
 }
 
 void* p1(void *) {
@@ -24,7 +24,7 @@ void* p1(void *) {
     if( x == 0 )
       z = 1;
   t0 = y;
-  return NULL;
+  return 0;
 
 }
 
@@ -34,7 +34,7 @@ void* p2(void *) {
     if( y == 0 )
       w = 1;
   t0 = x;
-  return NULL;
+  return 0;
 
 }
 
@@ -44,7 +44,7 @@ void* p3(void *) {
     if( z == 0 )
       s = 1;
   t0 = z;
-  return NULL;
+  return 0;
 
 }
 
@@ -58,14 +58,14 @@ int main() {
   // pthread_t thr_1;
   // pthread_t thr_2;
   // pthread_t thr_3;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_create(&thr_2, NULL, p2, NULL );
-  // pthread_create(&thr_3, NULL, p3, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
-  // pthread_join(thr_2, NULL);
-  // pthread_join(thr_3, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_create(&thr_2, 0, p2, 0 );
+  // pthread_create(&thr_3, 0, p3, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
+  // pthread_join(thr_2, 0);
+  // pthread_join(thr_3, 0);
   assert( w == 0 || z == 0 || s == 0 );
 }
 

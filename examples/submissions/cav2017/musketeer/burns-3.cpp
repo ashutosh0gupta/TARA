@@ -21,7 +21,7 @@ void* p0(void * arg) {
 	cs = r1 + 1;
 	finished1=1;
     }
-   return NULL;
+   return 0;
 }
 
 void* p1(void * arg) { 
@@ -42,7 +42,7 @@ void* p1(void * arg) {
     	}
     }
   }
-  return NULL;
+  return 0;
 }
 
 void* p2(void * arg) { 
@@ -66,7 +66,7 @@ void* p2(void * arg) {
     	}
      }
   }
-  return NULL;
+  return 0;
 }
 
 int main() {
@@ -77,11 +77,11 @@ int main() {
   // pthread_t thr_0;
   // pthread_t thr_1;
   // pthread_t thr_2;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_create(&thr_2, NULL, p2, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
-  // pthread_join(thr_2, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_create(&thr_2, 0, p2, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
+  // pthread_join(thr_2, 0);
   assert(!((finished1 == 1) && (finished2 == 1) && (finished3 == 1)) || cs == 2);
 }

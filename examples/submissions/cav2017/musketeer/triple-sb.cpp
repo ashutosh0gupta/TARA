@@ -16,7 +16,7 @@ void* p0(void *) {
   r1 = y;
   r3 = z;
   r5 = b;
-  return NULL;
+  return 0;
 }
 
 void* p1(void *) {
@@ -26,7 +26,7 @@ void* p1(void *) {
   r2 = x;
   r4 = w;
   r6 = a;
-  return NULL;
+  return 0;
 }
 
 
@@ -36,10 +36,10 @@ int main() {
 
   // pthread_t thr_0;
   // pthread_t thr_1;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
 
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
   assert( ( r1 == 1 || r2 == 1) && ( r3 == 1 || r4 == 1 ) && ( r5 == 1 || r6 == 1 ));
 }

@@ -22,7 +22,7 @@ void* p0(void * arg) {
 	     current = 2;
 	}
     }
-    return NULL;
+    return 0;
 }
 
 void* p1(void * arg) {
@@ -39,7 +39,7 @@ int s0,s1,s2;
 	     current = 1;
 	}
     }
-    return NULL;
+    return 0;
 }
 
 int main() {
@@ -48,10 +48,10 @@ int main() {
 
   // pthread_t thr_0;
   // pthread_t thr_1;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
   assert((Pone == 1 && Ptwo == 0) || (Pone == 0 && Ptwo == 1) );
 }
 

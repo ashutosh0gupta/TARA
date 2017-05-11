@@ -50,7 +50,7 @@ void* p0(void * arg) {
 	      }
 	  }
       }
-    return NULL;
+    return 0;
 }
 
 void* p1(void * arg) { 
@@ -105,7 +105,7 @@ void* p1(void * arg) {
     	  }
        }
    }
-   return NULL;
+   return 0;
 }
 int main() {
   __CPROVER_ASYNC_1: p0(0);
@@ -113,9 +113,9 @@ int main() {
 
   // pthread_t thr_0;
   // pthread_t thr_1;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
   assert(!((finished1 == 1) && (finished2 == 1)) || cs == 4);
 }

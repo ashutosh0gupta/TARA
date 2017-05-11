@@ -10,7 +10,7 @@ int x = 0, y = 0, z = 0, a = 0, b = 0, c = 0;
 void* p0(void *) {
   x = 1;
   a = 1;
-  return NULL;
+  return 0;
 }
 
 void* p1(void *) {
@@ -18,7 +18,7 @@ void* p1(void *) {
   r2 = y;
   r4 = a;
   r5 = b;
-  return NULL;
+  return 0;
 }
 
 void* p2(void *) {
@@ -26,7 +26,7 @@ void* p2(void *) {
   b = 1;
   r3 = x;
   r6 = a;
-  return NULL;
+  return 0;
 }
 
 int main() {
@@ -37,11 +37,11 @@ int main() {
   // pthread_t thr_0;
   // pthread_t thr_1;
   // pthread_t thr_2;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_create(&thr_2, NULL, p2, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
-  // pthread_join(thr_2, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_create(&thr_2, 0, p2, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
+  // pthread_join(thr_2, 0);
   assert(( r1 == 0 || r2 == 1 || r3 == 1) && ( r4 == 0  || r5 == 1 || r6 == 1));
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+TIMEFORMAT="%2R"
 MUSKETEER1=~/tmp/musket/goto-cc
 MUSKETEER2=~/tmp/musket/musketeer
 
@@ -7,9 +8,11 @@ echo "PSO..\n\n."
 
 for i in *.cpp
 do
-    echo $i
+    printf "${i%.cpp}\t"
     $MUSKETEER1 -o o.gb $i
-    $MUSKETEER2 --mm pso o.gb
+    time ($MUSKETEER2 --mm pso o.gb | grep fence | wc -l | tr -d "\n" && printf "\t")
+    # printf "$fcount\t"
+
     # rm o.gb
     # echo "gcc -g3 -o3 $i -o ${i%.c}.out"
     # gcc -g3 -o3 "$i" -o "${i%.c}.out"

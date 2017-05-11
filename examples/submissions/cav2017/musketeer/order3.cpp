@@ -10,7 +10,7 @@ void* p0(void *) {
   x1 = 1;
   x2 = 1;
   x3 = 1;
-  return NULL;
+  return 0;
 }
 
 void* p1(void *) {
@@ -23,7 +23,7 @@ void* p1(void *) {
           if( x2 == 0 )
             if( x2 == 1 )
               z = 1;
-  return NULL;
+  return 0;
 }
 
 int main() {
@@ -32,9 +32,9 @@ int main() {
 
   // pthread_t thr_0;
   // pthread_t thr_1;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
   assert( z == 0 );
 }

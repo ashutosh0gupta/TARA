@@ -18,7 +18,7 @@ void* p0(void * arg) {
     x8 = 1;
     x9 = 1;
     x10 = 1;
-    return NULL;
+    return 0;
 }
 
 void* p1(void * arg) {
@@ -32,7 +32,7 @@ void* p1(void * arg) {
      r7 = x7;
      r10 = x10;
      r9 = x9;
-     return NULL;
+     return 0;
 }
 
 int main() {
@@ -41,9 +41,9 @@ int main() {
 
   // pthread_t thr_0;
   // pthread_t thr_1;
-  // pthread_create(&thr_0, NULL, p0, NULL );
-  // pthread_create(&thr_1, NULL, p1, NULL );
-  // pthread_join(thr_0, NULL);
-  // pthread_join(thr_1, NULL);
+  // pthread_create(&thr_0, 0, p0, 0 );
+  // pthread_create(&thr_1, 0, p1, 0 );
+  // pthread_join(thr_0, 0);
+  // pthread_join(thr_1, 0);
   assert((!( r2 == 1) || ( r1 == 1) ) && (!( r4 == 1) || ( r3 == 1)) && (!( r6 == 1) || ( r5 == 1)) && (!( r8 == 1) || ( r7 == 1)) && (!( r10 == 1) || ( r9 == 1)));
 }
