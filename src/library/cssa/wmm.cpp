@@ -521,7 +521,8 @@ void wmm_event_cons::ses_c11() {
         if( wr1->is_na() || rd->is_na() ) {
           z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, rd );
           z3::expr ord_2_1 = hb_encoding.mk_hb_c11_hb( rd, wr1 );
-          p.append_property( !ord_1_2 || !ord_2_1 );
+          z3::expr guard = wr1->guard && rd->guard;
+          p.append_property( z3::implies( guard, ord_1_2 || ord_2_1) );
         }
       }
     }

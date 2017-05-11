@@ -97,6 +97,22 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     , locals(locals)
   {}
 
+
+  thread::~thread() {
+    for( auto& e : events ) {
+      e->prev_events.clear(); // code added to remove 
+      e->post_events.clear();
+    }
+    if(start_event) {
+      start_event->prev_events.clear();
+      start_event->post_events.clear();
+    }
+    if(final_event) {
+      final_event->prev_events.clear();
+      final_event->post_events.clear();
+    }
+  }
+
   bool thread::operator==(const thread &other) const {
     return this->name == other.name;
   }

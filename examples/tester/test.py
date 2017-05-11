@@ -54,6 +54,7 @@ known_files=[
               '../wmm-litmus/mp.ctrc',
               '../wmm-litmus/mp-s.ctrc',
               '../wmm-litmus/mp-10-var.ctrc',
+              '../wmm-litmus/double-mp.ctrc',
               '../wmm-litmus/wrc.ctrc',
               '../wmm-litmus/wwc.ctrc',
               '../wmm-litmus/rwc.ctrc',

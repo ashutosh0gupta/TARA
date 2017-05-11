@@ -26,7 +26,7 @@ Revision History:
 special_relations_decl_plugin::special_relations_decl_plugin():
     m_lo("linear-order"),
     m_po("partial-order"),
-    m_po_ao("partial-order-already-order"),
+    m_po_ao("partial-order-already-ordered"),
     m_plo("piecewise-linear-order"),
     m_to("tree-order")
 {}
@@ -58,7 +58,7 @@ func_decl * special_relations_decl_plugin::mk_func_decl(
 void special_relations_decl_plugin::get_op_names(svector<builtin_name> & op_names, symbol const & logic) {
     if (logic == symbol::null) {
         op_names.push_back(builtin_name(m_po.bare_str(), OP_SPECIAL_RELATION_PO));
-        op_names.push_back(builtin_name(m_lo.bare_str(), OP_SPECIAL_RELATION_PO_AO));
+        op_names.push_back(builtin_name(m_po_ao.bare_str(), OP_SPECIAL_RELATION_PO_AO));
         op_names.push_back(builtin_name(m_lo.bare_str(), OP_SPECIAL_RELATION_LO));
         op_names.push_back(builtin_name(m_plo.bare_str(), OP_SPECIAL_RELATION_PLO));
         op_names.push_back(builtin_name(m_to.bare_str(), OP_SPECIAL_RELATION_TO));

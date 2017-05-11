@@ -331,6 +331,10 @@ struct source_loc{
 
   typedef std::unordered_map<std::string, se_ptr> name_to_ses_map;
 
+  void full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set& prev_es,
+                           std::map<const hb_enc::se_ptr, z3::expr>& branch_conds);
+
+
   inline se_ptr
   mk_se_ptr_old( hb_enc::encoding& hb_enc, unsigned tid, unsigned instr_no,
                  const tara::variable& prog_v, std::string loc,
@@ -340,7 +344,13 @@ struct source_loc{
     se_ptr e = std::make_shared<symbolic_event>( hb_enc.z3, tid, prev_es,
                                                  instr_no, n_v, prog_v, loc, et);
     e->guard = hb_enc.z3.mk_true();
-    hb_enc.record_event( e );
+
+    std::map<const hb_enc::se_ptr, z3::expr> bconds;
+    for( auto& ep : prev_es ) {
+      bconds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
+    }
+    full_initialize_se( hb_enc, e, prev_es, bconds );
+    // hb_enc.record_event( e );
     return e;
   }
 
@@ -351,16 +361,19 @@ struct source_loc{
     se_ptr e =
       std::make_shared<symbolic_event>(hb_enc.z3, tid, prev_es, instr_no, loc, et);
     e->guard = hb_enc.z3.mk_true();
-    hb_enc.record_event( e );
+
+    std::map<const hb_enc::se_ptr, z3::expr> bconds;
+    for( auto& ep : prev_es ) {
+      bconds.insert( std::make_pair( ep, hb_enc.z3.mk_true() ) );
+    }
+    full_initialize_se( hb_enc, e, prev_es, bconds );
+    // hb_enc.record_event( e );
     return e;
   }
 
   //--------------------------------------------------------------------------
   // new calls
   // todo: streamline se all tstamps
-
-  void full_initialize_se( hb_enc::encoding& hb_enc, se_ptr e, se_set& prev_es,
-                           std::map<const hb_enc::se_ptr, z3::expr>& branch_conds);
 
   inline se_ptr
   mk_se_ptr( hb_enc::encoding& hb_enc, unsigned tid, se_set prev_es,

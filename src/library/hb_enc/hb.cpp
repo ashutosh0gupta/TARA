@@ -134,7 +134,8 @@ ostream& operator<< (std::ostream& stream, const hb& hb) {
     else if( hb.is_partial && !hb.is_neg )
       stream << "hb(" << hb.e1->name() << "," << hb.e2->name() << ")";
     else
-      stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
+      // stream << "hb(" << hb.loc1 << "," << hb.loc2 << ")";
+      stream << "(" << hb.loc1 << " < " << hb.loc2 << ")";
   }
   return stream;
 }

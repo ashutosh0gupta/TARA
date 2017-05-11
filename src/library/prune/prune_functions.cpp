@@ -75,14 +75,15 @@ namespace prune {
     ostream& print_out = o.out();
 
     if (print_pruning >= 2) {
-      print_out << "Original constraint for this ctex" << endl;
+      print_out << "Atoms in the theory solvers for this ctex:" << endl;
       print_hbs(hbs, print_out );
     }
 
     for( unsigned i = 0; i < prune_chain.size(); i++ ) {
       hbs = prune_chain[i]->prune( hbs, m );
       if (print_pruning >= 1) {
-        print_out << "--- Constraint after " << prune_chain[i]->name() << endl;
+        print_out << "--- Atoms left after " << prune_chain[i]->name() << ":"
+                  << endl;
         print_hbs(hbs, print_out);
       }
     }

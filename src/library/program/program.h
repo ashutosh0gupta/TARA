@@ -91,12 +91,8 @@ namespace tara {
     z3::expr start_cond = z3.mk_true();
     z3::expr final_cond = z3.mk_true();
 
-    ~thread() {
-      for( hb_enc::se_ptr& e : events ) {
-        e->prev_events.clear(); // code added to remove 
-        e->post_events.clear();
-      }
-    }
+    ~thread();
+
     void add_event( hb_enc::se_ptr e ) { events.push_back( e ); }
 
     void set_start_event( hb_enc::se_ptr e, z3::expr cond ) {
@@ -217,9 +213,7 @@ namespace tara {
     mm_t get_mm() const;
     void unsupported_mm() const;
 
-    // hb_enc::se_to_depends_map data_dependency;
-    // hb_enc::se_to_depends_map ctrl_dependency;
-    hb_enc::se_ptr init_loc;
+    hb_enc::se_ptr init_loc; // todo : remove their prev/post to avoid leaks
     hb_enc::se_ptr post_loc;
     hb_enc::var_to_ses_map wr_events;
     hb_enc::var_to_se_vec_map rd_events;

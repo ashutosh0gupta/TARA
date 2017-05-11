@@ -223,7 +223,7 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
 
   output.init(hb_encoding, make_bad(), make_good(false), program);
 
-  if (o.print_output >= 1) {
+  if (o.print_output >= 3) {
     o.out() << "Result as formula:" << endl;
     o.out() << result << endl;
   }
