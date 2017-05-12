@@ -37,5 +37,5 @@ int main()
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
 
-  assert( (( r1 != 1 ) || ( r2 == 1)) && (( r3 != 1 ) || ( r4 == 1)) );
+  // assert( (( r1 != 1 ) || ( r2 == 1)) && (( r3 != 1 ) || ( r4 == 1)) );
 }

@@ -1,18 +1,14 @@
 #!/usr/bin/env bash
 
-# musketeer downloaded from the following location
-#http://www.cprover.org/wmm/fence13/musketeer_170414.tar.gz
 
 TIMEFORMAT="%2R"
-MUSKETEER1=~/tmp/musket/goto-cc
-MUSKETEER2=~/tmp/musket/musketeer
 TARA=~/research/shared/tara/tara
 
 
 # model="pso"
-# model="tso"
+model="tso"
 # model="alpha"
-model="rmo"
+# model="rmo"
 
 echo "$model..\n\n."
 
@@ -35,11 +31,10 @@ nested-if-test.cpp
 triple-sb.cpp
 double-rwc.cpp"
 
-#Running MUSKETEER
+
+#RUNNING TARA
 for i in $files
 do
-    printf "${i%.cpp}\t&  "
-    $MUSKETEER1 -o o.gb $i
-    time ($MUSKETEER2 --mm $model o.gb | grep ": fence\|: dp" | wc -l | tr -d "\n" && printf "  &  ")
+    printf "${i%.cpp}  &  "
+    time ($TARA -M $model -o fsynth $i | grep thread | wc -l | tr -d "\n" && printf "  &  ")
 done
-
