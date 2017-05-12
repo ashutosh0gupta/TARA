@@ -1,17 +1,16 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-void assume( bool );
-void assert( bool );
-void fence();
+// void assume( bool );
+// void assert( bool );
+// void fence();
 
-int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
 int flag1 = 0, flag2 = 0;
 int turn = 0;
 int cs;
 
 void* p0(void * arg) {
-
+  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
     flag1 = 1;
     r1 = flag2;
     if(r1 == 1)
@@ -54,6 +53,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) { 
+  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
 
     flag2 = 1;
     r4 = flag1;
@@ -117,5 +117,5 @@ int main() {
   // pthread_create(&thr_1, 0, p1, 0 );
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
-  assert(!((finished1 == 1) && (finished2 == 1)) || cs == 4);
+  // assert(!((finished1 == 1) && (finished2 == 1)) || cs == 4);
 }

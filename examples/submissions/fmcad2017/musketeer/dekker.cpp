@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int done0 = 0,done1 = 0;
-void assume( bool );
-void assert( bool );
-void fence();
+// int done0 = 0,done1 = 0;
+// void assume( bool );
+// void assert( bool );
+// void fence();
 int flag0 = 0, flag1 = 0;
 int turn = 0;
 int cs;
@@ -19,7 +19,7 @@ void* p0(void * arg) {
 	cs = cs + 1;
 	turn = 1;
 	flag0 = 0;
-	done0 = 1;
+	// done0 = 1;
     }
     return 0;
 }
@@ -33,7 +33,7 @@ void* p1(void * arg) {
        	cs = cs + 1;
 	turn = 0;
 	flag1 = 0;
-	done1 = 1;
+	// done1 = 1;
     }
     return 0;
 }
@@ -49,5 +49,5 @@ int main() {
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
 
-  assert(!((done0 == 1) && (done1 == 1)) || cs == 2);
+  // assert(!((done0 == 1) && (done1 == 1)) || cs == 2);
 }

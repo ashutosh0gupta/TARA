@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-int r1,r2,r3,r4,r5,r6,r7,r8,r9,r10;
 int m1, m2, m3, m4, m5, s1, s2, s3, s4, s5;
 void assume( bool );
 void assert( bool );
@@ -24,6 +23,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) {
+  int r1,r2,r3,r4,r5,r6,r7,r8,r9,r10;
      r1 = s1;
      r2 = m1;
      r3 = s2;
