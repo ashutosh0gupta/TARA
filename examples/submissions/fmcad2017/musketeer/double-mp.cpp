@@ -3,7 +3,7 @@
 #include <pthread.h>
 
 int x,y,w,z,v;
-int r1, r2, r3, r4;
+// int r1, r2, r3, r4;
 void assume( bool );
 void assert( bool );
 void fence();
@@ -17,7 +17,7 @@ void* p0(void * arg) {
     return 0;
 }
 
-void* p1(void * arg) {
+void* p1(void * arg) { int r1, r2, r3, r4;
      r1 = y;
      r2 = x;
      r3 = z;

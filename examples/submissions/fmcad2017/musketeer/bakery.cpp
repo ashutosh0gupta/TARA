@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 
-int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
+// int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
 void assume( bool );
 void assert( bool );
 void fence();
@@ -12,7 +12,7 @@ int c1 = 0,c2 = 0,n1 = 0,n2 = 0;
 int cs; // variable to test mutual exclusion
 
 void* p0(void * arg) {
-
+  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
     c1 = 1;
     r1 = n1;
     r2 = n2;
@@ -44,7 +44,7 @@ void* p0(void * arg) {
 
 
 void* p1(void * arg) { 
-
+  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
     c2 = 1;
     r4 = n1;
     r5 = n2;
@@ -82,6 +82,6 @@ int main() {
   // pthread_create(&thr_1, 0, p1, 0 );
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
-  assert(!((finished1 == 1) && (finished2 == 1)) || cs == 2);
+  // assert(!((finished1 == 1) && (finished2 == 1)) || cs == 2);
 }
 

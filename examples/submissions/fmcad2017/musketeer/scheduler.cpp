@@ -52,6 +52,6 @@ int main() {
   // pthread_create(&thr_1, 0, p1, 0 );
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
-  assert((Pone == 1 && Ptwo == 0) || (Pone == 0 && Ptwo == 1) );
+  // assert((Pone == 1 && Ptwo == 0) || (Pone == 0 && Ptwo == 1) );
 }
 

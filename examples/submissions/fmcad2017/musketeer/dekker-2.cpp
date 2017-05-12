@@ -10,7 +10,7 @@ int turn = 0;
 int cs;
 
 void* p0(void * arg) {
-  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
+  int r1,r2,r3, finished1 = 0,finished2 = 0;
     flag1 = 1;
     r1 = flag2;
     if(r1 == 1)
@@ -53,7 +53,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) { 
-  int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
+  int r4,r5,r6,finished1 = 0,finished2 = 0;
 
     flag2 = 1;
     r4 = flag1;

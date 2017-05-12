@@ -9,8 +9,8 @@ MUSKETEER2=~/tmp/musket/musketeer
 TARA=~/research/shared/tara/tara
 
 
-# model="pso"
 # model="tso"
+# model="pso"
 # model="alpha"
 model="rmo"
 

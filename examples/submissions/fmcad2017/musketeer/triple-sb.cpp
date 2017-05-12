@@ -3,13 +3,14 @@
 #include <stdlib.h>
 
 int x = 0, y = 0, w = 0, z = 0, a = 0, b = 0;
-int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
+// int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
 
 void assume( bool );
 void assert( bool );
 void fence();
 
 void* p0(void *) {
+  int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
   x = 1;
   w = 1;
   a = 1;
@@ -20,6 +21,7 @@ void* p0(void *) {
 }
 
 void* p1(void *) {
+  int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
   y = 1;
   z = 1;
   b = 1;
@@ -41,5 +43,5 @@ int main() {
 
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
-  assert( ( r1 == 1 || r2 == 1) && ( r3 == 1 || r4 == 1 ) && ( r5 == 1 || r6 == 1 ));
+  // assert( ( r1 == 1 || r2 == 1) && ( r3 == 1 || r4 == 1 ) && ( r5 == 1 || r6 == 1 ));
 }

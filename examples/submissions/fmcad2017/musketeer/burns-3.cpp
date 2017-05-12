@@ -3,14 +3,14 @@
 #include <stdlib.h>
 
 
-volatile int r1,r2,r3,r4,r5,r6,r7,r8,r9,finished1 = 0,finished2 = 0,finished3 = 0;
+// volatile int r1,r2,r3,r4,r5,r6,r7,r8,r9,finished1 = 0,finished2 = 0,finished3 = 0;
 int flag1 = 0, flag2 = 0, flag3 = 0;
 int cs;
 void assume( bool );
 void assert( bool );
 void fence();
 void* p0(void * arg) {
-
+  int r1,r2,r3,r4,r5,r6,r7,r8,r9,finished1 = 0,finished2 = 0,finished3 = 0;
     flag1 = 1;
 	//fence
     r2 = flag2;
@@ -25,7 +25,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) { 
-
+  int r1,r2,r3,r4,r5,r6,r7,r8,r9,finished1 = 0,finished2 = 0,finished3 = 0;
   if(flag1 != 1)
   {
     flag2 = 1;
@@ -46,7 +46,7 @@ void* p1(void * arg) {
 }
 
 void* p2(void * arg) { 
-
+  int r1,r2,r3,r4,r5,r6,r7,r8,r9,finished1 = 0,finished2 = 0,finished3 = 0;
   if(flag1 != 1)
   {
     r7 = flag1;
@@ -83,5 +83,5 @@ int main() {
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
   // pthread_join(thr_2, 0);
-  assert(!((finished1 == 1) && (finished2 == 1) && (finished3 == 1)) || cs == 2);
+  // assert(!((finished1 == 1) && (finished2 == 1) && (finished3 == 1)) || cs == 2);
 }

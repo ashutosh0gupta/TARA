@@ -4,7 +4,7 @@
 void assume( bool );
 void assert( bool );
 void fence();
-int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
+// int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
 int x = 0, y = 0, z = 0, a = 0, b = 0, c = 0;
 
 void* p0(void *) {
@@ -14,6 +14,7 @@ void* p0(void *) {
 }
 
 void* p1(void *) {
+int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
   r1 = x;
   r2 = y;
   r4 = a;
@@ -22,6 +23,7 @@ void* p1(void *) {
 }
 
 void* p2(void *) {
+int r1 = 0, r2 = 0, r3 = 0, r4 = 0, r5 = 0, r6 = 0;
   y = 1;
   b = 1;
   r3 = x;
@@ -43,5 +45,5 @@ int main() {
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
   // pthread_join(thr_2, 0);
-  assert(( r1 == 0 || r2 == 1 || r3 == 1) && ( r4 == 0  || r5 == 1 || r6 == 1));
+  // assert(( r1 == 0 || r2 == 1 || r3 == 1) && ( r4 == 0  || r5 == 1 || r6 == 1));
 }

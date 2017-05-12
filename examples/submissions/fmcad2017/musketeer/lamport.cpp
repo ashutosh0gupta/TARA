@@ -2,14 +2,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+volatile int r1,r2,r3,r4,r5,r6;
+volatile int finished1 = 0,finished2 = 0;
   
-volatile int r1,r2,r3,r4,r5,r6,finished1 = 0,finished2 = 0;
 int b1 = 0, b2 = 0, x, y;
 int cs=0; // variable to test mutual exclusion
 void assume( bool );
 void assert( bool );
 void fence();
 void* p0(void * arg) {
+  // volatile int r1,r2,r3;
     b1 = 1;
     x = 1; //fence
     r1 = y;
@@ -30,6 +32,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) { 
+  // volatile int r4,r5,r6;
 
     b2 = 1;
     x = 2; //fence

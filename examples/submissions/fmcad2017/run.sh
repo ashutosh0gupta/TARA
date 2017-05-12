@@ -6,9 +6,9 @@ TARA=~/research/shared/tara/tara
 
 
 # model="pso"
-model="tso"
+# model="tso"
 # model="alpha"
-# model="rmo"
+model="rmo"
 
 echo "$model..\n\n."
 

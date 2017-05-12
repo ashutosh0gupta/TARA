@@ -3,14 +3,14 @@
 #include <stdlib.h>
 
 
-int r1,r2,r3,r4,finished1 = 0,finished2 = 0;
+// int r1,r2,r3,r4,finished1 = 0,finished2 = 0;
 int flag1 = 0, flag2 = 0;
 int cs;
 void assume( bool );
 void assert( bool );
 void fence();
 void* p0(void * arg) {
-
+  int r1,r2,r3,r4,finished1 = 0,finished2 = 0;
     flag1 = 1;
     r2 = flag2;
     if(r2 == 0)
@@ -25,7 +25,7 @@ void* p0(void * arg) {
 }
 
 void* p1(void * arg) { 
-
+  int r1,r2,r3,r4,finished1 = 0,finished2 = 0;
     r3 = flag1;
     if(r3 == 0)
     {
@@ -54,5 +54,5 @@ int main() {
   // pthread_join(thr_0, 0);
   // pthread_join(thr_1, 0);
 
-  assert(!((finished1 == 1) && (finished2 == 1)) || cs == 2);
+  // assert(!((finished1 == 1) && (finished2 == 1)) || cs == 2);
 }
