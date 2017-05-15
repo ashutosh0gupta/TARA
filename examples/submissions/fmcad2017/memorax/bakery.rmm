@@ -1,0 +1,78 @@
+/* Dekker's lock with deadlock protection */
+
+forbidden
+  CS CS
+data
+  c1 = 0 : [0:1]
+  c2 = 0 : [0:1]
+  n1 = 0 : [0:5]
+  n2 = 0 : [0:5]
+  sum= 0 : [0:4]
+  check = 0 : [0:1]
+  finished = 0 : [0:1]
+
+process
+registers
+  $r1 = * : [0:5]
+  $r2 = * : [0:5]
+  $r3 = * : [0:5]
+  $r4 = * : [0:5]
+  $r5 = * : [0:5]
+  $r6 = * : [0:5]
+text
+  write: c1 := 1;
+  read: $r1 := n1;
+  read: $r2 := n2;
+  if $r2 > $r1 then
+       $r4 := $r2 + 1;		
+  if $r1 > $r2 then
+       $r4 := $r1 + 1;		  
+  write: n1 := $r4;
+  write: c1 := 0;		
+  read: $r6 := c2;
+  if $r6 = 0 then{
+      read: $r1 := n1;
+      read: $r2 := n2;
+      if $r2 = 0 || $r2 > $r1 then{
+	   read: $r3 := sum;
+  	   write: sum := $r3 + 1;		
+	   write: n1 := 0;
+	   fence;
+	   read: $r5 := finished;  
+           read: $r3 := sum;
+	   if $r3 != 2 && $r5 = 1 then
+	         CS: write: check := 1
+  	}
+  }
+
+process
+registers
+  $r1 = * : [0:5]
+  $r2 = * : [0:5]
+  $r3 = * : [0:5]
+  $r4 = * : [0:5]
+  $r5 = * : [0:5]
+  $r6 = * : [0:5]
+text
+  write: c2 := 1;
+  read: $r1 := n1;
+  read: $r2 := n2;
+  if $r2 > $r1 then
+       $r4 := $r2 + 1;		
+  if $r1 > $r2 then
+       $r4 := $r1 + 1;		  
+  write: n2 := $r4;
+  write: c2 := 0;		
+  read: $r6 := c1;
+  if $r6 = 0 then{
+      read: $r1 := n1;
+      read: $r2 := n2;
+      if $r1 = 0 || $r2 < $r1 then{
+	   read: $r3 := sum;
+  	   write: sum := $r3 + 1;		
+	   write: n2 := 0;
+	   fence;
+           write: finished := 1;
+	   CS: write: check := 1
+  	}
+  }

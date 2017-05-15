@@ -1,0 +1,25 @@
+/* Peterson's lock */
+
+forbidden
+  CS CS
+
+data
+  x  = 0 : [0:1]
+  y  = 0 : [0:1]
+process
+registers
+  $r1 = * : [0:1]
+text
+  write: x := 1;
+  read: $r1 := y;
+  CS: read: y = 0
+
+process
+registers
+  $r2 = * : [0:1]
+text
+  write: y := 1;
+  read: $r2 := x;
+  CS: read: x = 0
+
+

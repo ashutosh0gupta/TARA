@@ -1,0 +1,54 @@
+/* Scheduler */
+
+forbidden
+  CS CS
+data
+  m1= 0 : [0:3]
+  m2 = 0 : [0:3]
+  m3 = 0 : [0:3]
+  m4 = 0 : [0:1]
+  m5 = 0 : [0:1]
+  s1= 0 : [0:3]
+  s2 = 0 : [0:3]
+  s3 = 0 : [0:3]
+  s4 = 0 : [0:1]
+  s5 = 0 : [0:1]
+  check = 0 : [0:1]
+process
+text
+    write: m1 := 1;   
+    write: m2 := 1;
+    write: m3 := 1;   
+    write: m4 := 1;
+    write: m5 := 1;   
+    write: s1 := 1;   
+    write: s2 := 1;   
+    write: s3 := 1;
+    write: s4 := 1;   
+   CS: write: s5 := 1 
+
+process
+registers
+  $r1 = * : [0:3]
+  $r2 = * : [0:3]
+  $r3 = * : [0:3]
+  $r4 = * : [0:3]
+  $r5 = * : [0:3]
+  $r6 = * : [0:3]
+  $r7 = * : [0:3]
+  $r8 = * : [0:3]
+  $r9 = * : [0:3]
+  $r10 = * : [0:3]
+text
+  read: $r1 := s1;
+  read: $r2 := m1;
+  read: $r3 := s2;
+  read: $r4 := m2;
+  read: $r5 := s3;
+  read: $r6 := m3;
+  read: $r7 := s4;
+  read: $r8 := m4;
+  read: $r9 := s5;
+  read: $r10 := m5;
+  if [$r1 != 1 || $r2 = 1] && [$r3 != 1 || $r4 = 1] && [$r5 != 1 || $r6 = 1] && [$r7 != 1 || $r8 = 1] && [$r9 != 1 || $r10 = 1] then
+	 		CS: write: check:=1

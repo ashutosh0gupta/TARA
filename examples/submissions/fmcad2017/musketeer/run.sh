@@ -8,13 +8,11 @@ MUSKETEER1=~/tmp/musket/goto-cc
 MUSKETEER2=~/tmp/musket/musketeer
 TARA=~/research/shared/tara/tara
 
-
-# model="tso"
-# model="pso"
-# model="alpha"
-model="rmo"
-
-echo "$model..\n\n."
+models="tso
+pso
+rmo
+alpha
+"
 
 files="peterson.cpp
 dekker.cpp
@@ -26,20 +24,26 @@ dijkstra.cpp
 burns.cpp
 burns-3.cpp
 scheduler.cpp
-double-mp.cpp
-fivemp.cpp
-order3.cpp
-order5.cpp
-order7.cpp
+mp-2.cpp
+mp-5.cpp
+order-3.cpp
+order-5.cpp
+order-7.cpp
 nested-if-test.cpp
-triple-sb.cpp
-double-rwc.cpp"
+sb-3.cpp
+rwc-2.cpp"
 
 #Running MUSKETEER
-for i in $files
+for model in $models
 do
-    printf "${i%.cpp}\t&  "
-    $MUSKETEER1 -o o.gb $i
-    time ($MUSKETEER2 --mm $model o.gb | grep ": fence\|: dp" | wc -l | tr -d "\n" && printf "  &  ")
+    echo "======================================================"
+    echo "$model..\n\n."
+    for i in $files
+    do
+        printf "%10.10s" ${i%.cpp}
+        printf "&  "
+        $MUSKETEER1 -o o.gb $i
+        time ($MUSKETEER2 --mm $model o.gb | grep ": fence\|: dp" | wc -l | tr -d "\n" && printf "  &  ")
+        rm o.gb
+    done
 done
-

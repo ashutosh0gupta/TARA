@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
+#todo: add instructions for downloading and compiling glue 
+
+#the script was run a virtual machine; yet to be adapted for reusability
+
 TIMEFORMAT="%2R"
 GLUE=~/cbmc/src/cbmc/cbmc # in virtual machine
 
-
-# model="pso"
-model="tso"
-# model="alpha"
-# model="rmo"
-
+models="tso
+pso
+"
 echo "$model..\n\n."
 
 files="peterson.c
@@ -21,20 +22,23 @@ dijkstra.c
 burns.c
 burns-3.c
 scheduler.c
-double-mp.c
-fivemp.c
-order3.c
-order5.c
-order7.c
+mp-2.c
+mp-5.c
+order-3.c
+order-5.c
+order-7.c
 nested-if-test.c
-triple-sb.c
-double-rwc.c"
+sb-2.c
+rwc-2.c"
 
-
-for i in $files
+for model in $models
 do
-    printf "${i%.c}  &  "
-    # $GLUE $i
-    # time $GLUE --repair tso:sc $i
-    time ($GLUE --repair $model:sc $i 2> /dev/null | grep Fence | wc -l | tr -d "\n" && printf "  &  ")
+    echo "======================================================"
+    echo "$model..\n\n."
+    for i in $files
+    do
+        printf "%10.10s" ${i%.c}
+        printf "&  "
+        time ($GLUE --repair $model:sc $i 2> /dev/null | grep Fence | wc -l | tr -d "\n" && printf "  &  ")
+    done
 done

@@ -1,0 +1,59 @@
+/* Natural long */
+
+forbidden
+  CS CS
+
+data
+  x1  = 0 : [0:1]
+  x2  = 0 : [0:1]
+  x3  = 0 : [0:1]
+  x4  = 0 : [0:1]
+  x5  = 0 : [0:1]
+  x6  = 0 : [0:1]
+  x7  = 0 : [0:1]
+  x8  = 0 : [0:1]
+  x9  = 0 : [0:1]
+  x10 = 0 : [0:1]
+  check = 0 : [0:1]
+
+process 
+text
+  write: x1 := 1;
+  write: x2 := 1;
+  write: x3 := 1;
+  write: x4 := 1;
+  write: x5 := 1;
+  write: x6 := 1;
+  write: x7 := 1;
+  write: x8 := 1;
+  write: x9 := 1;
+ CS: write: x10 := 1
+  
+process
+registers
+   $r1 = * : [0:1]
+   $r2 = * : [0:1]
+   $r3 = * : [0:1]
+   $r4 = * : [0:1]
+   $r5 = * : [0:1]
+   $r6 = * : [0:1]
+   $r7 = * : [0:1]
+   $r8 = * : [0:1]
+   $r9 = * : [0:1]
+   $r10 = * : [0:1]
+text
+  read: $r10 := x10;
+  read: $r9 := x9;
+  read: $r8 := x8;
+  read: $r7 := x7;
+  read: $r6 := x6;
+  read: $r5 := x5;
+  read: $r4 := x4;
+  read: $r3 := x3;
+  read: $r2 := x2;
+  read: $r1 := x1;
+  if $r10 = 1 && $r1 = 0 then 
+	CS: write: check := 1
+
+
+
