@@ -1,0 +1,71 @@
+forbidden
+  CS CS CS CS
+
+data
+  x = 0 : [0:1]
+  y = 0 : [0:1]
+  z = 0 : [0:1]
+  w = 0 : [0:1]
+  s = 0 : [0:1]
+  r1 = 0 : [0:1]
+  r2 = 0 : [0:1]
+  r3 = 0 : [0:1]
+  check = 0 : [0:1]
+
+process
+registers
+  $local_r1 = * : [0:1]
+text
+  write: x := 1;
+  write: y := 1;
+  write: z := 1;
+  write: r1 := 1;
+  write: r2 := 1;
+  write: r3 := 1;
+  CS: read: $local_r1 := check
+
+process
+registers
+  $local_r1 = * : [0:1]
+  $local_r2 = * : [0:1]
+text
+  read: $local_r1 := r1;
+  if $local_r1 > 0 then{
+    read: $local_r2 := x;
+    if $local_r2 = 0 then{
+       write: z := 1
+    }
+  };
+  CS: read: z = 1
+
+
+process
+registers
+  $local_r1 = * : [0:1]
+  $local_r2 = * : [0:1]
+text
+  read: $local_r1 := r2;
+  if $local_r1 > 0 then{
+    read: $local_r2 := y;
+    if $local_r2 = 0 then{
+       write: w := 1
+    }
+  };
+  CS: read: w = 1
+
+
+process
+registers
+  $local_r1 = * : [0:1]
+  $local_r2 = * : [0:1]
+  $local_r3 = * : [0:1]
+text
+  read: $local_r1 := r3;
+  if $local_r1 > 0 then{
+    read: $local_r2 := z;
+    if $local_r2 = 0 then{
+       write: s := 1
+    }
+  };
+  CS: read: s = 1
+

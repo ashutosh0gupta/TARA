@@ -3,6 +3,7 @@
 
 # MEMORAX=../../../../memorax-master/src/./memorax
 
+TIMEFORMAT="%2R"
 ulimit -t 180
 ulimit -Sv 1000000
 MEMORAX=~/memorax/src/memorax
@@ -26,22 +27,13 @@ hsb
 # order-3.rmm
 # order-5.rmm
 # order-7.rmm
-# nested-if-test.rmm
+# nested-if.rmm
 # sb-3.rmm
 # rwc-2.rmm"
 
 files="
-order-7.rmm
+order-3.rmm
 "
-
-# mp-2.rmm
-# mp-5.rmm
-# order-3.rmm
-# order-5.rmm
-# nested-if-test.rmm
-# sb-3.rmm
-# rwc-2.rmm
-
 
 for model in $models
 do
@@ -52,7 +44,8 @@ do
         printf "%10.10s" ${i%.cpp}
         printf "&  "
         # time ($MEMORAX -a $model -v fencins --rff $i | grep ": fence\|: dp" | wc -l | tr -d "\n" && printf "  &  ")
-        $MEMORAX -a $model -v fencins --rff $i
+        timeout 180s time $MEMORAX -a $model -v fencins --rff $i
+    echo "======================================================"
     done
 done
 

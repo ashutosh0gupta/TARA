@@ -1,0 +1,66 @@
+forbidden
+  CS CS
+
+data
+  x1 = 0 : [0:1]
+  x2 = 0 : [0:1]
+  x3 = 0 : [0:1]
+  x4 = 0 : [0:1]
+  x5 = 0 : [0:1]
+  check = 0 : [0:1]
+
+process
+registers
+  $r1 = * : [0:1]
+text
+  write: x1 := 1;
+  write: x2 := 1;
+  write: x3 := 1;
+  write: x4 := 1;
+  write: x5 := 1;
+  CS: read: $r1 := check
+
+process
+registers
+  $r1 = * : [0:1]
+  $r2 = * : [0:1]
+  $r3 = * : [0:1]
+  $r4 = * : [0:1]
+  $r5 = * : [0:1]
+  $r6 = * : [0:1]
+  $r7 = * : [0:1]
+  $r8 = * : [0:1]
+  $r9 = * : [0:1]
+  $r10= * : [0:1]
+text
+  read: $r1 := x4;
+  if $r1 = 0 then{
+    read: $r2 := x4;
+    if $r2 = 1 then{
+      read: $r3 := x2;
+      if $r3 = 0 then{
+         read: $r4 := x2;
+         if $r4 = 1 then{
+            read: $r5 := x3;
+            if $r5 = 0 then{
+               read: $r6 := x3;
+               if $r6 = 1 then{
+                  read: $r7 := x5;
+                  if $r7 = 0 then{
+                     read: $r8 := x5;
+                     if $r8 = 1 then{
+                        read: $r9 := x1;
+                        if $r9 = 0 then{
+                           read: $r10 := x1;
+                           if $r10 = 1 then{
+                              CS: write: check := 1
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+    }
+  }
