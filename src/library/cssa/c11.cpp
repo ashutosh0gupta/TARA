@@ -31,6 +31,12 @@ using namespace tara::cssa;
 using namespace tara::helpers;
 
 
+bool wmm_event_cons::is_ordered_c11( const hb_enc::se_ptr& e1,
+                                     const hb_enc::se_ptr& e2  ) {
+  //todo : c11, formalize what is must before.
+  return false;
+}
+
 void wmm_event_cons::ppo_c11( const tara::thread& thread ) {
 
   for( auto& e : thread.events ) {
@@ -61,6 +67,8 @@ void wmm_event_cons::distinct_events_c11() {
 }
 
 void wmm_event_cons::ses_c11() {
+  distinct_events_c11();
+
   // For each global variable we need to construct
   // - wf  well formed
   // - rf  read from

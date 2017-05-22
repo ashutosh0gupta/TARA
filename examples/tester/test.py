@@ -18,8 +18,7 @@ import io
 import difflib
 import argparse
 
-
-known_files=[
+litmus_files=[
 # cpp litmus
               '../c/iriw-ra.cpp',
               '../c/sbmp-ra.cpp',
@@ -36,16 +35,6 @@ known_files=[
               '../c/lb-cond.cpp',
               '../c/lb-cond-3.cpp',
               '../c/lb-combo.cpp',
-# pyn examples
-              '../c/syn/abp.cc',
-              '../c/syn/d-prcu-v1.cc',
-              '../c/syn/d-prcu-v2.cc',
-              '../c/syn/bakery_s0.cc',
-              '../c/syn/dekker.cc',
-              '../c/syn/kessel.cc',
-              '../c/syn/peterson.cc',
-              '../c/syn/ticket.cc',
-              # '../c/syn/treiber-stack_s0.cc', # pipe dream
 # original tara
               '../locks.ctrc',
 # wmm test examples
@@ -85,6 +74,20 @@ known_files=[
 	      '../wmm-litmus/rfi-pso.ctrc',
 	      '../wmm-litmus/thin.ctrc',
               '../wmm-rmo-reduction.ctrc',
+    ]
+
+hard_files=[
+# pyn examples
+              '../c/syn/abp.cc',
+              '../c/syn/d-prcu-v1.cc',
+              '../c/syn/d-prcu-v2.cc',
+              '../c/syn/bakery_s0.cc',
+              '../c/syn/dekker.cc',
+              '../c/syn/kessel.cc',
+              '../c/syn/peterson.cc',
+              '../c/syn/ticket.cc',
+              # '../c/syn/treiber-stack_s0.cc', # pipe dream
+# combi hard instances
               '../wmm-fib-1.ctrc',
               '../wmm-fib-2.ctrc',
               '../wmm-fib-3.ctrc',
@@ -92,6 +95,8 @@ known_files=[
               '../wmm-fib-5.ctrc'
 #Benchmark examples
             ]
+
+known_files = litmus_files + hard_files
 
 #wmm-litmus-sb-self-read.ctrc
 
@@ -103,6 +108,7 @@ parser.add_argument("-v","--verbose", action='store_true', help = "verbose")
 parser.add_argument("-u","--update", action='store_true', help = "update")
 parser.add_argument("-s","--suppress", action='store_true', help = "only report errors")
 parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
+parser.add_argument("-f","--suite", help = "choose test suite", type = str)
 parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
 args = parser.parse_args()
 
@@ -114,8 +120,19 @@ if( args.update and len(args.files) == 0 ):
 
 if len(args.files) > 0:
     files = args.files
+elif args.suite != None:
+    sname = args.suite
+    if sname == "all":
+        files = known_files
+    elif sname == "litmus":
+        files = litmus_files
+    elif sname == "hard":
+        files = hard_files
+    else:
+        raise ValueError('wrong suite name!!')        
 else:
     files=known_files
+
         
 #------------------------------------------------------------------
 # General utilities

@@ -43,7 +43,7 @@ extern const std::string error_label;
   //start of wmm support
   //--------------------------------------------------------------------------
   enum class mm_t {
-    wrong, none, sc, tso, pso, rmo, alpha, power, c11
+    wrong, none, sc, tso, pso, rmo, alpha, power, c11, arm8_2
   };
   std::string string_of_mm_names();
   std::string string_of_mm( mm_t mm );

@@ -30,9 +30,6 @@ using namespace std;
 namespace tara {
 const string error_label = string("ERROR");
 
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
   std::set< std::pair<mm_t, std::string> > mm_names = {
     {mm_t::none , "none"  },
     {mm_t::sc   , "sc"    },
@@ -41,7 +38,8 @@ const string error_label = string("ERROR");
     {mm_t::rmo  , "rmo"   },
     {mm_t::alpha, "alpha" },
     {mm_t::power, "power" },
-    {mm_t::c11  , "c11"   }
+    {mm_t::c11  , "c11"   },
+    {mm_t::arm8_2, "arm8.2"} // needs renaming
   };
 
   string string_of_mm( mm_t mm ) {
@@ -50,17 +48,7 @@ const string error_label = string("ERROR");
         return pr.second;
       }
     }
-    return "(so unsupproted mm that we forgot to give it a name!!)";
-    // switch( mm ){
-    // case mm_t::none:  return "unspecified";
-    // case mm_t::sc:    return "sc";
-    // case mm_t::tso:   return "tso";
-    // case mm_t::pso:   return "pso";
-    // case mm_t::rmo:   return "rmo";
-    // case mm_t::alpha: return "alpha";
-    // case mm_t::power: return "power";
-    // default: return "(so unsupproted that we forgot to give it a name!!)";
-    // }
+    return "(so unsupproted memory model that we forgot to give it a name!!)";
   }
 
   string string_of_mm_names() {
@@ -92,8 +80,5 @@ const string error_label = string("ERROR");
       type == instruction_type::barrier_a ||
       type == instruction_type::barrier_b;
   }
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
 
 }

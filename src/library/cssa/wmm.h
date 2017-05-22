@@ -50,25 +50,18 @@ namespace cssa {
     tara::program& p;
 
     void distinct_events();
-    void distinct_events_c11();
 
-    static bool is_barrier_ordered( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    z3::expr is_ordered_dependency( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_sc     ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_tso    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_pso    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_rmo    ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_alpha  ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
-    static bool is_ordered_power  ( const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    static bool is_barrier_ordered(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    z3::expr is_ordered_dependency(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_ordered_sc     (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_ordered_tso    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_ordered_pso    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_ordered_alpha  (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_ordered_power  (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
 
     void ppo_traverse ( const tara::thread& );
-    void ppo_rmo_traverse ( const tara::thread& );
 
-    void ppo_c11( const tara::thread& thread );
-    void ppo_sc   ( const tara::thread& );
-    // void new_ppo_pso  ( const tara::thread& );
-    // void new_ppo_rmo  ( const tara::thread& );
-    // void new_ppo_alpha( const tara::thread& );
+    void ppo_sc ( const tara::thread& );
     void ppo_power( const tara::thread& );
     bool check_ppo( const hb_enc::se_ptr&, const hb_enc::se_ptr& );
     void ppo();
@@ -95,7 +88,28 @@ namespace cssa {
                                bool record=true );
 
     void ses();
+
+    // -----------------------------------------------------------------------
+    // rmo functions
+    static bool is_ordered_rmo    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    void ppo_rmo_traverse ( const tara::thread& );
+
+    // -----------------------------------------------------------------------
+    // c11 functions
+    static bool is_ordered_c11(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    void ppo_c11( const tara::thread& );
     void ses_c11();
+    void distinct_events_c11();
+
+    // -----------------------------------------------------------------------
+    // arm8_2 functions
+
+    static bool is_ordered_arm8_2(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    void ppo_arm8_2( const tara::thread& );
+    void ses_arm8_2();
+    void distinct_events_arm8_2();
+
+    //------------------------------------------------------------------------
 
     z3::expr dist = z3.mk_true();
     z3::expr po   = z3.mk_true();
@@ -115,24 +129,22 @@ namespace cssa {
     void update_must_after ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void update_may_after  ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
     void update_ppo_before ( const hb_enc::se_vec& es, hb_enc::se_ptr e );
-    // rs_heads is aleady done in the build program
-    // void update_c11_rs_heads( const hb_enc::se_vec& es );
     void pointwise_and ( const hb_enc::depends_set&, z3::expr cond,
                          hb_enc::depends_set& );
 
     // Set for deletion
 
-    void sc_ppo_old   ( const tara::thread& );
-    void tso_ppo_old  ( const tara::thread& );
-    void pso_ppo_old  ( const tara::thread& );
-    void rmo_ppo_old  ( const tara::thread& );
-    void alpha_ppo_old( const tara::thread& );
-    void power_ppo_old( const tara::thread& );
+    // void sc_ppo_old   ( const tara::thread& );
+    // void tso_ppo_old  ( const tara::thread& );
+    // void pso_ppo_old  ( const tara::thread& );
+    // void rmo_ppo_old  ( const tara::thread& );
+    // void alpha_ppo_old( const tara::thread& );
+    // void power_ppo_old( const tara::thread& );
 
-    z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_rmo_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
-    z3::expr insert_barrier( unsigned tid, unsigned instr );
+    // z3::expr insert_tso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    // z3::expr insert_pso_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    // z3::expr insert_rmo_barrier( const tara::thread&,unsigned, hb_enc::se_ptr );
+    // z3::expr insert_barrier( unsigned tid, unsigned instr );
 
     void old_ses();
     bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );

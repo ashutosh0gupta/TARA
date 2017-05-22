@@ -208,7 +208,8 @@ namespace tara {
     inline bool is_mm_rmo()      const;
     inline bool is_mm_alpha()    const;
     inline bool is_mm_power()    const;
-    inline bool is_mm_c11()    const;
+    inline bool is_mm_c11()      const;
+    inline bool is_mm_arm8_2()  const;
     void set_mm( mm_t );
     mm_t get_mm() const;
     void unsupported_mm() const;
@@ -392,15 +393,16 @@ namespace tara {
     friend ctrc::program;
   };
 
-inline bool program::is_mm_declared() const {  return mm != mm_t::none; }
-inline bool program::is_wmm()         const {  return mm != mm_t::sc;   }
-inline bool program::is_mm_sc()       const {  return mm == mm_t::sc;   }
-inline bool program::is_mm_tso()      const {  return mm == mm_t::tso;  }
-inline bool program::is_mm_pso()      const {  return mm == mm_t::pso;  }
-inline bool program::is_mm_rmo()      const {  return mm == mm_t::rmo;  }
-inline bool program::is_mm_alpha()    const {  return mm == mm_t::alpha;}
-inline bool program::is_mm_power()    const {  return mm == mm_t::power;}
-inline bool program::is_mm_c11()    const {  return mm == mm_t::c11;}
+inline bool program::is_mm_declared() const {  return mm != mm_t::none;   }
+inline bool program::is_wmm()         const {  return mm != mm_t::sc;     }
+inline bool program::is_mm_sc()       const {  return mm == mm_t::sc;     }
+inline bool program::is_mm_tso()      const {  return mm == mm_t::tso;    }
+inline bool program::is_mm_pso()      const {  return mm == mm_t::pso;    }
+inline bool program::is_mm_rmo()      const {  return mm == mm_t::rmo;    }
+inline bool program::is_mm_alpha()    const {  return mm == mm_t::alpha;  }
+inline bool program::is_mm_power()    const {  return mm == mm_t::power;  }
+inline bool program::is_mm_c11()      const {  return mm == mm_t::c11;    }
+inline bool program::is_mm_arm8_2()   const{  return mm == mm_t::arm8_2;}
 
 inline mm_t program::get_mm()         const { return mm; }
 inline void program::set_mm(mm_t _mm)       { mm = _mm;  }
