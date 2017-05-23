@@ -963,7 +963,14 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   return false;
 }
 
-const char * build_program::getPassName() const {
+// const char *
+// llvm::StringRef
+#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
+ llvm::StringRef
+#else
+ const char *
+#endif
+build_program::getPassName() const {
   return "Constructs tara::program from llvm IR";
 }
 

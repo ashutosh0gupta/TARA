@@ -84,104 +84,34 @@ using namespace tara::helpers;
 
 // =====================================
 
-// (*
-//  * Include aarch64fences.cat so that barriers show up in generated diagrams.
-//  *)
-// include "aarch64fences.cat"
-// (* Fences *)
-// let dmb.ish = try fencerel(DMB.ISH) with 0
-// let dmb.ishld = try fencerel(DMB.ISHLD) with 0
-// let dmb.ishst = try fencerel(DMB.ISHST) with 0
-// let dmb.fullsy = try fencerel(DMB.SY) with 0
-// let dmb.fullst = try fencerel(DMB.ST) with 0
-// let dmb.fullld = try fencerel(DMB.LD) with 0
-// let dmb.sy = dmb.fullsy | dmb.ish
-// let dmb.st = dmb.fullst | dmb.ishst
-// let dmb.ld = dmb.fullld | dmb.ishld
-// let dsb.sy = try fencerel(DSB.SY) with 0
-// let dsb.st = try fencerel(DSB.ST) with 0
-// let dsb.ld = try fencerel(DSB.LD) with 0
-// let isb = try fencerel(ISB) with 0
-// show dmb.sy,dmb.st,dmb.ld,dsb.sy,sb.st,dsb.ld,dmb,dsb
 
 // (* Dependencies *)
 // show data,addr
-// let ctrlisb = try ctrlcfence(ISB) with 0
+// let ctrlisb = try ctrlcfence(ISB) with 0 ???????
 // show ctrlisb
 // show isb \ ctrlisb as isb
 // show ctrl \ ctrlisb as ctrl
 
 // =====================================
 
-// (*
-//  * As a restriction of the model, all observers are limited to the same
-//  * inner-shareable domain. Consequently, the ISH, OSH and SY barrier
-//  * options are all equivalent to each other.
-//  *)
-// let dsb.full = DSB.ISH | DSB.OSH | DSB.SY
-// let dsb.ld = DSB.ISHLD | DSB.OSHLD | DSB.LD
-// let dsb.st = DSB.ISHST | DSB.OSHST | DSB.ST
-
-// (*
-//  * A further restriction is that standard litmus tests are unable to
-//  * distinguish between DMB and DSB instructions, so the model treats
-//  * them as equivalent to each other.
-//  *)
-// let dmb.full = DMB.ISH | DMB.OSH | DMB.SY | dsb.full
-// let dmb.ld = DMB.ISHLD | DMB.OSHLD | DMB.LD | dsb.ld
-// let dmb.st = DMB.ISHST | DMB.OSHST | DMB.ST | dsb.st
-
-// (* Flag any use of shareability options, due to the restrictions above. *)
-// flag ~empty (dmb.full | dmb.ld | dmb.st) \
-// 	    (DMB.SY | DMB.LD | DMB.ST | DSB.SY | DSB.LD | DSB.ST)
-// 	    as Assuming-common-inner-shareable-domain
 
 
 // (* Internal visibility requirement *)
-// acyclic po-loc | fr | mo | rf as internal
+// acyclic po-loc | fr | mo | rf
 
-// (* Dependency-ordered-before *)
-// let dob =
-//      | data
-// 	| ctrl; [W]
-// 	| (ctrl | data); moi
-// 	| data; rfi
-
-//---------------------------------------------
-// unsupported
-// 	| addr; rfi
-// 	| (ctrl | (addr; po)); [ISB]; po; [R]
-//      | addr
-// 	| addr; po; [W]
-
-// (* Atomic-ordered-before *)
-// let aob = rmw | rmw; rfi
 
 // (* Barrier-ordered-before *)
-// let bob = po; [dmb.full]; po
-// 	| [L]; po; [A]
-// 	| [R]; po; [dmb.ld]; po
-// 	| [A | Q]; po
-// 	| [W]; po; [dmb.st]; po; [W]
-// 	| po; [L]
-// 	| po; [L]; moi
 
-// acyclic rfe | fre | moe | dob | aob | bob as internal
 
 // (* Atomic: Basic LDXR/STXR constraint to forbid intervening writes. *)
-// empty rmw & (fre; moe) as atomic
+// empty rmw & (fre; moe)
 
-void wmm_event_cons::distinct_events_arm8_2() {
+// void wmm_event_cons::distinct_events_arm8_2() {
 
-}
-
-void wmm_event_cons::ses_arm8_2() {
-
-  //
-
-}
+// }
 
 
+// only answers to obvious orderings
 bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
                                          const hb_enc::se_ptr& e2  ) {
   if( e1->is_barr_type() || e2->is_barr_type() ) {
@@ -197,8 +127,50 @@ bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
   return false;
 }
 
+// symbolic hb must enforce the following
+//: rfe | fre | moe | data; rfi | rmw; rfi
+// rfi should not be added
+// moi and fri can be added without concern??
+// and coherence
+
 // todo : borrowed from rmo
 void wmm_event_cons::ppo_arm8_2( const tara::thread& thread ) {
+
+
+// dob | aob | bob are summrized in the following
+
+// L : store release
+// A : load acquire
+// Q : load acQuire
+
+//-----------------------------------------------
+// ppo
+// 	| ctrl; [W]
+// 	| ctrl; moi
+//      | data
+// 	| data; moi
+//      | rmw
+// 	| [L]; po; [A]
+// 	| [A | Q]; po
+// 	| po; [L]
+// 	| po; [L]; moi
+
+//----------------------------------------------
+//  barrier ppo
+//
+//      | po; [dmb.full]; po
+// 	| [R]; po; [dmb.ld]; po
+// 	| [W]; po; [dmb.st]; po; [W]
+
+//---------------------------------------------
+// unsupported ppo
+//      | addr
+// 	| addr; rfi
+// 	| ctrl;     [ISB]; po; [R]
+// 	| addr; po; [ISB]; po; [R]
+// 	| addr; po; [W]
+
+
   hb_enc::se_to_depends_map ordered_map,pending_map;
   auto& se = thread.start_event;
   pending_map[se].insert( hb_enc::depends( se, z3.mk_true() ) );
@@ -213,7 +185,7 @@ void wmm_event_cons::ppo_arm8_2( const tara::thread& thread ) {
     while( !tmp_pendings.empty() ) {
       //todo: does ordered access solve the problem
       auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
-      if( is_ordered_rmo( dep.e, e ) ) {
+      if( is_ordered_arm8_2( dep.e, e ) ) {
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
         hb_enc::join_depends_set( dep, ordered );
       }else if( z3::expr cond = is_ordered_dependency( dep.e, e ) ) {

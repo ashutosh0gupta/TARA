@@ -345,22 +345,7 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr& e1,
   return false;
 }
 
-// Note: the following function does not check dependency orderings
-// in rmo
-bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr& e1,
-                                     const hb_enc::se_ptr& e2  ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
-  }
-  // bool find = false;
-  assert( e1->is_mem_op() && e2->is_mem_op() );
-  if( e1->is_mem_op() && e2->is_wr() &&
-      (e1->prog_v.name == e2->prog_v.name) ) return true;
 
-  if( e1->is_wr() ) return false;
-
-  return false;
-}
 
 
 z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr& e1,
@@ -406,7 +391,7 @@ bool wmm_event_cons::check_ppo( mm_t mm,
   case mm_t::pso    : return is_ordered_pso  ( e1, e2 ); break;
   case mm_t::rmo    : return is_ordered_rmo  ( e1, e2 ); break;
   case mm_t::alpha  : return is_ordered_alpha( e1, e2 ); break;
-  case mm_t::arm8_2: return is_ordered_arm8_2( e1,e2); break;
+  case mm_t::arm8_2 : return is_ordered_arm8_2( e1,e2 ); break;
   case mm_t::c11    : return is_ordered_c11( e1,e2); break;
   default:
     std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
@@ -453,55 +438,6 @@ void wmm_event_cons::ppo_traverse( const tara::thread& thread ) {
   for( auto& e : fe->prev_events ) {
     for( auto& ep : pending_map[e] ) {
       po = po && hb_encoding.mk_ghbs( ep, fe );
-    }
-  }
-}
-
-//
-// due to data/ctrl dependency based orderings we need a seperate
-// traverse function for rmo
-void wmm_event_cons::ppo_rmo_traverse( const tara::thread& thread ) {
-  hb_enc::se_to_depends_map ordered_map,pending_map;
-  auto& se = thread.start_event;
-  pending_map[se].insert( hb_enc::depends( se, z3.mk_true() ) );
-
-  for( auto& e : thread.events ) {
-    pending_map[e].insert( {e , z3.mk_true() } );
-    hb_enc::depends_set tmp_pendings;
-    for( auto& ep : e->prev_events )
-      hb_enc::join_depends_set( pending_map[ep], tmp_pendings );
-    hb_enc::depends_set& pending = pending_map[e];
-    hb_enc::depends_set& ordered = ordered_map[e];
-    while( !tmp_pendings.empty() ) {
-      //todo: does ordered access solve the problem
-      auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
-      if( is_ordered_rmo( dep.e, e ) ) {
-        po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
-        hb_enc::join_depends_set( dep, ordered );
-      }else if( z3::expr cond = is_ordered_dependency( dep.e, e ) ) {
-        z3::expr c = cond && dep.cond;
-        c = c.simplify();
-      // tara::debug_print( std::cerr, c );
-        if( !z3.is_false( c ) ) {
-          po = po && implies( c, hb_encoding.mk_ghbs( dep.e, e ) );
-          hb_enc::join_depends_set( dep.e, c, ordered );
-        }
-        if( !z3.is_true( c ) ) {
-          hb_enc::join_depends_set( dep.e, dep.cond && !cond, pending );
-          for( auto& depp : ordered_map[dep.e] )
-            hb_enc::join_depends_set(depp.e,depp.cond && !cond, tmp_pendings);
-        }
-      }else{
-        pending.insert( dep );
-        hb_enc::join_depends_set( ordered_map[dep.e], tmp_pendings );
-      }
-    }
-  }
-
-  auto& fe = thread.final_event;
-  for( auto& e : fe->prev_events ) {
-    for( auto& dep : pending_map[e] ) {
-      po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, fe ) );
     }
   }
 }
@@ -610,7 +546,6 @@ void wmm_event_cons::update_orderings() {
     }
   }
 }
-
 
 void wmm_event_cons::update_must_before( const hb_enc::se_vec& es,
                                          hb_enc::se_ptr e ) {

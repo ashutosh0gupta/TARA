@@ -234,7 +234,11 @@ void cinput::dump_dot_module( boost::filesystem::path& dump_path,
   auto c_path = boost::filesystem::current_path();
   current_path( dump_path );
   llvm::legacy::PassManager passMan;
+#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
+  passMan.add( llvm::createCFGPrinterLegacyPassPass() );
+#else
   passMan.add( llvm::createCFGPrinterPass() );
+#endif
   passMan.run( *module.get() );
   current_path( c_path );
 }
@@ -319,9 +323,9 @@ bool cinput::is_dangling( const bb* b, std::map<const bb*,bb_set_t>& bedges ) {
 char SplitAtAssumePass::ID = 0;
 bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
   llvm::LLVMContext &C = f.getContext();
-  llvm::BasicBlock *dum = llvm::BasicBlock::Create(C, "dummy", &f, &*f.end());
+  llvm::BasicBlock *dum = llvm::BasicBlock::Create(C, "dummy", &f);
   new llvm::UnreachableInst(C, dum);
-  llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f, &*f.end() );
+  llvm::BasicBlock *err = llvm::BasicBlock::Create( C, "err", &f);
   new llvm::UnreachableInst(C, err);
 
   std::vector<bb*> splitBBs;
@@ -397,7 +401,14 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
   return false;
 }
 
-const char * SplitAtAssumePass::getPassName() const {
+// const char *
+// llvm::StringRef
+#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
+ llvm::StringRef
+#else
+ const char *
+#endif
+SplitAtAssumePass::getPassName() const {
   return "Split blocks at assume/assert statements";
 }
 

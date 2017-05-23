@@ -109,7 +109,6 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
-  llvm::LLVMContext& context = llvm::getGlobalContext();
   //llvm::PassManager passMan; // 3.6
   llvm::legacy::PassManager passMan;
   llvm::PassRegistry& reg = *llvm::PassRegistry::getPassRegistry();
@@ -118,6 +117,9 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   //todo: get rid of clang call
   // why are we parsing IR file.. why not directly .cpp??
+
+  // llvm::LLVMContext& context = llvm::getGlobalContext(); //4.0 moved it to only c-api
+  static llvm::LLVMContext context;
   module = llvm::parseIRFile( bc_file.string(), err, context);
   if( module.get() == 0 ) {
     cinput_error( "failed to parse the input file!");

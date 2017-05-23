@@ -106,8 +106,7 @@ namespace cssa {
 
     static bool is_ordered_arm8_2(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     void ppo_arm8_2( const tara::thread& );
-    void ses_arm8_2();
-    void distinct_events_arm8_2();
+    // void distinct_events_arm8_2();
 
     //------------------------------------------------------------------------
 
