@@ -1,3 +1,6 @@
+//
+// RMO finds a bad execution for this example
+// Since ctrl dependency is not the part of thin-air constraints
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,3 +40,46 @@ int main() {
   pthread_join(thr_1, NULL);
   assert( r1 == 0 || r2 == 0 );
 }
+
+
+//###############################################
+//!-M tso
+//###############################################
+//~
+//#
+//#All traces are good or infeasable.
+//~
+
+
+//###############################################
+//!-M pso
+//###############################################
+//~
+//#
+//#All traces are good or infeasable.
+//~
+
+
+//###############################################
+//!-M rmo
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( hb(W#x#_l29_c7,R#x#_l17_c8) ∧ hb(W#y#_l20_c7,R#y#_l26_c8) ) 
+//#
+//~
+
+
+//###############################################
+//!-M alpha
+//###############################################
+//~
+//#
+//#Final result
+//#Bad DNF
+//#( hb(W#x#_l29_c7,R#x#_l17_c8) ∧ hb(W#y#_l20_c7,R#y#_l26_c8) ) 
+//#
+//~
+

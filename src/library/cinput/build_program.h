@@ -208,6 +208,11 @@ namespace cinput {
 
   private:
 
+    bool
+    mk_fence_from_call( llvm::Function* fp, const bb* b, unsigned tid,
+                        hb_enc::se_set& prev_events, z3::expr& path_cond,
+                        std::vector<z3::expr>& history, hb_enc::source_loc&);
+
     z3::expr translateBlock( unsigned thr_id,
                              const bb*,
                              hb_enc::se_set& prev_events,

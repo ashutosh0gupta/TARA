@@ -71,8 +71,8 @@ namespace cssa {
     void unsupported_mm() const;
 
     bool anti_ppo_read_new( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
-                             const hb_enc::se_ptr& wr );
+    bool anti_po_loc_fr( const hb_enc::se_ptr& rd,
+                         const hb_enc::se_ptr& wr );
 
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool is_rd_rd_coherance_preserved();
@@ -105,7 +105,11 @@ namespace cssa {
     // arm8_2 functions
 
     static bool is_ordered_arm8_2(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    z3::expr is_dependency_arm8_2( const hb_enc::se_ptr& e1,
+                                   const hb_enc::se_ptr& e2  );
     void ppo_arm8_2( const tara::thread& );
+    z3::expr rfi_ord_arm8_2( z3::expr rf_b, const hb_enc::se_ptr& wr,
+                             const hb_enc::se_ptr& rd );
     // void distinct_events_arm8_2();
 
     //------------------------------------------------------------------------

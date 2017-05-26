@@ -53,7 +53,7 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
   if( p.is_mm_sc() ) {
     return true;
   }else if( p.is_mm_tso() || p.is_mm_pso() ||
-            p.is_mm_rmo() || p.is_mm_alpha() ) {
+            p.is_mm_rmo() || p.is_mm_alpha() || p.is_mm_arm8_2()) {
     return wr->tid != rd->tid; //only events with diff threads are part of grf
   }else{
     p.unsupported_mm();
@@ -76,8 +76,27 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
 
+bool wmm_event_cons::no_thin_mm() {
+  if( p.is_mm_sc() || p.is_mm_arm8_2() ) {
+    return false;
+  }else if(    p.is_mm_tso() // todo: tso/pso do not need thin air
+            || p.is_mm_pso()
+            || p.is_mm_rmo()
+            || p.is_mm_alpha() ) {
+    return true;
+  }else{
+    p.unsupported_mm();
+    return false; // dummy return
+  }
+}
+
 bool wmm_event_cons::is_rd_rd_coherance_preserved() {
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso() || p.is_mm_alpha()) {
+  if( p.is_mm_sc()
+      || p.is_mm_tso()
+      || p.is_mm_pso()
+      || p.is_mm_alpha()
+      || p.is_mm_arm8_2()
+      ) {
     return true;
   }else if( p.is_mm_rmo() ){
     return false;
@@ -107,18 +126,6 @@ z3::expr wmm_event_cons::get_rf_bvar( const tara::variable& v1,
   return b;
 }
 
-z3::expr wmm_event_cons::get_rel_seq_bvar( hb_enc::se_ptr wrp,
-                                           hb_enc::se_ptr wr,
-                                           bool record ) {
-  std::string bname = "res-seq-"+wrp->name()+"-"+wr->name();
-  z3::expr b = z3.c.bool_const(  bname.c_str() );
-  // todo: do need to record the interupption bit
-  if( record )
-    p.rel_seq_map[wr].insert( std::make_pair( bname, wrp ) );
-  return b;
-}
-
-
 
 
 //----------------------------------------------------------------------------
@@ -128,8 +135,13 @@ bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
   // (if rf is local then may not visible to global ordering)
   assert( wr->tid >= p.size() || rd->tid >= p.size() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc() || p.is_mm_tso() || p.is_mm_pso()
-      || p.is_mm_rmo() || p.is_mm_alpha() || p.is_mm_c11() ) {
+  if( p.is_mm_sc()
+      || p.is_mm_tso()
+      || p.is_mm_pso()
+      || p.is_mm_rmo()
+      || p.is_mm_alpha()
+      || p.is_mm_c11()
+      || p.is_mm_arm8_2() ) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( is_po_new( rd, wr ) ) {
@@ -143,18 +155,20 @@ bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
 }
 
 
-bool wmm_event_cons::anti_po_loc_fr_new( const hb_enc::se_ptr& rd,
-                                         const hb_enc::se_ptr& wr ) {
+bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
+                                     const hb_enc::se_ptr& wr ) {
   // preventing coherence violation - fr;
   // (if rf is local then it may not be visible to the global ordering)
   // coherance disallows rf(rd,wr') and ws(wr',wr) and po-loc( wr, rd)
   assert( wr->tid >= p.size() || rd->tid >= p.size() ||
           wr->prog_v.name == rd->prog_v.name );
-  if( p.is_mm_sc()  ||
-      p.is_mm_tso() ||
-      p.is_mm_pso() ||
-      p.is_mm_rmo() ||
-      p.is_mm_alpha() ) {
+  if( p.is_mm_sc()
+      || p.is_mm_tso()
+      || p.is_mm_pso()
+      || p.is_mm_rmo()
+      || p.is_mm_alpha()
+      || p.is_mm_arm8_2()
+      ) {
     if( is_po_new( wr, rd ) ) {
       return true;
     }
@@ -205,16 +219,19 @@ void wmm_event_cons::ses() {
         // read from
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
-        z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
-        thin = thin && new_thin;
+        if( is_no_thin_mm() ) {
+          z3::expr new_thin = implies( b, hb_encoding.mk_ghb_thin( wr, rd ) );
+          thin = thin && new_thin;
+        }
         //global read from
         if( in_grf( wr, rd ) ) grf = grf && new_rf;
+        if( p.is_mm_arm8_2() ) grf = grf && rfi_ord_arm8_2( b, wr, rd );
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
                           && after_wr->guard;
-            if( anti_po_loc_fr_new( rd, after_wr ) ) {
+            if( anti_po_loc_fr( rd, after_wr ) ) {
               fr = fr && !cond;
             }else{
               auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
@@ -252,18 +269,19 @@ void wmm_event_cons::ses() {
         }
       }
     }
-
-    // dependency
-    for( const hb_enc::se_ptr& wr : wrs ) {
-      for( auto& dep : wr->data_dependency )
-        thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
-      // for( auto& dep : wr->ctrl_dependency )
-      //   thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
-    }
-    // for( const hb_enc::se_ptr& rd : rds ) {
-    //   for( auto& dep : rd->ctrl_dependency )
-    //     thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, rd ));
+    if( is_no_thin_mm() ) {
+      // dependency
+      for( const hb_enc::se_ptr& wr : wrs ) {
+        for( auto& dep : wr->data_dependency )
+          thin = thin && z3::implies(dep.cond,hb_encoding.mk_hb_thin(dep.e,wr));
+        // for( auto& dep : wr->ctrl_dependency )
+        //   thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, wr ));
+      }
+      // for( const hb_enc::se_ptr& rd : rds ) {
+      //   for( auto& dep : rd->ctrl_dependency )
+      //     thin = thin && z3::implies(dep.cond, hb_encoding.mk_hb_thin( dep.e, rd ));
     // }
+    }
   }
 }
 
@@ -350,7 +368,7 @@ bool wmm_event_cons::is_ordered_pso( const hb_enc::se_ptr& e1,
 
 z3::expr wmm_event_cons::is_ordered_dependency( const hb_enc::se_ptr& e1,
                                                 const hb_enc::se_ptr& e2  ) {
-  
+
   if( !(e1->is_mem_op() && e2->is_mem_op()) ) return z3.mk_emptyexpr();
 
   z3::expr ret = z3.mk_emptyexpr();
@@ -698,8 +716,9 @@ void wmm_event_cons::run() {
 
   p.phi_po  = po && dist;
   p.phi_ses = wf && grf && fr && ws ;
-  p.phi_ses = p.phi_ses && thin; //todo : undo this update
-
+  if( !p.is_mm_arm8_2() ) {
+    p.phi_ses = p.phi_ses && thin; //todo : undo this update
+  }
 }
 
 

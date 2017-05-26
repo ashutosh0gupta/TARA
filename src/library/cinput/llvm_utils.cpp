@@ -376,13 +376,11 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
     llvm::BranchInst *branch;
     if( llvm::Instruction* c = llvm::dyn_cast<llvm::Instruction>(args[i]) ) {
       cmp = c;
-      bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-      // bb* tail = llvm::SplitBlock( head, splitIs[i], this ); // 3.6
+      bb* tail = llvm::SplitBlock( head, splitIs[i] );
       branch = llvm::BranchInst::Create( tail, elseBlock, cmp );
       llvm::ReplaceInstWithInst( head->getTerminator(), branch );
     } else if( is_llvm_false(args[i]) ) { // jump to else block
-      bb* tail = llvm::SplitBlock( head, splitIs[i] ); //3.8
-      // bb* _tail = llvm::SplitBlock( head, splitIs[i], this ); //3.6
+      bb* tail = llvm::SplitBlock( head, splitIs[i] );
       branch = llvm::BranchInst::Create( elseBlock );
       llvm::ReplaceInstWithInst( head->getTerminator(), branch );
       remove_unreachable_blocks( tail );

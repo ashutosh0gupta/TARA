@@ -293,6 +293,38 @@ translate_ordering_tags( llvm::AtomicOrdering ord ) {
   return hb_enc::o_tag_t::na; // dummy return;
 }
 
+//-----------------------------------------------
+// special fence instructions
+
+bool
+build_program::
+mk_fence_from_call( llvm::Function* fp, const bb* b, unsigned tid,
+                    hb_enc::se_set& prev_events, z3::expr& path_cond,
+                    std::vector< z3::expr >& history, hb_enc::source_loc& loc) {
+
+  auto fname = fp->getName();
+  auto fence_t = hb_enc::event_t::barr_b;
+  auto arm8 = false;
+  if(      fname == "_Z5fencev"            ) {
+    fence_t = hb_enc::event_t::barr;
+  }else if(fname =="_Z17fence_arm8_dmb_ldv") {
+    arm8 = true; fence_t = hb_enc::event_t::barr_a;
+  }else if(fname =="_Z17fence_arm8_dmb_stv") {
+    arm8 = true; fence_t = hb_enc::event_t::barr_b;
+  }else{ return false; //no function name matched!!
+  }
+  if( arm8 ){
+    // check if the current model is actually arm8 model
+    if( !p->is_mm_arm8_2() )
+      cinput_error( "arm fences are being inserted in non arm model!" );
+  }
+  auto e = mk_se_ptr(hb_enc, tid, prev_events, path_cond, history, loc,fence_t);
+  prev_events = { e };
+  p->add_event_with_rs_heads( tid, prev_events,local_release_heads[b]);
+  return true;
+}
+
+
 z3::expr
 build_program::
 translateBlock( unsigned thr_id,
@@ -554,8 +586,7 @@ translateBlock( unsigned thr_id,
 
     UNSUPPORTED_INSTRUCTIONS( InvokeInst,      I );
     UNSUPPORTED_INSTRUCTIONS( IndirectBrInst,  I );
-    UNSUPPORTED_INSTRUCTIONS( SwitchInst,  I );
-    // UNSUPPORTED_INSTRUCTIONS( UnreachableInst, I );
+    UNSUPPORTED_INSTRUCTIONS( SwitchInst,      I );
 
     if( auto br = llvm::dyn_cast<llvm::BranchInst>(I) ) {
       if( br->isUnconditional() ) {
@@ -586,15 +617,21 @@ translateBlock( unsigned thr_id,
         llvm::Function* fp = call->getCalledFunction();
         unsigned argnum = call->getNumArgOperands();
         auto loc_name = getInstructionLocation( I );
-        if( fp != NULL && ( fp->getName() == "_Z5fencev" ) ) {
+        if( fp == NULL ) {
+          cinput_error( "Null pointer functional call!!");
+        }
+        if( fp->getName() == "_Z5fencev" ) {
           //fence instruction as a call
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr );
-          p->add_event( thr_id, barr );
-          p->set_c11_rs_heads( barr, local_release_heads[b] );
-          prev_events.clear(); prev_events.insert( barr );
-        }else if( fp != NULL && ( fp->getName() == "pthread_create" ) &&
-                  argnum == 4 ) {
+          // p->add_event( thr_id, barr );
+          // p->set_c11_rs_heads( barr, local_release_heads[b] );
+          // prev_events.clear(); prev_events.insert( barr );
+          prev_events = { barr };
+          p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
+        }else if( argnum == 0 && mk_fence_from_call( fp, b, thr_id, prev_events,
+                                      path_cond, history, loc_name ) ) {
+        }else if( fp->getName() == "pthread_create" && argnum == 4 ) {
           // thread create
           auto thr_ptr = call->getArgOperand(0);
           auto v = call->getArgOperand(2);
@@ -609,7 +646,7 @@ translateBlock( unsigned thr_id,
           p->add_create( thr_id, barr, fname );
           p->set_c11_rs_heads( barr, local_release_heads[b] );
           prev_events.clear(); prev_events.insert( barr );
-        }else if( fp != NULL && ( fp->getName() == "pthread_join" ) ) {
+        }else if( fp->getName() == "pthread_join" ) {
           // thread join
           auto val = call->getArgOperand(0);
           auto thr_ptr = llvm::cast<llvm::LoadInst>(val)->getOperand(0);
@@ -623,7 +660,7 @@ translateBlock( unsigned thr_id,
           p->set_c11_rs_heads( barr, local_release_heads[b] );
           join_conds = join_conds && join_cond;
           prev_events.clear(); prev_events.insert( barr );
-        }else if( fp != NULL && ( fp->getName() == "pthread_yield" ) ) {
+        }else if( fp->getName() == "pthread_yield" ) {
           // Since we assume fully pre-emptive processor,
           // pthread_yield has no semantic effect on safety properties.
           // For liveness properties it may affect fairness condition. 

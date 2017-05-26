@@ -363,11 +363,48 @@ void symbolic_event::set_ctrl_dependency( const hb_enc::depends_set& deps ) {
   ctrl_dependency.insert( deps.begin(), deps.end() );
 }
 
+void symbolic_event::set_addr_dependency( const hb_enc::depends_set& deps ) {
+  addr_dependency.clear();
+  addr_dependency.insert( deps.begin(), deps.end() );
+}
+
+//todo: add addr dependency field
 void symbolic_event::set_dependencies( const hb_enc::depends_set& data,
                                        const hb_enc::depends_set& ctrl ) {
   set_data_dependency( data );
   set_ctrl_dependency( ctrl );
 }
+
+z3::expr symbolic_event::get_data_dependency_cond( const se_ptr& e2 ) {
+  for( auto& dep : data_dependency ) {
+    if( dep.e == e2 ) {
+       return dep.cond;
+      break;
+    }
+  }
+  return z3::expr( guard.ctx() );
+}
+
+z3::expr symbolic_event::get_ctrl_dependency_cond( const se_ptr& e2 ) {
+  for( auto& dep : ctrl_dependency ) {
+    if( dep.e == e2 ) {
+       return dep.cond;
+      break;
+    }
+  }
+  return z3::expr( guard.ctx() );
+}
+
+z3::expr symbolic_event::get_addr_dependency_cond( const se_ptr& e2 ) {
+  for( auto& dep : addr_dependency ) {
+    if( dep.e == e2 ) {
+       return dep.cond;
+      break;
+    }
+  }
+  return z3::expr( guard.ctx() );
+}
+
 
 void symbolic_event::debug_print( std::ostream& stream ) {
   stream << *this << "\n";

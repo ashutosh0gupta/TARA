@@ -35,6 +35,12 @@ litmus_files=[
               '../c/lb-cond.cpp',
               '../c/lb-cond-3.cpp',
               '../c/lb-combo.cpp',
+# non atomic cpp files
+              '../c/rmo-no-dep.cpp'
+              '../c/rmo-ctrl-dep-1.cpp'
+              '../c/rmo-ctrl-dep.cpp'
+              '../c/rmo-data-dep.cpp'
+              '../c/rmo-data-dep-2.cpp'
 # original tara
               '../locks.ctrc',
 # wmm test examples

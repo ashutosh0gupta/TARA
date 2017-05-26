@@ -115,16 +115,19 @@ struct source_loc{
       sc = 7, // sequentially consistent
       };
 
+  //todo: add thread create event and join event
   enum class event_t {
-      pre,  // initialization event
-      r,    // read events
-      w,    // write events
-      u,    // update events encodes both successful and failed events
-      barr, // barrier events
-      barr_b, // only order before events
-      barr_a, // only order after events
+      pre,    // initialization event
+      create, // create thread //todo: yet to be used and tested
+      join,   // join thread   //todo: yet to be used and tested
+      r,      // read events
+      w,      // write events
+      u,      // update events
+      barr,   // three kinds of fences
+      barr_a, // " " " " " " interepretted differently in different
+      barr_b, // " " " " " " memory models
       block,  // events that indicate the heads of blocks
-      post  // final event
+      post    // final event
       };
 
   std::string event_t_name( event_t et );
@@ -198,6 +201,7 @@ struct source_loc{
     std::vector<z3::expr> history;
     depends_set data_dependency;
     depends_set ctrl_dependency;
+    depends_set addr_dependency; //todo: unsupported for now
 
     //in case of loop unrolling. Multiple events have same position name
     std::string position_name;
@@ -214,14 +218,27 @@ struct source_loc{
     inline bool is_wr()             const { return et == event_t::w ||
                                                    et == event_t::u;      }
     inline bool is_update()         const { return et == event_t::u;      }
-    inline bool is_barrier()        const { return et == event_t::barr;   }
     inline bool is_fence()          const { return et == event_t::barr;   }
+    inline bool is_fence_a()        const { return et == event_t::barr_a; }
+    inline bool is_fence_b()        const { return et == event_t::barr_b; }
+    inline bool is_fence_any()      const {
+      return is_fence() || is_fence_a() || is_fence_b();
+    }
+    inline bool is_non_mem_op()     const {
+      return is_block_head () || is_fence_any() || is_thread_create()
+        || is_thread_join();
+    }
+    //todo: remove references to function barrier
+    inline bool is_barrier()        const { return et == event_t::barr;   }
     inline bool is_before_barrier() const { return et == event_t::barr_b; }
     inline bool is_after_barrier () const { return et == event_t::barr_a; }
     inline bool is_barr_type()      const {
       return is_barrier() || is_before_barrier() || is_after_barrier() ||
         is_block_head ();
     }
+    //---- above is set for deletion
+    inline bool is_thread_create()  const { return et == event_t::create; }
+    inline bool is_thread_join()    const { return et == event_t::join;   }
     inline bool is_block_head ()    const { return et == event_t::block;  }
     inline bool is_post()           const { return et == event_t::post;   }
     inline bool is_mem_op()         const { return is_rd() || is_wr();    }
@@ -316,8 +333,12 @@ struct source_loc{
 
     void set_data_dependency( const hb_enc::depends_set& deps );
     void set_ctrl_dependency( const hb_enc::depends_set& deps );
+    void set_addr_dependency( const hb_enc::depends_set& deps );
     void set_dependencies( const hb_enc::depends_set& data,
                            const hb_enc::depends_set& ctrl );
+    z3::expr get_ctrl_dependency_cond( const se_ptr& e2 );
+    z3::expr get_data_dependency_cond( const se_ptr& e2 );
+    z3::expr get_addr_dependency_cond( const se_ptr& e2 );
 
     friend std::ostream& operator<< ( std::ostream& stream,
                                       const symbolic_event& var ) {

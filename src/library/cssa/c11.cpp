@@ -46,6 +46,18 @@ void wmm_event_cons::ppo_c11( const tara::thread& thread ) {
   po = po && hb_encoding.mk_ghbs_c11_hb( e->prev_events, e );
 }
 
+
+z3::expr wmm_event_cons::get_rel_seq_bvar( hb_enc::se_ptr wrp,
+                                           hb_enc::se_ptr wr,
+                                           bool record ) {
+  std::string bname = "res-seq-"+wrp->name()+"-"+wr->name();
+  z3::expr b = z3.c.bool_const(  bname.c_str() );
+  // todo: do need to record the interupption bit
+  if( record )
+    p.rel_seq_map[wr].insert( std::make_pair( bname, wrp ) );
+  return b;
+}
+
 void wmm_event_cons::distinct_events_c11() {
 
   z3::expr_vector es( z3.c );
