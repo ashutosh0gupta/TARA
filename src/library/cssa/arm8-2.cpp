@@ -149,6 +149,7 @@ bool is_dmb_st( const hb_enc::se_ptr e ) {
 
 bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
                                         const hb_enc::se_ptr& e2  ) {
+  if( e1->is_block_head() || e2->is_block_head() ) return false;
 // 	| [L]; po; [A]
   if( is_L(e1) && is_A(e2) ) return true;
 // 	| Q; po
@@ -175,7 +176,7 @@ bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
 
 
   //moi added in ppo
-  //should it be, or truly handle as defined in the model?
+  // However, the model defines it as follows
   // | po; [L]; moi
   // | ctrl   ; moi
   // | data   ; moi
@@ -265,6 +266,7 @@ void wmm_event_cons::ppo_arm8_2( const tara::thread& thread ) {
       //todo: does ordered access solve the problem
       auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
       if( is_ordered_arm8_2( dep.e, e ) ) {
+        // std::cout << "adding hb " << dep.e->name() << ","<< e->name() << "\n";
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
         hb_enc::join_depends_set( dep, ordered );
       }else if( z3::expr cond = is_dependency_arm8_2( dep.e, e ) ) {

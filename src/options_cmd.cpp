@@ -29,14 +29,31 @@ using namespace tara::api;
 
 namespace po = boost::program_options;
 
-options_cmd::options_cmd() : options(), mode(modes::seperate), output_to_file(false)
+const std::string mode_name = "mode";
+const std::string bad_d =
+"mode for succinctly representing bad executions.\n\
+returns DNF of hb constraints (default)";
+const std::string as_d =
+"needed work (outdated)";
+const std::string synth_d =
+"mode for synthesis of sync premitives for sc memory";
+const std::string fsynth_d =
+"mode for synthesis of fences for weak memory,\n\
+assumes input is good under sc";
+const std::string bugs_d =
+"mode for bugs localization";
+
+options_cmd::options_cmd()
+  : options()
+  , mode(modes::seperate)
+  , output_to_file(false)
 {
   // names for modes
-  mode_names.insert( std::make_pair( (modes::seperate), "seperate") );
-  mode_names.insert( std::make_pair( (modes::as), "as") );
-  mode_names.insert( std::make_pair( (modes::synthesis), "synthesis") );
-  mode_names.insert( std::make_pair( (modes::fsynth), "fsynth") );
-  mode_names.insert( std::make_pair( (modes::bugs), "bugs") );
+  mode_names.insert( std::make_tuple( (modes::seperate), "bad", bad_d) );
+  mode_names.insert( std::make_tuple( (modes::as), "as", as_d) );
+  mode_names.insert( std::make_tuple( (modes::synthesis),"synthesis",synth_d));
+  mode_names.insert( std::make_tuple( (modes::fsynth), "fsynth", fsynth_d) );
+  mode_names.insert( std::make_tuple( (modes::bugs), "bugs", bugs_d ) );
 }
 
 std::string options_cmd::string_mode_names() {
@@ -44,24 +61,44 @@ std::string options_cmd::string_mode_names() {
   std::stringstream ss;
   for( auto pr : mode_names) {
     if(first) first = false; else ss << ",";
-    ss << "\"" << pr.second << "\"";
+    std::string s = std::get<1>(pr);
+    ss << "\"" << s << "\"";
   }
   return ss.str();
 }
 
-void options_cmd::get_description_cmd(po::options_description& desc, po::positional_options_description& pd)
+std::string options_cmd::string_mode_discuss() {
+  // bool first = true;
+  std::stringstream ss;
+  ss << "--" << mode_name << "\n------\n\n";
+  for( auto pr : mode_names) {
+    // if(first) first = false; else ss << ",";
+    std::string s = std::get<1>(pr);
+    std::string discuss = std::get<2>(pr);
+    ss << "" << s << ":\n" << discuss << "\n";
+  }
+  ss << "\n";
+  return ss.str();
+}
+
+void options_cmd::get_description_cmd(po::options_description& desc, po::positional_options_description& pd, std::string& extended)
 {
-  tara::api::options::get_description(desc, pd);
+  tara::api::options::get_description(desc, pd, extended);
+  std::string m_name = mode_name + ",o";
   std::string moptions = "selects the mode of operation ("+string_mode_names()+")";
   desc.add_options()
-  ("help,h", "produce help message")
   ("input,i", po::value(&input_file), "file to process")
   ("config,c", po::value<string>(), "a config file to parse")
-    ("mode,o", po::value<string>()->default_value("seperate"), moptions.c_str() )
+  (m_name.c_str(), po::value<string>()->default_value("bad"), moptions.c_str() )
   ("ofile,f", po::bool_switch(&output_to_file), "append the output to the end of the input file")
   ("metric", po::bool_switch(&output_metric), "outputs statistics about the run")
+  ("help,h", "produce help message")
+  ("help-extended", "extended help for non-self-explanatory options")
   ;
   pd.add("input", 1);
+
+  // add extended disccssions for non-trival options
+  extended = extended + string_mode_discuss();
 }
 
 
@@ -70,7 +107,8 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
   po::variables_map vm;
   po::options_description desc;
   po::positional_options_description pd;
-  get_description_cmd(desc, pd);
+  std::string extended_discussion;
+  get_description_cmd(desc, pd, extended_discussion);
   try {
     po::store(po::command_line_parser(argc, argv).options(desc).positional(pd).run(), vm);
     po::notify(vm);
@@ -78,6 +116,14 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
       cout << desc << endl;
       return false;
     }
+    if (vm.count("help-extended")) {
+      cout << desc << endl;
+      cout << "\n\nExtended help\n";
+      cout << "=============\n\n";
+      cout << extended_discussion;
+      return false;
+    }
+
     if (!vm.count("input")) {
       arg_error("No input specified");
     }
@@ -85,15 +131,13 @@ bool options_cmd::parse_cmdline(int argc, char** argv)
       boost::filesystem::path path(vm["config"].as<string>());
       parse_config(path);
     }
-    
     interpret_options(vm);
 
   } catch ( const boost::program_options::error& e ) {
     arg_error(e.what());
     return false;
   }
-    
-    return true;
+  return true;
 }
 
 void options_cmd::interpret_options(po::variables_map& vm) {
@@ -103,8 +147,8 @@ void options_cmd::interpret_options(po::variables_map& vm) {
     string _mode = seperate_option(vm["mode"].as<string>(), mode_options);
     bool none = true;
     for( auto pr : mode_names ) {
-      if( pr.second == _mode ) {
-        mode = pr.first;
+      if( std::get<1>(pr) == _mode ) {
+        mode = std::get<0>(pr);
         none = false;
         break;
       }

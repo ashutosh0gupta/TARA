@@ -36,11 +36,11 @@ litmus_files=[
               '../c/lb-cond-3.cpp',
               '../c/lb-combo.cpp',
 # non atomic cpp files
-              '../c/rmo-no-dep.cpp'
-              '../c/rmo-ctrl-dep-1.cpp'
-              '../c/rmo-ctrl-dep.cpp'
-              '../c/rmo-data-dep.cpp'
-              '../c/rmo-data-dep-2.cpp'
+              '../c/rmo-no-dep.cpp',
+              '../c/rmo-ctrl-dep-1.cpp',
+              '../c/rmo-ctrl-dep.cpp',
+              '../c/rmo-data-dep.cpp',
+              '../c/rmo-data-dep-2.cpp',
 # original tara
               '../locks.ctrc',
 # wmm test examples
@@ -195,14 +195,14 @@ def execute_example(fname,o):
 
 
 class example:
-    def populate_runs( self, options, output ):
+    def populate_runs( self, options, outputs ):
         for o in options:
             self.count = self.count + 1
             if( not args.suppress ):
                 printf( "[%d..", self.count )
             sys.stdout.flush()
             result = execute_example(self.filename, o)
-            if result == output:
+            if result in outputs:
                 if( not args.suppress ):
                     printf( "pass] " )
             else:
@@ -210,22 +210,28 @@ class example:
                     printf( "fail]\n" )
                 printf( "call: %s %s %s\n", bin_name, o, self.filename)
                 if( args.verbose ):
-                    process_diff( output, result )
+                    for output in outputs:
+                        process_diff( output, result )
                 
     def load_running_cases(self):
         with open(self.filename, 'r') as f:
             options = []
             output = ''
+            outputs = []
             started = False
             for line in f:
                 if started:
                     if line[:clen] == comment_string +'~' :
-                        self.populate_runs( options, output)
+                        outputs.append( output )
+                        self.populate_runs( options, outputs )
                         options = []
                         output = ''
                         started = False
                     elif line[:clen] == comment_string + '#' :
                         output += line[clen:]
+                    elif line[:clen] == comment_string + '|' :
+                        outputs.append( output )
+                        output = ''
                 else:
                     if line[:clen] == comment_string + '!':
                         options.append( line[clen:-1] )

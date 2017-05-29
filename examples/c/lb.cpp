@@ -78,7 +78,7 @@ int main() {
 //#
 //#Final result
 //#Bad DNF
-//#( hb(W#x#_l21_c7,R#x#_l12_c12) ∧ hb(W#x#_l21_c7,R#x#_l34_c11) ∧ hb(W#y#_l14_c7,R#y#_l19_c12) ∧ hb(W#y#_l14_c7,R#y#_l34_c21) ) 
+//#( hb(W#x#_l21_c7,R#x#_l12_c12) ∧ hb(W#y#_l14_c7,R#y#_l19_c12) ) 
 //#
 //~
 

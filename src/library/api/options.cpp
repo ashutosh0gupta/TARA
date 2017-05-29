@@ -36,11 +36,36 @@ options::options() : machine(false), prune_chain("data_flow,unsat_core"), _out(&
     
 }
 
+std::string string_mm_discuss() {
+  // bool first = true;
+  std::stringstream ss;
+  ss << "--mm \n----\n\n";
+  ss << "choose memory model from the available models\n";
+  ss << "sc is the default model\n";
+  ss << "Model specific assumtions\n";
+  ss << "c11: ctrc input is not allowed\n";
+  ss << "arm8.2: (todo: ctrc add annotations to read/writes)\n";
+  ss << "\n";
+  return ss.str();
+}
+
+
+std::string string_print_discuss() {
+  // bool first = true;
+  std::stringstream ss;
+  ss << "--print \n-------\n\n";
+  ss << "repeated use of print options produces more detailed output\n";
+  ss << "e.g. --print rounds,rounds,rounds\n";
+  ss << "\n";
+  return ss.str();
+}
+
+
 bool options::has_sub_option( std::string s ) const {
   return helpers::exists( mode_options, s);
 }
 
-const std::string pruning_s = "pruning";
+const std::string pruning_s = "prune";
 const std::string phi_s     = "phi"    ;
 const std::string rounds_s  = "rounds" ;
 const std::string output_s  = "output" ;
@@ -51,20 +76,25 @@ string string_of_print_options() {
     rounds_s + "\",\"" + output_s + "\",\"" + input_s+ "\"";
 }
 
-void options::get_description(po::options_description& desc, po::positional_options_description& pd)
+void options::get_description(po::options_description& desc, po::positional_options_description& pd,std::string& extended)
 {
   std::string mm_select = "select a memory model ("+string_of_mm_names()+")";
+  std::string print_select = "print details of a component ("+string_of_print_options()+")";
   std::string unroll_count_str = "unroll count of loops (default "+
     std::to_string(loop_unroll_count) + ")";
   desc.add_options()
   ("hb-enc,e", po::value<string>(), "happens-before encoding (integer)")
-  ("print,p", po::value<vector<string>>(), "print details about processing about a component (see readme)")
+  ("print,p", po::value<vector<string>>(), print_select.c_str() )
   ("prune,r", po::value<string>(), "select a chain of prune engines (see readme)")
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
   ("mm,M", po::value<string>()->default_value("none"), mm_select.c_str() )
   ("unroll-loop,u", po::value<unsigned>(), unroll_count_str.c_str())
   ;
   pd.add("input", -1);
+
+  // choosing memory models
+
+  extended = extended + string_mm_discuss() + string_print_discuss();
 }
 
 void options::parse_config(boost::filesystem::path filename) {
@@ -72,14 +102,13 @@ void options::parse_config(boost::filesystem::path filename) {
   po::variables_map vm;
   po::options_description desc;
   po::positional_options_description pd;
-  get_description(desc, pd);
+  std::string extended_discussion; // dummy option here
+  get_description(desc, pd, extended_discussion);
   po::notify(vm);
   try {
     po::store(po::parse_config_file(cfg_file, desc, false), vm);
     po::notify(vm);
-    
     interpret_options(vm);
-    
   } catch ( const boost::program_options::error& e ) {
     arg_error(e.what());
   }

@@ -76,7 +76,7 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
 //  - rf      (w->r)   n/n  n/u   n/u   n/u
 //  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
 
-bool wmm_event_cons::no_thin_mm() {
+bool wmm_event_cons::is_no_thin_mm() const {
   if( p.is_mm_sc() || p.is_mm_arm8_2() ) {
     return false;
   }else if(    p.is_mm_tso() // todo: tso/pso do not need thin air

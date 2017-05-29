@@ -2,10 +2,15 @@
 ====
 
 TARA is the implementation that accompanies our paper [1].
-The tool accepts concurrent traces in a custom language and returns a succinct error explanation in the form of a DNF over happens-before relations.
-This can be used for synthesis or fault localisation.
 
-[1] Ashutosh Gupta, Thomas A. Henzinger, Arjun Radhakrishna, Roopsha Samanta, Thorsten Tarrach. Succinct Representation of Concurrent Trace Sets. In POPL 2015
+The tool accepts concurrent traces in a custom language or C++ programs and
+returns a succinct error explanation in the form of a DNF over happens-before
+relations under several memory models. This can be used for synthesis or
+fault localisation.
+
+[1] Ashutosh Gupta, Thomas A. Henzinger, Arjun Radhakrishna, Roopsha Samanta,
+Thorsten Tarrach. Succinct Representation of Concurrent Trace Sets. In POPL
+2015
 
 Building on *nix
 ================
@@ -23,7 +28,7 @@ In a minimal debian install also the following tools are needed
 
 	sudo apt-get -y install unzip python
 
-- install llvm-3.6-dev and clang-3.6-dev (package name may not be exact)
+- install llvm-3.8-dev and clang-3.8-dev (package name may not be exact)
 
 Other *nix platforms
 --------------------
@@ -35,6 +40,7 @@ Make sure you have installed on your machine
 - flex (version 2.5 or higher)
 - bison (version 2.4 or higher)
 - boost
+- llvm 3.8 (debug version on 4.0.0; installed during compilation)
 
 Compiling
 ---------
@@ -56,7 +62,7 @@ To use the clang compiler issue `make clean` and then these commands before usin
 	export CC=/usr/bin/clang
 	export CXX=/usr/bin/clang++
 
-Building on Windows (32 bit)
+Building on Windows (32 bit) [outdated]
 ============================
 
 Install the following dependencies:

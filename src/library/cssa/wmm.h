@@ -70,6 +70,8 @@ namespace cssa {
 
     void unsupported_mm() const;
 
+    bool is_no_thin_mm() const;
+
     bool anti_ppo_read_new( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd,
                          const hb_enc::se_ptr& wr );

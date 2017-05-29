@@ -66,7 +66,9 @@ public: // information that are controlled by main
   unsigned round = 0;
   void parse_config(boost::filesystem::path filename);
 protected:
-  void get_description(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
+  void get_description(boost::program_options::options_description& desc,
+                       boost::program_options::positional_options_description& pd,
+                       std::string& extended);
   virtual void interpret_options(boost::program_options::variables_map& vm);
 
   // seperate_option parses the format xyz:bla,blub. xyz is returned and

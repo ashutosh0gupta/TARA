@@ -43,15 +43,18 @@ public:
   bool output_to_file;
   bool output_metric;
 
-  std::set< std::pair<modes, std::string> > mode_names;
+  std::set< std::tuple<modes, std::string, std::string> > mode_names;
 
 public: // information that are controlled by main
   bool parse_cmdline(int argc, char **argv);
 private:
 
-  void get_description_cmd(boost::program_options::options_description& desc, boost::program_options::positional_options_description& pd);
+  void get_description_cmd(boost::program_options::options_description& desc,
+                           boost::program_options::positional_options_description& pd,
+                           std::string& extended);
   virtual void interpret_options(boost::program_options::variables_map& vm) override;
   std::string string_mode_names();
+  std::string string_mode_discuss();
 };
 
 

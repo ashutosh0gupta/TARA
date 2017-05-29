@@ -30,7 +30,13 @@ using namespace std;
 
 remove_thin::remove_thin(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
-  if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo() || program.is_mm_alpha()){
+  if( program.is_mm_tso()
+      || program.is_mm_sc()
+      || program.is_mm_pso()
+      || program.is_mm_rmo()
+      || program.is_mm_alpha()
+      || program.is_mm_arm8_2()
+      ){
   }else{
     throw std::runtime_error("remove_thin does not support memory model!");
   }

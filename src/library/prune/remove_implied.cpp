@@ -30,18 +30,19 @@ using namespace std;
 
 remove_implied::remove_implied(const z3interf& z3, const tara::program& program) : prune_base(z3, program)
 {
-//--------------------------------------------------------------------------
-//start of wmm support
-//--------------------------------------------------------------------------
   if( program.is_mm_declared() ) {
-    if( program.is_mm_tso() || program.is_mm_sc() || program.is_mm_pso() || program.is_mm_rmo() || program.is_mm_alpha() || program.is_mm_c11()){
+    if( program.is_mm_sc()
+        || program.is_mm_tso()
+        || program.is_mm_pso()
+        || program.is_mm_rmo()
+        || program.is_mm_alpha()
+        || program.is_mm_c11()
+        || program.is_mm_arm8_2()
+        ){
     }else{
       throw std::runtime_error("remove_implied does not support memory model!");
     }
   }
-//--------------------------------------------------------------------------
-//end of wmm support
-//--------------------------------------------------------------------------
 }
 
 string remove_implied::name()
