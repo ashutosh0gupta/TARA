@@ -39,20 +39,17 @@ enum class instruction_type {
 
 extern const std::string error_label;
 
-  //--------------------------------------------------------------------------
-  //start of wmm support
-  //--------------------------------------------------------------------------
   enum class mm_t {
     wrong, none, sc, tso, pso, rmo, alpha, power, c11, arm8_2
   };
   std::string string_of_mm_names();
   std::string string_of_mm( mm_t mm );
   mm_t mm_of_string( std::string s );
+  bool mm_needs_ctrl_dependency( mm_t mm );
+  bool mm_needs_data_dependency( mm_t mm );
+  bool mm_needs_addr_dependency( mm_t mm );
 
   bool is_barrier(instruction_type type);
-  //--------------------------------------------------------------------------
-  //end of wmm support
-  //--------------------------------------------------------------------------
 }
 
 #endif // TARA_CONSTANTS_H

@@ -640,7 +640,7 @@ translateBlock( unsigned thr_id,
             cinput_error("unnamed call to function pointers is not supported!");
           }
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                                 history, loc_name, hb_enc::event_t::barr_b );
+                                 history, loc_name, hb_enc::event_t::create );
           std::string fname = (std::string)v->getName();
           ptr_to_create[thr_ptr] = fname;
           p->add_create( thr_id, barr, fname );
@@ -655,7 +655,7 @@ translateBlock( unsigned thr_id,
           z3::expr join_cond = z3.get_fresh_bool();
           path_cond = path_cond && join_cond;
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                                 history, loc_name, hb_enc::event_t::barr_a );
+                                 history, loc_name, hb_enc::event_t::join );
           p->add_join( thr_id, barr, join_cond, fname);
           p->set_c11_rs_heads( barr, local_release_heads[b] );
           join_conds = join_conds && join_cond;
@@ -941,7 +941,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
 
     // compute the control dependencies
     local_ctrl[src].clear();
-    if( o.mm == mm_t::rmo )
+    // if( o.mm == mm_t::rmo || o.mm == mm_t::arm8_2 )
+    if( mm_needs_ctrl_dependency( o.mm ) )
       join_depends_set( ctrl_ses, conds, local_ctrl[src] );
 
     // caclulating last release heads

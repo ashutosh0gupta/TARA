@@ -141,8 +141,16 @@ Invoke with `--mode=bugs`.
 
 Options include `verify` and `nfs`. `nfs` prints the normal forms used by the bug summarisation.
 
-Input file format
-=================
+Input formats
+=============
+
+ - C++ programs
+ - LLVM Bytecode
+ - Custom file format called ctrc
+
+
+ctrc file format
+----------------
 
 (this is not yet finalised)
 
@@ -161,6 +169,8 @@ Input file format
 	⟨atomic: [<name> <name>] (...)⟩
 	⟨order: <name> < <name> (...)⟩
 
+	⟨post: (smt-formula)⟩
+
 
 Parts in ⟨⟩ are optional. 
 
@@ -173,6 +183,9 @@ Each `thread` has a `<name>` and an optional declaration of local variables in c
 `havok` is followed by a list of variables that will be assigned an arbitrary value. These variables need not be mentioned in the smt-formula, but if they are they must be primed. It is possible to restrict the value of a havoked variable in the smt-formula. The reason why havoked variables should be listed explicitly is because they are treated as input to the program.
 
 An instruction may refer to primed variables by adding a dot to the variable (`x.` for variable `x`).
+
+
+`post` is followed by a formula that gives the postconditions for the global variables and local variables which are reffered using thread name prefix and dot.
 
 Semantics of assume and asserts
 -------------------------------
@@ -193,7 +206,7 @@ Known issues
 - can thin be removed without worry
 - C parsing: bool types are declared as 8bit 
 - assert(false) support
-- bulk rename litmus files.. and write their C versions
+- write C versions of litmus files
 - todo: is_po_new add memoization
 - delare the_launcher and the_finisher as sc
 - populate all sc

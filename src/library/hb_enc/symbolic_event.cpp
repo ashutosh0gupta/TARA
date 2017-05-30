@@ -99,6 +99,8 @@ std::string hb_enc::event_t_name( event_t et ) {
     case event_t::barr_a: return "barr_a" ; break;
     case event_t::block : return "block"; break;
     case event_t::post  : return "post" ; break;
+    case event_t::create: return "create"; break;
+    case event_t::join  : return "join" ; break;
     default: hb_enc_error( "name of the event type is not implemented yet!" );
     }
 }

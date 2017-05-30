@@ -329,12 +329,15 @@ void wmm_event_cons::ppo_sc( const tara::thread& thread ) {
 }
 
 
-bool wmm_event_cons::is_barrier_ordered( const hb_enc::se_ptr& e1,
+bool wmm_event_cons::is_non_mem_ordered( const hb_enc::se_ptr& e1,
                                          const hb_enc::se_ptr& e2  ) {
   if( e1->is_block_head() || e2->is_block_head()  ) return false;
-  if( e2->is_barrier() || e2->is_before_barrier() ) return true;
-  if( e1->is_barrier() || e1->is_after_barrier()  ) return true;
-  if( e2->is_after_barrier() || e1->is_before_barrier()  ) return false;
+  if( e2->is_barrier() ||e2->is_before_barrier() ||e2->is_thread_create())
+    return true;
+  if( e1->is_barrier() || e1->is_after_barrier() || e1->is_thread_join() )
+    return true;
+  if( e2->is_thread_join() || e2->is_after_barrier() ||
+      e1->is_thread_create() || e1->is_before_barrier()  ) return false;
   assert(false);
   return false;
 }
@@ -400,9 +403,12 @@ bool wmm_event_cons::is_ordered_alpha( const hb_enc::se_ptr& e1,
 bool wmm_event_cons::check_ppo( mm_t mm,
                                 const hb_enc::se_ptr& e1,
                                 const hb_enc::se_ptr& e2 ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
+  if( e1->is_non_mem_op() || e2->is_non_mem_op() ) {
+    return is_non_mem_ordered( e1, e2 );
   }
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
   switch( mm ) {
   case mm_t::sc     : return is_ordered_sc   ( e1, e2 ); break;
   case mm_t::tso    : return is_ordered_tso  ( e1, e2 ); break;

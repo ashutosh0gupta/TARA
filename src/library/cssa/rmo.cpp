@@ -32,9 +32,13 @@ using namespace tara::helpers;
 // in rmo
 bool wmm_event_cons::is_ordered_rmo( const hb_enc::se_ptr& e1,
                                      const hb_enc::se_ptr& e2  ) {
-  if( e1->is_barr_type() || e2->is_barr_type() ) {
-    return is_barrier_ordered( e1, e2 );
+  if( e1->is_non_mem_op() || e2->is_non_mem_op() ) {
+    return is_non_mem_ordered( e1, e2 );
   }
+
+  // if( e1->is_barr_type() || e2->is_barr_type() ) {
+  //   return is_barrier_ordered( e1, e2 );
+  // }
   // bool find = false;
   assert( e1->is_mem_op() && e2->is_mem_op() );
   if( e1->is_mem_op() && e2->is_wr() &&

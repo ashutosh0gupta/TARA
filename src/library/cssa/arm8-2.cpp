@@ -115,19 +115,20 @@ using namespace tara::helpers;
 // Q : load acQuire
 
 bool is_L( const hb_enc::se_ptr e ) {
-  return e->is_wr() && e->is_sc();
+  // return e->is_wr() && e->is_sc();
+  return e->is_wr() && e->is_rls();
 }
 
 bool is_A( const hb_enc::se_ptr e ) {
-  return e->is_rd() && e->is_sc();
-}
-
-bool is_Q( const hb_enc::se_ptr e ) {
   return e->is_rd() && e->is_acq();
 }
 
+bool is_Q( const hb_enc::se_ptr e ) {
+  return e->is_rd() && e->is_sc();
+}
+
 bool is_dmb_full( const hb_enc::se_ptr e ) {
-  return e->is_fence();
+  return e->is_fence() || e->is_thread_create() || e->is_thread_join();
 }
 
 bool is_dmb_ld( const hb_enc::se_ptr e ) {
@@ -144,8 +145,18 @@ bool is_dmb_st( const hb_enc::se_ptr e ) {
 //todo:
 //  ** optimize fence interactions
 //  *** rmw handling (do we need different time stamps??)
-//  *** moi,fri is included in the ppo
-//  ***
+//  *** moi,fri are included in hb
+//  *** rfi is not added
+//  *** thread create/join inserts dmb.full in the caller thread
+
+
+// symbolic hb must enforce the following
+//: rfe | fre | moe | data; rfi | rmw; rfi
+// unsupported
+// 	| addr; rfi
+// rfi should not be added
+// and coherence
+
 
 bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
                                         const hb_enc::se_ptr& e2  ) {
@@ -239,15 +250,6 @@ z3::expr wmm_event_cons::rfi_ord_arm8_2( z3::expr rf_b,
   return dep_rfis;
 }
 
-// symbolic hb must enforce the following
-//: rfe | fre | moe | data; rfi | rmw; rfi
-// unsupported
-// 	| addr; rfi
-// rfi should not be added
-// moi and fri can be added without concern??
-// and coherence
-
-// todo : borrowed from rmo
 void wmm_event_cons::ppo_arm8_2( const tara::thread& thread ) {
 
 

@@ -18,7 +18,7 @@ import io
 import difflib
 import argparse
 
-litmus_files=[
+cpp_litmus_files=[
 # cpp litmus
               '../c/iriw-ra.cpp',
               '../c/sbmp-ra.cpp',
@@ -42,10 +42,13 @@ litmus_files=[
               '../c/rmo-data-dep.cpp',
               '../c/rmo-data-dep-2.cpp',
 # original tara
-              '../locks.ctrc',
+              '../locks.ctrc'
+    ]
+
+ctrc_litmus_files=[
 # wmm test examples
-              '../wmm-simple.ctrc',
-              '../wmm-simple-fence.ctrc',
+              '../wmm-litmus/simple.ctrc',
+              '../wmm-litmus/simple-fence.ctrc',
               '../wmm-litmus/mp.ctrc',
               '../wmm-litmus/mp-s.ctrc',
               '../wmm-litmus/mp-10-var.ctrc',
@@ -79,8 +82,13 @@ litmus_files=[
 	      '../wmm-litmus/irwiw.ctrc',
 	      '../wmm-litmus/rfi-pso.ctrc',
 	      '../wmm-litmus/thin.ctrc',
-              '../wmm-rmo-reduction.ctrc',
+              '../wmm-litmus/sb-self-read.ctrc',
+              '../wmm-litmus/rmo-reduction.ctrc',
+              '../wmm-locks-with-post.ctrc',
+              '../wmm-multiple-writes.ctrc'
     ]
+
+litmus_files = cpp_litmus_files + ctrc_litmus_files
 
 hard_files=[
 # pyn examples
@@ -104,8 +112,6 @@ hard_files=[
 
 known_files = litmus_files + hard_files
 
-#wmm-litmus-sb-self-read.ctrc
-
 #------------------------------------------------------------------
 # parsing cmd options
 
@@ -114,6 +120,7 @@ parser.add_argument("-v","--verbose", action='store_true', help = "verbose")
 parser.add_argument("-u","--update", action='store_true', help = "update")
 parser.add_argument("-s","--suppress", action='store_true', help = "only report errors")
 parser.add_argument("-c","--compare", nargs=2, help = "compare the memory models", type = str)
+parser.add_argument("-r","--run", help = "run for the memory model", type = str)
 parser.add_argument("-f","--suite", help = "choose test suite", type = str)
 parser.add_argument('files', nargs=argparse.REMAINDER, help='files')
 args = parser.parse_args()
@@ -130,6 +137,8 @@ elif args.suite != None:
     sname = args.suite
     if sname == "all":
         files = known_files
+    elif sname == "ctrc-litmus":
+        files = ctrc_litmus_files
     elif sname == "litmus":
         files = litmus_files
     elif sname == "hard":
@@ -270,15 +279,32 @@ elif args.compare != None:
     m1 = args.compare[0]
     m2 = args.compare[1]
     printf( "Comparing %s %s:\n", m1, m2)
+    # prune_list = '-r diffvar,unsat_core,remove_implied'
+    prune_list = ''
     for filename in files:
-	out1 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m1)
-	out2 = execute_example(filename, '-r diffvar,unsat_core,remove_implied -M ' + m2)
+	out1 = execute_example( filename, prune_list + ' -M ' + m1 )
+	out2 = execute_example( filename, prune_list + ' -M ' + m2 )
 	if out1 == out2:
             pass
 	else:
 	    printf( "Different output %s", filename)
 	    printf( "%s",out1)
 	    printf( "%s",out2)
+elif args.run != None:
+    m1 = args.run
+    printf( "Running %s:\n", m1)
+    out2 = "\nAll traces are good or infeasable.\n"
+    good_files = []
+    for filename in files:
+	out1 = execute_example( filename, ' -M ' + m1 )
+	if out1 == out2:
+            good_files.append(filename)
+	else:
+	    printf( "Bad executions: %s\n", filename)
+	    # printf( "%s",out1)
+    printf( "Following files returned no bad executions:\n" )
+    for gf in good_files:
+        printf( "%s\n", gf)
 else:
     for f in files:
         if( not args.suppress ):

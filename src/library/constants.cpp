@@ -24,6 +24,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <cassert>
 
 using namespace std;
 
@@ -80,5 +81,48 @@ const string error_label = string("ERROR");
       type == instruction_type::barrier_a ||
       type == instruction_type::barrier_b;
   }
+
+  bool mm_needs_data_dependency( mm_t mm ) {
+    assert( mm == mm_t::none
+            || mm == mm_t::sc
+            || mm == mm_t::tso
+            || mm == mm_t::pso
+            || mm == mm_t::rmo
+            || mm == mm_t::alpha
+            || mm == mm_t::c11
+            || mm == mm_t::arm8_2
+            );
+    //todo: Do tso/pso need thin-air value constraints?
+    // if no they also do not need data dependency
+    return mm != mm_t::sc;
+  }
+
+  bool mm_needs_ctrl_dependency( mm_t mm ) {
+    assert( mm == mm_t::none
+            || mm == mm_t::sc
+            || mm == mm_t::tso
+            || mm == mm_t::pso
+            || mm == mm_t::rmo
+            || mm == mm_t::alpha
+            || mm == mm_t::c11
+            || mm == mm_t::arm8_2
+            );
+    return mm_t::rmo == mm || mm_t::arm8_2 == mm;
+  }
+
+  bool mm_needs_addr_dependency( mm_t mm ) {
+    assert(false); // noone ever called this function
+    assert( mm == mm_t::none
+            || mm == mm_t::sc
+            || mm == mm_t::tso
+            || mm == mm_t::pso
+            || mm == mm_t::rmo
+            || mm == mm_t::alpha
+            || mm == mm_t::c11
+            || mm == mm_t::arm8_2
+            );
+    return mm_t::rmo == mm || mm_t::arm8_2 == mm;
+  }
+
 
 }

@@ -51,7 +51,7 @@ namespace cssa {
 
     void distinct_events();
 
-    static bool is_barrier_ordered(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
+    static bool is_non_mem_ordered(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     z3::expr is_ordered_dependency(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     static bool is_ordered_sc     (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     static bool is_ordered_tso    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
