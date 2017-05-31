@@ -27,36 +27,37 @@
 
 #define loadA(var) ({atomic_load_explicit(var, memory_order_acquire );})
 #define loadQ(var) ({atomic_load_explicit(var, memory_order_seq_cst );})
-#define load (var) ({atomic_load_explicit(var, memory_order_relaxed );})
+#define load(var)  ({atomic_load_explicit(var, memory_order_relaxed );})
 
-#define storeL(x,vl) ({atomic_store_explicit(x,val,memory_order_release);vl;});
-#define store(x,vl) ({atomic_store_explicit(x,val,memory_order_relaxed);vl;});
+#define storeL(x,v) ({atomic_store_explicit(x,v,memory_order_release);v;});
+#define store(x,v) ({atomic_store_explicit(x,v,memory_order_relaxed);v;});
 
-#define fetch_add(var, val, mo)	({atomic_fetch_add_explicit(var, val, mo );});
+#define fa_int(var, val, mo) ({atomic_fetch_add_explicit(var, val, mo );});
 
-#define fetch_addLA(var, val)  fetch_add( var, val, memory_order_acq_rel)
-#define fetch_addA(var, val)  fetch_add( var, val, memory_order_acquire)
-#define fetch_addL(var, val)  fetch_add( var, val, memory_order_release)
-#define fetch_add(var, val)   fetch_add( var, val, memory_order_relaxed)
-
-
-#define exhange(var, val, mo) ({atomic_exchange_explicit(var, val, mo );});
-
-#define exchangeLA(var, val)  exchange( var, val, memory_order_acq_rel)
-#define exchangeA(var, val)  exchange( var, val, memory_order_acquire)
-#define exchangeL(var, val)  exchange( var, val, memory_order_release)
-#define exchange(var, val)   exchange( var, val, memory_order_relaxed)
+#define fetch_addLA(var, val) fa_int( var, val, memory_order_acq_rel)
+#define fetch_addA(var, val)  fa_int( var, val, memory_order_acquire)
+#define fetch_addL(var, val)  fa_int( var, val, memory_order_release)
+#define fetch_add(var, val)   fa_int( var, val, memory_order_relaxed)
 
 
-#define cas(x, v1, v2, mo1, mo2) ({\
+#define xchng(var, val, mo) ({atomic_exchange_explicit(var, val, mo );});
+
+#define exchangeLA(var, val) xchng( var, val, memory_order_acq_rel)
+#define exchangeA(var, val)  xchng( var, val, memory_order_acquire)
+#define exchangeL(var, val)  xchng( var, val, memory_order_release)
+#define exchange(var, val)   xchng( var, val, memory_order_relaxed)
+
+
+#define cas_i(x, v1, v2, mo1, mo2) ({\
       atomic_compare_exchange_strong_explicit(x, v1, v2, mo1, mo2); \
     });
 
-#define casLAA(x,v1,v2)  cas(x,v1,v2,memory_order_acq_rel,memory_order_acquire)
-#define casLA(x,v1,v2)   cas(x,v1,v2,memory_order_acq_rel,memory_order_relaxed)
-#define casL(x,v1,v2)    cas(x,v1,v2,memory_order_release,memory_order_relaxed)
-#define casA(x,v1,v2)    cas(x,v1,v2,memory_order_acquire,memory_order_relaxed)
-#define casAA(x,v1,v2)   cas(x,v1,v2,memory_order_acquire,memory_order_acquire)
+#define casLAA(x,v1,v2) cas_i(x,v1,v2,memory_order_acq_rel,memory_order_acquire)
+#define casLA(x,v1,v2)  cas_i(x,v1,v2,memory_order_acq_rel,memory_order_relaxed)
+#define casL(x,v1,v2)   cas_i(x,v1,v2,memory_order_release,memory_order_relaxed)
+#define casA(x,v1,v2)   cas_i(x,v1,v2,memory_order_acquire,memory_order_relaxed)
+#define casAA(x,v1,v2)  cas_i(x,v1,v2,memory_order_acquire,memory_order_acquire)
+#define cas(x,v1,v2)    cas_i(x,v1,v2,memory_order_relaxed,memory_order_relaxed)
 
 void fence(); // for dmb_full
 void fence_arm8_dmb_ld();

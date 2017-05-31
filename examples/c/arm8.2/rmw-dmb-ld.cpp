@@ -1,9 +1,4 @@
-#include <arm.h>
-
-/* void assume( bool ); */
-/* void assert( bool ); */
-/* void fence(); */
-/* void fence_arm8_dmb_ld(); */
+#include "arm.h"
 
 atomic_int x = 0, y = 0;
 
@@ -13,17 +8,23 @@ atomic_int x = 0, y = 0;
 // }
 
 void* p0(void *) {
-  x++;
-
-  atomic_store_explicit( &y, 1, memory_order_relaxed );
+  int s1 = exchange(&x, 1 );
+  // int s2 = fetch_add( &x, 1 );
+  // store(&x , 1);
+  // fence_arm8_dmb_ld();
+  store( &y, 1);
+  // atomic_store_explicit( &y, 1, memory_order_relaxed );
   return NULL;
 }
 
 void* p1(void *) {
-  int s1 = atomic_load_explicit( &y, memory_order_relaxed );
+  int s1 = load( &y );
+  // int s1 = atomic_load_explicit( &y, memory_order_relaxed );
   fence_arm8_dmb_ld();
-  int s2 = atomic_load_explicit( &x, memory_order_relaxed );
-  assert( y != 1 || x != 0 );
+  int s2 = load( &x );
+  assert( s1 != 1 || s2 != 0 );
+  // int s2 = atomic_load_explicit( &x, memory_order_relaxed );
+  // assert( y != 1 || x != 0 );
   return NULL;
 }
 
