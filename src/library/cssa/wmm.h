@@ -72,12 +72,14 @@ namespace cssa {
 
     bool is_no_thin_mm() const;
 
-    bool anti_ppo_read_new( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
+    bool anti_po_read( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr( const hb_enc::se_ptr& rd,
                          const hb_enc::se_ptr& wr );
 
     bool in_grf        ( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
-    bool is_rd_rd_coherance_preserved();
+    bool is_rd_rd_coherence_preserved();
+    bool is_wr_wr_coherence_needed();
+    bool is_rd_wr_coherence_needed();
 
     // z3::expr wmm_mk_ghb_thin(const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);
     // z3::expr wmm_mk_ghb     (const hb_enc::se_ptr& bf,const hb_enc::se_ptr& af);

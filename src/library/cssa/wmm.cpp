@@ -61,21 +61,6 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
   }
 }
 
-
-//----------------------------------------------------------------------------
-// coherence preserving code
-// po-loc must be compatible with
-// n - nothing to do
-// r - relaxed
-// u - not visible
-// (pp-loc)/(ses)
-//                     sc   tso   pso   rmo
-//  - ws      (w->w)   n/n  n/n   n/n   n/n
-//  - fr      (r->w)   n/n  r/n   r/n   r/n
-//  - fr;rf   (r->r)   n/n  n/u   n/u   r/u
-//  - rf      (w->r)   n/n  n/u   n/u   n/u
-//  - ws;rf   (w->r)   n/n  n/u   n/u   n/u
-
 bool wmm_event_cons::is_no_thin_mm() const {
   if( p.is_mm_sc() || p.is_mm_arm8_2() ) {
     return false;
@@ -90,7 +75,23 @@ bool wmm_event_cons::is_no_thin_mm() const {
   }
 }
 
-bool wmm_event_cons::is_rd_rd_coherance_preserved() {
+//----------------------------------------------------------------------------
+// coherence preserving code
+// po-loc must be compatible with
+// n  - nothing to do
+// r  - relaxed
+// ne - not enforced
+// po-loc needed to look at reversed
+// (pp-loc)/(ses)
+//          rel-type  po-ord sc   tso   pso   rmo  alpha  arm8.2
+//  - ws      (w->w)   w->w  n    n     n     n     n      n
+//  - fr      (r->w)   w->r  n    r     r     r     r      r
+//  - fr;rf   (r->r)   r->r  n    n     n     r(ne) n      r
+//  - rf      (w->r)   r->w  n    n     n     n     n      r
+//  - ws;rf   (w->r)   r->w  n    n     n     n     n      r
+
+
+bool wmm_event_cons::is_rd_rd_coherence_preserved() {
   if( p.is_mm_sc()
       || p.is_mm_tso()
       || p.is_mm_pso()
@@ -129,8 +130,8 @@ z3::expr wmm_event_cons::get_rf_bvar( const tara::variable& v1,
 
 
 //----------------------------------------------------------------------------
-bool wmm_event_cons::anti_ppo_read_new( const hb_enc::se_ptr& wr,
-                                        const hb_enc::se_ptr& rd ) {
+bool wmm_event_cons::anti_po_read( const hb_enc::se_ptr& wr,
+                                   const hb_enc::se_ptr& rd ) {
   // preventing coherence violation - rf
   // (if rf is local then may not visible to global ordering)
   assert( wr->tid >= p.size() || rd->tid >= p.size() ||
@@ -169,6 +170,7 @@ bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
       || p.is_mm_alpha()
       || p.is_mm_arm8_2()
       ) {
+    if( wr->is_update() && rd == wr ) return false;
     if( is_po_new( wr, rd ) ) {
       return true;
     }
@@ -179,6 +181,37 @@ bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
   return false;
 }
 
+bool wmm_event_cons::is_wr_wr_coherence_needed() {
+  if( p.is_mm_sc()
+      || p.is_mm_tso()
+      || p.is_mm_pso()
+      || p.is_mm_rmo()
+      || p.is_mm_alpha()
+      || p.is_mm_arm8_2() ) {
+    return false;
+  }else{
+    p.unsupported_mm();
+  }
+  return false;//dummy return
+}
+
+
+bool wmm_event_cons::is_rd_wr_coherence_needed() {
+  if( p.is_mm_sc()
+      || p.is_mm_tso()
+      || p.is_mm_pso()
+      || p.is_mm_rmo()
+      || p.is_mm_alpha() ) {
+    return false;
+  } if( p.is_mm_arm8_2() ) {
+    return true;
+  }else{
+    p.unsupported_mm();
+  }
+  return false;//dummy return
+}
+
+
 void wmm_event_cons::ses() {
   // For each global variable we need to construct
   // - wf  well formed
@@ -186,6 +219,9 @@ void wmm_event_cons::ses() {
   // - grf global read from
   // - fr  from read
   // - ws  write serialization
+
+// we assume wr-wr coherence (po o ws) is not needed
+  assert(!is_wr_wr_coherence_needed());// check against new mm
 
   //todo: disable the following code if rd rd coherence not preserved
   //todo: remove the following seq_before also calculates the following info
@@ -209,7 +245,8 @@ void wmm_event_cons::ses() {
       z3::expr some_rfs = z3.c.bool_val(false);
       z3::expr rd_v = rd->get_rd_expr(v1);
       for( const hb_enc::se_ptr& wr : wrs ) {
-        if( anti_ppo_read_new( wr, rd ) ) continue;
+        // avoiding cycles po o rf
+        if( anti_po_read( wr, rd ) ) continue;
         z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
         some_rfs = some_rfs || b;
@@ -232,10 +269,16 @@ void wmm_event_cons::ses() {
             auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
                           && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
+              //write-read coherence: avoiding cycles po o fr
               fr = fr && !cond;
+            }else if( is_po_new( rd, after_wr ) ) {
+              //write-read coherence: avoiding cycles po o (ws;rf)
+              // if( is_rd_wr_coherence_needed() )
+                fr = fr && implies( b, hb_encoding.mk_ghbs(wr,after_wr) );
             }else{
               auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
-              if( is_rd_rd_coherance_preserved() ) {
+              if( is_rd_rd_coherence_preserved() ) {
+                // read-read coherence, avoding cycles po U (fr o rf)
                 for( auto before_rd : prev_rds[rd] ) {
                   if( rd->access_same_var( before_rd ) ) {
                     z3::expr anti_coherent_b =
@@ -243,6 +286,10 @@ void wmm_event_cons::ses() {
                     new_fr = !anti_coherent_b && new_fr;
                   }
                 }
+              }
+              if( auto& rmw_w = rd->rmw_other ) {
+                // rmw & (fr o mo) empty
+                new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );
               }
               fr = fr && implies( cond , new_fr );
             }

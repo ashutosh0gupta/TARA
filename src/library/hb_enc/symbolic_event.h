@@ -182,14 +182,15 @@ struct source_loc{
     tara::variable rd_v() { return v; }
     tara::variable wr_v() { return v_copy; }
     source_loc loc;
-
+    hb_enc::se_ptr rmw_other=NULL;
   private:
     unsigned topological_order;
   public:
     // several time stamps are needed for modelling memory models
-    tstamp_var_ptr e_v;      // variable for solver // c11 sc variable
-    tstamp_var_ptr thin_v;   // thin air variable   // c11 mo variable
-    tstamp_var_ptr c11_hb_v;                        // c11 hb variables
+    //                       Other memory models     c11
+    tstamp_var_ptr e_v;      // hb variable         // sc
+    tstamp_var_ptr thin_v;   // thin air variable   // mo
+    tstamp_var_ptr c11_hb_v;                        // hb
 
     event_t et;    // type of the event
     o_tag_t o_tag; // ordering tag on the event

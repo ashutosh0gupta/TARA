@@ -62,6 +62,7 @@ ctrc_litmus_files=[
               '../wmm-litmus/sb-3-thread.ctrc',
               '../wmm-litmus/sb-r.ctrc',
               '../wmm-litmus/iriw.ctrc',
+              '../wmm-litmus/iriw-ctrl.ctrc',
               '../wmm-litmus/sb-redundant.ctrc',
               '../wmm-litmus/sb-3-thread.ctrc',
               '../wmm-litmus/corr0.ctrc',

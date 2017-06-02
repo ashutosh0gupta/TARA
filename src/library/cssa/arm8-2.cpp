@@ -34,78 +34,10 @@ using namespace tara::helpers;
 // version: daa126680b6ecba97ba47b3e05bbaa51a89f27b7
 //
 
-// "ARMv8 AArch64"
 
-// Cross.cat
-// (* Utilities for combining mo's *)
-
-// (* Compute linarisations per locations *)
-// let mo_locs (pmo,wss) =
-//   let rec do_locs wss = match wss with
-//   || {} -> {}
-//   || ws ++ wss ->
-//       linearisations(ws,pmo) ++ do_locs(wss)   
-//   end in do_locs(wss)
-
-// (* Cross product linearisations *)
-// let cross = 
-//   let rec do_cross (k,ys,oss) = match oss with
-//   || {} -> ys ++ k
-//   || os ++ oss ->
-//        let rec call_rec (k,os) = match os with
-//        || {} -> k
-//        || o ++ os ->
-//            call_rec (do_cross (k,o | ys,oss),os)
-//        end in
-//        call_rec (k,os)
-//   end in
-//   fun oss -> do_cross ({},0,oss)
-
-// (* Generate mo's that extend partial order pmo *)
-// let generate_orders(s,pmo) = cross (mo_locs (pmo,partition s))
-// let generate_mos(pmo) = generate_orders(W,pmo)
-
-// mos.cat
-
-// let invrf = rf^-1
-// let mobase = mo0
-// with mo from generate_mos(mobase)
-
-// (* From now, mo is a coherence order *)
-// let moi = mo & int
-// let moe = mo \ moi
-
-// (* Compute fr *)
-// let fr = (invrf ; mo) \ id
-// let fri = fr & int
-// let fre = fr \ fri
-
-// show mo,fr
-
-// =====================================
-
-
-// (* Dependencies *)
-// show data,addr
-// let ctrlisb = try ctrlcfence(ISB) with 0 ???????
-// show ctrlisb
-// show isb \ ctrlisb as isb
-// show ctrl \ ctrlisb as ctrl
-
-// =====================================
-
-
-
-// (* Internal visibility requirement *)
+// coherence and rmw conditions are handelled by wmm.cpp
 // acyclic po-loc | fr | mo | rf
-
-
-// (* Barrier-ordered-before *)
-
-
-// (* Atomic: Basic LDXR/STXR constraint to forbid intervening writes. *)
 // empty rmw & (fre; moe)
-
 
 //----------------------------------------------------------------------------
 
@@ -169,7 +101,6 @@ bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
   if( is_A(e1) && e2->is_mem_op() ) return true;
 // 	| po; [L]
   if( e1->is_mem_op() && is_L(e2) ) return true;
-//      | rmw (no need to do anything)
 //      | po; [dmb.full]; po
   if( is_dmb_full(e1) && (e2->is_mem_op()||is_dmb_full(e2)) ) return true;
   if( (e1->is_mem_op()||is_dmb_full(e1)) && is_dmb_full(e2) ) return true;
@@ -179,6 +110,9 @@ bool wmm_event_cons::is_ordered_arm8_2( const hb_enc::se_ptr& e1,
 // 	| [W]; po; [dmb.st]; po; [W]
   if( is_dmb_st(e1) && (e2->is_wr()||is_dmb_st(e2)) ) return true;
   if( (e1->is_wr()||is_dmb_st(e1)) && is_dmb_st(e2)  ) return true;
+
+//      | rmw
+  if( e2->is_wr() && e1 == e2->rmw_other ) return true;
 
 // unsupported
 // 	| ctrl;     [ISB]; po; [R]
@@ -222,6 +156,7 @@ z3::expr wmm_event_cons::is_dependency_arm8_2( const hb_enc::se_ptr& e1,
   return cond;
 }
 
+
 // rf_b for wr -> rd
 // cond,e \in wr.dep
 // e ord r
@@ -240,10 +175,19 @@ z3::expr wmm_event_cons::rfi_ord_arm8_2( z3::expr rf_b,
                    hb_encoding.mk_ghbs( dep.e, rd ) );
   }
   //| rmw; rfi
-  if( wr->is_update() ) {
-    dep_rfis = dep_rfis &&
-      z3::implies( rf_b, hb_encoding.mk_ghbs( wr, rd ) );
+  if( auto& rmw_rd = wr->rmw_other ) {
+    dep_rfis = dep_rfis && z3::implies(rf_b, hb_encoding.mk_ghbs(rmw_rd, rd));
   }
+  // for( const auto& pr : p.split_rmws ) { //todo: ineffcient search
+  //   if( wr == pr.second ) {
+  //     const auto& rmw_rd = pr.first;
+  //     assert( rmw_rd->is_rd() );
+  //   }
+  // }
+  // if( wr->is_update() ) {
+  //   dep_rfis = dep_rfis &&
+  //     z3::implies( rf_b, hb_encoding.mk_ghbs( wr, rd ) );
+  // }
 
   // (unsupported)
   //|  addr; rfi

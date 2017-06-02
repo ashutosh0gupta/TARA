@@ -2,16 +2,18 @@
  * @file arm.h
  * @brief Common header for ARM8 like read/writes for TARA
  *
+ * This header files allows one to write C code mimicing ARM8 instructions.
+ * TARA is aware of the following mapping and generates constraints accordingly.
+ *
  * chosen mapping to c11 atomics
  *   L -> rlease
  *   A -> acquire
- *   Q -> seq_cst
- *   R -> relaxed
- *   W -> relaxed
+ *   Q -> seq_cst (odd choice!!!!)
+ *   R -> relaxed or load on non-atomic
+ *   W -> relaxed or store on non-atomic
  *
- *  TARA is aware of the above mapping and generates constraints accordingly.
- *
- *  The above mapping in not standard. It is chosen for convinence.
+ *  The above mapping in NOT part of any STANDARD and is counter intuitive.
+ *  It is chosen for convinence. Better suggestions are welcomed
  */
 
 #include <stdio.h>
@@ -22,6 +24,9 @@
 #if __cplusplus
 #ifndef __MEM_OP_MACROS_H__
 #define __MEM_OP_MACROS_H__
+
+typedef atomic_int arm_atomic_int;
+typedef atomic_bool arm_atomic_bool;
 
 // #define init(var, val) store(var, val, memory_order_seq_cst)
 
@@ -52,16 +57,16 @@
       atomic_compare_exchange_strong_explicit(x, v1, v2, mo1, mo2); \
     });
 
-#define casLAA(x,v1,v2) cas_i(x,v1,v2,memory_order_acq_rel,memory_order_acquire)
-#define casLA(x,v1,v2)  cas_i(x,v1,v2,memory_order_acq_rel,memory_order_relaxed)
-#define casL(x,v1,v2)   cas_i(x,v1,v2,memory_order_release,memory_order_relaxed)
-#define casA(x,v1,v2)   cas_i(x,v1,v2,memory_order_acquire,memory_order_relaxed)
-#define casAA(x,v1,v2)  cas_i(x,v1,v2,memory_order_acquire,memory_order_acquire)
-#define cas(x,v1,v2)    cas_i(x,v1,v2,memory_order_relaxed,memory_order_relaxed)
+// In ARM model, cas fail and success reads have same ordernings
+
+#define casLA(x,v1,v2) cas_i(x,v1,v2,memory_order_acq_rel,memory_order_acquire)
+#define casL(x,v1,v2)  cas_i(x,v1,v2,memory_order_release,memory_order_relaxed)
+#define casA(x,v1,v2)  cas_i(x,v1,v2,memory_order_acquire,memory_order_acquire)
+#define cas(x,v1,v2)   cas_i(x,v1,v2,memory_order_relaxed,memory_order_relaxed)
 
 void fence(); // for dmb_full
-void fence_arm8_dmb_ld();
-void fence_arm8_dmb_st();
+void fence_arm_dmb_ld();
+void fence_arm_dmb_st();
 
 void assume( bool );
 void assert( bool );

@@ -228,6 +228,10 @@ namespace tara {
     hb_enc::se_to_depends_map ppo_before;
     hb_enc::se_to_depends_map c11_rs_heads; // c11 release sequence heads
 
+    // std::vector< std::pair< hb_enc::se_ptr, hb_enc::se_ptr> > split_rmws;
+    bool is_split_rmws();
+    // const hb_enc::se_ptr get_other_in_rmw( const hb_enc::se_ptr& );
+
     hb_enc::se_to_ses_map seq_before;
     hb_enc::se_to_ses_map seq_dom_wr_before;
     hb_enc::se_to_ses_map seq_dom_wr_after;

@@ -102,6 +102,7 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     for( auto& e : events ) {
       e->prev_events.clear(); // code added to remove 
       e->post_events.clear();
+      e->rmw_other = NULL;
     }
     if(start_event) {
       start_event->prev_events.clear();
@@ -168,6 +169,27 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
   unsigned int program::size() const {
     return threads.size();
   }
+
+  bool program::is_split_rmws() {
+    return is_mm_arm8_2();
+  }
+
+  // const hb_enc::se_ptr program::get_other_in_rmw( const hb_enc::se_ptr& e) {
+  //   if( e->is_rd() ) {
+  //     for( auto& pr : split_rmws ) {
+  //       if( e ==  pr.first ) {
+  //         return pr.second;
+  //       }
+  //     }
+  //   }else if( e->is_wr() ) {
+  //     for( auto& pr : split_rmws ) {
+  //       if( e ==  pr.second ) {
+  //         return pr.first;
+  //       }
+  //     }
+  //   }else{ assert(false); }
+  //   return NULL;
+  // }
 
   bool program::is_global(const variable& name) const
   {

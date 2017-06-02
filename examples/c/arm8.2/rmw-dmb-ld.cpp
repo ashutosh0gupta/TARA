@@ -1,6 +1,6 @@
 #include "arm.h"
 
-atomic_int x = 0, y = 0;
+arm_atomic_int x = 0, y = 0;
 
 // void* p0(void *) {
 //   atomic_store_explicit( &x, 1, memory_order_release );
@@ -8,22 +8,20 @@ atomic_int x = 0, y = 0;
 // }
 
 void* p0(void *) {
+  // store(&x , 1);
   int s1 = exchange(&x, 1 );
   // int s2 = fetch_add( &x, 1 );
-  // store(&x , 1);
-  // fence_arm8_dmb_ld();
+  fence();
+  // fence_arm_dmb_ld();
   store( &y, 1);
-  // atomic_store_explicit( &y, 1, memory_order_relaxed );
   return NULL;
 }
 
 void* p1(void *) {
   int s1 = load( &y );
-  // int s1 = atomic_load_explicit( &y, memory_order_relaxed );
-  fence_arm8_dmb_ld();
+  fence_arm_dmb_ld();
   int s2 = load( &x );
-  assert( s1 != 1 || s2 != 0 );
-  // int s2 = atomic_load_explicit( &x, memory_order_relaxed );
+  assert( s1 != 1 || s2 == 1 );
   // assert( y != 1 || x != 0 );
   return NULL;
 }

@@ -293,6 +293,44 @@ translate_ordering_tags( llvm::AtomicOrdering ord ) {
   return hb_enc::o_tag_t::na; // dummy return;
 }
 
+// reading of ordering tags in updates for only read
+hb_enc::o_tag_t
+get_rd_ordering_tags( llvm::AtomicOrdering ord ) {
+  // return hb_enc::o_tag_t::sc; // test return;
+  switch( ord ) {
+  case llvm::AtomicOrdering::NotAtomic: return hb_enc::o_tag_t::na; break;
+  case llvm::AtomicOrdering::Unordered: return hb_enc::o_tag_t::uo; break;
+  case llvm::AtomicOrdering::Monotonic: return hb_enc::o_tag_t::mon; break;
+  case llvm::AtomicOrdering::Acquire: return hb_enc::o_tag_t::acq; break;
+  case llvm::AtomicOrdering::Release: return hb_enc::o_tag_t::mon; break;
+  case llvm::AtomicOrdering::AcquireRelease: return hb_enc::o_tag_t::acq; break;
+  case llvm::AtomicOrdering::SequentiallyConsistent: return hb_enc::o_tag_t::sc; break;
+  default:
+    cinput_error( "unrecognized C++ ordering returned!!" );
+  }
+  return hb_enc::o_tag_t::na; // dummy return;
+}
+
+// reading of ordering tags in updates for only write
+hb_enc::o_tag_t
+get_wr_ordering_tags( llvm::AtomicOrdering ord ) {
+  // return hb_enc::o_tag_t::sc; // test return;
+  switch( ord ) {
+  case llvm::AtomicOrdering::NotAtomic: return hb_enc::o_tag_t::na; break;
+  case llvm::AtomicOrdering::Unordered: return hb_enc::o_tag_t::uo; break;
+  case llvm::AtomicOrdering::Monotonic: return hb_enc::o_tag_t::mon; break;
+  case llvm::AtomicOrdering::Acquire:   return hb_enc::o_tag_t::mon; break;
+  case llvm::AtomicOrdering::Release:   return hb_enc::o_tag_t::rls; break;
+  case llvm::AtomicOrdering::AcquireRelease: return hb_enc::o_tag_t::rls; break;
+  case llvm::AtomicOrdering::SequentiallyConsistent: return hb_enc::o_tag_t::sc; break;
+  default:
+    cinput_error( "unrecognized C++ ordering returned!!" );
+  }
+  return hb_enc::o_tag_t::na; // dummy return;
+}
+
+
+
 //-----------------------------------------------
 // special fence instructions
 
@@ -307,9 +345,9 @@ mk_fence_from_call( llvm::Function* fp, const bb* b, unsigned tid,
   auto arm8 = false;
   if(      fname == "_Z5fencev"            ) {
     fence_t = hb_enc::event_t::barr;
-  }else if(fname =="_Z17fence_arm8_dmb_ldv") {
+  }else if(fname =="_Z16fence_arm_dmb_ldv") {
     arm8 = true; fence_t = hb_enc::event_t::barr_a;
-  }else if(fname =="_Z17fence_arm8_dmb_stv") {
+  }else if(fname =="_Z16fence_arm_dmb_stv") {
     arm8 = true; fence_t = hb_enc::event_t::barr_b;
   }else{ return false; //no function name matched!!
   }
@@ -368,7 +406,6 @@ translateBlock( unsigned thr_id,
                              translate_ordering_tags( store->getOrdering()) );
         new_events.insert( wr );
         const auto& data_dep_set = get_depends( store->getOperand(0) );
-        // local_map.insert( std::make_pair( I, data_dep_set ));//todo: why need this ~~~ should be deleted
 	wr->set_data_dependency( data_dep_set );
 	wr->set_ctrl_dependency( get_ctrl(b) );
 	block_ssa = block_ssa && ( wr->wr_v() == val );
@@ -680,19 +717,57 @@ translateBlock( unsigned thr_id,
       const auto addr = rmw->getPointerOperand();
       if( auto g = llvm::dyn_cast<llvm::GlobalVariable>( addr ) ) {
         auto gv = p->get_global( (std::string)(g->getName()) );
-        auto up = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
-                             history, gv, loc, hb_enc::event_t::u,
-                             translate_ordering_tags( rmw->getOrdering()) );
+        z3::expr rd_g = z3.mk_emptyexpr();
+        z3::expr wr_g = z3.mk_emptyexpr();
+        if( p->is_split_rmws() ) {
+          auto rd = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                               history, gv, loc, hb_enc::event_t::r,
+                               get_rd_ordering_tags( rmw->getOrdering()) );
+          local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
+          rd->set_ctrl_dependency( get_ctrl(b) );
+          prev_events = { rd };
+          p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
+
+          auto wr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                               history, gv, loc, hb_enc::event_t::w,
+                               get_wr_ordering_tags( rmw->getOrdering()) );
+          if( rmw->getOperation() == llvm::AtomicRMWInst::BinOp::Xchg ) {
+            // no data dependencies between rd/wr
+            wr->set_dependencies(get_depends(rmw->getValOperand()),get_ctrl(b));
+          }else{
+            hb_enc::depends_set d_dep_set;
+            join_depends( rmw->getValOperand(), I, d_dep_set );
+            wr->set_dependencies( d_dep_set, get_ctrl(b));
+          }
+          prev_events = { wr };
+          p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
+          rd->rmw_other = wr;
+          wr->rmw_other = rd;
+          rd_g = rd->rd_v();
+          wr_g = wr->wr_v();
+        }else{
+          //c11 needs this; may be deprecated
+          auto up = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
+                               history, gv, loc, hb_enc::event_t::u,
+                               translate_ordering_tags( rmw->getOrdering()) );
+          local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
+          up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));
+          prev_events = { up };
+          p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
+          rd_g = up->rd_v();
+          wr_g = up->wr_v();
+        }
+
         z3::expr wr_v = getTerm( rmw->getValOperand(), m );
         z3::expr rd_v = getTerm( I, m );
         switch( rmw->getOperation() ) {
         case llvm::AtomicRMWInst::BinOp::Xchg: break;
-        case llvm::AtomicRMWInst::BinOp::Add : wr_v = up->rd_v() + wr_v; break;
-        case llvm::AtomicRMWInst::BinOp::Sub : wr_v = up->rd_v() - wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Add : wr_v = rd_g + wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Sub : wr_v = rd_g - wr_v; break;
           // Unsupported
-        case llvm::AtomicRMWInst::BinOp::And : wr_v = up->rd_v() && wr_v; break;
-        case llvm::AtomicRMWInst::BinOp::Nand:wr_v= !(up->rd_v() && wr_v);break;
-        case llvm::AtomicRMWInst::BinOp::Or  : wr_v = up->rd_v() || wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::And : wr_v = rd_g && wr_v; break;
+        case llvm::AtomicRMWInst::BinOp::Nand:wr_v= !(rd_g && wr_v);break;
+        case llvm::AtomicRMWInst::BinOp::Or  : wr_v = rd_g || wr_v; break;
         case llvm::AtomicRMWInst::BinOp::Xor :
         case llvm::AtomicRMWInst::BinOp::Max :
         case llvm::AtomicRMWInst::BinOp::Min :
@@ -701,12 +776,8 @@ translateBlock( unsigned thr_id,
         default:
           cinput_error( "unspported atomic rmw operation");
         }
-	block_ssa = block_ssa && (up->rd_v() == rd_v) && (up->wr_v() == wr_v);
+	block_ssa = block_ssa && (rd_g == rd_v) && (wr_g == wr_v);
 
-        local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
-        up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));
-        prev_events = { up };
-        p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
       }else{ cinput_error( "atomic rmw is not supported on pointers!"); }
       assert( !recognized );recognized = true;
     }
@@ -718,22 +789,59 @@ translateBlock( unsigned thr_id,
         auto gv = p->get_global( (std::string)(g->getName()) );
         z3::expr cmp_v = getTerm( xchg->getCompareOperand(), m );
         z3::expr new_v = getTerm( xchg->getNewValOperand(), m );
+        z3::expr is_success_expr = getTerm( I, m );
+        local_map[I] = get_depends( xchg->getCompareOperand() );
+
         // exchange fail event
-        auto rd=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history, gv,
-                           loc, hb_enc::event_t::r,
-                           translate_ordering_tags(xchg->getFailureOrdering()));
-        rd->append_history( rd->rd_v() != cmp_v );
-        rd->set_dependencies( get_depends( xchg->getCompareOperand() ),
-                              get_ctrl(b) );
+        auto fail_rd=mk_se_ptr(hb_enc,thr_id,prev_events,path_cond, history, gv,
+                               loc, hb_enc::event_t::r,
+                               translate_ordering_tags(xchg->getFailureOrdering()));
+        auto fail_v = fail_rd->rd_v();
+        if( !xchg->isWeak() ) // weak exchange allows fake fail
+          fail_rd->append_history( fail_v != cmp_v );
+        fail_rd->set_ctrl_dependency( get_ctrl(b) );
+        local_map[I].insert( hb_enc::depends( fail_rd, fail_v != cmp_v ) );
+
         // exchange success event
-        auto up=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,gv,
-                           loc, hb_enc::event_t::u,
-                           translate_ordering_tags(xchg->getSuccessOrdering()));
-        up->append_history( up->rd_v() == cmp_v );
-        hb_enc::depends_set dep;
-        join_depends( xchg->getCompareOperand(), xchg->getNewValOperand(), dep);
-        rd->set_dependencies( dep, get_ctrl(b) );
-        prev_events = { rd, up };
+        hb_enc::se_ptr wr = nullptr;
+        auto succ_rd_v = z3.mk_emptyexpr();
+        auto succ_wr_v = z3.mk_emptyexpr();
+        if( p->is_split_rmws() ) {
+          auto rd = mk_se_ptr(hb_enc, thr_id, prev_events, path_cond, history,
+                              gv, loc, hb_enc::event_t::r,
+                              get_rd_ordering_tags(xchg->getSuccessOrdering()));
+          succ_rd_v = rd->rd_v();
+          rd->append_history( succ_rd_v == cmp_v );
+          local_map[I].insert( hb_enc::depends( rd, succ_rd_v == cmp_v ) );
+          rd->set_ctrl_dependency( get_ctrl(b) );
+          prev_events = { rd };
+          p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
+
+          wr = mk_se_ptr(hb_enc, thr_id, prev_events, path_cond, history,
+                         gv, loc, hb_enc::event_t::w,
+                         get_wr_ordering_tags(xchg->getSuccessOrdering()));
+          succ_wr_v = wr->wr_v();
+          rd->rmw_other = wr;
+          wr->rmw_other = rd;
+        }else{
+          wr=mk_se_ptr( hb_enc, thr_id, prev_events, path_cond, history,gv,
+                        loc, hb_enc::event_t::u,
+                        translate_ordering_tags(xchg->getSuccessOrdering()));
+          succ_rd_v = wr->rd_v();
+          succ_wr_v = wr->wr_v();
+          local_map[I].insert( hb_enc::depends( wr, succ_rd_v == cmp_v ) );
+        }
+        wr->append_history( succ_rd_v == cmp_v );
+        auto new_val_depends = get_depends(xchg->getNewValOperand());
+        hb_enc::depends_set ctrl_dep;
+        // data dependency of the past value should become control dependency
+        //
+        hb_enc::join_depends_set( get_ctrl(b), local_map[I], ctrl_dep);
+        wr->set_dependencies( new_val_depends, ctrl_dep);
+        prev_events = { wr };
+        p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
+
+        prev_events = { fail_rd, wr };
         p->add_event_with_rs_heads(thr_id, prev_events, local_release_heads[b]);
         // joining success and fail events
         //todo: passed branch_conds seems to be wrong; if error fix it!
@@ -741,8 +849,9 @@ translateBlock( unsigned thr_id,
                               loc, hb_enc::event_t::block, branch_conds );
         prev_events = { blk };
         p->add_event(thr_id, prev_events);
-        block_ssa = block_ssa &&
-          (((up->rd_v() ==cmp_v)&&(up->wr_v() == new_v))||(rd->rd_v() !=cmp_v));
+        block_ssa = block_ssa && succ_rd_v == fail_v &&
+          (( succ_rd_v==cmp_v && (succ_wr_v == new_v) && is_success_expr )||
+           (  fail_v != cmp_v && !is_success_expr) );
         cinput_error( "untested code!! for exchange operation!! check clock variable naming")
       }else{
         cinput_error( "Pointers are not yet supported in atomoic xchg!!");
