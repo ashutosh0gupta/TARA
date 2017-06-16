@@ -67,6 +67,7 @@ typedef atomic_bool arm_atomic_bool;
 void fence(); // for dmb_full
 void fence_arm_dmb_ld();
 void fence_arm_dmb_st();
+#define fence_arm_dmb_full() fence()
 
 void assume( bool );
 void assert( bool );

@@ -156,8 +156,9 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   // some check to ensure there are any good feasable traces at all
   // without this check we may get problems down the line
   // (because below we include infeasable in good and later in nf.cpp we do not, leaning to an empty set of
-
-  // std::cerr << make_good(false);
+  if( 0 ) { // print good constraints
+    std::cerr << make_good(false);
+  }
   if (make_good(false).check() == z3::check_result::unsat) {
     return trace_result::always;
   }

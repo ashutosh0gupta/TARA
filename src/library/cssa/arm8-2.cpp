@@ -76,7 +76,7 @@ bool is_dmb_st( const hb_enc::se_ptr e ) {
 // called only if (e1,e2) \in po
 //todo:
 //  ** optimize fence interactions
-//  *** rmw handling (do we need different time stamps??)
+//  *** rmw handling - two different time stamps
 //  *** moi,fri are included in hb
 //  *** rfi is not added
 //  *** thread create/join inserts dmb.full in the caller thread

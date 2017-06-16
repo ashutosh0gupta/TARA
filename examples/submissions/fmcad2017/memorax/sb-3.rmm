@@ -1,0 +1,54 @@
+forbidden
+  CS1 CS1;
+  CS2 CS2;
+  CS3 CS3
+
+data
+  x  = 0 : [0:1]
+  y  = 0 : [0:1]
+  w  = 0 : [0:1]
+  z  = 0 : [0:1]
+  a  = 0 : [0:1]
+  b  = 0 : [0:1]
+
+process
+registers
+  $r1 = * : [0:1]
+text
+  write: x := 1;
+  write: w := 1;
+  write: a := 1;
+  read: $r1 := y;
+  if $r1 = 0 then{
+    CS1: read: y = 0  
+  };
+  read: $r1 := z;
+  if $r1 = 0 then{
+    CS2: read: z = 0  
+  };
+  read: $r1 := b;
+  if $r1 = 0 then{
+    CS3: read: b = 0  
+  }
+
+
+process
+registers
+  $r2 = * : [0:1]
+text
+  write: y := 1;
+  write: z := 1;
+  write: b := 1;
+  read: $r2 := x;
+  if $r2 = 0 then{
+    CS1: read: x = 0  
+  };
+  read: $r2 := w;
+  if $r2 = 0 then{
+    CS2: read: w = 0  
+  };
+  read: $r2 := a;
+  if $r2 = 0 then{
+    CS3: read: a = 0  
+  }
+
