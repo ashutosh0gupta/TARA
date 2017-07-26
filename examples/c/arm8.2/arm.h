@@ -13,7 +13,10 @@
  *   W -> relaxed or store on non-atomic
  *
  *  The above mapping in NOT part of any STANDARD and is counter intuitive.
- *  It is chosen for convinence. Better suggestions are welcomed
+ *  It is chosen for convinence. Better suggestions are welcome
+ *
+ *  todo: a natural encoding is needed; avoiding C11 atomics
+ *
  */
 
 #include <stdio.h>

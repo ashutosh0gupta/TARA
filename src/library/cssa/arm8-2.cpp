@@ -178,16 +178,6 @@ z3::expr wmm_event_cons::rfi_ord_arm8_2( z3::expr rf_b,
   if( auto& rmw_rd = wr->rmw_other ) {
     dep_rfis = dep_rfis && z3::implies(rf_b, hb_encoding.mk_ghbs(rmw_rd, rd));
   }
-  // for( const auto& pr : p.split_rmws ) { //todo: ineffcient search
-  //   if( wr == pr.second ) {
-  //     const auto& rmw_rd = pr.first;
-  //     assert( rmw_rd->is_rd() );
-  //   }
-  // }
-  // if( wr->is_update() ) {
-  //   dep_rfis = dep_rfis &&
-  //     z3::implies( rf_b, hb_encoding.mk_ghbs( wr, rd ) );
-  // }
 
   // (unsupported)
   //|  addr; rfi
@@ -212,7 +202,7 @@ void wmm_event_cons::ppo_arm8_2( const tara::thread& thread ) {
       //todo: does ordered access solve the problem
       auto dep = hb_enc::pick_maximal_depends_set( tmp_pendings );
       if( is_ordered_arm8_2( dep.e, e ) ) {
-        // std::cout << "adding hb " << dep.e->name() << ","<< e->name() << "\n";
+        // std::cout << "adding hb " << dep.e->name() << ","<< e->name() <<"\n";
         po = po && implies( dep.cond, hb_encoding.mk_ghbs( dep.e, e ));
         hb_enc::join_depends_set( dep, ordered );
       }else if( z3::expr cond = is_dependency_arm8_2( dep.e, e ) ) {

@@ -2,6 +2,7 @@ git = git -c user.name="Auto" -c user.email="auto@auto.com"
 
 BUILDDIR = $(PWD)/build
 SRCDIR = $(PWD)/src
+# the following variable only afftects debug compilation
 LLVM_VERSION=4.0.0
 # LLVM_VERSION=3.8.0
 # LLVM_VERSION=3.6.2
@@ -42,6 +43,7 @@ patch :
 
 build/z3/README.md : 
 	mkdir -p $(BUILDDIR)
+	# todo: switch to https; someone may not have ssh access configured
 	cd $(BUILDDIR);$(git) clone git@github.com:Z3Prover/z3.git
 	cd $(BUILDDIR)/z3;$(git) checkout b8716b333908273ad8e27e325a8bea9be0596be3
 

@@ -42,6 +42,8 @@ const std::string fsynth_d =
 assumes input is good under sc";
 const std::string bugs_d =
 "mode for bugs localization";
+const std::string smt2out_d =
+"dumps smt formulas for good/bad formulas";
 
 options_cmd::options_cmd()
   : options()
@@ -54,6 +56,9 @@ options_cmd::options_cmd()
   mode_names.insert( std::make_tuple( (modes::synthesis),"synthesis",synth_d));
   mode_names.insert( std::make_tuple( (modes::fsynth), "fsynth", fsynth_d) );
   mode_names.insert( std::make_tuple( (modes::bugs), "bugs", bugs_d ) );
+#ifndef NDEBUG
+  mode_names.insert( std::make_tuple( (modes::smt2out), "smt2out", smt2out_d ));
+#endif
 }
 
 std::string options_cmd::string_mode_names() {

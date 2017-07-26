@@ -89,6 +89,8 @@ void options::get_description(po::options_description& desc, po::positional_opti
   ("machine,m", po::bool_switch(&machine), "generate machine-readable output")
   ("mm,M", po::value<string>()->default_value("none"), mm_select.c_str() )
   ("unroll-loop,u", po::value<unsigned>(), unroll_count_str.c_str())
+  ( "odir", po::value<string>()->default_value("/tmp/"),
+    "choose directory for dumping temp files")
   ;
   pd.add("input", -1);
 
@@ -144,23 +146,6 @@ void options::interpret_options(po::variables_map& vm) {
       std::string names = string_of_mm_names();
       arg_error( "Memory model must be one of: " + names );
     }
-    // if (_mode == "sc")
-    //   mm = mm_t::sc;
-    // else if (_mode == "tso")
-    //   mm = mm_t::tso;
-    // else if (_mode == "pso")
-    //   mm = mm_t::pso;
-    // else if (_mode == "rmo")
-    //   mm = mm_t::rmo;
-    // else if (_mode == "alpha")
-    //   mm = mm_t::alpha;
-    // else if (_mode == "c11")
-    //   mm = mm_t::c11;
-    // else if (_mode == "none")
-    //   mm = mm_t::none;
-    // else {
-    //   arg_error("Mode must be one of: \"sc\", \"tso\",\"pso\",\"rmo\",\"alpha\",\"c11\"");
-    // }
   }
 
   if( vm.count("unroll-loop") ) {
@@ -178,6 +163,16 @@ void options::interpret_options(po::variables_map& vm) {
       }
       //prune_chain = "diffvar,unsat_core,remove_implied,remove_thin";
     }
+  }
+
+  if( vm.count("odir") ) {
+    string outdir = vm["odir"].as<string>();
+    if( outdir.back() != '/' )
+      outdir += "/";
+    if ( !boost::filesystem::exists( outdir ) ) {
+      arg_error( "output directory " << outdir << " does not exists!!" );
+    }
+    output_dir = outdir;
   }
 }
 

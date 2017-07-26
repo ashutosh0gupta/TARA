@@ -198,7 +198,6 @@ All other executions are considered infeasable.
 
 
 
-
 Known issues
 ------------
 
@@ -210,6 +209,19 @@ Known issues
 - todo: is_po_new add memoization
 - delare the_launcher and the_finisher as sc
 - populate all sc
+
+C11 issues
+----------
+- race checking: fix
+- non partial solving (use k-clocks comparions)
+
+Frontend issues
+---------------
+
+- support pointers
+- loops [abstraction]
+- multiple launches of same function
+
 
 LLVM 3.8 Bug
 -------------

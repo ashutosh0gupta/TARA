@@ -233,6 +233,10 @@ void real_main(int argc, char **argv) {
       break;
     }
 
+    case modes::smt2out: {
+      ts.dump_smt2();
+      break;
+    }
     case modes::as: {
       vector<tara::hb_enc::as> res_as;
       bool success_as = ts.atomic_sections(res_as);

@@ -32,6 +32,7 @@ enum class modes {
   synthesis,
   fsynth,//wmm support
   bugs,
+  smt2out,
 };
 
 class options_cmd : public tara::api::options

@@ -48,6 +48,8 @@ public:
   trace_result seperate(output::output_base& output, metric& metric);
   bool atomic_sections( std::vector< hb_enc::as >& output, bool merge_as = true);
   bool check_ambigious_traces(std::unordered_set< std::string >& result);
+
+  void dump_smt2();
 private:
   options _options;
   helpers::z3interf& z3;

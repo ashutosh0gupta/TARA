@@ -36,6 +36,7 @@
 #include <stdexcept>
 #include <vector>
 #include <chrono>
+#include <fstream>
 
 using namespace tara::api;
 using namespace tara;
@@ -295,6 +296,37 @@ trace_result trace_analysis::seperate(output::output_base& output, tara::api::me
   }
 
   return return_result;
+}
+
+void trace_analysis::dump_smt2() {
+
+  boost::filesystem::path gname = _options.output_dir;
+  gname += "good.smt2";
+  std::cerr << "dumping smt2 file : " << gname << std::endl;
+
+  std::ofstream myfile;
+  myfile.open( gname.c_str() );
+  if( myfile.is_open() ) {
+    myfile << make_good(false);
+    myfile << "(check-sat)\n";
+  }else{
+    trace_error( "failed to open " << gname.c_str() );
+  }
+  myfile.close();
+
+  boost::filesystem::path bname = _options.output_dir;
+  bname += "bad.smt2";
+  std::cerr << "dumping smt2 file : " << bname << std::endl;
+
+  std::ofstream b_myfile;
+  b_myfile.open( bname.c_str() );
+  if( b_myfile.is_open() ) {
+    b_myfile << make_bad();
+    b_myfile << "(check-sat)\n";
+  }else{
+    trace_error( "failed to open " << bname.c_str() );
+  }
+  b_myfile.close();
 }
 
 bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as)
