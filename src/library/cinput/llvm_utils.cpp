@@ -164,14 +164,9 @@ hb_enc::source_loc cinput::getBlockLocation(const bb* b ) {
 
 void cinput::setLLVMConfigViaCommandLineOptions( std::string strs ) {
   std::string n = "test";
-  // char str[2][30];
-  // strcpy( str[0], "test" );
-  // strcpy( str[1], "-debug-pass" );
   const char* array[2];
   array[0] = n.c_str();
   array[1] = strs.c_str();
-  // str[0] = "test";
-  // str[1] = "-debug-pass";
   llvm::cl::ParseCommandLineOptions( 2, array );
 }
 

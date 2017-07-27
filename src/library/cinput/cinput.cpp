@@ -166,6 +166,11 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   if( o.print_input > 3 ) { // verbosity
     llvm::DebugFlag = true;
   }
+  // Work around due to a bug in LLVM 4.0====================
+  // setting unroll count via commmand line parsing
+  std::string ustr = "-unroll-count=" + std::to_string(o.loop_unroll_count);
+  setLLVMConfigViaCommandLineOptions( ustr );
+  //================================================
 #endif
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
