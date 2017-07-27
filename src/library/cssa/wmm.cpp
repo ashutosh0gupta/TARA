@@ -573,11 +573,16 @@ void wmm_event_cons::update_orderings() {
     for (; rit!= rend; ++rit)
       update_must_after( p.get_thread(i).events, *rit );
   }
-  for( unsigned i = 0; i < p.size(); i ++ ) {
-    for( auto& e : p.get_thread(i).events ) {
-      update_ppo_before( p.get_thread(i).events, e );
+  if( !p.is_mm_c11() ) {
+    //todo: check if this condition is correct
+    assert(false);
+    for( unsigned i = 0; i < p.size(); i ++ ) {
+      for( auto& e : p.get_thread(i).events ) {
+        update_ppo_before( p.get_thread(i).events, e );
+      }
     }
   }
+
   if(0) { // todo : may after disabled for now
     for( unsigned i = 0; i < p.size(); i ++ ) {
       auto rit = p.get_thread(i).events.rbegin();

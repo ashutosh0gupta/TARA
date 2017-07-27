@@ -172,6 +172,10 @@ void options::interpret_options(po::variables_map& vm) {
     if ( !boost::filesystem::exists( outdir ) ) {
       arg_error( "output directory " << outdir << " does not exists!!" );
     }
+    // auto st = boost::filesystem::status( outdir );
+    // if( st.permissions() ) {
+    //   arg_error( "output directory " << outdir << " has no write permission!!" );
+    // }
     output_dir = outdir;
   }
 }
