@@ -83,6 +83,15 @@ hb integer::make_hb_po(hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const {
   return hb(loc1, loc2, sr_po(loc1->expr,loc2->expr) );
 }
 
+//todo: add vector clocks
+
+// hb integer::make_hb_k_clk( hb_enc::tstamp_ptr loc1,
+//                            hb_enc::tstamp_ptr loc2 ) const {
+  
+//   z3::expr e = sr_po_ao( loc1->expr,loc2->expr );
+//   return hb(loc1, loc2, sr_po(loc1->expr,loc2->expr) );
+// }
+
 as integer::make_as(hb_enc::tstamp_ptr loc1, hb_enc::tstamp_ptr loc2) const
 {
   assert (loc1->thread == loc2->thread);

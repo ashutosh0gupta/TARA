@@ -236,6 +236,7 @@ namespace tara {
     hb_enc::se_to_ses_map seq_dom_wr_before;
     hb_enc::se_to_ses_map seq_dom_wr_after;
     void update_seq_orderings();
+    bool is_seq_before( hb_enc::se_ptr x, hb_enc::se_ptr y ) const;
 
     const tara::thread& operator[](unsigned i) const;
     unsigned size() const;

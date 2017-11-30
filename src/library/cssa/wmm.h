@@ -51,6 +51,8 @@ namespace cssa {
 
     void distinct_events();
 
+    bool is_po( hb_enc::se_ptr x, hb_enc::se_ptr y );
+
     static bool is_non_mem_ordered(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     z3::expr is_ordered_dependency(const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     static bool is_ordered_sc     (const hb_enc::se_ptr&,const hb_enc::se_ptr&);

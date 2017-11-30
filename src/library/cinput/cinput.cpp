@@ -76,7 +76,7 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-#define CLANG_VERSION 3.8
+#define CLANG_VERSION "4.0"
 
 //todo: directly conver c to object file without creating bc file
 void c2bc( const std::string& filename, const std::string& outname ) {
@@ -166,12 +166,13 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   if( o.print_input > 3 ) { // verbosity
     llvm::DebugFlag = true;
   }
+#endif
+
   // Work around due to a bug in LLVM 4.0====================
   // setting unroll count via commmand line parsing
   std::string ustr = "-unroll-count=" + std::to_string(o.loop_unroll_count);
   setLLVMConfigViaCommandLineOptions( ustr );
   //================================================
-#endif
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   // passMan.add( llvm::createCFGSimplificationPass() ); // some params

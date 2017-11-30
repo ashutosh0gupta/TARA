@@ -157,7 +157,7 @@ hb_enc::hb_vec unsat_core::prune( const hb_enc::hb_vec& hbs,
       }
     }else{
       dump_sat_exec( hbs_expr );
-      prune_error( "unwanted sat formula found!!" );
+      prune_error( "unwanted sat formula found, with no thin-air cycles!!" );
     }
     bool is_unsat= z3interf::min_unsat<z3::expr>(sol_good,hbs_expr,id_fun,true);
     if( !is_unsat ) {

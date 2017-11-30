@@ -44,6 +44,19 @@ wmm_event_cons::wmm_event_cons( helpers::z3interf& _z3,
 ,p( _p ) {
 }
 
+
+bool wmm_event_cons::is_po( hb_enc::se_ptr x, hb_enc::se_ptr y ) {
+  if( x == y )
+    return true;
+  if( x->is_pre() || y->is_post() ) return true;
+  if( x->is_post() || y->is_pre() ) return false;
+  if( x->tid != y->tid ) return false;
+  if( x->get_topological_order() >= y->get_topological_order() ) return false;
+
+  // return is_po_new( x, y);
+  return p.is_seq_before( x, y );
+}
+
 //----------------------------------------------------------------------------
 // memory model utilities
 
@@ -224,7 +237,7 @@ void wmm_event_cons::ses() {
   assert(!is_wr_wr_coherence_needed());// check against new mm
 
   //todo: disable the following code if rd rd coherence not preserved
-  //todo: remove the following seq_before also calculates the following info
+  //todo: remove the following. seq_before also calculates the following info
   hb_enc::se_to_ses_map prev_rds;
   for( unsigned t = 0; t < p.size(); t++ ) {
      const auto& thr = p.get_thread( t );
@@ -575,7 +588,7 @@ void wmm_event_cons::update_orderings() {
   }
   if( !p.is_mm_c11() ) {
     //todo: check if this condition is correct
-    assert(false);
+    // assert(false);
     for( unsigned i = 0; i < p.size(); i ++ ) {
       for( auto& e : p.get_thread(i).events ) {
         update_ppo_before( p.get_thread(i).events, e );

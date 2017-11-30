@@ -62,6 +62,7 @@ enum sr_property {
     sr_lefttree      = 0x08,                              // Ryx & Rzx -> Ryz | Rzy
     sr_righttree     = 0x10,                              // Rxy & Rxz -> Ryx | Rzy
     sr_po            = 0x01 | 0x02 | 0x04,                // partial order
+    sr_po_ao         = 0x01 | 0x02 | 0x04 | 0x30,         // partial order, ao //ASHU:
     sr_lo            = 0x01 | 0x02 | 0x04 | 0x08 | 0x10,  // linear order
     sr_plo           = 0x01 | 0x02 | 0x04 | 0x20,         // piecewise linear order
     sr_to            = 0x01 | 0x02 | 0x04 | 0x10,         // right-tree

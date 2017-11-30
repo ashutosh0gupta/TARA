@@ -142,6 +142,8 @@ elif args.suite != None:
         files = ctrc_litmus_files
     elif sname == "litmus":
         files = litmus_files
+    elif sname == "c11-litmus":
+        files = cpp_litmus_files
     elif sname == "hard":
         files = hard_files
     else:

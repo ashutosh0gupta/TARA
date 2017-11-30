@@ -68,7 +68,7 @@ void special_relations_decl_plugin::get_op_names(svector<builtin_name> & op_name
 sr_property special_relations_util::get_property(func_decl* f) const {
     switch (f->get_decl_kind()) {
     case OP_SPECIAL_RELATION_PO: return sr_po;
-    case OP_SPECIAL_RELATION_PO_AO: return sr_po; // still partial ordered
+    case OP_SPECIAL_RELATION_PO_AO: return sr_po_ao; // still partial ordered
     case OP_SPECIAL_RELATION_LO: return sr_lo;
     case OP_SPECIAL_RELATION_PLO: return sr_plo;
     case OP_SPECIAL_RELATION_TO: return sr_to;

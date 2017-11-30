@@ -40,7 +40,7 @@ Make sure you have installed on your machine
 - flex (version 2.5 or higher)
 - bison (version 2.4 or higher)
 - boost
-- llvm 3.8 (debug version on 4.0.0; installed during compilation)
+- llvm 4.0 (debug version on 4.0.1; locally installed during compilation)
 
 Compiling
 ---------
@@ -222,18 +222,3 @@ Frontend issues
 - loops [abstraction]
 - multiple launches of same function
 
-
-LLVM 3.8 Bug
--------------
-
-https://github.com/iovisor/bcc/issues/492
-
-LLVM FIX as suggested in the above webpage
-
-sudo apt-get install -y llvm-3.8-dev libclang-3.8-dev
-sudo mkdir -p /usr/lib/llvm-3.8/share/llvm
-sudo ln -s /usr/share/llvm-3.8/cmake /usr/lib/llvm-3.8/share/llvm/cmake
-sudo sed -i -e '/get_filename_component(LLVM_INSTALL_PREFIX/ {s|^|#|}' -e '/^# Compute the installation prefix/i set(LLVM_INSTALL_PREFIX "/usr/lib/llvm-3.8")' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMConfig.cmake
-sudo sed -i '/_IMPORT_CHECK_TARGETS Polly/ {s|^|#|}' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMExports-relwithdebinfo.cmake
-sudo sed -i '/_IMPORT_CHECK_TARGETS sancov/ {s|^|#|}' /usr/lib/llvm-3.8/share/llvm/cmake/LLVMExports-relwithdebinfo.cmake
-sudo ln -s /usr/lib/x86_64-linux-gnu/libLLVM-3.8.so.1 /usr/lib/llvm-3.8/lib/

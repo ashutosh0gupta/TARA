@@ -229,11 +229,11 @@ void cinput::dump_dot_module( boost::filesystem::path& dump_path,
   auto c_path = boost::filesystem::current_path();
   current_path( dump_path );
   llvm::legacy::PassManager passMan;
-#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
+// #ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
   passMan.add( llvm::createCFGPrinterLegacyPassPass() );
-#else
-  passMan.add( llvm::createCFGPrinterPass() );
-#endif
+// #else
+  // passMan.add( llvm::createCFGPrinterPass() );
+// #endif
   passMan.run( *module.get() );
   current_path( c_path );
 }
@@ -394,16 +394,9 @@ bool SplitAtAssumePass::runOnFunction( llvm::Function &f ) {
   return false;
 }
 
-// const char *
-// llvm::StringRef
-#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
- llvm::StringRef
-#else
- const char *
-#endif
-SplitAtAssumePass::getPassName() const {
-  return "Split blocks at assume/assert statements";
-}
+ llvm::StringRef SplitAtAssumePass::getPassName() const {
+   return "Split blocks at assume/assert statements";
+ }
 
 void SplitAtAssumePass::getAnalysisUsage(llvm::AnalysisUsage &au) const {
   // it modifies blocks therefore may not preserve anything

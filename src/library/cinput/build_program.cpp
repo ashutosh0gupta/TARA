@@ -550,21 +550,43 @@ translateBlock( unsigned thr_id,
         }else cinput_error( "mismatched types in cmp instruction!!");
       }
       llvm::CmpInst::Predicate pred = cmp->getPredicate();
+
+      // switch( pred ) {
+      // case llvm::CmpInst::ICMP_EQ  : insert_term_map( I, l==r, m ); break;
+      // case llvm::CmpInst::ICMP_NE  : insert_term_map( I, l!=r, m ); break;
+      // case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l> r, m ); break;
+      // case llvm::CmpInst::ICMP_UGE : insert_term_map( I, l>=r, m ); break;
+      // case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l< r, m ); break;
+      // case llvm::CmpInst::ICMP_ULE : insert_term_map( I, l<=r, m ); break;
+      // case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l> r, m ); break;
+      // case llvm::CmpInst::ICMP_SGE : insert_term_map( I, l>=r, m ); break;
+      // case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l< r, m ); break;
+      // case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
+      // default: {
+      //   cinput_error( "unsupported predicate in compare " << pred << "!!");
+      // }
+      // }
+
+      // new design for saving simplification
+      z3::expr cnd = z3.get_fresh_bool();
+      insert_term_map( I, cnd, m );
       switch( pred ) {
-      case llvm::CmpInst::ICMP_EQ  : insert_term_map( I, l==r, m ); break;
-      case llvm::CmpInst::ICMP_NE  : insert_term_map( I, l!=r, m ); break;
-      case llvm::CmpInst::ICMP_UGT : insert_term_map( I, l> r, m ); break;
-      case llvm::CmpInst::ICMP_UGE : insert_term_map( I, l>=r, m ); break;
-      case llvm::CmpInst::ICMP_ULT : insert_term_map( I, l< r, m ); break;
-      case llvm::CmpInst::ICMP_ULE : insert_term_map( I, l<=r, m ); break;
-      case llvm::CmpInst::ICMP_SGT : insert_term_map( I, l> r, m ); break;
-      case llvm::CmpInst::ICMP_SGE : insert_term_map( I, l>=r, m ); break;
-      case llvm::CmpInst::ICMP_SLT : insert_term_map( I, l< r, m ); break;
-      case llvm::CmpInst::ICMP_SLE : insert_term_map( I, l<=r, m ); break;
+      case llvm::CmpInst::ICMP_EQ  : cnd = ( cnd == (l==r)); break;
+      case llvm::CmpInst::ICMP_NE  : cnd = ( cnd == (l!=r)); break;
+      case llvm::CmpInst::ICMP_UGT : cnd = ( cnd == (l> r)); break;
+      case llvm::CmpInst::ICMP_UGE : cnd = ( cnd == (l>=r)); break;
+      case llvm::CmpInst::ICMP_ULT : cnd = ( cnd == (l< r)); break;
+      case llvm::CmpInst::ICMP_ULE : cnd = ( cnd == (l<=r)); break;
+      case llvm::CmpInst::ICMP_SGT : cnd = ( cnd == (l> r)); break;
+      case llvm::CmpInst::ICMP_SGE : cnd = ( cnd == (l>=r)); break;
+      case llvm::CmpInst::ICMP_SLT : cnd = ( cnd == (l< r)); break;
+      case llvm::CmpInst::ICMP_SLE : cnd = ( cnd == (l<=r)); break;
       default: {
         cinput_error( "unsupported predicate in compare " << pred << "!!");
       }
       }
+      block_ssa = block_ssa && cnd;
+
       join_depends( lhs, rhs, local_map[I] );
       assert( !recognized );recognized = true;
     }
@@ -1110,14 +1132,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   return false;
 }
 
-// const char *
-// llvm::StringRef
-#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
- llvm::StringRef
-#else
- const char *
-#endif
-build_program::getPassName() const {
+llvm::StringRef build_program::getPassName() const {
   return "Constructs tara::program from llvm IR";
 }
 

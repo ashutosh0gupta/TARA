@@ -200,7 +200,19 @@ void cycles::succ( hb_enc::se_ptr e,
   }
 
   if( e->is_pre() || e->is_post() ) return;
-  //todo: inefficient code... needs a fix
+  // if( false ) {
+  if( program->is_mm_c11() ) {
+    // todo: ppo_before is replaced by seq_before without much thought
+    //       need a check
+    for( auto& ep: program->get_thread(e->tid).events ) {
+      if( filter.find( ep ) == filter.end() ) continue;
+      if( program->is_seq_before( e, ep ) ) {
+        assert( e->tid == ep->tid );
+        next_set.push_back( {ep, edge_type::ppo } );
+      }
+    }
+  }else{
+    //todo: inefficient code... needs a fix
   for( auto& ep: program->get_thread(e->tid).events ) {
     if( filter.find( ep ) == filter.end() ) continue;
     for( const hb_enc::depends& dep : program->ppo_before.at(ep) ) {
@@ -216,7 +228,7 @@ void cycles::succ( hb_enc::se_ptr e,
       }
     }
   }
-
+  }
   // const hb_enc::depends_set& after = program->may_after.at(e);
   // for( const hb_enc::depends& dep : after ) {
   //   z3::expr cond = dep.cond;
@@ -304,7 +316,8 @@ void cycles::find_sccs( const hb_enc::se_set& filter,
     load_edges( hbs );
     se_set all_es;
     for( auto e : program->all_es ) {
-      all_es.insert( e );
+      if( !e->is_block_head() )
+        all_es.insert( e );
     }
     find_sccs( all_es, sccs );
   }

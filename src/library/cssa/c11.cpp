@@ -20,16 +20,19 @@
 
 #include "wmm.h"
 #include "helpers/helpers.h"
-// #include <string.h>
 #include "helpers/z3interf.h"
 #include "hb_enc/hb.h"
-// #include <utility>
 #include <assert.h>
 
 using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
 
+//*****************
+// todo
+//   --- support race checking
+//   --- support RA fences
+//   --- ????
 
 bool wmm_event_cons::is_ordered_c11( const hb_enc::se_ptr& e1,
                                      const hb_enc::se_ptr& e2  ) {
@@ -45,7 +48,6 @@ void wmm_event_cons::ppo_c11( const tara::thread& thread ) {
   auto& e = thread.final_event;
   po = po && hb_encoding.mk_ghbs_c11_hb( e->prev_events, e );
 }
-
 
 z3::expr wmm_event_cons::get_rel_seq_bvar( hb_enc::se_ptr wrp,
                                            hb_enc::se_ptr wr,
@@ -141,7 +143,7 @@ void wmm_event_cons::ses_c11() {
       z3::expr some_rfs = z3.mk_false(); //c.bool_val(false);
       z3::expr rd_v = rd->get_rd_expr( v1 );
       for( const hb_enc::se_ptr& wr : wrs ) {
-        if( wr->tid == rd->tid && ( wr==rd || !is_po_new( wr, rd ) )) continue;
+        if( wr->tid == rd->tid && ( wr==rd || !is_po( wr, rd ) )) continue;
         // enter here only if wr,rd from diff thread or wr --po-->rd
         z3::expr wr_v = wr->get_wr_expr( v1 );
         z3::expr b = get_rf_bvar( v1, wr, rd );
@@ -151,7 +153,7 @@ void wmm_event_cons::ses_c11() {
         wf = wf && implies( b, wr->guard && eq);
 
         z3::expr hb_w_rd(z3.c);
-        if( is_po_new( wr, rd ) ) {
+        if( is_po( wr, rd ) ) {
           hb_w_rd = z3.mk_true();
         }else{
           hb_w_rd = hb_encoding.mk_ghb_c11_hb( wr, rd );
@@ -165,10 +167,10 @@ void wmm_event_cons::ses_c11() {
             for( auto& it : p.rel_seq_map[wr] ) {
               std::string bname = std::get<0>(it);
               hb_enc::se_ptr wrp = std::get<1>(it);
-              if( is_po_new( wrp, rd ) && rd != wrp ) continue;
+              if( is_po( wrp, rd ) && rd != wrp ) continue;
               z3::expr b_wrp_wr = z3.c.bool_const(  bname.c_str() );
               z3::expr hb_wrp_rd = z3.mk_false();
-              if( !is_po_new( rd, wrp ) && rd != wrp ) {
+              if( !is_po( rd, wrp ) && rd != wrp ) {
                 hb_wrp_rd = hb_encoding.mk_ghb_c11_hb( wrp, rd );
               }
               rf = rf && implies( b && b_wrp_wr, hb_wrp_rd );
@@ -176,12 +178,12 @@ void wmm_event_cons::ses_c11() {
           }
         }
         // if( rd->is_na() || wr->is_na() ) {
-        //   if( !is_po_new( wr, rd ) ) {// if po ordered no need to do anything
+        //   if( !is_po( wr, rd ) ) {// if po ordered no need to do anything
         //     wmm_error( "c11 non atomics not supported!!" );
         //   }
         // }else
         if( rd->is_at_most_rlx() || wr->is_at_most_rlx() ) {
-          if( !is_po_new( wr, rd ) ) {
+          if( !is_po( wr, rd ) ) {
             // if po does not order wr,rd, we need to say that the
             // rest does not order rd,wr
             z3::expr hb_rd_wr = hb_encoding.mk_hb_c11_hb( rd, wr );
@@ -196,11 +198,11 @@ void wmm_event_cons::ses_c11() {
           z3::expr hb_wp_rd(z3.c),hb_rd_wp(z3.c),sc_wp_rd(z3.c);
           z3::expr mo_wp_w(z3.c), mo_w_wp(z3.c), sc_hb_wp_w(z3.c);
           // if rd == wrp, it will work since is_po returns true
-          if( is_po_new( rd, wrp ) ) {
+          if( is_po( rd, wrp ) ) {
             hb_wp_rd = z3.mk_false();
             hb_rd_wp = z3.mk_true();
             sc_wp_rd = z3.mk_false();
-          }else if( is_po_new( wrp, rd ) ) {
+          }else if( is_po( wrp, rd ) ) {
             hb_wp_rd = z3.mk_true();
             hb_rd_wp = z3.mk_false();
             sc_wp_rd = z3.mk_true();
@@ -211,11 +213,11 @@ void wmm_event_cons::ses_c11() {
             if( rd->is_sc() && wrp->is_sc() )
               sc_wp_rd = hb_encoding.mk_hb_c11_sc( wrp, rd );
           }
-          if( is_po_new( wrp, wr ) ) {
+          if( is_po( wrp, wr ) ) {
             mo_w_wp = z3.mk_false();
             mo_wp_w = z3.mk_true();
             sc_hb_wp_w = z3.mk_true();
-          }else if( is_po_new( wr, wrp ) ) {
+          }else if( is_po( wr, wrp ) ) {
             mo_w_wp = z3.mk_true();
             mo_wp_w = z3.mk_false();
             sc_hb_wp_w = z3.mk_false();
@@ -234,12 +236,12 @@ void wmm_event_cons::ses_c11() {
           // rr coherence
           for( const hb_enc::se_ptr& rdp : rds ) {
             if( rd == rdp || wrp == rdp ) continue;
-            if( wrp->tid == rdp->tid && !is_po_new( wrp, rdp ) ) continue;
+            if( wrp->tid == rdp->tid && !is_po( wrp, rdp ) ) continue;
             z3::expr bp = get_rf_bvar( v1, wrp, rdp, false );
             z3::expr hb_rd_rdp(z3.c);
-            if( is_po_new( rd, rdp ) ) {
+            if( is_po( rd, rdp ) ) {
               hb_rd_rdp = z3.mk_true();
-            } else if( is_po_new( rdp, rd ) ) {
+            } else if( is_po( rdp, rd ) ) {
               hb_rd_rdp = z3.mk_false();
             }else{
               hb_rd_rdp = hb_encoding.mk_hb_c11_hb( rd, rdp );
@@ -256,17 +258,17 @@ void wmm_event_cons::ses_c11() {
               for( auto& wrpp : wrs ) {
                 if( !wrpp->is_sc() || wrpp == wrp ) continue;
                 z3::expr sc_wpp_wp(z3.c);
-                if( is_po_new( wrpp, wrp ) ) {
+                if( is_po( wrpp, wrp ) ) {
                   sc_wpp_wp = z3.mk_true();
-                } else if( is_po_new( wrp, wrpp ) ) {
+                } else if( is_po( wrp, wrpp ) ) {
                   sc_wpp_wp = z3.mk_false();
                 }else{
                   sc_wpp_wp = hb_encoding.mk_ghb_c11_sc( wrpp, wrp );
                 }
                 z3::expr sc_rd_wpp(z3.c);
-                if( is_po_new( rd, wrpp ) ) {
+                if( is_po( rd, wrpp ) ) {
                   sc_rd_wpp = z3.mk_true();
-                } else if( is_po_new( wrpp, rd ) ) {
+                } else if( is_po( wrpp, rd ) ) {
                   sc_rd_wpp = z3.mk_false();
                 }else{
                   sc_rd_wpp = hb_encoding.mk_ghb_c11_sc( rd,  wrpp );
@@ -292,10 +294,10 @@ void wmm_event_cons::ses_c11() {
       it2++;
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
-        // if( wr1->tid == wr2->tid && is_po_new( ) ) contiune;
-        if( is_po_new( wr1, wr2 ) ) {
+        // if( wr1->tid == wr2->tid && is_po( ) ) contiune;
+        if( is_po( wr1, wr2 ) ) {
           fr = fr && hb_encoding.mk_ghb_c11_mo( wr1, wr2 );
-        }else if( is_po_new( wr2, wr1 ) ) {
+        }else if( is_po( wr2, wr1 ) ) {
           fr = fr && hb_encoding.mk_ghb_c11_mo( wr2, wr1 );
         }else{
           //todo: should the following condition be gaurded?
@@ -317,7 +319,7 @@ void wmm_event_cons::ses_c11() {
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
         if( wr1->tid == wr2->tid ) continue;
-        if( is_po_new( wr1, wr2 ) || is_po_new( wr2, wr1 ) ) continue;
+        if( is_po( wr1, wr2 ) || is_po( wr2, wr1 ) ) continue;
 
         if( wr1->is_na() || wr2->is_na() ) {
           z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, wr2 );
@@ -328,7 +330,7 @@ void wmm_event_cons::ses_c11() {
       }
       for( auto& rd : rds ) {
         if( wr1->tid == rd->tid ) continue;
-        if( is_po_new( wr1, rd ) || is_po_new( rd, wr1 ) ) continue;
+        if( is_po( wr1, rd ) || is_po( rd, wr1 ) ) continue;
         if( rd->is_update() ) continue;
         if( wr1->is_na() || rd->is_na() ) {
           z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, rd );
@@ -349,9 +351,9 @@ void wmm_event_cons::ses_c11() {
     auto it2 = it1; it2++;
     for( ; it2 != p.all_sc.end() ; it2++ ) {
       const hb_enc::se_ptr& e2 = *it2;
-      if( is_po_new( e1, e2 ) ) {
+      if( is_po( e1, e2 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e1, e2 );
-      }else if( is_po_new( e2, e1 ) ) {
+      }else if( is_po( e2, e1 ) ) {
         fr = fr && hb_encoding.mk_ghb_c11_sc( e2, e1 );
       }else if( e1->is_fence() && e2->is_fence() ) {
         z3::expr hb_12 = hb_encoding.mk_hb_c11_hb(e1,e2);

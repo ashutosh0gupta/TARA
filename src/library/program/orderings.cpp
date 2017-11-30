@@ -26,12 +26,14 @@
 namespace tara {
 
   void accesses( const hb_enc::se_ptr& ep,
-                    const hb_enc::se_set& ep_sets,
-                    hb_enc::se_set& new_prevs ) {
-    if( ep->is_pre() || ep->is_mem_op() )
+                 const hb_enc::se_set& ep_sets,
+                 hb_enc::se_set& new_prevs ) {
+    // if( ep->is_pre() || ep->is_mem_op() )
+    if( !ep->is_block_head() )
       new_prevs.insert( ep );
     for( auto& epp : ep_sets )
-      if( ep->is_pre() || epp->is_mem_op() )
+      // if( ep->is_pre() || epp->is_mem_op() )
+      if( !epp->is_block_head() )
         new_prevs.insert( epp );
   }
 
@@ -45,6 +47,15 @@ namespace tara {
         if( !ep->is_wr() || !ep->access_same_var( epp ) )
           new_prevs.insert( epp );
   }
+
+
+bool program::is_seq_before( hb_enc::se_ptr x, hb_enc::se_ptr y ) const {
+  if( !seq_ordering_has_been_called )
+    program_error( "update_seq_orderning has not been called yet!!" );
+  assert( !x->is_block_head() && !y->is_block_head() );
+  auto& bfr = seq_before.at(y);
+  return helpers::exists( bfr , x );
+}
 
 void program::update_seq_orderings() {
   if( seq_ordering_has_been_called )
@@ -93,7 +104,9 @@ void program::update_seq_orderings() {
   std::map< hb_enc::se_ptr, int > order_map;
   for( auto e : all_es ) {
     auto v = m.eval( e->get_solver_symbol() );
-    order_map[e] = _z3.get_numeral_int( v );
+    unsigned  o_val = _z3.get_numeral_int( v );
+    order_map[e] = o_val;
+    e->set_topological_order( o_val );
   }
 
   std::sort( all_es.begin(), all_es.end(),

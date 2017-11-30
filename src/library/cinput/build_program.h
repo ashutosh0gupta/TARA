@@ -97,12 +97,7 @@ namespace cinput {
     virtual bool runOnFunction( llvm::Function &f );
     virtual void getAnalysisUsage(llvm::AnalysisUsage &au) const;
     // const char * getPassName() const
-#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
- llvm::StringRef
-#else
- const char *
-#endif
- getPassName() const;
+ llvm::StringRef getPassName() const;
     // llvm::StringRef
   };
 
@@ -199,12 +194,7 @@ namespace cinput {
     // const char * getPassName() const;
     // llvm::StringRef
 
-#ifndef NDEBUG // llvm 4.0.0 vs 3.8 issue
- llvm::StringRef
-#else
- const char *
-#endif
-    getPassName() const;
+ llvm::StringRef getPassName() const;
 
   private:
 

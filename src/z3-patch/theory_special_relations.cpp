@@ -180,6 +180,27 @@ namespace smt {
         return res;
     }
 
+  // ao(v1,v2) return false if there is no path from a1 to a2 and a2 to a1
+  lbool theory_special_relations::final_check_po_with_ao(relation& r,
+                                                         relation& r_po) {
+    // ao relation
+    lbool res = l_true;
+    for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+      atom& a = *r.m_asserted_atoms[i];
+      r.m_explanation.reset();
+      unsigned tstamp = r_po.m_graph.get_timestamp();
+      if( r_po.m_uf.find(a.v1()) != r_po.m_uf.find(a.v2()) ||
+          !r_po.m_graph.find_shortest_reachable_path(a.v1(),a.v2(),tstamp,r_po)||
+          !r_po.m_graph.find_shortest_reachable_path(a.v2(),a.v1(),tstamp,r_po) ){
+        // there is no path from v1 ---> v2 or v2 --> v1
+        r_po.m_explanation.push_back( a.explanation() );
+        set_conflict(r_po);
+        res = l_false;
+      }
+    }
+    return res;
+  }
+
     lbool theory_special_relations::final_check_plo(relation& r) {        
         //
         // ensure that !Rxy -> Ryx between connected components 
@@ -263,6 +284,22 @@ namespace smt {
                     lits.size(), lits.c_ptr(), 0, 0, params.size(), params.c_ptr())));        
     }
 
+
+  theory_special_relations::relation*
+  theory_special_relations::find_ao_relation() {
+    obj_map<func_decl, relation*>::iterator it = m_relations.begin(),
+      end = m_relations.end();
+    lbool r = l_true;
+    for (; it != end && r == l_true; ++it) {
+      relation& r_ao = *it->m_value;
+      if( r_ao.m_property == sr_po_ao ) {
+        return &r_ao;
+      }
+    }
+    return NULL;
+  }
+
+
     lbool theory_special_relations::final_check(relation& r) {
         lbool res = propagate(r);
         if (res != l_true) return res;
@@ -271,8 +308,15 @@ namespace smt {
             res = final_check_lo(r);
             break;
         case sr_po:
-            res = final_check_po(r);
-            break;
+          res = final_check_po(r);
+          if( res == l_true ) {
+            relation* r_ao = find_ao_relation();
+            if( r_ao )
+              res = final_check_po_with_ao( *r_ao, r);
+          }
+          break;
+        case sr_po_ao:;
+          break;
         case sr_plo:
             res = final_check_plo(r);
             break;

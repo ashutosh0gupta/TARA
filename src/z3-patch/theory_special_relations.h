@@ -174,6 +174,8 @@ namespace smt {
       void collect_asserted_po_atoms( vector< std::pair<bool_var,bool> >& atoms) const;
       void display_atom( std::ostream & out, atom& a) const;
       void display_atom( atom& a) const;
+      relation* find_ao_relation();
+      lbool final_check_po_with_ao(relation& r, relation& r_po);
   //END: ASHU
     };
 }
