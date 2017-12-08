@@ -27,7 +27,7 @@ namespace smt {
         m_scopes.push_back(scope());
         scope& s = m_scopes.back();
         s.m_asserted_atoms_lim = m_asserted_atoms.size();
-        s.m_asserted_qhead_old = m_asserted_qhead;       
+        s.m_asserted_qhead_old = m_asserted_qhead;
         m_graph.push();
         m_ufctx.get_trail_stack().push_scope();
     }
@@ -72,16 +72,28 @@ namespace smt {
         return alloc(theory_special_relations, new_ctx->get_manager());
     }
 
+  class theory_special_relations::undo_insert : public trail<context> {
+    obj_map<func_decl, theory_special_relations::relation*>& m_map; 
+    func_decl*               m_f;
+  public:
+    undo_insert(obj_map<func_decl,theory_special_relations::relation*>& m, func_decl* f):m_map(m),m_f(f) {}
+    virtual void undo(context& ctx) {
+      dealloc(m_map.find(m_f));
+      m_map.erase(m_f);
+    }
+  };
     bool theory_special_relations::internalize_atom(app * atm, bool gate_ctx) {
         TRACE("special_relations", tout << mk_pp(atm, get_manager()) << "\n";);
         SASSERT(m_util.is_special_relation(atm));
         relation* r = 0;
-        if (!m_relations.find(atm->get_decl(), r)) {
+        func_decl* f = atm->get_decl();
+        context& ctx = get_context();        
+        if (!m_relations.find(f, r)) {
           //todo: push pop may get misaligned if the following alloc happens after push
-            r = alloc(relation, m_util.get_property(atm), atm->get_decl()); 
-            m_relations.insert(atm->get_decl(), r);
+            r = alloc(relation, m_util.get_property(atm), f); 
+            m_relations.insert(f, r);
+            ctx.push_trail(undo_insert(m_relations, f));
         }
-        context& ctx = get_context();
         expr* arg0 = atm->get_arg(0);
         expr* arg1 = atm->get_arg(1);
         theory_var v0 = mk_var(arg0);

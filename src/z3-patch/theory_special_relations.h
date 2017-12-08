@@ -105,8 +105,7 @@ namespace smt {
             void new_edge(dl_var src, dl_var dst, unsigned num_edges, edge_id const* edges) {}
         };
 
-
-
+      class undo_insert;
 
         typedef u_map<atom*>     bool_var2atom;
 
