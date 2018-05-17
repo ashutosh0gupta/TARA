@@ -1,3 +1,15 @@
+diff --git a/src/api/CMakeLists.txt b/src/api/CMakeLists.txt
+index fcdbb16..e9aa5ca 100644
+--- a/src/api/CMakeLists.txt
++++ b/src/api/CMakeLists.txt
+@@ -64,6 +64,7 @@ z3_add_component(api
+     api_solver.cpp
+     api_stats.cpp
+     api_tactic.cpp
++    api_special_relations.cpp # ASHU added
+     z3_replayer.cpp
+     ${full_path_generated_files}
+   COMPONENT_DEPENDENCIES
 diff --git a/src/api/api_ast.cpp b/src/api/api_ast.cpp
 index 1f4a869..36fd84d 100644
 --- a/src/api/api_ast.cpp
@@ -87,7 +99,7 @@ index 72a0e4b..53f5200 100644
  
          Z3_error_code get_error_code() const { return m_error_code; }
 diff --git a/src/api/api_solver.cpp b/src/api/api_solver.cpp
-index 88ce8b1..7ec6905 100644
+index 88ce8b1..44864df 100644
 --- a/src/api/api_solver.cpp
 +++ b/src/api/api_solver.cpp
 @@ -41,6 +41,13 @@ Revision History:
@@ -110,12 +122,12 @@ index 88ce8b1..7ec6905 100644
          s->m_solver->updt_params(p);
 +        //BEGIN: ASHU
 +        if (asserted_linear_constr == NULL) {
-+          asserted_linear_constr = alloc(Z3_ast_vector_ref, mk_c(c)->m());
++          asserted_linear_constr = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m()); //alloc(Z3_ast_vector_ref, mk_c(c)->m());
 +          asserted_linear_constr_vector = &(asserted_linear_constr->m_ast_vector);
 +          asserted_linear_constr->inc_ref();
 +        }
 +        if (asserted_po_constr == NULL) {
-+          asserted_po_constr = alloc(Z3_ast_vector_ref, mk_c(c)->m());
++          asserted_po_constr = alloc(Z3_ast_vector_ref, *mk_c(c), mk_c(c)->m());
 +          asserted_po_constr_vector = &(asserted_po_constr->m_ast_vector);
 +          asserted_po_constr->inc_ref();
 +        }
@@ -123,18 +135,10 @@ index 88ce8b1..7ec6905 100644
      }
  
      static void init_solver(Z3_context c, Z3_solver s) {
-@@ -492,6 +511,7 @@ extern "C" {
-         Z3_CATCH_RETURN(Z3_L_UNDEF);
-     }
- 
-+<<<<<<< Updated upstream
-     Z3_lbool Z3_API Z3_solver_get_consequences(Z3_context c, 
-                                         Z3_solver s,
-                                         Z3_ast_vector assumptions,
-@@ -553,5 +573,24 @@ extern "C" {
-         return static_cast<Z3_lbool>(result); 
+@@ -554,4 +573,24 @@ extern "C" {
          Z3_CATCH_RETURN(Z3_L_UNDEF);        
      }
+ 
 +  //BEGIN: ASHU
 +
 +  Z3_ast_vector Z3_API Z3_collect_last_asserted_linear_constr(void) {
@@ -154,7 +158,7 @@ index 88ce8b1..7ec6905 100644
 +      asserted_po_constr->dec_ref();
 +  }
 +  //END: ASHU
- 
++
  };
 diff --git a/src/api/c++/z3++.h b/src/api/c++/z3++.h
 index b819274..320fe03 100644
@@ -392,6 +396,18 @@ index ac6c391..4e09436 100644
  #ifdef __cplusplus
  }
  #endif // __cplusplus
+diff --git a/src/ast/CMakeLists.txt b/src/ast/CMakeLists.txt
+index 4dcdd2a..3c06383 100644
+--- a/src/ast/CMakeLists.txt
++++ b/src/ast/CMakeLists.txt
+@@ -38,6 +38,7 @@ z3_add_component(ast
+     pp.cpp
+     reg_decl_plugins.cpp
+     seq_decl_plugin.cpp
++    special_relations_decl_plugin.cpp # ASHU added
+     shared_occs.cpp
+     static_features.cpp
+     used_vars.cpp
 diff --git a/src/ast/reg_decl_plugins.cpp b/src/ast/reg_decl_plugins.cpp
 index 985ecee..82a9fb3 100644
 --- a/src/ast/reg_decl_plugins.cpp
@@ -432,6 +448,26 @@ index 9f93e1b..b7c4f8f 100644
      }
      else {
          // the manager was created by an external module
+diff --git a/src/smt/CMakeLists.txt b/src/smt/CMakeLists.txt
+index e102bd2..5459d56 100644
+--- a/src/smt/CMakeLists.txt
++++ b/src/smt/CMakeLists.txt
+@@ -34,6 +34,7 @@ z3_add_component(smt
+     smt_model_checker.cpp
+     smt_model_finder.cpp
+     smt_model_generator.cpp
++    smt_model_reporter.cpp # ASHU added
+     smt_quantifier.cpp
+     smt_quantifier_stat.cpp
+     smt_quick_checker.cpp
+@@ -62,6 +63,7 @@ z3_add_component(smt
+     theory_str.cpp
+     theory_utvpi.cpp
+     theory_wmaxsat.cpp
++    theory_special_relations.cpp # ASHU added
+     uses_theory.cpp
+     watch_list.cpp
+   COMPONENT_DEPENDENCIES
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
 index 44e8582..1562e7c 100644
 --- a/src/smt/diff_logic.h
@@ -657,20 +693,21 @@ index 98b55c3..d4ab06c 100644
 +
  };
 diff --git a/src/smt/smt_model_generator.h b/src/smt/smt_model_generator.h
-index 7466b88..8759d47 100644
+index 7466b88..105dc90 100644
 --- a/src/smt/smt_model_generator.h
 +++ b/src/smt/smt_model_generator.h
-@@ -32,6 +32,9 @@ Revision History:
+@@ -32,6 +32,10 @@ Revision History:
  #include "smt/smt_types.h"
  #include "util/obj_hashtable.h"
  #include "util/map.h"
 +//BEGIN: ASHU
 +#include "model/func_interp.h"
++#include "ast/ast_ll_pp.h"
 +//END: ASHU
  
  class value_factory;
  class proto_model;
-@@ -184,6 +187,13 @@ namespace smt {
+@@ -184,6 +188,13 @@ namespace smt {
          proto_model *                 m_model;
          obj_hashtable<func_decl>      m_hidden_ufs;
  
@@ -684,7 +721,7 @@ index 7466b88..8759d47 100644
          void init_model();
          void mk_bool_model();
          void mk_value_procs(obj_map<enode, model_value_proc *> & root2proc, ptr_vector<enode> & roots,  ptr_vector<model_value_proc> & procs);
-@@ -228,6 +238,11 @@ namespace smt {
+@@ -228,6 +239,11 @@ namespace smt {
                  m_manager.inc_ref(f); 
              }
          }
@@ -806,17 +843,13 @@ index 14a9c3e..c38157f 100644
              if (d)
                  dealloc(d);
 diff --git a/src/smt/theory_arith.h b/src/smt/theory_arith.h
-index 5040f10..2d96e49 100644
+index 5040f10..c1d6ed4 100644
 --- a/src/smt/theory_arith.h
 +++ b/src/smt/theory_arith.h
-@@ -1102,8 +1102,23 @@ namespace smt {
-         //
-         // -----------------------------------
+@@ -1104,6 +1104,21 @@ namespace smt {
      public:
--        void collect_statistics(::statistics & st) const override;
--        void display(std::ostream & out) const override;
-+        virtual void collect_statistics(::statistics & st) const;
-+        virtual void display(std::ostream & out) const;
+         void collect_statistics(::statistics & st) const override;
+         void display(std::ostream & out) const override;
 +
 +  //BEGIN: ASHU
 +      void collect_asserted_atoms( vector< std::pair<bool_var,bool> >& atoms) const {

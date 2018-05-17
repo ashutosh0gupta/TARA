@@ -18,6 +18,7 @@ Notes:
 --*/
 
 #include "theory_special_relations.h"
+#include "ast/ast_pp.h"
 #include "smt_context.h"
 
 

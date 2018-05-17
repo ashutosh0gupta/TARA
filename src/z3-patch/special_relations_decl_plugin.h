@@ -19,7 +19,7 @@ Revision History:
 #ifndef SPECIAL_RELATIONS_DECL_PLUGIN_H_
 #define SPECIAL_RELATIONS_DECL_PLUGIN_H_
 
-#include"ast.h"
+#include "ast/ast.h"
 
 
 

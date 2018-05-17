@@ -17,10 +17,10 @@ Notes:
 
 --*/
 
-#include "special_relations_decl_plugin.h"
-#include "smt_theory.h"
-#include "theory_diff_logic.h"
-#include "union_find.h"
+#include "ast/special_relations_decl_plugin.h"
+#include "smt/smt_theory.h"
+#include "smt/theory_diff_logic.h"
+#include "util/union_find.h"
 
 #ifndef THEORY_SPECIAL_RELATIONS_H_
 #define THEORY_SPECIAL_RELATIONS_H_
