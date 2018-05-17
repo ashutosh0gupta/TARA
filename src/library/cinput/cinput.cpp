@@ -66,7 +66,7 @@ using namespace tara::helpers;
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Dwarf.h"
+// #include "llvm/Support/Dwarf.h"
 
 #include "llvm/Analysis/CFGPrinter.h"
 
@@ -76,14 +76,22 @@ using namespace tara::helpers;
 
 #pragma GCC diagnostic pop
 
-#define CLANG_VERSION "4.0"
+#define CLANG_VERSION "5.0"
 
 //todo: directly conver c to object file without creating bc file
+
+// brrowed from stackoverflow ->
+// when compiled with -O0, clang started to add optnone attribute to each
+// function, which prevents further optimizations afterwards including mem2reg
+// pass. To prevent that, add -Xclang -disable-O0-optnone to clang.
+
 void c2bc( const std::string& filename, const std::string& outname ) {
   // make a system call
   std::ostringstream cmd;
-  cmd << "clang-" << CLANG_VERSION <<" -emit-llvm -O0 -g -std=c++11 "
-      << filename << " -o " << outname << " -c";
+  cmd << "clang-" << CLANG_VERSION
+      <<" -emit-llvm -O0 -g -std=c++11 -Xclang -disable-O0-optnone"
+      << " " << filename << " -o " << outname << " -c";
+  // std::cerr << cmd.str() <<"\n";
   if( system( cmd.str().c_str() ) != 0 ) exit(1);
 }
 
@@ -109,7 +117,6 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
 
   std::unique_ptr<llvm::Module> module;
   llvm::SMDiagnostic err;
-  //llvm::PassManager passMan; // 3.6
   llvm::legacy::PassManager passMan;
   llvm::PassRegistry& reg = *llvm::PassRegistry::getPassRegistry();
   llvm::initializeAnalysis(reg);
@@ -118,7 +125,6 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   //todo: get rid of clang call
   // why are we parsing IR file.. why not directly .cpp??
 
-  // llvm::LLVMContext& context = llvm::getGlobalContext(); //4.0 moved it to only c-api
   static llvm::LLVMContext context;
   module = llvm::parseIRFile( bc_file.string(), err, context);
   if( module.get() == 0 ) {
@@ -172,7 +178,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   // setting unroll count via commmand line parsing
   std::string ustr = "-unroll-count=" + std::to_string(o.loop_unroll_count);
   setLLVMConfigViaCommandLineOptions( ustr );
-  //================================================
+  //========================================================
 
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   // passMan.add( llvm::createCFGSimplificationPass() ); // some params

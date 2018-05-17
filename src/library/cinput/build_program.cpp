@@ -62,7 +62,7 @@ using namespace tara::helpers;
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Dwarf.h"
+// #include "llvm/Support/Dwarf.h"
 
 #include "llvm/Analysis/CFGPrinter.h"
 
@@ -659,7 +659,7 @@ translateBlock( unsigned thr_id,
     }
     if( auto fence = llvm::dyn_cast<llvm::FenceInst>(I) ) {
       //llvm native fence instruction
-      assert( fence->getSynchScope()==llvm::SynchronizationScope::CrossThread);
+      assert( fence->getSyncScopeID()==llvm::SyncScope::System);
       auto loc_name = getInstructionLocation( I );
       auto fnce = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                              history, loc_name, hb_enc::event_t::barr,

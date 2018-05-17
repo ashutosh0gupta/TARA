@@ -187,6 +187,10 @@ hb encoding::mk_hb_c11_hb(const se_ptr& before, const se_ptr& after) {
   return make_hb_po( before->get_c11_hb_stamp(), after->get_c11_hb_stamp() );
 }
 
+hb encoding::mk_hb_c11_hb_ao(const se_ptr& before, const se_ptr& after) {
+  return make_hb_po_ao( before->get_c11_hb_stamp(), after->get_c11_hb_stamp() );
+}
+
 hb encoding::mk_hb_c11_sc(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->get_c11_sc_stamp(), after->get_c11_sc_stamp() );
 }

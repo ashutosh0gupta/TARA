@@ -51,9 +51,6 @@ hb::hb(tstamp_ptr loc1_, tstamp_ptr loc2_, z3::expr expr):
   loc1(loc1_), loc2(loc2_), expr(expr)
 {
   update_signature();
-  // _signature = loc1->serial();
-  // _signature <<= 16;
-  // _signature |= loc2->serial();
 }
 
   //the following allocator is not in use

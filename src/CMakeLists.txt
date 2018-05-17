@@ -18,9 +18,10 @@ IF(LLVM_DEBUG)
   # message(STATUS "Module paths ${CMAKE_MODULE_PATH}")
   find_package(LLVM REQUIRED CONFIG NO_DEFAULT_PATH HINTS "${PROJECT_BINARY_DIR}/../llvm-${LLVM_VERSION}/lib/cmake/llvm")
 ELSE(LLVM_DEBUG)
-  # STRING(REGEX REPLACE "^(.).*$" "\\1" LLVM_SHORT_VERSION "${LLVM_VERSION}")
-  # MESSAGE(STATUS "LLVM SHORT VERSION: ${LLVM_SHORT_VERSION}")
-  find_package(LLVM ${LLVM_VERSION} REQUIRED CONFIG)
+  STRING(REGEX REPLACE "^(.).*$" "\\1" LLVM_SHORT_VERSION "${LLVM_VERSION}")
+  MESSAGE(STATUS "LLVM REQUIRED VERSION: ${LLVM_VERSION}")
+  MESSAGE(STATUS "LLVM SHORT VERSION FOR SYSTEM SEARCH: ${LLVM_SHORT_VERSION}")
+  find_package(LLVM ${LLVM_SHORT_VERSION} REQUIRED CONFIG)
 ENDIF(LLVM_DEBUG)
 
 
@@ -72,7 +73,7 @@ LINK_DIRECTORIES(${Boost_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${LLVM_INCLUDE_DIRS})
 
-llvm_map_components_to_libnames(llvm_libs aarch64 aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis arm armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core executionengine hexagon hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mips mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430 msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptx nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpc powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata runtimedyld scalaropts selectiondag sparc sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemz systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86 x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcore xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
+llvm_map_components_to_libnames(llvm_libs aarch64asmparser aarch64asmprinter aarch64codegen aarch64desc aarch64disassembler aarch64info aarch64utils analysis armasmparser armasmprinter armcodegen armdesc armdisassembler arminfo asmparser asmprinter bitreader bitwriter codegen core executionengine hexagoncodegen hexagondesc hexagondisassembler hexagoninfo instcombine instrumentation interpreter ipo irreader lineeditor linker lto mc mcdisassembler mcjit mcparser mipsasmparser mipsasmprinter mipscodegen mipsdesc mipsdisassembler mipsinfo msp430asmprinter msp430codegen msp430desc msp430info native nativecodegen nvptxasmprinter nvptxcodegen nvptxdesc nvptxinfo objcarcopts object option powerpcasmparser powerpcasmprinter powerpccodegen powerpcdesc powerpcdisassembler powerpcinfo profiledata runtimedyld scalaropts selectiondag sparcasmparser sparcasmprinter sparccodegen sparcdesc sparcdisassembler sparcinfo support systemzasmparser systemzasmprinter systemzcodegen systemzdesc systemzdisassembler systemzinfo tablegen target transformutils vectorize x86asmparser x86asmprinter x86codegen x86desc x86disassembler x86info x86utils xcoreasmprinter xcorecodegen xcoredesc xcoredisassembler xcoreinfo)
 # engine 
 
 LINK_DIRECTORIES(${LLVM_LIBRARY_DIRS})

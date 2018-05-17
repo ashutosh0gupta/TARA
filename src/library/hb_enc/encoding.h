@@ -84,10 +84,12 @@ public:
   virtual tstamp_ptr get_tstamp(const std::string& name) const; // make one tstamp from a name
   virtual hb make_hb(tstamp_ptr loc1, tstamp_ptr loc2) const = 0;
   virtual hb make_hb_po(tstamp_ptr loc1, tstamp_ptr loc2) const = 0;
+  virtual hb make_hb_po_ao(tstamp_ptr loc1, tstamp_ptr loc2) const = 0;
 //--------------------------------------------------------------------------
 //start of wmm support
 //--------------------------------------------------------------------------
   hb mk_hb_c11_hb(const se_ptr& before, const se_ptr& after);
+  hb mk_hb_c11_hb_ao(const se_ptr& before, const se_ptr& after);
   hb mk_hb_c11_sc(const se_ptr& before, const se_ptr& after);
   hb mk_hb_c11_mo(const se_ptr& before, const se_ptr& after);
   hb mk_hb_thin(const se_ptr&, const se_ptr& );

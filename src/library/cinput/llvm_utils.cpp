@@ -58,7 +58,7 @@ using namespace tara::helpers;
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Support/Dwarf.h"
+// #include "llvm/Support/Dwarf.h"
 #include "llvm/Support/CommandLine.h"
 
 #include "llvm/Analysis/CFGPrinter.h"

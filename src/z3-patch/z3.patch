@@ -1,8 +1,8 @@
 diff --git a/src/api/api_ast.cpp b/src/api/api_ast.cpp
-index 1f16b2d..430ba99 100644
+index 1f4a869..36fd84d 100644
 --- a/src/api/api_ast.cpp
 +++ b/src/api/api_ast.cpp
-@@ -1219,6 +1219,19 @@ extern "C" {
+@@ -1205,6 +1205,19 @@ extern "C" {
              }
          }
  
@@ -23,18 +23,18 @@ index 1f16b2d..430ba99 100644
          Z3_CATCH_RETURN(Z3_OP_UNINTERPRETED);
      }
 diff --git a/src/api/api_context.cpp b/src/api/api_context.cpp
-index bc48874..37a8e1b 100644
+index 5993e9f..5a5ed93 100644
 --- a/src/api/api_context.cpp
 +++ b/src/api/api_context.cpp
-@@ -74,6 +74,7 @@ namespace api {
+@@ -79,6 +79,7 @@ namespace api {
+         m_datalog_util(m()),
          m_fpa_util(m()),
-         m_dtutil(m()),
          m_sutil(m()),
 +        m_sr_util(m()),  //ASHU: addition
          m_last_result(m()),
          m_ast_trail(m()),
          m_pmanager(m_limit) {
-@@ -98,6 +99,7 @@ namespace api {
+@@ -100,6 +101,7 @@ namespace api {
          m_datalog_fid = m().mk_family_id("datalog_relation");
          m_fpa_fid   = m().mk_family_id("fpa");
          m_seq_fid   = m().mk_family_id("seq");
@@ -43,26 +43,26 @@ index bc48874..37a8e1b 100644
      
          install_tactics(*this);
 diff --git a/src/api/api_context.h b/src/api/api_context.h
-index fa67541..0166e41 100644
+index 72a0e4b..53f5200 100644
 --- a/src/api/api_context.h
 +++ b/src/api/api_context.h
-@@ -35,6 +35,7 @@ Revision History:
- #include"tactic_manager.h"
- #include"context_params.h"
- #include"api_polynomial.h"
-+#include"special_relations_decl_plugin.h" //ASHU: addition
- 
- namespace smtlib {
-     class parser;
-@@ -60,6 +61,7 @@ namespace api {
+@@ -29,6 +29,7 @@ Revision History:
+ #include "ast/datatype_decl_plugin.h"
+ #include "ast/dl_decl_plugin.h"
+ #include "ast/fpa_decl_plugin.h"
++#include "ast/special_relations_decl_plugin.h" //ASHU: addition
+ #include "smt/smt_kernel.h"
+ #include "smt/params/smt_params.h"
+ #include "util/event_handler.h"
+@@ -62,6 +63,7 @@ namespace api {
+         datalog::dl_decl_util      m_datalog_util;
          fpa_util                   m_fpa_util;
-         datatype_util              m_dtutil;
          seq_util                   m_sutil;
 +        special_relations_util     m_sr_util; //ASHU: addition
  
          // Support for old solver API
          smt_params                 m_fparams;
-@@ -79,6 +81,7 @@ namespace api {
+@@ -83,6 +85,7 @@ namespace api {
          family_id                  m_pb_fid;
          family_id                  m_fpa_fid;
          family_id                  m_seq_fid;
@@ -70,15 +70,15 @@ index fa67541..0166e41 100644
          datatype_decl_plugin *     m_dt_plugin;
          
          std::string                m_string_buffer; // temporary buffer used to cache strings sent to the "external" world.
-@@ -123,6 +126,7 @@ namespace api {
+@@ -128,6 +131,7 @@ namespace api {
          fpa_util & fpautil() { return m_fpa_util; }
-         datatype_util& dtutil() { return m_dtutil; }
+         datatype_util& dtutil() { return m_dt_plugin->u(); }
          seq_util& sutil() { return m_sutil; }
 +        special_relations_util& sr_util() { return m_sr_util; } //ASHU: added
          family_id get_basic_fid() const { return m_basic_fid; }
          family_id get_array_fid() const { return m_array_fid; }
          family_id get_arith_fid() const { return m_arith_fid; }
-@@ -132,6 +136,7 @@ namespace api {
+@@ -137,6 +141,7 @@ namespace api {
          family_id get_pb_fid() const { return m_pb_fid; }
          family_id get_fpa_fid() const { return m_fpa_fid; }
          family_id get_seq_fid() const { return m_seq_fid; }
@@ -87,12 +87,12 @@ index fa67541..0166e41 100644
  
          Z3_error_code get_error_code() const { return m_error_code; }
 diff --git a/src/api/api_solver.cpp b/src/api/api_solver.cpp
-index be03e5d..ceea061 100644
+index 88ce8b1..7ec6905 100644
 --- a/src/api/api_solver.cpp
 +++ b/src/api/api_solver.cpp
-@@ -33,6 +33,13 @@ Revision History:
- #include"smt_solver.h"
- #include"smt_implied_equalities.h"
+@@ -41,6 +41,13 @@ Revision History:
+ #include "sat/sat_solver.h"
+ #include "sat/tactic/goal2sat.h"
  
 +//BEGIN: ASHU
 +Z3_ast_vector_ref* asserted_linear_constr = NULL;
@@ -104,7 +104,7 @@ index be03e5d..ceea061 100644
  extern "C" {
  
      static void init_solver_core(Z3_context c, Z3_solver _s) {
-@@ -47,6 +54,18 @@ extern "C" {
+@@ -55,6 +62,18 @@ extern "C" {
          context_params::collect_solver_param_descrs(r);
          p.validate(r);
          s->m_solver->updt_params(p);
@@ -123,12 +123,19 @@ index be03e5d..ceea061 100644
      }
  
      static void init_solver(Z3_context c, Z3_solver s) {
-@@ -413,4 +432,25 @@ extern "C" {
+@@ -492,6 +511,7 @@ extern "C" {
          Z3_CATCH_RETURN(Z3_L_UNDEF);
      }
  
++<<<<<<< Updated upstream
+     Z3_lbool Z3_API Z3_solver_get_consequences(Z3_context c, 
+                                         Z3_solver s,
+                                         Z3_ast_vector assumptions,
+@@ -553,5 +573,24 @@ extern "C" {
+         return static_cast<Z3_lbool>(result); 
+         Z3_CATCH_RETURN(Z3_L_UNDEF);        
+     }
 +  //BEGIN: ASHU
-+  //extern smt::smt_kernel* proper_kernel;
 +
 +  Z3_ast_vector Z3_API Z3_collect_last_asserted_linear_constr(void) {
 +    return of_ast_vector(asserted_linear_constr);
@@ -147,22 +154,22 @@ index be03e5d..ceea061 100644
 +      asserted_po_constr->dec_ref();
 +  }
 +  //END: ASHU
-+
+ 
  };
 diff --git a/src/api/c++/z3++.h b/src/api/c++/z3++.h
-index 9fb6648..814e65c 100644
+index b819274..320fe03 100644
 --- a/src/api/c++/z3++.h
 +++ b/src/api/c++/z3++.h
-@@ -147,7 +147,7 @@ namespace z3 {
+@@ -161,7 +161,7 @@ namespace z3 {
          context() { config c; init(c); }
          context(config & c) { init(c); }
- 	context(config & c, interpolation) { init_interp(c); }
+         context(config & c, interpolation) { init_interp(c); }
 -        ~context() { Z3_del_context(m_ctx); }
 +      ~context() { Z3_delete_last_asserted_linear_constr(); Z3_delete_last_asserted_po_constr(); Z3_del_context(m_ctx); } // ASHU
          operator Z3_context() const { return m_ctx; }
  
          /**
-@@ -248,6 +248,9 @@ namespace z3 {
+@@ -294,6 +294,9 @@ namespace z3 {
  
          expr constant(symbol const & name, sort const & s);
          expr constant(char const * name, sort const & s);
@@ -172,7 +179,7 @@ index 9fb6648..814e65c 100644
          expr bool_const(char const * name);
          expr int_const(char const * name);
          expr real_const(char const * name);
-@@ -279,6 +282,11 @@ namespace z3 {
+@@ -326,6 +329,11 @@ namespace z3 {
  
          expr num_val(int n, sort const & s);
  
@@ -182,9 +189,9 @@ index 9fb6648..814e65c 100644
 +      //END: ASHU
 +
          /**
-            \brief Interpolation support
-         */
-@@ -546,6 +554,13 @@ namespace z3 {
+            \brief parsing
+          */
+@@ -607,6 +615,13 @@ namespace z3 {
          expr(expr const & n):ast(n) {}
          expr & operator=(expr const & n) { return static_cast<expr&>(ast::operator=(n)); }
  
@@ -198,7 +205,7 @@ index 9fb6648..814e65c 100644
          /**
             \brief Return the sort of this expression.
          */
-@@ -1820,6 +1835,14 @@ namespace z3 {
+@@ -2135,6 +2150,14 @@ namespace z3 {
          }
      public:
          tactic(context & c, char const * name):object(c) { Z3_tactic r = Z3_mk_tactic(c, name); check_error(); init(r); }
@@ -213,7 +220,7 @@ index 9fb6648..814e65c 100644
          tactic(context & c, Z3_tactic s):object(c) { init(s); }
          tactic(tactic const & s):object(s) { init(s.m_tactic); }
          ~tactic() { Z3_tactic_dec_ref(ctx(), m_tactic); }
-@@ -2141,6 +2164,13 @@ namespace z3 {
+@@ -2538,6 +2561,13 @@ namespace z3 {
          check_error();
          return expr(*this, r);
      }
@@ -227,9 +234,9 @@ index 9fb6648..814e65c 100644
      inline expr context::constant(char const * name, sort const & s) { return constant(str_symbol(name), s); }
      inline expr context::bool_const(char const * name) { return constant(name, bool_sort()); }
      inline expr context::int_const(char const * name) { return constant(name, int_sort()); }
-@@ -2358,6 +2388,40 @@ namespace z3 {
-         return expr(re.ctx(), r);
-     }
+@@ -2863,6 +2893,40 @@ namespace z3 {
+ 
+ 
  
 +    inline expr sr_lo(expr const& a, expr const& b) {
 +        check_context(a, b);
@@ -268,7 +275,7 @@ index 9fb6648..814e65c 100644
  
      inline expr interpolant(expr const& a) {
          return expr(a.ctx(), Z3_mk_interpolant(a.ctx(), a));
-@@ -2407,7 +2471,29 @@ namespace z3 {
+@@ -2956,7 +3020,29 @@ namespace z3 {
          return expr(ctx(), r);
      }
  
@@ -300,12 +307,12 @@ index 9fb6648..814e65c 100644
  }
  
 diff --git a/src/api/z3_api.h b/src/api/z3_api.h
-index 1144900..878d4c1 100644
+index ac6c391..4e09436 100644
 --- a/src/api/z3_api.h
 +++ b/src/api/z3_api.h
-@@ -1217,6 +1217,14 @@ typedef enum {
-     Z3_OP_FPA_MIN_I,
-     Z3_OP_FPA_MAX_I,
+@@ -1260,6 +1260,14 @@ typedef enum {
+ 
+     Z3_OP_INTERNAL,
  
 +    //BEGIN: ASHU
 +    Z3_OP_SPECIAL_RELATION_LO,
@@ -318,7 +325,7 @@ index 1144900..878d4c1 100644
      Z3_OP_UNINTERPRETED
  } Z3_decl_kind;
  
-@@ -3361,6 +3369,52 @@ extern "C" {
+@@ -3508,6 +3516,52 @@ extern "C" {
      /*@}*/
  
  
@@ -371,7 +378,7 @@ index 1144900..878d4c1 100644
      /** @name Quantifiers */
      /*@{*/
      /**
-@@ -6015,6 +6069,13 @@ extern "C" {
+@@ -6244,6 +6298,13 @@ extern "C" {
  
      /*@}*/
  
@@ -386,14 +393,14 @@ index 1144900..878d4c1 100644
  }
  #endif // __cplusplus
 diff --git a/src/ast/reg_decl_plugins.cpp b/src/ast/reg_decl_plugins.cpp
-index b4ff63e..e914202 100644
+index 985ecee..82a9fb3 100644
 --- a/src/ast/reg_decl_plugins.cpp
 +++ b/src/ast/reg_decl_plugins.cpp
 @@ -26,6 +26,7 @@ Revision History:
- #include"seq_decl_plugin.h"
- #include"pb_decl_plugin.h"
- #include"fpa_decl_plugin.h"
-+#include"special_relations_decl_plugin.h" //ASHU: added
+ #include "ast/seq_decl_plugin.h"
+ #include "ast/pb_decl_plugin.h"
+ #include "ast/fpa_decl_plugin.h"
++#include "ast/special_relations_decl_plugin.h" //ASHU: added
  
  void reg_decl_plugins(ast_manager & m) {
      if (!m.get_plugin(m.mk_family_id(symbol("arith")))) {
@@ -406,19 +413,19 @@ index b4ff63e..e914202 100644
 +    }
  }
 diff --git a/src/cmd_context/cmd_context.cpp b/src/cmd_context/cmd_context.cpp
-index cfad0d3..1b1425c 100644
+index 9f93e1b..b7c4f8f 100644
 --- a/src/cmd_context/cmd_context.cpp
 +++ b/src/cmd_context/cmd_context.cpp
-@@ -26,6 +26,7 @@ Notes:
- #include"seq_decl_plugin.h"
- #include"pb_decl_plugin.h"
- #include"fpa_decl_plugin.h"
-+#include"special_relations_decl_plugin.h"
- #include"ast_pp.h"
- #include"var_subst.h"
- #include"pp.h"
-@@ -640,6 +641,7 @@ void cmd_context::init_manager_core(bool new_manager) {
-         register_plugin(symbol("pb"),     alloc(pb_decl_plugin), !has_logic());
+@@ -30,6 +30,7 @@ Notes:
+ #include "ast/seq_decl_plugin.h"
+ #include "ast/pb_decl_plugin.h"
+ #include "ast/fpa_decl_plugin.h"
++#include "ast/special_relations_decl_plugin.h"
+ #include "ast/ast_pp.h"
+ #include "ast/rewriter/var_subst.h"
+ #include "ast/pp.h"
+@@ -694,6 +695,7 @@ void cmd_context::init_manager_core(bool new_manager) {
+         register_plugin(symbol("pb"),       alloc(pb_decl_plugin), logic_has_pb());
          register_plugin(symbol("fpa"),      alloc(fpa_decl_plugin), logic_has_fpa());
          register_plugin(symbol("datalog_relation"), alloc(datalog::dl_decl_plugin), !has_logic());
 +        register_plugin(symbol("special_relations"), alloc(special_relations_decl_plugin), !has_logic());
@@ -426,7 +433,7 @@ index cfad0d3..1b1425c 100644
      else {
          // the manager was created by an external module
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
-index f55945c..d54e4b6 100644
+index 44e8582..1562e7c 100644
 --- a/src/smt/diff_logic.h
 +++ b/src/smt/diff_logic.h
 @@ -296,6 +296,9 @@ public:
@@ -449,7 +456,7 @@ index f55945c..d54e4b6 100644
          SASSERT(max_idx < edges.size());
          dst = get_source(edges[idx2]);
 @@ -1016,7 +1019,39 @@ public:
- 	    threads[prev] = start;
+         threads[prev] = start;
      }
  
 -    void bfs_undirected(dl_var start, svector<dl_var> & parents, svector<dl_var> & depths) {
@@ -515,11 +522,11 @@ index f55945c..d54e4b6 100644
                      TRACE("dl_bfs", tout << "curr_target: " << curr_target << 
                            ", mark: " << static_cast<int>(bfs_mark[curr_target]) << "\n";);
 diff --git a/src/smt/smt_context.cpp b/src/smt/smt_context.cpp
-index 07f4440..c0cfdd4 100644
+index 608b7c6..869d316 100644
 --- a/src/smt/smt_context.cpp
 +++ b/src/smt/smt_context.cpp
-@@ -4148,6 +4148,15 @@ namespace smt {
-         return m_last_search_failure; 
+@@ -4374,6 +4374,15 @@ namespace smt {
+         }
      }
  
 +  //BEGIN: ASHU
@@ -533,15 +540,15 @@ index 07f4440..c0cfdd4 100644
 +
  };
  
- #ifdef Z3DEBUG
+ 
 diff --git a/src/smt/smt_context.h b/src/smt/smt_context.h
-index 8b2453e..d230e52 100644
+index abfc8c4..fcb6c4a 100644
 --- a/src/smt/smt_context.h
 +++ b/src/smt/smt_context.h
-@@ -1467,6 +1467,11 @@ namespace smt {
+@@ -1574,6 +1574,11 @@ namespace smt {
          func_decl * get_macro_interpretation(unsigned i, expr_ref & interp) const { return m_asserted_formulas.get_macro_interpretation(i, interp); }
          quantifier * get_macro_quantifier(func_decl * f) const { return m_asserted_formulas.get_macro_quantifier(f); }
-         void insert_macro(func_decl * f, quantifier * m, proof * pr) { m_asserted_formulas.insert_macro(f, m, pr); }
+         void insert_macro(func_decl * f, quantifier * m, proof * pr, expr_dependency * dep) { m_asserted_formulas.insert_macro(f, m, pr, dep); }
 +
 +      //BEGIN: ASHU
 +      void collect_asserted_linear_constr( ast_ref_vector& );
@@ -551,10 +558,10 @@ index 8b2453e..d230e52 100644
  
  };
 diff --git a/src/smt/smt_kernel.cpp b/src/smt/smt_kernel.cpp
-index 418dfdb..cc8d229 100644
+index 846d023..54acdb9 100644
 --- a/src/smt/smt_kernel.cpp
 +++ b/src/smt/smt_kernel.cpp
-@@ -348,4 +348,13 @@ namespace smt {
+@@ -379,4 +379,13 @@ namespace smt {
          return m_imp->m_kernel;
      }
  
@@ -569,10 +576,10 @@ index 418dfdb..cc8d229 100644
 +
  };
 diff --git a/src/smt/smt_kernel.h b/src/smt/smt_kernel.h
-index bf559a7..102e550 100644
+index 141ab1d..57b12dc 100644
 --- a/src/smt/smt_kernel.h
 +++ b/src/smt/smt_kernel.h
-@@ -241,6 +241,10 @@ namespace smt {
+@@ -263,6 +263,10 @@ namespace smt {
             \warning We should not use this method
          */
          context & get_context();
@@ -584,15 +591,15 @@ index bf559a7..102e550 100644
  };
  
 diff --git a/src/smt/smt_model_generator.cpp b/src/smt/smt_model_generator.cpp
-index 21a310a..3546599 100644
+index 98b55c3..d4ab06c 100644
 --- a/src/smt/smt_model_generator.cpp
 +++ b/src/smt/smt_model_generator.cpp
 @@ -32,7 +32,14 @@ namespace smt {
-         m_context(0),
+         m_context(nullptr),
          m_fresh_idx(1),
          m_asts(m_manager),
--        m_model(0) {
-+        m_model(0),
+-        m_model(nullptr) {
++        m_model(nullptr),
 +        //BEGIN: ASHU
 +        f1s(m_manager),
 +        f2s(m_manager),
@@ -603,7 +610,7 @@ index 21a310a..3546599 100644
      }
  
      model_generator::~model_generator() {
-@@ -310,20 +317,24 @@ namespace smt {
+@@ -311,20 +318,24 @@ namespace smt {
                svector<source>::const_iterator it  = sources.begin();
                svector<source>::const_iterator end = sources.end();
                for (; it != end; ++it) {
@@ -642,7 +649,7 @@ index 21a310a..3546599 100644
                });
          svector<source>::const_iterator it  = sources.begin();
          svector<source>::const_iterator end = sources.end();
-@@ -528,5 +539,5 @@ namespace smt {
+@@ -532,5 +543,5 @@ namespace smt {
          register_macros();
          return m_model;
      }
@@ -650,39 +657,37 @@ index 21a310a..3546599 100644
 +
  };
 diff --git a/src/smt/smt_model_generator.h b/src/smt/smt_model_generator.h
-index 6017176..2f3b221 100644
+index 7466b88..8759d47 100644
 --- a/src/smt/smt_model_generator.h
 +++ b/src/smt/smt_model_generator.h
 @@ -32,6 +32,9 @@ Revision History:
- #include"smt_types.h"
- #include"obj_hashtable.h"
- #include"map.h"
+ #include "smt/smt_types.h"
+ #include "util/obj_hashtable.h"
+ #include "util/map.h"
 +//BEGIN: ASHU
-+#include "func_interp.h"
++#include "model/func_interp.h"
 +//END: ASHU
  
  class value_factory;
  class proto_model;
-@@ -182,7 +185,12 @@ namespace smt {
-         obj_map<enode, app *>         m_root2value;
-         ast_ref_vector                m_asts;
+@@ -184,6 +187,13 @@ namespace smt {
          proto_model *                 m_model;
--
+         obj_hashtable<func_decl>      m_hidden_ufs;
+ 
 +      //BEGIN: ASHU
 +      func_decl_ref_vector f1s;
 +      func_decl_ref_vector f2s;
 +      expr_ref_vector added_constr;
 +      expr_ref_vector assigned_atoms;
 +      //END: ASHU
++
          void init_model();
          void mk_bool_model();
          void mk_value_procs(obj_map<enode, model_value_proc *> & root2proc, ptr_vector<enode> & roots,  ptr_vector<model_value_proc> & procs);
-@@ -219,7 +227,12 @@ namespace smt {
-         proto_model * mk_model();
- 
-         obj_map<enode, app *> const & get_root2value() const { return m_root2value; }
--        app * get_value(enode * n) const;
-+      app * get_value(enode * n) const;
+@@ -228,6 +238,11 @@ namespace smt {
+                 m_manager.inc_ref(f); 
+             }
+         }
 +      //BEGIN: ASHU
 +      void collect_asserted_linear_constr( ast_ref_vector& );
 +      void collect_asserted_po_constr( ast_ref_vector& );
@@ -692,30 +697,31 @@ index 6017176..2f3b221 100644
  };
  
 diff --git a/src/smt/smt_setup.cpp b/src/smt/smt_setup.cpp
-index 9f76564..1f0a164 100644
+index 383d98e..399a9c3 100644
 --- a/src/smt/smt_setup.cpp
 +++ b/src/smt/smt_setup.cpp
-@@ -33,6 +33,7 @@ Revision History:
- #include"theory_seq.h"
- #include"theory_pb.h"
- #include"theory_fpa.h"
-+#include"theory_special_relations.h"
+@@ -35,6 +35,7 @@ Revision History:
+ #include "smt/theory_pb.h"
+ #include "smt/theory_fpa.h"
+ #include "smt/theory_str.h"
++#include "smt/theory_special_relations.h" // ASHU : added
  
  namespace smt {
  
-@@ -827,6 +828,10 @@ namespace smt {
-         m_context.register_plugin(alloc(theory_fpa, m_manager));
+@@ -887,6 +888,11 @@ namespace smt {
+     void setup::setup_seq() {
+         m_context.register_plugin(alloc(smt::theory_seq, m_manager));
      }
- 
++  //BEGIN: ASHU
 +    void setup::setup_special_relations() {
 +        m_context.register_plugin(alloc(theory_special_relations, m_manager));
 +    }
-+
++  //END: ASHU
+ 
      void setup::setup_unknown() {
-         setup_arith();
-         setup_arrays();
-@@ -836,6 +841,7 @@ namespace smt {
-         setup_seq();
+         static_features st(m_manager);
+@@ -902,6 +908,7 @@ namespace smt {
+         setup_seq_str(st);
          setup_card();
          setup_fpa();
 +        setup_special_relations();
@@ -723,24 +729,24 @@ index 9f76564..1f0a164 100644
  
      void setup::setup_unknown(static_features & st) {
 diff --git a/src/smt/smt_setup.h b/src/smt/smt_setup.h
-index 68cd570..ea7e777 100644
+index 924c2ca..49f361c 100644
 --- a/src/smt/smt_setup.h
 +++ b/src/smt/smt_setup.h
-@@ -98,6 +98,7 @@ namespace smt {
-         void setup_i_arith();
-         void setup_mi_arith();
+@@ -104,6 +104,7 @@ namespace smt {
+         void setup_r_arith();
          void setup_fpa();
+         void setup_str();
 +        void setup_special_relations();
  
      public:
          setup(context & c, smt_params & params);
 diff --git a/src/smt/smt_solver.cpp b/src/smt/smt_solver.cpp
-index 1778ce0..36f30f6 100644
+index a5f9e0c..cf28ad9 100644
 --- a/src/smt/smt_solver.cpp
 +++ b/src/smt/smt_solver.cpp
-@@ -21,6 +21,11 @@ Notes:
- #include"reg_decl_plugins.h"
- #include"smt_params.h"
+@@ -27,6 +27,11 @@ Notes:
+ #include "ast/func_decl_dependencies.h"
+ #include "util/dec_ref_util.h"
  
 +//BEGIN: ASHU
 +extern ast_ref_vector* asserted_linear_constr_vector;
@@ -749,10 +755,10 @@ index 1778ce0..36f30f6 100644
 +
  namespace smt {
  
-     class solver : public solver_na2as {
-@@ -74,7 +79,14 @@ namespace smt {
+     class smt_solver : public solver_na2as {
+@@ -140,7 +145,14 @@ namespace smt {
  
-         virtual lbool check_sat_core(unsigned num_assumptions, expr * const * assumptions) {
+         lbool check_sat_core(unsigned num_assumptions, expr * const * assumptions) override {
              TRACE("solver_na2as", tout << "smt_solver::check_sat_core: " << num_assumptions << "\n";);
 -            return m_context.check(num_assumptions, assumptions);
 +            //BEGIN: ASHU
@@ -765,14 +771,14 @@ index 1778ce0..36f30f6 100644
 +            //END: ASHU
          }
  
-         virtual void get_unsat_core(ptr_vector<expr> & r) {
+         struct scoped_minimize_core {
 diff --git a/src/smt/tactic/smt_tactic.cpp b/src/smt/tactic/smt_tactic.cpp
-index 7fa3328..e049507 100644
+index 14a9c3e..c38157f 100644
 --- a/src/smt/tactic/smt_tactic.cpp
 +++ b/src/smt/tactic/smt_tactic.cpp
-@@ -25,6 +25,11 @@ Notes:
- #include"filter_model_converter.h"
- #include"ast_util.h"
+@@ -30,6 +30,11 @@ Notes:
+ #include "solver/solver.h"
+ #include "solver/mus.h"
  
 +//BEGIN: ASHU
 +extern ast_ref_vector* asserted_linear_constr_vector;
@@ -781,11 +787,11 @@ index 7fa3328..e049507 100644
 +
  typedef obj_map<expr, expr *> expr2expr_map;
  
- void extract_clauses_and_dependencies(goal_ref const& g, expr_ref_vector& clauses, ptr_vector<expr>& assumptions, expr2expr_map& bool2dep, ref<filter_model_converter>& fmc) {
-@@ -178,6 +183,16 @@ public:
+ 
+@@ -137,6 +142,16 @@ public:
          ~scoped_init_ctx() {
              smt::kernel * d = m_owner.m_ctx;
-             m_owner.m_ctx = 0;
+             m_owner.m_ctx = nullptr;
 +            //BEGIN: ASHU
 +            if( asserted_linear_constr_vector ) {
 +              asserted_linear_constr_vector->reset();
@@ -800,13 +806,17 @@ index 7fa3328..e049507 100644
              if (d)
                  dealloc(d);
 diff --git a/src/smt/theory_arith.h b/src/smt/theory_arith.h
-index 39f991c..71a9c63 100644
+index 5040f10..2d96e49 100644
 --- a/src/smt/theory_arith.h
 +++ b/src/smt/theory_arith.h
-@@ -1103,6 +1103,21 @@ namespace smt {
+@@ -1102,8 +1102,23 @@ namespace smt {
+         //
+         // -----------------------------------
      public:
-         virtual void collect_statistics(::statistics & st) const;
-         virtual void display(std::ostream & out) const;
+-        void collect_statistics(::statistics & st) const override;
+-        void display(std::ostream & out) const override;
++        virtual void collect_statistics(::statistics & st) const;
++        virtual void display(std::ostream & out) const;
 +
 +  //BEGIN: ASHU
 +      void collect_asserted_atoms( vector< std::pair<bool_var,bool> >& atoms) const {

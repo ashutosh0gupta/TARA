@@ -89,7 +89,8 @@ namespace smt {
         func_decl* f = atm->get_decl();
         context& ctx = get_context();        
         if (!m_relations.find(f, r)) {
-          //todo: push pop may get misaligned if the following alloc happens after push
+          //bug: push pop may get misaligned if the following alloc happens after push
+          //      already fixed by Nikolaj; todo: test it
             r = alloc(relation, m_util.get_property(atm), f); 
             m_relations.insert(f, r);
             ctx.push_trail(undo_insert(m_relations, f));

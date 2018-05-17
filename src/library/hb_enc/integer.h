@@ -40,6 +40,7 @@ namespace hb_enc {
     virtual void add_time_stamps(std::vector< tstamp_var_ptr > ) override;
     virtual hb_enc::hb make_hb(tstamp_ptr loc1, tstamp_ptr loc2) const override;
     virtual hb_enc::hb make_hb_po(tstamp_ptr loc1, tstamp_ptr loc2) const override;
+    virtual hb_enc::hb make_hb_po_ao(tstamp_ptr loc1, tstamp_ptr loc2) const override;
     virtual hb_enc::as make_as(tstamp_ptr loc1, tstamp_ptr loc2) const override;
     virtual bool eval_hb(const z3::model& model, tstamp_ptr loc1, tstamp_ptr loc2) const override;
     virtual hb_ptr get_hb(const z3::expr& hb, bool allow_equal = false) const override;

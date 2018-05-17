@@ -161,7 +161,7 @@ inline std::string sanitise_string(std::string str) {
   return str;
 }
 
-expr z3interf::parseFormula(string str, const vector< string >& names, const vector< expr >& declarations) 
+z3::expr z3interf::parseFormula(string str, const vector< string >& names, const vector< z3::expr >& declarations) 
 {
   assert (names.size() == declarations.size());
   unsigned s = declarations.size();
@@ -179,7 +179,7 @@ expr z3interf::parseFormula(string str, const vector< string >& names, const vec
   str = sanitise_string(str);
   
   string cmd = str.find_first_of(' ')!=string::npos ? "(assert (" + str + "))" : "(assert " + str + ")";
-  expr ast(c);
+  z3::expr ast(c);
   try {
 	Z3_ast e = Z3_parse_smtlib2_string(c, cmd.c_str(), 0, NULL, NULL, s, symbols, decls);
 	delete[] symbols;

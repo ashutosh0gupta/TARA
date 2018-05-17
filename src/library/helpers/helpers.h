@@ -222,16 +222,6 @@ namespace cssa {
 
 namespace helpers {
 
-// inline tara::variable get_unprimed(const tara::variable& variable) {
-//   //converting the primed to unprimed by removing the dot
-//   if (variable.name[variable.name.size()-1] != '.') {
-//     return variable;
-//   } else {
-//     std::string v1 = variable.name.substr(0, variable.name.size()-1);
-//     return cssa::variable(v1, variable.sort);
-//   }
-// }
-
 inline std::string get_unprimed(const std::string& variable) {
   if (variable[variable.size()-1] != '.') {
     return variable;
