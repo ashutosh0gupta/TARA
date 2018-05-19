@@ -199,17 +199,43 @@ namespace smt {
                                                          relation& r_po) {
     // ao relation
     lbool res = l_true;
-    for (unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
+    for( unsigned i = 0; res == l_true && i < r.m_asserted_atoms.size(); ++i) {
       atom& a = *r.m_asserted_atoms[i];
       r.m_explanation.reset();
-      unsigned tstamp = r_po.m_graph.get_timestamp();
-      if( r_po.m_uf.find(a.v1()) != r_po.m_uf.find(a.v2()) ||
-          !r_po.m_graph.find_shortest_reachable_path(a.v1(),a.v2(),tstamp,r_po)||
-          !r_po.m_graph.find_shortest_reachable_path(a.v2(),a.v1(),tstamp,r_po) ){
-        // there is no path from v1 ---> v2 or v2 --> v1
-        r_po.m_explanation.push_back( a.explanation() );
-        set_conflict(r_po);
-        res = l_false;
+      if( a.phase() ) {
+        unsigned tstamp = r_po.m_graph.get_timestamp();
+        if( r_po.m_uf.find(a.v1()) != r_po.m_uf.find(a.v2()) ||
+            ( !r_po.m_graph.find_shortest_reachable_path( a.v1(),a.v2(),
+                                                          tstamp,r_po) &&
+              !r_po.m_graph.find_shortest_reachable_path( a.v2(),a.v1(),
+                                                          tstamp,r_po) ) ) {
+          // there is no path from v1 ---> v2 or v2 --> v1
+          r_po.m_explanation.push_back( a.explanation() );
+          set_conflict(r_po);
+          res = l_false;
+        }
+      }else{
+        //!ao( v1, v2 )
+        if ( r_po.m_uf.find(a.v1()) == r_po.m_uf.find(a.v2()) ) {
+          // v1 !-> v2
+          // find v1 -> v3 -> v4 -> v2 path
+          r_po.m_explanation.reset();
+          unsigned timestamp = r_po.m_graph.get_timestamp();
+          if( r_po.m_graph.find_shortest_reachable_path( a.v1(), a.v2(),
+                                                      timestamp, r_po ) ) {
+            r_po.m_explanation.push_back(a.explanation());
+            set_conflict(r_po);
+            res = l_false;
+          }else{
+            r_po.m_explanation.reset();
+            if( r_po.m_graph.find_shortest_reachable_path( a.v2(), a.v1(),
+                                                        timestamp, r_po )) {
+              r_po.m_explanation.push_back(a.explanation());
+              set_conflict(r_po);
+              res = l_false;
+            }
+          }
+        }
       }
     }
     return res;
