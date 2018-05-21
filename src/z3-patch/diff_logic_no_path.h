@@ -86,14 +86,12 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
   rev_bfs_todo.push_back(bfs_elem(target, -1, null_edge_id));
   bfs_mark[target] = REV_BLOCKED_REACH;
 
-  unsigned  m_head = 0;
-  numeral gamma;
+  m_head = 0;
   while( m_head < rev_bfs_todo.size() ) {
     bfs_elem & curr_target = rev_bfs_todo[m_head];
-    auto curr_src_mark = bfs_mark[curr_target];
     int parent_idx  = m_head;
     m_head++;
-    dl_var  v = curr.m_var;
+    dl_var  v = curr_target.m_var;
     TRACE("dl_bfs", tout << "processing: " << v << "\n";);
     edge_id_vector & edges = m_in_edges[v];
     typename edge_id_vector::iterator it  = edges.begin();
@@ -103,24 +101,19 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
       edge & e     = m_edges[e_id];
       SASSERT(e.get_target() == v);
       // auto e_enable = e.is_enabled();
-      set_gamma(e, gamma);
-      TRACE( "dl_bfs", tout << "processing edge: ";
-             display_edge(tout, e); tout << "gamma: " << gamma << "\n";);
-      if( (gamma.is_zero() || (gamma.is_neg()))
-           && e.get_timestamp() < timestamp ) {
-        dl_var curr_source = e.get_source();
-        TRACE("dl_bfs", tout << "curr_source: " << curr_source << 
-              ", mark: " << static_cast<int>(bfs_mark[curr_]) << "\n";);
-        char curr_source_mark = bfs_mark[curr_source];
-        if( curr_source_mark == REACH ) {
-          assert( !e.enabled() );
-          // e is at the boundry of REACH and REV_BLOCKED_REACH
-          f(e->get_explanation());
-        }else if( curr_source_mark == FWD_BLOCKED_REACH ) {
-          // curr_traget seen blocked and now reachable
-          rev_bfs_todo.push_back(bfs_elem(curr_source, parent_idx, e_id));
-          bfs_mark[curr_source] = REV_BLOCKED_REACH;
-        }
+      TRACE( "dl_bfs", tout << "processing edge: "; display_edge(tout, e););
+      dl_var curr_source = e.get_source();
+      char curr_source_mark = bfs_mark[curr_source];
+      TRACE("dl_bfs", tout << "curr_source: " << curr_source << 
+            ", mark: " << static_cast<int>(curr_source_mark) << "\n";);
+      if( curr_source_mark == REACH ) {
+        assert( !e.enabled() );
+        // e is at the boundry of REACH and REV_BLOCKED_REACH
+        f(e->get_explanation());
+      }else if( curr_source_mark == FWD_BLOCKED_REACH ) {
+        // curr_traget seen blocked and now reachable
+        rev_bfs_todo.push_back(bfs_elem(curr_source, parent_idx, e_id));
+        bfs_mark[curr_source] = REV_BLOCKED_REACH;
       }
     }
   }
