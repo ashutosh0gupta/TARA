@@ -32,10 +32,10 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
   numeral gamma;
   while (m_head < bfs_todo.size()) {
     bfs_elem & curr = bfs_todo[m_head];
-    auto curr_src_mark = bfs_mark[curr];
     int parent_idx  = m_head;
     m_head++;
     dl_var  v = curr.m_var;
+    auto curr_src_mark = bfs_mark[v];
     TRACE("dl_bfs", tout << "processing: " << v << "\n";);
     edge_id_vector & edges = m_out_edges[v];
     typename edge_id_vector::iterator it  = edges.begin();
@@ -107,9 +107,9 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
       TRACE("dl_bfs", tout << "curr_source: " << curr_source << 
             ", mark: " << static_cast<int>(curr_source_mark) << "\n";);
       if( curr_source_mark == REACH ) {
-        assert( !e.enabled() );
+        SASSERT( !e.is_enabled() );
         // e is at the boundry of REACH and REV_BLOCKED_REACH
-        f(e->get_explanation());
+        f(e.get_explanation());
       }else if( curr_source_mark == FWD_BLOCKED_REACH ) {
         // curr_traget seen blocked and now reachable
         rev_bfs_todo.push_back(bfs_elem(curr_source, parent_idx, e_id));
@@ -117,7 +117,6 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
       }
     }
   }
-
   return true;
 }
 

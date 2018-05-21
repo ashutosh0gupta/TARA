@@ -205,10 +205,7 @@ namespace smt {
       if( a.phase() ) {
         unsigned tstamp = r_po.m_graph.get_timestamp();
         if( r_po.m_uf.find(a.v1()) != r_po.m_uf.find(a.v2()) ||
-            ( !r_po.m_graph.find_shortest_reachable_path( a.v1(),a.v2(),
-                                                          tstamp,r_po) &&
-              !r_po.m_graph.find_shortest_reachable_path( a.v2(),a.v1(),
-                                                          tstamp,r_po) ) ) {
+            r_po.m_graph.no_path( a.v1(),a.v2(), tstamp, r_po) ) {
           // there is no path from v1 ---> v2 or v2 --> v1
           r_po.m_explanation.push_back( a.explanation() );
           set_conflict(r_po);
