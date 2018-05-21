@@ -20,6 +20,7 @@ Notes:
 #include "ast/special_relations_decl_plugin.h"
 #include "smt/smt_theory.h"
 #include "smt/theory_diff_logic.h"
+#include "smt/diff_logic_no_path.h"
 #include "util/union_find.h"
 
 #ifndef THEORY_SPECIAL_RELATIONS_H_

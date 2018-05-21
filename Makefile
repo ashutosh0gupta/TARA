@@ -53,7 +53,8 @@ NEW_Z3_FILES =  $(SRCDIR)/z3-patch/smt_model_reporter.cpp \
 		$(SRCDIR)/z3-patch/special_relations_decl_plugin.h \
 		$(SRCDIR)/z3-patch/theory_special_relations.cpp \
 		$(SRCDIR)/z3-patch/theory_special_relations.h \
-		$(SRCDIR)/z3-patch/api_special_relations.cpp
+		$(SRCDIR)/z3-patch/api_special_relations.cpp \
+		$(SRCDIR)/z3-patch/diff_logic_no_path.h
 
 
 $(BUILDDIR)/z3/patched : $(SRCDIR)/z3-patch/z3.patch $(BUILDDIR)/z3/README.md
@@ -61,7 +62,7 @@ $(BUILDDIR)/z3/patched : $(SRCDIR)/z3-patch/z3.patch $(BUILDDIR)/z3/README.md
 	touch $(BUILDDIR)/z3/patched
 
 $(BUILDDIR)/z3/newfiles : $(NEW_Z3_FILES) $(BUILDDIR)/z3/README.md
-	cd $(BUILDDIR)/z3/src/smt; ln -sf $(SRCDIR)/z3-patch/smt_model_reporter.cpp smt_model_reporter.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.cpp theory_special_relations.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.h theory_special_relations.h
+	cd $(BUILDDIR)/z3/src/smt; ln -sf $(SRCDIR)/z3-patch/smt_model_reporter.cpp smt_model_reporter.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.cpp theory_special_relations.cpp; ln -sf $(SRCDIR)/z3-patch/theory_special_relations.h theory_special_relations.h; ln -sf $(SRCDIR)/z3-patch/diff_logic_no_path.h diff_logic_no_path.h
 	cd $(BUILDDIR)/z3/src/ast; ln -sf $(SRCDIR)/z3-patch/special_relations_decl_plugin.cpp special_relations_decl_plugin.cpp; ln -sf $(SRCDIR)/z3-patch/special_relations_decl_plugin.h special_relations_decl_plugin.h
 	cd $(BUILDDIR)/z3/src/api; ln -sf $(SRCDIR)/z3-patch/api_special_relations.cpp api_special_relations.cpp
 	touch $(BUILDDIR)/z3/newfiles
