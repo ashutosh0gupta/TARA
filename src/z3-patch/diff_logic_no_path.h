@@ -120,4 +120,14 @@ no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
   return true;
 }
 
+template<class Ext>
+template<typename Functor>
+bool
+dl_graph<Ext>::
+no_path_both_way( dl_var source, dl_var target, unsigned timestamp, Functor & f ) {
+  return no_path( source, target, timestamp, f ) &&
+    no_path(  target, source , timestamp, f );
+}
+
+
 #endif /* DIFF_LOGIC_NO_PATH_H_ */

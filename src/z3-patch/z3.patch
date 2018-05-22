@@ -469,7 +469,7 @@ index e102bd2..5459d56 100644
      watch_list.cpp
    COMPONENT_DEPENDENCIES
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
-index 44e8582..c898736 100644
+index 44e8582..c493e80 100644
 --- a/src/smt/diff_logic.h
 +++ b/src/smt/diff_logic.h
 @@ -296,6 +296,9 @@ public:
@@ -557,13 +557,15 @@ index 44e8582..c898736 100644
                      dl_var curr_target = e.get_target();
                      TRACE("dl_bfs", tout << "curr_target: " << curr_target << 
                            ", mark: " << static_cast<int>(bfs_mark[curr_target]) << "\n";);
-@@ -1352,6 +1396,10 @@ public:
+@@ -1352,6 +1396,12 @@ public:
          return false;
      } 
  
 +  //begin: ASHU
 +  template<typename Functor>
 +  bool no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f );
++    template<typename Functor>
++  bool no_path_both_way( dl_var source, dl_var target, unsigned timestamp, Functor & f );
 +  //end: ASHU
  
      //
