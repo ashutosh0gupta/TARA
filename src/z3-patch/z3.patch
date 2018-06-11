@@ -469,7 +469,7 @@ index e102bd2..5459d56 100644
      watch_list.cpp
    COMPONENT_DEPENDENCIES
 diff --git a/src/smt/diff_logic.h b/src/smt/diff_logic.h
-index 44e8582..c493e80 100644
+index 44e8582..981f8f1 100644
 --- a/src/smt/diff_logic.h
 +++ b/src/smt/diff_logic.h
 @@ -296,6 +296,9 @@ public:
@@ -557,15 +557,29 @@ index 44e8582..c493e80 100644
                      dl_var curr_target = e.get_target();
                      TRACE("dl_bfs", tout << "curr_target: " << curr_target << 
                            ", mark: " << static_cast<int>(bfs_mark[curr_target]) << "\n";);
-@@ -1352,6 +1396,12 @@ public:
+@@ -1352,6 +1396,26 @@ public:
          return false;
      } 
  
 +  //begin: ASHU
++  // Each node
++  //  - 0 == "unreachable",
++  //  - 1 == "forward blocked reachable"
++  //  - 2 == "both ways blcoked reachable"
++  //  - 3 == "reachable"
++
++  enum reach_mark {
++    UNREACH = 0,
++    FWD_BLOCKED_REACH = 1,
++    REV_BLOCKED_REACH = 2,
++    REACH = 3
++  };
++
 +  template<typename Functor>
 +  bool no_path( dl_var source, dl_var target, unsigned timestamp, Functor & f );
 +    template<typename Functor>
 +  bool no_path_both_way( dl_var source, dl_var target, unsigned timestamp, Functor & f );
++  void dotty_dump(dl_var source, dl_var target, edge_id_vector& boundry);
 +  //end: ASHU
  
      //
@@ -747,7 +761,7 @@ index 7466b88..105dc90 100644
  };
  
 diff --git a/src/smt/smt_setup.cpp b/src/smt/smt_setup.cpp
-index 383d98e..399a9c3 100644
+index 383d98e..a4d7046 100644
 --- a/src/smt/smt_setup.cpp
 +++ b/src/smt/smt_setup.cpp
 @@ -35,6 +35,7 @@ Revision History:
@@ -758,19 +772,20 @@ index 383d98e..399a9c3 100644
  
  namespace smt {
  
-@@ -887,6 +888,11 @@ namespace smt {
+@@ -887,6 +888,12 @@ namespace smt {
      void setup::setup_seq() {
          m_context.register_plugin(alloc(smt::theory_seq, m_manager));
      }
 +  //BEGIN: ASHU
 +    void setup::setup_special_relations() {
 +        m_context.register_plugin(alloc(theory_special_relations, m_manager));
++        m_params.m_relevancy_lvl = 0;
 +    }
 +  //END: ASHU
  
      void setup::setup_unknown() {
          static_features st(m_manager);
-@@ -902,6 +908,7 @@ namespace smt {
+@@ -902,6 +909,7 @@ namespace smt {
          setup_seq_str(st);
          setup_card();
          setup_fpa();

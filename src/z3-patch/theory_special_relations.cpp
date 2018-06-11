@@ -313,6 +313,10 @@ namespace smt {
     void theory_special_relations::set_conflict(relation& r) {
         literal_vector const& lits = r.m_explanation;
         context & ctx = get_context(); 
+        // for( auto l : lits ) {
+        //   lbool val = ctx.get_assignment( l );
+        //   std::cout << l << " " << val << "\n";
+        // }
         vector<parameter> params;   
         ctx.set_conflict(
             ctx.mk_justification(
@@ -533,7 +537,7 @@ namespace smt {
             for (unsigned j = 0; j < edges.size(); ++j) {
                 edge_id e1 = edges[j];
                 if (g.is_enabled(e1)) {
-                    SASSERT (i == g.get_target(e1));
+                    SASSERT(i == g.get_target(e1));
                     dl_var src1 = g.get_source(e1);
                     for (unsigned k = j + 1; k < edges.size(); ++k) {
                         edge_id e2 = edges[k];
@@ -809,6 +813,7 @@ namespace smt {
                 init_model_to(*it->m_value, m);
                 break;
             case sr_po:
+            case sr_po_ao:
                 init_model_po(*it->m_value, m);
                 break;
             default:

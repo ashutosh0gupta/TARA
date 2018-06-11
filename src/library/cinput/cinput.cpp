@@ -183,7 +183,7 @@ tara::program* tara::cinput::parse_cpp_file( helpers::z3interf& z3_,
   passMan.add( llvm::createPromoteMemoryToRegisterPass() );
   // passMan.add( llvm::createCFGSimplificationPass() ); // some params
   passMan.add( llvm::createLoopRotatePass() ); // some params
-  passMan.add( llvm::createLoopUnrollPass( 1000, o.loop_unroll_count ) );
+  passMan.add( llvm::createLoopUnrollPass( 0, 1000, o.loop_unroll_count ) );
   passMan.add( new SplitAtAssumePass() );
   // passMan.add( llvm::createCFGPrinterPass() );
   auto build_p = new build_program( z3_, o, hb_encoding, p );

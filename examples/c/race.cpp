@@ -8,7 +8,7 @@ void assert( bool );
 void fence();
 void fence_arm8_dmb_ld();
 
-atomic_int x = 0, y = 0;
+// atomic_int x = 0, y = 0;
 
 int z;
 // void* p0(void *) {

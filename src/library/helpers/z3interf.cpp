@@ -29,9 +29,17 @@ using namespace tara::helpers;
 z3interf::z3interf(context& ctx) : c(ctx)
 {
   Z3_update_param_value(ctx, "unsat_core", "true");
+  std::vector<std::string> trace_strings =
+    { "phase_selection" , "relevancy" };
+
+  for( auto trace_string : trace_strings ) {
+    Z3_enable_trace( trace_string.c_str() );
+  }
   // Z3_enable_trace( "rewriter");
   // Z3_enable_trace( "rewriter_step");
-  Z3_enable_trace( "special_relations");
+  // Z3_enable_trace( "propagate_atoms" );
+  // Z3_enable_trace( "relevancy" );
+  // Z3_enable_trace( "special_relations");
 }
 
 z3interf::~z3interf() {}
