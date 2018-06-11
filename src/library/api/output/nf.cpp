@@ -193,10 +193,11 @@ void nf::print_one(ostream& stream, bool machine_readable, const nf::result_type
     }
     if (!machine_readable && conj->size()>1)
       stream << ") ";
-    if (!last_element(conj, result))
+    if (!last_element(conj, result)) {
       if (!machine_readable)
         stream << (dnf_not_cnf ? z3interf::opSymbol(Z3_OP_OR) : z3interf::opSymbol(Z3_OP_AND));
-      stream << endl;
+    }
+    stream << endl;
   }
 
 }

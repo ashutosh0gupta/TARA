@@ -181,10 +181,15 @@ z3::expr z3interf::parseFormula(string str, const vector< string >& names, const
   string cmd = str.find_first_of(' ')!=string::npos ? "(assert (" + str + "))" : "(assert " + str + ")";
   z3::expr ast(c);
   try {
-	Z3_ast e = Z3_parse_smtlib2_string(c, cmd.c_str(), 0, NULL, NULL, s, symbols, decls);
+	Z3_ast_vector es_ast =
+          Z3_parse_smtlib2_string(c, cmd.c_str(), 0, NULL, NULL, s, symbols, decls);
 	delete[] symbols;
 	delete[] decls;
-    ast = to_expr(c, e);
+        expr_vector es = expr_vector( c, es_ast );
+        if( es.size() != 1 ) {
+          cerr << "Error non unique formula parsed!" <<  endl; throw;
+        }
+        ast = es[0];
   } 
   catch (z3::exception e) {
     cerr << "Error parsing line \"" << str << "\"." << endl;
@@ -368,7 +373,10 @@ z3::sort z3interf::get_variable_sort(const input::variable& var) {
       string smt = sanitise_string(var.smt_type);
       smt = smt.find_first_of(' ')!=string::npos ? "(" + smt + ")" : smt;
       string cmd = "(declare-fun x () " + smt + ") (assert (= x x))";
-      z3::expr ast = to_expr(c, Z3_parse_smtlib2_string(c, cmd.c_str(), 0, NULL, NULL, 0, NULL, NULL));
+      z3::expr_vector es = c.parse_string( cmd.c_str() );
+      assert( es.size() == 1 );
+      z3::expr ast = es[0];
+      // z3::expr ast = to_expr(c,Z3_parse_smtlib2_string(c, cmd.c_str(), 0, NULL, NULL, 0, NULL, NULL));
       return ast.arg(0).get_sort();
     }
   }

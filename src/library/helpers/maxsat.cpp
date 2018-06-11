@@ -111,7 +111,7 @@ z3::model z3interf::fu_malik_maxsat( z3::expr hard,
 z3::model z3interf::maxsat( z3::expr hard, std::vector<z3::expr>& soft ) {
 
   if( Z3_MAXSAT ) {
-    auto opt =  z3::optimize(c);
+    z3::optimize opt(c);
     opt.add( hard );
     for( auto& se : soft ) opt.add( se, 1 );
     opt.check();

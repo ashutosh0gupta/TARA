@@ -36,7 +36,8 @@ clean :
 #-----------------------------------------------------------------------------
 # Z3 fetch and patch generation
 
-REF_VERSION=53976d0ddf16e9f54a2fb7d266538c963796a5ec
+# 53976d0ddf16e9f54a2fb7d266538c963796a5ec
+REF_VERSION=187f1a8cbd62567aa1f875243f33f5927b210301
 patch :
 	mkdir -p $(SRCDIR)/z3-patch
 	cd $(BUILDDIR)/z3; $(git) diff $(REF_VERSION) > $(SRCDIR)/z3-patch/z3.patch
