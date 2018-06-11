@@ -73,7 +73,7 @@ $(BUILDDIR)/z3/buildr/Makefile: $(BUILDDIR)/z3/patched
 	cd $(BUILDDIR)/z3/buildr; cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ../
 	# cd $(BUILDDIR)/z3; python scripts/mk_make.py --staticlib -b buildr
 
-$(BUILDDIR)/z3/buildr/libz3.so : $(BUILDDIR)/z3/buildr/Makefile $(BUILDDIR)/z3/newfiles
+$(BUILDDIR)/z3/buildr/libz3.so : $(BUILDDIR)/z3/newfiles $(BUILDDIR)/z3/buildr/Makefile
 	+make -C $(BUILDDIR)/z3/buildr
 
 $(BUILDDIR)/z3/buildr/libz3.a : $(BUILDDIR)/z3/buildr/libz3.so
@@ -84,7 +84,7 @@ $(BUILDDIR)/z3/buildd/Makefile: $(BUILDDIR)/z3/patched
 	cd $(BUILDDIR)/z3/buildd; cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Debug ../
 	# cd $(BUILDDIR)/z3; python scripts/mk_make.py --staticlib -d -b buildd
 
-$(BUILDDIR)/z3/buildd/libz3.so : $(BUILDDIR)/z3/buildd/Makefile $(BUILDDIR)/z3/newfiles
+$(BUILDDIR)/z3/buildd/libz3.so : $(BUILDDIR)/z3/newfiles $(BUILDDIR)/z3/buildd/Makefile
 	+make -C $(BUILDDIR)/z3/buildd
 
 
