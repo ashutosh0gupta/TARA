@@ -327,7 +327,8 @@ void wmm_event_cons::ses_c11() {
           // z3::expr ord_1_2 = hb_encoding.mk_hb_c11_hb( wr1, wr2 );
           // z3::expr ord_2_1 = hb_encoding.mk_hb_c11_hb( wr2, wr1 );
           // z3::expr ordered = ord_1_2 || ord_2_1;
-          p.append_property( z3::implies( guard, ordered ) );
+          // p.append_property( z3::implies( guard, ordered ) );
+          p.append_property( ordered );
         }
       }
       for( auto& rd : rds ) {

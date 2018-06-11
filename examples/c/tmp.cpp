@@ -8,21 +8,25 @@ void assert( bool );
 void fence();
 void fence_arm8_dmb_ld();
 
-// atomic_int x = 0, y = 0;
+atomic_int x = 0, y = 0;
 
-int z;
 // void* p0(void *) {
 //   atomic_store_explicit( &x, 1, memory_order_release );
 //   return NULL;
 // }
 
 void* p0(void *) {
-  z = 2;
+  x++;
+
+  atomic_store_explicit( &y, 1, memory_order_relaxed );
   return NULL;
 }
 
 void* p1(void *) {
-  z = 0;
+  int s1 = atomic_load_explicit( &y, memory_order_relaxed );
+  fence_arm8_dmb_ld();
+  int s2 = atomic_load_explicit( &x, memory_order_relaxed );
+  assert( y != 1 || x != 0 );
   return NULL;
 }
 
