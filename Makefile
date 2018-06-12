@@ -8,7 +8,7 @@ LLVM_VERSION=6.0.0
 
 all : release
 
-.PHONY : release debug run clean patch test
+.PHONY : release debug run clean patch test deepclean cleanz3 cleanllvm
 
 release : $(BUILDDIR)/buildr/Makefile
 	+make -C $(BUILDDIR)/buildr
@@ -32,6 +32,13 @@ clean :
 	rm -f tara
 	find -name "*~"| xargs rm -rf
 
+cleanz3:
+	rm -rf $(BUILDDIR)/z3
+
+cleanllvm:
+	rm -rf $(BUILDDIR)/llvm*
+
+deepclean: cleanz3 cleanllvm
 
 #-----------------------------------------------------------------------------
 # Z3 fetch and patch generation
@@ -96,9 +103,15 @@ $(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz:
 	cd $(BUILDDIR);wget http://releases.llvm.org/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).src.tar.xz
 
 $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt: $(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz
-	cd $(BUILDDIR);tar -xvJf llvm-$(LLVM_VERSION).src.tar.xz; mkdir -p llvm-$(LLVM_VERSION).src/build; mkdir -p llvm-$(LLVM_VERSION)
+	cd $(BUILDDIR);tar -xvJf llvm-$(LLVM_VERSION).src.tar.xz
 
-$(BUILDDIR)/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt
+$(BUILDDIR)/llvm-$(LLVM_VERSION).src/build: $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt
+	cd $(BUILDDIR);mkdir -p llvm-$(LLVM_VERSION).src/build
+
+$(BUILDDIR)/llvm-$(LLVM_VERSION): $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build
+	cd $(BUILDDIR);mkdir -p llvm-$(LLVM_VERSION)
+
+$(BUILDDIR)/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : $(BUILDDIR)/llvm-$(LLVM_VERSION)
 	cd $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build;cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=DEBUG -DLLVM_ENABLE_RTTI:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=../../llvm-$(LLVM_VERSION) ../
 	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build
 	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build install
