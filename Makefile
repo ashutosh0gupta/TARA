@@ -59,7 +59,7 @@ NEW_Z3_FILES =  $(SRCDIR)/z3-patch/smt_model_reporter.cpp \
 
 
 $(BUILDDIR)/z3/patched : $(SRCDIR)/z3-patch/z3.patch $(BUILDDIR)/z3/README.md
-	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
+	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && git pull && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
 	touch $(BUILDDIR)/z3/patched
 
 $(BUILDDIR)/z3/newfiles : $(NEW_Z3_FILES) $(BUILDDIR)/z3/README.md
@@ -92,8 +92,10 @@ $(BUILDDIR)/z3/buildd/libz3.so : $(BUILDDIR)/z3/newfiles $(BUILDDIR)/z3/buildd/M
 #---------------------------------------------------------------------------
 # fetch and install local llvm with debugging enabled
 
-$(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt:
+$(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz:
 	cd $(BUILDDIR);wget http://releases.llvm.org/$(LLVM_VERSION)/llvm-$(LLVM_VERSION).src.tar.xz
+
+$(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt: $(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz
 	cd $(BUILDDIR);tar -xvJf llvm-$(LLVM_VERSION).src.tar.xz; mkdir -p llvm-$(LLVM_VERSION).src/build; mkdir -p llvm-$(LLVM_VERSION)
 
 $(BUILDDIR)/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt
