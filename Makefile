@@ -105,13 +105,13 @@ $(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz:
 $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt: $(BUILDDIR)/llvm-$(LLVM_VERSION).src.tar.xz
 	cd $(BUILDDIR);tar -xvJf llvm-$(LLVM_VERSION).src.tar.xz
 
-$(BUILDDIR)/llvm-$(LLVM_VERSION).src/build: $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt
+$(BUILDDIR)/llvm-$(LLVM_VERSION).src/build:
 	cd $(BUILDDIR);mkdir -p llvm-$(LLVM_VERSION).src/build
 
-$(BUILDDIR)/llvm-$(LLVM_VERSION): $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build
+$(BUILDDIR)/llvm-$(LLVM_VERSION):
 	cd $(BUILDDIR);mkdir -p llvm-$(LLVM_VERSION)
 
-$(BUILDDIR)/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : $(BUILDDIR)/llvm-$(LLVM_VERSION)
+$(BUILDDIR)/llvm-$(LLVM_VERSION)/lib/libLLVMCore.a : $(BUILDDIR)/llvm-$(LLVM_VERSION).src/LLVMBuild.txt $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build $(BUILDDIR)/llvm-$(LLVM_VERSION)
 	cd $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build;cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=DEBUG -DLLVM_ENABLE_RTTI:BOOL=TRUE -DCMAKE_INSTALL_PREFIX=../../llvm-$(LLVM_VERSION) ../
 	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build
 	+make -C $(BUILDDIR)/llvm-$(LLVM_VERSION).src/build install
