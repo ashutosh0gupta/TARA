@@ -29,21 +29,18 @@ using namespace tara::cssa;
 using namespace tara::helpers;
 
 // coherence
-// (* sc per location *) acyclic po-loc|rf|fr|co
+// (* sc per location *) acyclic po-loc | rf | fr | co
 
 // (* ppo *)
-// let dp     = addr|data
-// let rdw    = po-loc & (fre;rfe)
-// let detour = po-loc & (coe;rfe)
-// let ii0    = dp|rdw|rfi
+// let ii0    = addr | data | ( po-loc & (fre;rfe) ) |rfi
 // let ic0    = 0
-// let ci0    = (ctrl+isync)|detour
-// let cc0    = dp|po-loc|ctrl|(addr;po)
+// let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
+// let cc0    = addr| data| po-loc|ctrl|(addr;po)
 
-// let rec ii = ii0 | ci     | (ic;ci) | (ii;ii)
-// and     ic = ic0 | ii     | cc      | (ic;cc) | (ii;ic)
-// and     ci = ci0 | (ci;ii)| (cc;ci)
-// and     cc = cc0 | ci     | (ci;ic) |(cc;cc)
+// let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
+// and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
+// and     ci = ci0           | (ci;ii) | (cc;ci)
+// and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
 // let ppo = RR(ii)|RW(ic)
 
 // (* fences *)
@@ -51,6 +48,7 @@ using namespace tara::helpers;
 // (* no thin air *)
 // let hb = ppo|fence|rfe
 // acyclic hb
+
 // (* prop *)
 // let prop-base = (fence|(rfe;fence));hb*
 // let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
