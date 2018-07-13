@@ -285,7 +285,7 @@ void wmm_event_cons::ses_c11() {
       wf = wf && implies( rd->guard, some_rfs );
     }
 
-    // modification order
+    // modification order (coherence ww)
     auto it1 = wrs.begin();
     z3::expr_vector dists(z3.c);
     for( ; it1 != wrs.end() ; it1++ ) {
