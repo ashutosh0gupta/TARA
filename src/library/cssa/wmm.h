@@ -59,12 +59,10 @@ namespace cssa {
     static bool is_ordered_tso    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     static bool is_ordered_pso    (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
     static bool is_ordered_alpha  (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
-    static bool is_ordered_power  (const hb_enc::se_ptr&,const hb_enc::se_ptr&);
 
     void ppo_traverse ( const tara::thread& );
 
     void ppo_sc ( const tara::thread& );
-    void ppo_power( const tara::thread& );
     bool check_ppo( const hb_enc::se_ptr&, const hb_enc::se_ptr& );
     void ppo();
 
@@ -117,6 +115,11 @@ namespace cssa {
     z3::expr rfi_ord_arm8_2( z3::expr rf_b, const hb_enc::se_ptr& wr,
                              const hb_enc::se_ptr& rd );
     // void distinct_events_arm8_2();
+
+    // -----------------------------------------------------------------------
+    // power functions
+    static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    void ppo_power( const tara::thread& );
 
     //------------------------------------------------------------------------
 

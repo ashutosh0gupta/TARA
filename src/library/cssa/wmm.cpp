@@ -476,6 +476,7 @@ bool wmm_event_cons::check_ppo( mm_t mm,
   case mm_t::rmo    : return is_ordered_rmo  ( e1, e2 ); break;
   case mm_t::alpha  : return is_ordered_alpha( e1, e2 ); break;
   case mm_t::arm8_2 : return is_ordered_arm8_2( e1,e2 ); break;
+  case mm_t::power  : return is_ordered_power( e1,e2 ); break;
   case mm_t::c11    : return is_ordered_c11( e1,e2); break;
   default:
     std::string msg = "unsupported memory model: " + string_of_mm( mm ) + "!!";
@@ -524,10 +525,6 @@ void wmm_event_cons::ppo_traverse( const tara::thread& thread ) {
       po = po && hb_encoding.mk_ghbs( ep, fe );
     }
   }
-}
-
-void wmm_event_cons::ppo_power( const tara::thread& thread ) {
-  p.unsupported_mm();
 }
 
 void wmm_event_cons::ppo() {

@@ -54,3 +54,13 @@ using namespace tara::helpers;
 // let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
 // (* observation *) irreflexive fre;prop;hb*
 // (* propagation *) acyclic co | prop
+
+bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
+                                       const hb_enc::se_ptr& e2  ) {
+  assert(false);
+}
+
+void wmm_event_cons::ppo_power( const tara::thread& thread ) {
+  p.unsupported_mm();
+}
+
