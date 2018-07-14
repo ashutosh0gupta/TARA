@@ -173,6 +173,23 @@ z3::expr symbolic_event::get_c11_sc_solver_symbol() const {
 }
 
 
+z3::expr symbolic_event::get_power_hb_solver_symbol() const {
+  return *get_power_hb_stamp();
+}
+
+z3::expr symbolic_event::get_power_prop_solver_symbol() const {
+  return *get_power_prop_stamp();
+}
+
+z3::expr symbolic_event::get_power_obs_solver_symbol() const {
+  return *get_power_obs_stamp();
+}
+
+z3::expr symbolic_event::get_power_mo_solver_symbol() const {
+  return *get_power_obs_stamp();
+}
+
+
 void symbolic_event::update_topological_order() {
   unsigned max = 0;
   for( const se_ptr e : prev_events)

@@ -187,10 +187,12 @@ struct source_loc{
     unsigned topological_order;
   public:
     // several time stamps are needed for modelling memory models
-    //                       Other memory models     c11
-    tstamp_var_ptr e_v;      // hb variable         // sc
-    tstamp_var_ptr thin_v;   // thin air variable   // mo
+    //                       Other memory models     c11     power
+    tstamp_var_ptr e_v;      // hb variable         // sc    // hb
+    tstamp_var_ptr thin_v;   // thin air variable   // mo    // prop
     tstamp_var_ptr c11_hb_v;                        // hb
+    tstamp_var_ptr e2;                                       // obs
+    tstamp_var_ptr e3;                                       // mo
 
     event_t et;    // type of the event
     o_tag_t o_tag; // ordering tag on the event
@@ -291,11 +293,27 @@ struct source_loc{
       history.push_back(f);
     }
 
+    // symbol aliases for generic model
     z3::expr get_solver_symbol() const;
     z3::expr get_thin_solver_symbol() const;
+
+    // symbol aliases for c11 model
     z3::expr get_c11_hb_solver_symbol() const;
     z3::expr get_c11_mo_solver_symbol() const;
     z3::expr get_c11_sc_solver_symbol() const;
+    inline tstamp_ptr get_c11_hb_stamp() const { return c11_hb_v; }
+    inline tstamp_ptr get_c11_mo_stamp() const { return thin_v; }
+    inline tstamp_ptr get_c11_sc_stamp() const { return e_v; }
+
+    // symbol aliases for power model
+    z3::expr get_power_hb_solver_symbol() const;
+    z3::expr get_power_prop_solver_symbol() const;
+    z3::expr get_power_obs_solver_symbol() const;
+    z3::expr get_power_mo_solver_symbol() const;
+    inline tstamp_ptr get_power_hb_stamp()   const { return e_v; }
+    inline tstamp_ptr get_power_prop_stamp() const { return thin_v; }
+    inline tstamp_ptr get_power_obs_stamp()  const { return e2; }
+    inline tstamp_ptr get_power_mo_stamp()   const { return e3; }
 
     inline bool access_same_var( const se_ptr& e ) const {
       if( is_pre() || is_post() ) return true;
@@ -308,19 +326,6 @@ struct source_loc{
       if( is_pre() || is_post() ) return true;
       if( is_update() && e->is_mem_op() ) return true;
       return false;
-    }
-
-
-    inline tstamp_ptr get_c11_hb_stamp() const {
-      return c11_hb_v;
-    }
-
-    inline tstamp_ptr get_c11_mo_stamp() const {
-      return thin_v;
-    }
-
-    inline tstamp_ptr get_c11_sc_stamp() const {
-      return e_v;
     }
 
 

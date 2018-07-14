@@ -195,6 +195,36 @@ hb encoding::mk_hb_c11_sc(const se_ptr& before, const se_ptr& after) {
   return make_hb( before->get_c11_sc_stamp(), after->get_c11_sc_stamp() );
 }
 
+  //----------------------
+  //calls for power
+  //-----------------------
+  hb encoding::mk_hb_power_prop(const se_ptr& before, const se_ptr& after) {
+    return make_hb( before->get_power_prop_stamp(), after->get_power_prop_stamp() );
+  }
+
+  hb encoding::mk_hb_power_obs(const se_ptr& before, const se_ptr& after) {
+    return make_hb( before->get_power_obs_stamp(), after->get_power_obs_stamp() );
+  }
+
+  //do we need this
+  hb encoding::mk_hb_power_mo(const se_ptr& before, const se_ptr& after) {
+    return make_hb( before->get_power_mo_stamp(), after->get_power_mo_stamp() );
+  }
+
+  z3::expr encoding::mk_ghb_power_prop( const se_ptr& before, const se_ptr& after ) {
+    return implies( before->guard && after->guard, mk_hb_power_prop( before, after ));
+  }
+
+  z3::expr encoding::mk_ghb_power_obs( const se_ptr& before, const se_ptr& after ) {
+    return implies( before->guard && after->guard, mk_hb_power_obs( before, after ));
+  }
+
+//??
+  z3::expr encoding::mk_ghb_power_mo( const se_ptr& before, const se_ptr& after ) {
+    return implies( before->guard && after->guard, mk_hb_power_mo( before, after ));
+  }
+
+  //---------------------------
 
   z3::expr encoding::mk_guarded_forbid_expr( const hb_enc::hb_vec& vec ) {
     z3::expr hbs = z3.mk_true();

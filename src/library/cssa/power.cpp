@@ -28,23 +28,15 @@ using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
 
+
+// com = rf | fr | co
+
 // coherence
 // (* sc per location *) acyclic po-loc | rf | fr | co
 
-// (* ppo *)
-// let ii0    = addr | data | ( po-loc & (fre;rfe) ) |rfi
-// let ic0    = 0
-// let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
-// let cc0    = addr| data| po-loc|ctrl|(addr;po)
-
-// let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
-// and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
-// and     ci = ci0           | (ci;ii) | (cc;ci)
-// and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
-// let ppo = RR(ii)|RW(ic)
-
 // (* fences *)
 // let fence = RM(lwsync)|WW(lwsync)|sync
+
 // (* no thin air *)
 // let hb = ppo|fence|rfe
 // acyclic hb
@@ -52,7 +44,9 @@ using namespace tara::helpers;
 // (* prop *)
 // let prop-base = (fence|(rfe;fence));hb*
 // let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
+
 // (* observation *) irreflexive fre;prop;hb*
+
 // (* propagation *) acyclic co | prop
 
 bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
@@ -61,6 +55,20 @@ bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
 }
 
 void wmm_event_cons::ppo_power( const tara::thread& thread ) {
+  // (* ppo *)
+  // let ii0    = addr | data | ( po-loc & (fre;rfe) ) |rfi
+  // let ic0    = 0
+  // let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
+  // let cc0    = addr| data| po-loc|ctrl|(addr;po)
+
+  // let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
+  // and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
+  // and     ci = ci0           | (ci;ii) | (cc;ci)
+  // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
+  // let ppo = RR(ii)|RW(ic)
+  hb_enc->mk_ghb( e1, e2 );
+  z3::expr prop_e1_e2 = hb_enc->mk_ghb_power_prop( e1, e2 );
+  
   p.unsupported_mm();
 }
 
