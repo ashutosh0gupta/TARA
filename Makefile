@@ -66,7 +66,7 @@ NEW_Z3_FILES =  $(SRCDIR)/z3-patch/smt_model_reporter.cpp \
 
 
 $(BUILDDIR)/z3/patched : $(SRCDIR)/z3-patch/z3.patch $(BUILDDIR)/z3/README.md
-	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && git pull && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
+	cd $(BUILDDIR)/z3; $(git) stash clear && $(git) stash save && $(git) apply --whitespace=fix $(SRCDIR)/z3-patch/z3.patch
 	touch $(BUILDDIR)/z3/patched
 
 $(BUILDDIR)/z3/newfiles : $(NEW_Z3_FILES) $(BUILDDIR)/z3/README.md

@@ -66,8 +66,9 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   // and     ci = ci0           | (ci;ii) | (cc;ci)
   // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
   // let ppo = RR(ii)|RW(ic)
-  hb_enc->mk_ghb( e1, e2 );
-  z3::expr prop_e1_e2 = hb_enc->mk_ghb_power_prop( e1, e2 );
+
+  // hb_enc->mk_ghb( e1, e2 );
+  // z3::expr prop_e1_e2 = hb_enc->mk_ghb_power_prop( e1, e2 );
   
   p.unsupported_mm();
 }

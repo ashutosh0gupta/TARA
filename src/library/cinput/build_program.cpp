@@ -343,18 +343,33 @@ mk_fence_from_call( llvm::Function* fp, const bb* b, unsigned tid,
   auto fname = fp->getName();
   auto fence_t = hb_enc::event_t::barr_b;
   auto arm8 = false;
+  auto power = false;
   if(      fname == "_Z5fencev"            ) {
     fence_t = hb_enc::event_t::barr;
   }else if(fname =="_Z16fence_arm_dmb_ldv") {
     arm8 = true; fence_t = hb_enc::event_t::barr_a;
   }else if(fname =="_Z16fence_arm_dmb_stv") {
     arm8 = true; fence_t = hb_enc::event_t::barr_b;
-  }else{ return false; //no function name matched!!
+  }else{ //return false; //no function name matched!!
   }
   if( arm8 ){
     // check if the current model is actually arm8 model
     if( !p->is_mm_arm8_2() )
       cinput_error( "arm fences are being inserted in non arm model!" );
+  }
+  // power fences
+  if(      fname == "_Z15power_full_syncv" ) {
+    power = true; fence_t = hb_enc::event_t::barr;
+  }else if(fname == "_Z12power_lwsyncv" ) {
+    power = true; fence_t = hb_enc::event_t::barr_a;
+  }else if(fname == "_Z11power_isyncv" ) {
+    power = true; fence_t = hb_enc::event_t::barr_b;
+  }else{ return false; //no function name matched!!
+  }
+  if( power ) {
+    // check if the current model is actually arm8 model
+    if( !p->is_mm_power() )
+      cinput_error( "power fences are being inserted in non power model!" );
   }
   auto e = mk_se_ptr(hb_enc, tid, prev_events, path_cond, history, loc,fence_t);
   prev_events = { e };
@@ -679,7 +694,9 @@ translateBlock( unsigned thr_id,
         if( fp == NULL ) {
           cinput_error( "Null pointer functional call!!");
         }
-        if( fp->getName() == "_Z5fencev" ) {
+        if( fp->getName() == "_Z5isyncv" ) {
+          assert(false);
+        }if( fp->getName() == "_Z5fencev" ) {
           //fence instruction as a call
           auto barr = mk_se_ptr( hb_enc, thr_id, prev_events, path_cond,
                                  history, loc_name, hb_enc::event_t::barr );
