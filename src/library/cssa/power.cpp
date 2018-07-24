@@ -77,7 +77,9 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   //p.unsupported_mm();
 }
 
-void wmm_event_cons::get_power_ii0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2)
+void wmm_event_cons::get_power_ii0(const tara::thread& thread,
+																	 std::set<hb_enc::se_ptr>& ev_set1,
+																	 std::set<hb_enc::se_ptr>& ev_set2)
 {
 	// let ii0    = addr | data | ( po-loc & (fre;rfe) ) |rfi
 	for(auto rf_pair:rf_rel)
@@ -95,7 +97,9 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,std::set<hb_enc::s
 		{
 			for(auto fr_pair:fr_rel)
 			{
-				if(std::get<2>(fr_pair)==e1&&std::get<1>(fr_pair)->tid==thread.start_event->tid&&is_po_new(std::get<1>(fr_pair),e2))
+				if(std::get<2>(fr_pair)==e1&&
+					 std::get<1>(fr_pair)->tid==thread.start_event->tid&&
+					 is_po_new(std::get<1>(fr_pair),e2))
 				{
 					//add to ii0
 					event_pair ev_pair(std::get<1>(fr_pair),e2);
@@ -118,7 +122,9 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,std::set<hb_enc::s
 		}
 	}
 }
-void wmm_event_cons::get_power_ci0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2)
+void wmm_event_cons::get_power_ci0(const tara::thread& thread,
+		                               std::set<hb_enc::se_ptr>& ev_set1,
+																	 std::set<hb_enc::se_ptr>& ev_set2)
 {
 	// let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
 	for(auto e:thread.events)
@@ -143,7 +149,9 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,std::set<hb_enc::s
 		}
 	}
 }
-void wmm_event_cons::get_power_cc0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2)
+void wmm_event_cons::get_power_cc0(const tara::thread& thread,
+																	 std::set<hb_enc::se_ptr>& ev_set1,
+																	 std::set<hb_enc::se_ptr>& ev_set2)
 {
 	// let cc0    = addr| data| po-loc|ctrl|(addr;po)
 	for(hb_enc::se_ptr e:thread.events)
@@ -182,7 +190,9 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,std::set<hb_enc::s
 	}
 }
 
-void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::set<hb_enc::se_ptr> ev_set1,std::set<hb_enc::se_ptr> ev_set2)
+void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,
+		                                           std::set<hb_enc::se_ptr> ev_set1,
+																							 std::set<hb_enc::se_ptr> ev_set2)
 {
 	  // let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
 	  // and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
@@ -228,10 +238,18 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 			if(e1->get_topological_order()>=e2->get_topological_order()) continue;
 			event_pair ev_pair(e1,e2);
 			//
-			z3::expr t0ii=std::get<0>(ii.find(ev_pair)->second),b0ii=std::get<1>(ii.find(ev_pair)->second),cond0ii=std::get<2>(ii.find(ev_pair)->second);
-			z3::expr t0ic=std::get<0>(ic.find(ev_pair)->second),b0ic=std::get<1>(ic.find(ev_pair)->second),cond0ic=std::get<2>(ic.find(ev_pair)->second);
-			z3::expr t0ci=std::get<0>(ci.find(ev_pair)->second),b0ci=std::get<1>(ci.find(ev_pair)->second),cond0ci=std::get<2>(ci.find(ev_pair)->second);
-			z3::expr t0cc=std::get<0>(cc.find(ev_pair)->second),b0cc=std::get<1>(cc.find(ev_pair)->second),cond0cc=std::get<2>(cc.find(ev_pair)->second);
+			z3::expr t0ii=std::get<0>(ii.find(ev_pair)->second),
+					     b0ii=std::get<1>(ii.find(ev_pair)->second),
+							 cond0ii=std::get<2>(ii.find(ev_pair)->second);
+			z3::expr t0ic=std::get<0>(ic.find(ev_pair)->second),
+					     b0ic=std::get<1>(ic.find(ev_pair)->second),
+							 cond0ic=std::get<2>(ic.find(ev_pair)->second);
+			z3::expr t0ci=std::get<0>(ci.find(ev_pair)->second),
+					     b0ci=std::get<1>(ci.find(ev_pair)->second),
+							 cond0ci=std::get<2>(ci.find(ev_pair)->second);
+			z3::expr t0cc=std::get<0>(cc.find(ev_pair)->second),
+					     b0cc=std::get<1>(cc.find(ev_pair)->second),
+							 cond0cc=std::get<2>(cc.find(ev_pair)->second);
 
 			//ii0 in ii
 			if(ii0.find(ev_pair)!=ii0.end())
@@ -252,7 +270,9 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 			}
 
 			//ci in ii
-			z3::expr t_ci=std::get<0>(ci.find(ev_pair)->second),b_ci=std::get<1>(ci.find(ev_pair)->second),cond_ci=std::get<2>(ci.find(ev_pair)->second);
+			z3::expr t_ci=std::get<0>(ci.find(ev_pair)->second),
+					     b_ci=std::get<1>(ci.find(ev_pair)->second),
+							 cond_ci=std::get<2>(ci.find(ev_pair)->second);
 			cond0ii=cond0ii||((t0ii>=t_ci)&&cond_ci&&b_ci);
 
 			for(hb_enc::se_ptr eb:e1->prev_events)
@@ -260,19 +280,30 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 				if(ev_set1.find(eb)!=ev_set1.end()&&ev_set2.find(eb)!=ev_set2.end())
 				{
 					//(ic;ci) in ii
-					assert(ic.find(std::make_pair(e1,eb))!=ic.end()&&ci.find(std::make_pair(eb,e2))!=ci.end());
-					z3::expr t_ic=std::get<0>(ic.find(ev_pair)->second),b_ic=std::get<1>(ic.find(ev_pair)->second),cond_ic=std::get<2>(ic.find(ev_pair)->second);
-					z3::expr t_ci=std::get<0>(ci.find(ev_pair)->second),b_ci=std::get<1>(ci.find(ev_pair)->second),cond_ci=std::get<2>(ci.find(ev_pair)->second);
-					cond0ii=cond0ii||((t0ii>=t_ic)&&(t0ii>=t_ci)&&b_ic&&b_ci&&cond_ic&&cond_ci);
+					assert(ic.find(std::make_pair(e1,eb))!=ic.end()&&
+							   ci.find(std::make_pair(eb,e2))!=ci.end());
+					z3::expr t_ic=std::get<0>(ic.find(ev_pair)->second),
+							     b_ic=std::get<1>(ic.find(ev_pair)->second),
+									 cond_ic=std::get<2>(ic.find(ev_pair)->second);
+					z3::expr t_ci=std::get<0>(ci.find(ev_pair)->second),
+							     b_ci=std::get<1>(ci.find(ev_pair)->second),
+									 cond_ci=std::get<2>(ci.find(ev_pair)->second);
+					cond0ii=cond0ii||
+							    ((t0ii>=t_ic)&&(t0ii>=t_ci)&&b_ic&&b_ci&&cond_ic&&cond_ci);
 
 					//(ii;ii) in ii
-					assert(ii.find(std::make_pair(e1,eb))!=ic.end()&&ii.find(std::make_pair(eb,e2))!=ci.end());
-					z3::expr t_ii1=std::get<0>(ii.find(ev_pair)->second),b_ii1=std::get<1>(ii.find(ev_pair)->second),cond_ii1=std::get<2>(ii.find(ev_pair)->second);
-					z3::expr t_ii2=std::get<0>(ii.find(ev_pair)->second),b_ii2=std::get<1>(ii.find(ev_pair)->second),cond_ii2=std::get<2>(ii.find(ev_pair)->second);
-					cond0ii=cond0ii||((t0ii>=t_ii1)&&(t0ii>=t_ii2)&&b_ii1&&b_ii2&&cond_ii1&&cond_ii2);
+					assert(ii.find(std::make_pair(e1,eb))!=ic.end()&&
+							   ii.find(std::make_pair(eb,e2))!=ci.end());
+					z3::expr t_ii1=std::get<0>(ii.find(ev_pair)->second),
+							     b_ii1=std::get<1>(ii.find(ev_pair)->second),
+									 cond_ii1=std::get<2>(ii.find(ev_pair)->second);
+					z3::expr t_ii2=std::get<0>(ii.find(ev_pair)->second),
+							     b_ii2=std::get<1>(ii.find(ev_pair)->second),
+									 cond_ii2=std::get<2>(ii.find(ev_pair)->second);
+					cond0ii=cond0ii||((t0ii>=t_ii1)&&(t0ii>=t_ii2)&&
+							    b_ii1&&b_ii2&&cond_ii1&&cond_ii2);
 				}
 			}
 		}
 	}
-
 }
