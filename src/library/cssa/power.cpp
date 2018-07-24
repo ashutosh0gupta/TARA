@@ -189,7 +189,7 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 	  // and     ci = ci0           | (ci;ii) | (cc;ci)
 	  // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
 	rec_rel ii,ic,ci,cc;
-
+	//initialization of ii, ic, ci, cc relation
 	for(hb_enc::se_ptr e1:ev_set1)
 	{
 		for(hb_enc::se_ptr e2:ev_set2)
@@ -197,9 +197,7 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 			if(e1==e2) continue;
 			if(e1->is_post()||e2->is_pre()) continue;
 			if(e1->get_topological_order()>=e2->get_topological_order()) continue;
-			
-			//info ii_info,ic_info,ci_info,cc_info;
-
+			//ii
 			z3::expr t=z3.c.int_const(("t_ii_"+e1->name()+"_"+e2->name()).c_str());
 			z3::expr bit=z3.c.bool_const(("ii"+e1->name()+e2->name()).c_str());
 			z3::expr cond=z3.mk_false();
@@ -229,7 +227,7 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,std::s
 			if(e1->is_post()||e2->is_pre()) continue;
 			if(e1->get_topological_order()>=e2->get_topological_order()) continue;
 			event_pair ev_pair(e1,e2);
-
+			//
 			z3::expr t0ii=std::get<0>(ii.find(ev_pair)->second),b0ii=std::get<1>(ii.find(ev_pair)->second),cond0ii=std::get<2>(ii.find(ev_pair)->second);
 			z3::expr t0ic=std::get<0>(ic.find(ev_pair)->second),b0ic=std::get<1>(ic.find(ev_pair)->second),cond0ic=std::get<2>(ic.find(ev_pair)->second);
 			z3::expr t0ci=std::get<0>(ci.find(ev_pair)->second),b0ci=std::get<1>(ci.find(ev_pair)->second),cond0ci=std::get<2>(ci.find(ev_pair)->second);
