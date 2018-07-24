@@ -119,13 +119,13 @@ namespace cssa {
     // -----------------------------------------------------------------------
     // power functions
 
-    void get_power_ii0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
-    void get_power_ci0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
-    void get_power_cc0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
+    void get_power_ii0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2);
+    void get_power_ci0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2);
+    void get_power_cc0(const tara::thread& thread,std::set<hb_enc::se_ptr>& ev_set1,std::set<hb_enc::se_ptr>& ev_set2);
 
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     void ppo_power( const tara::thread& );
-    void get_power_mutual_rec_cons(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr> ev_set1,std::unordered_set<hb_enc::se_ptr> ev_set2);//compute ii, ic, ci, cc
+    void get_power_mutual_rec_cons(const tara::thread& thread,std::set<hb_enc::se_ptr> ev_set1,std::set<hb_enc::se_ptr> ev_set2);//compute ii, ic, ci, cc
 
     //------------------------------------------------------------------------
 
