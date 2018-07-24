@@ -65,7 +65,7 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
                              const hb_enc::se_ptr& rd ) {
   if( p.is_mm_sc() ) {
     return true;
-  }else if( p.is_mm_tso() || p.is_mm_pso() ||
+  }else if( p.is_mm_tso() || p.is_mm_pso() || p.is_mm_power() ||
             p.is_mm_rmo() || p.is_mm_alpha() || p.is_mm_arm8_2()) {
     return wr->tid != rd->tid; //only events with diff threads are part of grf
   }else{
@@ -267,6 +267,7 @@ void wmm_event_cons::ses() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
+        rf_rel.insert(std::make_tuple(b,wr,rd));
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
         if( is_no_thin_mm() ) {
@@ -304,6 +305,7 @@ void wmm_event_cons::ses() {
                 // rmw & (fr o mo) empty
                 new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );
               }
+              fr_rel.insert(std::make_tuple(cond,rd,after_wr));
               fr = fr && implies( cond , new_fr );
             }
           }
@@ -327,6 +329,8 @@ void wmm_event_cons::ses() {
           ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
                        hb_encoding.mk_ghbs( wr2, wr1 ) );
         }
+        //Coherence order co
+
       }
     }
     if( is_no_thin_mm() ) {

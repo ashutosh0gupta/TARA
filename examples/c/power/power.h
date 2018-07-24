@@ -13,7 +13,7 @@
 #ifndef __MEM_OP_MACROS_H__
 #define __MEM_OP_MACROS_H__
 
-void power_full_sync();
+void power_sync();
 void power_lwsync();
 void power_isync();
 

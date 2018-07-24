@@ -118,8 +118,14 @@ namespace cssa {
 
     // -----------------------------------------------------------------------
     // power functions
+
+    void get_power_ii0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
+    void get_power_ci0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
+    void get_power_cc0(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr>& ev_set1,std::unordered_set<hb_enc::se_ptr>& ev_set2);
+
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     void ppo_power( const tara::thread& );
+    void get_power_mutual_rec_cons(const tara::thread& thread,std::unordered_set<hb_enc::se_ptr> ev_set1,std::unordered_set<hb_enc::se_ptr> ev_set2);//compute ii, ic, ci, cc
 
     //------------------------------------------------------------------------
 
@@ -128,6 +134,7 @@ namespace cssa {
     z3::expr wf   = z3.mk_true();
     z3::expr rf   = z3.mk_true();
     z3::expr grf  = z3.mk_true();
+    z3::expr lrf  = z3.mk_true();
     z3::expr fr   = z3.mk_true();
     z3::expr ws   = z3.mk_true();
     z3::expr thin = z3.mk_true();
@@ -162,8 +169,13 @@ namespace cssa {
     bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr_old( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
 
+    //power data structure
+    typedef std::set< std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr> > relation;
+    relation rf_rel,fr_rel,co_rel;
+    typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
+    typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;//rec_rel:=<<event1,event2>,<time,bit,guard>>
+    std::map<event_pair,z3::expr> ii0,ci0,cc0;
   };
-
 }}
 
 #endif // TARA_CSSA_WMM_H

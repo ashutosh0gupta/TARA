@@ -358,7 +358,7 @@ mk_fence_from_call( llvm::Function* fp, const bb* b, unsigned tid,
       cinput_error( "arm fences are being inserted in non arm model!" );
   }
   // power fences
-  if(      fname == "_Z15power_full_syncv" ) {
+  if(      fname == "_Z15power_syncv" ) {
     power = true; fence_t = hb_enc::event_t::barr;
   }else if(fname == "_Z12power_lwsyncv" ) {
     power = true; fence_t = hb_enc::event_t::barr_a;
