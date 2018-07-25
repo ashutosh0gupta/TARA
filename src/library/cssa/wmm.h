@@ -117,6 +117,12 @@ namespace cssa {
     // void distinct_events_arm8_2();
 
     // -----------------------------------------------------------------------
+    //power data structures
+        typedef std::set< std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr> > relation;
+        relation rf_rel,fr_rel,co_rel;
+        typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
+        typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;//rec_rel:=<<event1,event2>,<time,bit,guard>>
+        std::map<event_pair,z3::expr> ii0,ci0,cc0;
     // power functions
 
     void get_power_ii0(const tara::thread& thread,
@@ -131,9 +137,16 @@ namespace cssa {
 
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     void ppo_power( const tara::thread& );
-    void get_power_mutual_rec_cons(const tara::thread& thread,
-    		                           std::set<hb_enc::se_ptr> ev_set1,
-																	 std::set<hb_enc::se_ptr> ev_set2);//compute ii, ic, ci, cc
+    void get_power_mutual_rec_cons(const tara::thread& thread,//compute ii, ic, ci, cc
+    		                           std::set<hb_enc::se_ptr>& ev_set1,
+																	 std::set<hb_enc::se_ptr>& ev_set2);
+    void initialize(rec_rel& r, hb_enc::se_ptr& e1,
+    								hb_enc::se_ptr& e2,std::string r_name);
+    void initialize_rels(rec_rel& ii, rec_rel& ic,
+    		                  rec_rel& ci, rec_rel& cc,
+													std::set<hb_enc::se_ptr>& ev_set1,
+													std::set<hb_enc::se_ptr>& ev_set2);
+    z3::expr get_rel_cond(rec_rel& r, event_pair& ev_pair, z3::expr& t);
 
     //------------------------------------------------------------------------
 
@@ -176,13 +189,6 @@ namespace cssa {
     void old_ses();
     bool anti_ppo_read_old( const hb_enc::se_ptr& wr, const hb_enc::se_ptr& rd );
     bool anti_po_loc_fr_old( const hb_enc::se_ptr& rd, const hb_enc::se_ptr& wr );
-
-    //power data structure
-    typedef std::set< std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr> > relation;
-    relation rf_rel,fr_rel,co_rel;
-    typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
-    typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;//rec_rel:=<<event1,event2>,<time,bit,guard>>
-    std::map<event_pair,z3::expr> ii0,ci0,cc0;
   };
 }}
 
