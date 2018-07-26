@@ -195,11 +195,30 @@ void wmm_event_cons::initialize_rels(rec_rel& ii, rec_rel& ic,
 	}
 }
 
-z3::expr wmm_event_cons::get_rel_cond(rec_rel& r, event_pair& ev_pair, z3::expr& t) {
+z3::expr wmm_event_cons::derive_from_single(rec_rel& r,
+		                                        event_pair& ev_pair, z3::expr& t) {
 	z3::expr t_r=std::get<0>(r.find(ev_pair)->second),
 	b_r=std::get<1>(r.find(ev_pair)->second),
 	cond_r=std::get<2>(r.find(ev_pair)->second);
 	return (t>=t_r)&&cond_r&&b_r;
+}
+
+z3::expr wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2,
+																		 hb_enc::se_ptr& e1, hb_enc::se_ptr& e2,
+																		 hb_enc::se_ptr& eb, z3::expr& t) {
+	event_pair ev_pair(e1,e2);
+	assert(r1.find(std::make_pair(e1,eb))!=r1.end()&&
+	       r2.find(std::make_pair(eb,e2))!=r2.end());
+
+	z3::expr t_r1=std::get<0>(r1.find(ev_pair)->second),
+	  b_r1=std::get<1>(r1.find(ev_pair)->second),
+	  cond_r1=std::get<2>(r1.find(ev_pair)->second);
+
+	z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
+	  b_r2=std::get<1>(r2.find(ev_pair)->second),
+	  cond_r2=std::get<2>(r2.find(ev_pair)->second);
+
+	return ((t>=t_r1) && (t>=t_r2) && b_r1 && b_r2&&cond_r1&&cond_r2);
 }
 
 void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,
@@ -251,50 +270,30 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,
         cond0cc=cond0cc||((t0cc==0)&&cc0.find(ev_pair)->second);
       }
 
-      cond0ii=cond0ii||get_rel_cond(ci,ev_pair,t0ii);//ci in ii
-      cond0ic=cond0ic||get_rel_cond(ii,ev_pair,t0ic);//ii in ic
-      cond0ic=cond0ic||get_rel_cond(cc,ev_pair,t0ic);//cc in ic
-      cond0cc=cond0cc||get_rel_cond(ci,ev_pair,t0cc);//ci in cc
+      cond0ii=cond0ii||derive_from_single(ci,ev_pair,t0ii);//ci in ii
+      cond0ic=cond0ic||derive_from_single(ii,ev_pair,t0ic);//ii in ic
+      cond0ic=cond0ic||derive_from_single(cc,ev_pair,t0ic);//cc in ic
+      cond0cc=cond0cc||derive_from_single(ci,ev_pair,t0cc);//ci in cc
 
       //derive new pairs by joining existing pairs
       for(hb_enc::se_ptr eb:e1->prev_events) {
         if(ev_set1.find(eb)!=ev_set1.end()&&ev_set2.find(eb)!=ev_set2.end()) {
-        	{//(ic;ci) in ii
-          	assert(ic.find(std::make_pair(e1,eb))!=ic.end()&&
-          				 ci.find(std::make_pair(eb,e2))!=ci.end());
-          	z3::expr t_ic=std::get<0>(ic.find(ev_pair)->second),
-          		b_ic=std::get<1>(ic.find(ev_pair)->second),
-            	cond_ic=std::get<2>(ic.find(ev_pair)->second);
-          	z3::expr t_ci=std::get<0>(ci.find(ev_pair)->second),
-          		b_ci=std::get<1>(ci.find(ev_pair)->second),
-            	cond_ci=std::get<2>(ci.find(ev_pair)->second);
-          	cond0ii=cond0ii||
-          		((t0ii>=t_ic)&&(t0ii>=t_ci)&&b_ic&&b_ci&&cond_ic&&cond_ci);
-        	}
-          {//(ii;ii) in ii
-          	assert(ii.find(std::make_pair(e1,eb))!=ic.end()&&
-          				 ii.find(std::make_pair(eb,e2))!=ci.end());
-          	z3::expr t_ii1=std::get<0>(ii.find(ev_pair)->second),
-          		b_ii1=std::get<1>(ii.find(ev_pair)->second),
-							cond_ii1=std::get<2>(ii.find(ev_pair)->second);
-          	z3::expr t_ii2=std::get<0>(ii.find(ev_pair)->second),
-          		b_ii2=std::get<1>(ii.find(ev_pair)->second),
-							cond_ii2=std::get<2>(ii.find(ev_pair)->second);
-          	cond0ii=cond0ii||((t0ii>=t_ii1)&&(t0ii>=t_ii2)&&
-                            b_ii1&&b_ii2&&cond_ii1&&cond_ii2);
-        	}
-          {//(ic;cc) in ic
-            assert(ic.find(std::make_pair(e1,eb))!=ic.end()&&
-            			 cc.find(std::make_pair(eb,e2))!=ci.end());
-            z3::expr t_ic=std::get<0>(ic.find(ev_pair)->second),
-              b_ic=std::get<1>(ic.find(ev_pair)->second),
-              cond_ic=std::get<2>(ic.find(ev_pair)->second);
-            z3::expr t_cc=std::get<0>(cc.find(ev_pair)->second),
-              b_cc=std::get<1>(cc.find(ev_pair)->second),
-              cond_cc=std::get<2>(cc.find(ev_pair)->second);
-            cond0ic=cond0ii||((t0ic>=t_ic)&&(t0ii>=t_cc)&&
-                              b_ic&&b_cc&&cond_ic&&cond_cc);
-          }
+        	//(ic;ci) in ii
+        	cond0ii=cond0ii||(combine_two(ic,ci,e1,e2,eb,t0ii));
+        	//(ii;ii) in ii
+          cond0ii=cond0ii||(combine_two(ii,ii,e1,e2,eb,t0ii));
+          //(ic;cc) in ic
+          cond0ic=cond0ic||(combine_two(ic,cc,e1,e2,eb,t0ic));
+          //(ii,ic) in ic
+          cond0ic=cond0ic||(combine_two(ii,ic,e1,e2,eb,t0ic));
+          //(ci;ii) in ci
+          cond0ci=cond0ci||(combine_two(ci,ii,e1,e2,eb,t0ci));
+          //(cc;ci) in ci
+          cond0ci=cond0ci||(combine_two(cc,ci,e1,e2,eb,t0ci));
+          //(ci;ic) in cc
+          cond0cc=cond0cc||(combine_two(ci,ic,e1,e2,eb,t0cc));
+          //(cc;cc) in cc
+          cond0cc=cond0cc||(combine_two(cc,cc,e1,e2,eb,t0cc));
         }
       }
     }
