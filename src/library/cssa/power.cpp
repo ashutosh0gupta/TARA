@@ -65,11 +65,11 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   // and     ci = ci0           | (ci;ii) | (cc;ci)
   // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
   // let ppo = RR(ii)|RW(ic)
-  std::set<hb_enc::se_ptr> ev_set1,ev_set2;
+  hb_enc::se_set ev_set1,ev_set2;
   get_power_ii0(thread,ev_set1,ev_set2);
   get_power_ci0(thread,ev_set1,ev_set2);
   get_power_cc0(thread,ev_set1,ev_set2);
-  get_power_mutual_rec_cons(thread,ev_set1,ev_set2);
+  compute_ppo_by_fpt(thread,ev_set1,ev_set2);
 
   //hb_enc->mk_ghb( e1, e2 );
   //z3::expr prop_e1_e2 = hb_enc->mk_ghb_power_prop( e1, e2 );
@@ -78,8 +78,8 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
 }
 
 void wmm_event_cons::get_power_ii0(const tara::thread& thread,
-                                   std::set<hb_enc::se_ptr>& ev_set1,
-                                   std::set<hb_enc::se_ptr>& ev_set2) {
+																	 hb_enc::se_set& ev_set1,
+																	 hb_enc::se_set& ev_set2) {
   // let ii0    = addr | data | ( po-loc & (fre;rfe) ) |rfi
   for(auto rf_pair:rf_rel) {
     hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
@@ -115,8 +115,8 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
   }
 }
 void wmm_event_cons::get_power_ci0(const tara::thread& thread,
-                                   std::set<hb_enc::se_ptr>& ev_set1,
-                                   std::set<hb_enc::se_ptr>& ev_set2)
+																	 hb_enc::se_set& ev_set1,
+																	 hb_enc::se_set& ev_set2)
 {
   // let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
   for(auto e:thread.events) {
@@ -179,8 +179,8 @@ void wmm_event_cons::initialize(rec_rel& r, hb_enc::se_ptr& e1,
 
 void wmm_event_cons::initialize_rels(rec_rel& ii, rec_rel& ic,
 																			rec_rel& ci, rec_rel& cc,
-																			std::set<hb_enc::se_ptr>& ev_set1,
-																			std::set<hb_enc::se_ptr>& ev_set2) {
+																			hb_enc::se_set& ev_set1,
+																			hb_enc::se_set& ev_set2) {
 	for(hb_enc::se_ptr e1:ev_set1) {
 	  for(hb_enc::se_ptr e2:ev_set2) {
 	    if(e1==e2) continue;
@@ -200,7 +200,7 @@ z3::expr wmm_event_cons::derive_from_single(rec_rel& r,
 	z3::expr t_r=std::get<0>(r.find(ev_pair)->second),
 	b_r=std::get<1>(r.find(ev_pair)->second),
 	cond_r=std::get<2>(r.find(ev_pair)->second);
-	return (t>=t_r)&&cond_r&&b_r;
+	return (t>=t_r)&&b_r;
 }
 
 z3::expr wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2,
@@ -217,13 +217,13 @@ z3::expr wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2,
 	z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
 	  b_r2=std::get<1>(r2.find(ev_pair)->second),
 	  cond_r2=std::get<2>(r2.find(ev_pair)->second);
-
-	return ((t>=t_r1) && (t>=t_r2) && b_r1 && b_r2&&cond_r1&&cond_r2);
+	//return condition for (r1;r2)
+	return ((t>=t_r1)&&(t>=t_r2)&&b_r1&&b_r2);
 }
 
-void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,
-                                               std::set<hb_enc::se_ptr>& ev_set1,
-                                               std::set<hb_enc::se_ptr>& ev_set2) {
+void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
+                                               hb_enc::se_set& ev_set1,
+																							 hb_enc::se_set& ev_set2) {
   // let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
   // and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
   // and     ci = ci0           | (ci;ii) | (cc;ci)
@@ -242,59 +242,76 @@ void wmm_event_cons::get_power_mutual_rec_cons(const tara::thread& thread,
 
       event_pair ev_pair(e1,e2);
       //get (e1,e2) from ii
-      z3::expr t0ii=std::get<0>(ii.find(ev_pair)->second),
-        b0ii=std::get<1>(ii.find(ev_pair)->second),
-        cond0ii=std::get<2>(ii.find(ev_pair)->second);
+      z3::expr& t_ii=std::get<0>(ii.find(ev_pair)->second),
+        b_ii=std::get<1>(ii.find(ev_pair)->second),
+        cond_ii=std::get<2>(ii.find(ev_pair)->second);
       //get (e1,e2) from ic
-      z3::expr t0ic=std::get<0>(ic.find(ev_pair)->second),
-        b0ic=std::get<1>(ic.find(ev_pair)->second),
-        cond0ic=std::get<2>(ic.find(ev_pair)->second);
+      z3::expr& t_ic=std::get<0>(ic.find(ev_pair)->second),
+        b_ic=std::get<1>(ic.find(ev_pair)->second),
+        cond_ic=std::get<2>(ic.find(ev_pair)->second);
       //get (e1,e2) from ci
-      z3::expr t0ci=std::get<0>(ci.find(ev_pair)->second),
-        b0ci=std::get<1>(ci.find(ev_pair)->second),
-        cond0ci=std::get<2>(ci.find(ev_pair)->second);
+      z3::expr& t_ci=std::get<0>(ci.find(ev_pair)->second),
+        b_ci=std::get<1>(ci.find(ev_pair)->second),
+        cond_ci=std::get<2>(ci.find(ev_pair)->second);
       //get (e1,e2) from cc
-      z3::expr t0cc=std::get<0>(cc.find(ev_pair)->second),
-        b0cc=std::get<1>(cc.find(ev_pair)->second),
-        cond0cc=std::get<2>(cc.find(ev_pair)->second);
+      z3::expr& t_cc=std::get<0>(cc.find(ev_pair)->second),
+        b_cc=std::get<1>(cc.find(ev_pair)->second),
+        cond_cc=std::get<2>(cc.find(ev_pair)->second);
 
       //various cases in recursive definition
       //update conditions for existence of (e1,e2) in ii, ic, ci, cc
       if(ii0.find(ev_pair)!=ii0.end()) {//ii0 in ii
-        cond0ii=cond0ii||((t0ii==0)&&ii0.find(ev_pair)->second);
+        cond_ii=cond_ii||((t_ii==0)&&ii0.find(ev_pair)->second);
       }
       if(ci0.find(ev_pair)!=ci0.end()) {//ci0 in ci
-        cond0ci=cond0ci||((t0ci==0)&&ci0.find(ev_pair)->second);
+        cond_ci=cond_ci||((t_ci==0)&&ci0.find(ev_pair)->second);
       }
       if(cc0.find(ev_pair)!=cc0.end()) {//cc0 in cc
-        cond0cc=cond0cc||((t0cc==0)&&cc0.find(ev_pair)->second);
+        cond_cc=cond_cc||((t_cc==0)&&cc0.find(ev_pair)->second);
       }
 
-      cond0ii=cond0ii||derive_from_single(ci,ev_pair,t0ii);//ci in ii
-      cond0ic=cond0ic||derive_from_single(ii,ev_pair,t0ic);//ii in ic
-      cond0ic=cond0ic||derive_from_single(cc,ev_pair,t0ic);//cc in ic
-      cond0cc=cond0cc||derive_from_single(ci,ev_pair,t0cc);//ci in cc
+      cond_ii=cond_ii||derive_from_single(ci,ev_pair,t_ii);//ci in ii
+      cond_ic=cond_ic||derive_from_single(ii,ev_pair,t_ic);//ii in ic
+      cond_ic=cond_ic||derive_from_single(cc,ev_pair,t_ic);//cc in ic
+      cond_cc=cond_cc||derive_from_single(ci,ev_pair,t_cc);//ci in cc
 
       //derive new pairs by joining existing pairs
-      for(hb_enc::se_ptr eb:e1->prev_events) {
+      hb_enc::se_set visited,pending=e1->prev_events;
+      for(hb_enc::se_ptr eb:pending) {
         if(ev_set1.find(eb)!=ev_set1.end()&&ev_set2.find(eb)!=ev_set2.end()) {
         	//(ic;ci) in ii
-        	cond0ii=cond0ii||(combine_two(ic,ci,e1,e2,eb,t0ii));
+        	cond_ii=cond_ii||(combine_two(ic,ci,e1,e2,eb,t_ii));
         	//(ii;ii) in ii
-          cond0ii=cond0ii||(combine_two(ii,ii,e1,e2,eb,t0ii));
+          cond_ii=cond_ii||(combine_two(ii,ii,e1,e2,eb,t_ii));
           //(ic;cc) in ic
-          cond0ic=cond0ic||(combine_two(ic,cc,e1,e2,eb,t0ic));
+          cond_ic=cond_ic||(combine_two(ic,cc,e1,e2,eb,t_ic));
           //(ii,ic) in ic
-          cond0ic=cond0ic||(combine_two(ii,ic,e1,e2,eb,t0ic));
+          cond_ic=cond_ic||(combine_two(ii,ic,e1,e2,eb,t_ic));
           //(ci;ii) in ci
-          cond0ci=cond0ci||(combine_two(ci,ii,e1,e2,eb,t0ci));
+          cond_ci=cond_ci||(combine_two(ci,ii,e1,e2,eb,t_ci));
           //(cc;ci) in ci
-          cond0ci=cond0ci||(combine_two(cc,ci,e1,e2,eb,t0ci));
+          cond_ci=cond_ci||(combine_two(cc,ci,e1,e2,eb,t_ci));
           //(ci;ic) in cc
-          cond0cc=cond0cc||(combine_two(ci,ic,e1,e2,eb,t0cc));
+          cond_cc=cond_cc||(combine_two(ci,ic,e1,e2,eb,t_cc));
           //(cc;cc) in cc
-          cond0cc=cond0cc||(combine_two(cc,cc,e1,e2,eb,t0cc));
+          cond_cc=cond_cc||(combine_two(cc,cc,e1,e2,eb,t_cc));
         }
+      }
+      //put into fixpoint expression
+      fixpoint=fixpoint&&(implies(b_ii,cond_ii)&&implies(cond_ii,b_ii))&&
+												 (implies(b_ic,cond_ic)&&implies(cond_ic,b_ic))&&
+												 (implies(b_ci,cond_ci)&&implies(cond_ci,b_ci))&&
+												 (implies(b_cc,cond_cc)&&implies(cond_cc,b_cc));
+      //ppo = RR(ii)|RW(ic)
+      if(e1->is_rd()) {
+      	if(e2->is_rd()) {
+      		z3::expr rr_ii=z3.c.bool_const(("ppo_"+e1->name()+"_"+e2->name()).c_str());
+      		ppo_expr=ppo_expr&&(implies(b_ii,rr_ii)&&implies(rr_ii,b_ii));
+      	}
+      	else {
+      		z3::expr rw_ic=z3.c.bool_const(("ppo_"+e1->name()+"_"+e2->name()).c_str());
+      		ppo_expr=ppo_expr&&(implies(b_ii,rw_ic)&&implies(rw_ic,b_ii));
+      	}
       }
     }
   }
