@@ -203,22 +203,22 @@ z3::expr wmm_event_cons::derive_from_single(rec_rel& r,
 	return (t>=t_r)&&b_r;
 }
 
-z3::expr wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2,
-																		 hb_enc::se_ptr& e1, hb_enc::se_ptr& e2,
-																		 hb_enc::se_ptr& eb, z3::expr& t) {
-	event_pair ev_pair(e1,e2);
-	assert(r1.find(std::make_pair(e1,eb))!=r1.end()&&
-	       r2.find(std::make_pair(eb,e2))!=r2.end());
+void wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2, hb_enc::se_ptr& e1,
+																 hb_enc::se_ptr& e2, hb_enc::se_ptr& eb,
+																 z3::expr& t, z3::expr& cond) {
+	if(r1.find(std::make_pair(e1,eb))!=r1.end()&&
+	   r2.find(std::make_pair(eb,e2))!=r2.end()) {
+		event_pair ev_pair(e1,e2);
+		z3::expr t_r1=std::get<0>(r1.find(ev_pair)->second),
+			b_r1=std::get<1>(r1.find(ev_pair)->second),
+			cond_r1=std::get<2>(r1.find(ev_pair)->second);
 
-	z3::expr t_r1=std::get<0>(r1.find(ev_pair)->second),
-	  b_r1=std::get<1>(r1.find(ev_pair)->second),
-	  cond_r1=std::get<2>(r1.find(ev_pair)->second);
-
-	z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
-	  b_r2=std::get<1>(r2.find(ev_pair)->second),
-	  cond_r2=std::get<2>(r2.find(ev_pair)->second);
-	//return condition for (r1;r2)
-	return ((t>=t_r1)&&(t>=t_r2)&&b_r1&&b_r2);
+		z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
+			b_r2=std::get<1>(r2.find(ev_pair)->second),
+			cond_r2=std::get<2>(r2.find(ev_pair)->second);
+		//return condition for (r1;r2)
+		cond=cond||((t>=t_r1)&&(t>=t_r2)&&b_r1&&b_r2);
+	}
 }
 
 void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
@@ -277,24 +277,29 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
 
       //derive new pairs by joining existing pairs
       hb_enc::se_set visited,pending=e1->prev_events;
-      for(hb_enc::se_ptr eb:pending) {
-        if(ev_set1.find(eb)!=ev_set1.end()&&ev_set2.find(eb)!=ev_set2.end()) {
-        	//(ic;ci) in ii
-        	cond_ii=cond_ii||(combine_two(ic,ci,e1,e2,eb,t_ii));
-        	//(ii;ii) in ii
-          cond_ii=cond_ii||(combine_two(ii,ii,e1,e2,eb,t_ii));
-          //(ic;cc) in ic
-          cond_ic=cond_ic||(combine_two(ic,cc,e1,e2,eb,t_ic));
-          //(ii,ic) in ic
-          cond_ic=cond_ic||(combine_two(ii,ic,e1,e2,eb,t_ic));
-          //(ci;ii) in ci
-          cond_ci=cond_ci||(combine_two(ci,ii,e1,e2,eb,t_ci));
-          //(cc;ci) in ci
-          cond_ci=cond_ci||(combine_two(cc,ci,e1,e2,eb,t_ci));
-          //(ci;ic) in cc
-          cond_cc=cond_cc||(combine_two(ci,ic,e1,e2,eb,t_cc));
-          //(cc;cc) in cc
-          cond_cc=cond_cc||(combine_two(cc,cc,e1,e2,eb,t_cc));
+      while(!pending.empty()) {
+      	hb_enc::se_ptr eb=*pending.begin();
+      	pending.erase(eb);
+      	visited.insert(eb);
+      	if((e1->get_topological_order()>=eb->get_topological_order())) continue;
+        //(ic;ci) in ii
+      	combine_two(ic,ci,e1,e2,eb,t_ii,cond_ii);
+        //(ii;ii) in ii
+        combine_two(ii,ii,e1,e2,eb,t_ii,cond_ii);
+        //(ic;cc) in ic
+        combine_two(ic,cc,e1,e2,eb,t_ic,cond_ic);
+        //(ii,ic) in ic
+        combine_two(ii,ic,e1,e2,eb,t_ic,cond_ic);
+        //(ci;ii) in ci
+        combine_two(ci,ii,e1,e2,eb,t_ci,cond_ci);
+        //(cc;ci) in ci
+        combine_two(cc,ci,e1,e2,eb,t_ci,cond_ci);
+        //(ci;ic) in cc
+        combine_two(ci,ic,e1,e2,eb,t_cc,cond_cc);
+        //(cc;cc) in cc
+        combine_two(cc,cc,e1,e2,eb,t_cc,cond_cc);
+        for(auto& ebb:eb->prev_events) {
+           if(visited.find(ebb)==visited.end()) pending.insert(ebb);
         }
       }
       //put into fixpoint expression

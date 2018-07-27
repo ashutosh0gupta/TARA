@@ -150,8 +150,9 @@ namespace cssa {
 													hb_enc::se_set& ev_set1,
 													hb_enc::se_set& ev_set2);
     z3::expr derive_from_single(rec_rel& r, event_pair& ev_pair, z3::expr& t);
-    z3::expr combine_two(rec_rel& r1, rec_rel& r2, hb_enc::se_ptr& e1,
-    		             hb_enc::se_ptr& e2, hb_enc::se_ptr& eb, z3::expr& t);
+    void combine_two(rec_rel& r1, rec_rel& r2, hb_enc::se_ptr& e1,
+    								 hb_enc::se_ptr& e2, hb_enc::se_ptr& eb,
+    		             z3::expr& t, z3::expr& cond);
 
     //------------------------------------------------------------------------
 
