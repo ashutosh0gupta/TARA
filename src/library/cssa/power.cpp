@@ -97,7 +97,8 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
            is_po_new(std::get<1>(fr_pair),e2)) {
           //add to ii0
           event_pair ev_pair(std::get<1>(fr_pair),e2);
-          ii0.insert(std::make_pair(ev_pair,(std::get<0>(fr_pair))));
+          ii0.insert(std::make_pair(ev_pair,(std::get<0>(fr_pair)&&
+          																	 std::get<0>(rf_pair))));
           ev_set1.insert(std::get<1>(fr_pair));
           ev_set2.insert(e2);
         }
@@ -108,7 +109,7 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
     for(auto dep:e->data_dependency) {
       //add to ii0
       event_pair ev_pair(dep.e,e);
-      ii0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      ii0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
@@ -127,9 +128,13 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,
   for(auto rf_pair:rf_rel) {
     hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
     if(e1->tid!=e2->tid&&e2->tid==thread.start_event->tid) {
-      for(auto ep:e2->prev_events) {
-        if(0) {//ww coherence
-        }
+      for(auto coe_pair:coe_rel) {
+      	hb_enc::se_ptr e3=std::get<1>(coe_pair)->tid;
+      	if(std::get<2>(coe_pair)==e2&&e3==e2->tid&&is_po_new(e3,e2)) {
+      		event_pair ev_pair(e3,e2);
+      		ci0.insert(std::make_pair(ev_pair,(std::get<0>(coe_pair)&&
+      																			 std::get<0>(rf_pair))));
+      	}
       }
     }
   }
@@ -142,7 +147,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
     for(auto dep:e->data_dependency) {//data
       //add to cc0
       event_pair ev_pair(dep.e,e);
-      cc0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
@@ -154,7 +159,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
       else var2=e->wr_v();
       if(var1==var2) {//add to cc0
         event_pair ev_pair(ep,e);
-        cc0.insert(std::make_pair(ev_pair,e->guard&&ep->guard));
+        cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
         ev_set1.insert(ep);
         ev_set2.insert(e);
       }
@@ -162,7 +167,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
     for(auto dep:e->ctrl_dependency) {//ctrl
       //add to cc0
       event_pair ev_pair(dep.e,e);
-      cc0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }

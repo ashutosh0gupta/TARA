@@ -118,11 +118,11 @@ namespace cssa {
 
     // -----------------------------------------------------------------------
     //power data structures and variables
-    typedef std::set<std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr>> relation;
+    typedef std::unordered_set<std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr>> relation;
     typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
     //rec_rel:=map<<event1,event2>,<time,bit,guard>>
     typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;
-    relation rf_rel,fr_rel,co_rel;
+    relation rf_rel,fr_rel,coe_rel;
     std::map<event_pair,z3::expr> ii0,ci0,cc0;
     z3::expr fixpoint=z3.mk_true(),ppo_expr=z3.mk_true();
     //std::unordered_set<z3::expr> ppo_bvars;
@@ -165,6 +165,7 @@ namespace cssa {
     z3::expr fr   = z3.mk_true();
     z3::expr ws   = z3.mk_true();
     z3::expr thin = z3.mk_true();
+    z3::expr co   = z3.mk_true();
 
     //c11 support
     z3::expr rel_seq = z3.mk_true();

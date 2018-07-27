@@ -314,8 +314,6 @@ void wmm_event_cons::ses() {
       wf = wf && implies( rd->guard, some_rfs );
     }
 
-    // write serialization
-    // todo: what about ws;rf
     auto it1 = wrs.begin();
     for( ; it1 != wrs.end() ; it1++ ) {
       const hb_enc::se_ptr& wr1 = *it1;
@@ -323,16 +321,28 @@ void wmm_event_cons::ses() {
       it2++;
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
+        // write serialization
+        // todo: what about ws;rf
         if( wr1->tid != wr2->tid && // Why this condition?
             !wr1->is_pre() && !wr2->is_pre() // no initializations
             ) {
           ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
                        hb_encoding.mk_ghbs( wr2, wr1 ) );
         }
-        //Coherence order co
-
+        //Coherence order or
+        if(wr1->wr_v()==wr2->wr_v()) {
+        	if(is_po_new(wr1,wr2)) {//acyclic (po o co) in SC per loc
+        		co=co&&hb_encoding.mk_ghbs(wr1,wr2);
+        	}
+        	else {
+        		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str())
+        		coe_rel.insert(co_var,wr1,wr2);
+        		co=co&&implies(co_var,hb_encoding.mk_ghbs(wr1,wr2));
+        	}
+        }
       }
     }
+
     if( is_no_thin_mm() ) {
       // dependency
       for( const hb_enc::se_ptr& wr : wrs ) {
