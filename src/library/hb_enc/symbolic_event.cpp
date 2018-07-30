@@ -382,6 +382,11 @@ void symbolic_event::set_ctrl_dependency( const hb_enc::depends_set& deps ) {
   ctrl_dependency.insert( deps.begin(), deps.end() );
 }
 
+void symbolic_event::set_ctrl_isync_dep( const hb_enc::depends_set& deps ) {
+  ctrl_isync_dependency.clear();
+  ctrl_isync_dependency.insert( deps.begin(), deps.end() );
+}
+
 void symbolic_event::set_addr_dependency( const hb_enc::depends_set& deps ) {
   addr_dependency.clear();
   addr_dependency.insert( deps.begin(), deps.end() );

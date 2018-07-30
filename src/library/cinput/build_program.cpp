@@ -196,9 +196,16 @@ hb_enc::depends_set build_program::get_ctrl( const bb* b ) {
     return local_ctrl.at(b);
   }
 }
-
-
-
+///////////////////////////////////////////////////////////////////////////////////////////sarbojit////
+hb_enc::depends_set build_program::get_ctrl_isync(const bb* b) {
+	if(b->empty()) {
+		hb_enc::depends_set ctrl_isync;
+		return ctrl_isync;
+	}else {
+		return local_ctrl_isync.at(b);
+	}
+}
+///////////////////////////////////////////////////////////////////////////////////////////sarbojit////
 z3::expr build_program::get_term( helpers::z3interf& z3_,
                                   const llvm::Value* op, ValueExprMap& vmap ) {
   if( const llvm::ConstantInt* c = llvm::dyn_cast<llvm::ConstantInt>(op) ) {
@@ -423,6 +430,7 @@ translateBlock( unsigned thr_id,
         const auto& data_dep_set = get_depends( store->getOperand(0) );
 	wr->set_data_dependency( data_dep_set );
 	wr->set_ctrl_dependency( get_ctrl(b) );
+	wr->set_ctrl_isync_dep(get_ctrl_isync(b));
 	block_ssa = block_ssa && ( wr->wr_v() == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -482,6 +490,7 @@ translateBlock( unsigned thr_id,
                                translate_ordering_tags( load->getOrdering()) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
+          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->rd_v() == l_v);
         }else{
@@ -764,6 +773,7 @@ translateBlock( unsigned thr_id,
                                get_rd_ordering_tags( rmw->getOrdering()) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
+          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           prev_events = { rd };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
@@ -776,7 +786,7 @@ translateBlock( unsigned thr_id,
           }else{
             hb_enc::depends_set d_dep_set;
             join_depends( rmw->getValOperand(), I, d_dep_set );
-            wr->set_dependencies( d_dep_set, get_ctrl(b));
+            wr->set_dependencies( d_dep_set, get_ctrl(b));/////////////////////////////to do something or nothing
           }
           prev_events = { wr };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
@@ -790,7 +800,7 @@ translateBlock( unsigned thr_id,
                                history, gv, loc, hb_enc::event_t::u,
                                translate_ordering_tags( rmw->getOrdering()) );
           local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
-          up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));
+          up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));/////////////////////to do something or nothing
           prev_events = { up };
           p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
           rd_g = up->rd_v();
@@ -839,6 +849,7 @@ translateBlock( unsigned thr_id,
         if( !xchg->isWeak() ) // weak exchange allows fake fail
           fail_rd->append_history( fail_v != cmp_v );
         fail_rd->set_ctrl_dependency( get_ctrl(b) );
+        fail_rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
         local_map[I].insert( hb_enc::depends( fail_rd, fail_v != cmp_v ) );
 
         // exchange success event
@@ -853,6 +864,7 @@ translateBlock( unsigned thr_id,
           rd->append_history( succ_rd_v == cmp_v );
           local_map[I].insert( hb_enc::depends( rd, succ_rd_v == cmp_v ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
+          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           prev_events = { rd };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 

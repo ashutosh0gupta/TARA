@@ -135,6 +135,7 @@ namespace cinput {
     //hb_enc::depends_set ctrl_dep_ses;
     build_program::local_data_dependency local_map;
     build_program::local_ctrl_dependency local_ctrl;
+    build_program::local_ctrl_dependency local_ctrl_isync;
     std::map< const bb*, std::map< tara::variable, hb_enc::depends_set > >
     local_release_heads;
     //-----------------------------------
@@ -174,6 +175,7 @@ namespace cinput {
                        hb_enc::depends_set& result );
 
    hb_enc::depends_set get_ctrl( const bb* b);
+   hb_enc::depends_set get_ctrl_isync(const bb* b);
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,

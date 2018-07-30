@@ -204,6 +204,7 @@ struct source_loc{
     std::vector<z3::expr> history;
     depends_set data_dependency;
     depends_set ctrl_dependency;
+    depends_set ctrl_isync_dependency;
     depends_set addr_dependency; //todo: unsupported for now
 
     //in case of loop unrolling. Multiple events have same position name
@@ -339,6 +340,7 @@ struct source_loc{
 
     void set_data_dependency( const hb_enc::depends_set& deps );
     void set_ctrl_dependency( const hb_enc::depends_set& deps );
+    void set_ctrl_isnc_dep( const hb_enc::depends_set& deps );
     void set_addr_dependency( const hb_enc::depends_set& deps );
     void set_dependencies( const hb_enc::depends_set& data,
                            const hb_enc::depends_set& ctrl );
