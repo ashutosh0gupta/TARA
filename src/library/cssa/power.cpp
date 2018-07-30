@@ -97,7 +97,8 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
            is_po_new(std::get<1>(fr_pair),e2)) {
           //add to ii0
           event_pair ev_pair(std::get<1>(fr_pair),e2);
-          ii0.insert(std::make_pair(ev_pair,(std::get<0>(fr_pair))));
+          ii0.insert(std::make_pair(ev_pair,(std::get<0>(fr_pair)&&
+          																	 std::get<0>(rf_pair))));
           ev_set1.insert(std::get<1>(fr_pair));
           ev_set2.insert(e2);
         }
@@ -108,7 +109,7 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
     for(auto dep:e->data_dependency) {
       //add to ii0
       event_pair ev_pair(dep.e,e);
-      ii0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      ii0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
@@ -127,9 +128,13 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,
   for(auto rf_pair:rf_rel) {
     hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
     if(e1->tid!=e2->tid&&e2->tid==thread.start_event->tid) {
-      for(auto ep:e2->prev_events) {
-        if(0) {//ww coherence
-        }
+      for(auto coe_pair:coe_rel) {
+      	hb_enc::se_ptr e3=std::get<1>(coe_pair);
+      	if(std::get<2>(coe_pair)==e2&&e3->tid==e2->tid&&is_po_new(e3,e2)) {
+      		event_pair ev_pair(e3,e2);
+      		ci0.insert(std::make_pair(ev_pair,(std::get<0>(coe_pair)&&
+      																			 std::get<0>(rf_pair))));
+      	}
       }
     }
   }
@@ -142,7 +147,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
     for(auto dep:e->data_dependency) {//data
       //add to cc0
       event_pair ev_pair(dep.e,e);
-      cc0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
@@ -154,7 +159,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
       else var2=e->wr_v();
       if(var1==var2) {//add to cc0
         event_pair ev_pair(ep,e);
-        cc0.insert(std::make_pair(ev_pair,e->guard&&ep->guard));
+        cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
         ev_set1.insert(ep);
         ev_set2.insert(e);
       }
@@ -162,15 +167,15 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
     for(auto dep:e->ctrl_dependency) {//ctrl
       //add to cc0
       event_pair ev_pair(dep.e,e);
-      cc0.insert(std::make_pair(ev_pair,e->guard&&dep.e->guard));
+      cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
   }
 }
 
-/*void wmm_event_cons::initialize(rec_rel& r, hb_enc::se_ptr& e1,
-								hb_enc::se_ptr& e2,std::string r_name){
+void wmm_event_cons::initialize(rec_rel& r, hb_enc::se_ptr& e1,
+																hb_enc::se_ptr& e2,std::string r_name){
 	z3::expr t=z3.c.int_const(("t_"+r_name+"_"+e1->name()+"_"+e2->name()).c_str());
 	z3::expr bit=z3.c.bool_const((r_name+e1->name()+e2->name()).c_str());
 	z3::expr cond=z3.mk_false();
@@ -203,25 +208,27 @@ z3::expr wmm_event_cons::derive_from_single(rec_rel& r,
 	return (t>=t_r)&&b_r;
 }
 
-z3::expr wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2,
-																		 hb_enc::se_ptr& e1, hb_enc::se_ptr& e2,
-																		 hb_enc::se_ptr& eb, z3::expr& t) {
-	event_pair ev_pair(e1,e2);
+void wmm_event_cons::combine_two(rec_rel& r1, rec_rel& r2, hb_enc::se_ptr& e1,
+																 hb_enc::se_ptr& e2, hb_enc::se_ptr& eb,
+																 z3::expr& t, z3::expr& cond) {
+	if(r1.find(std::make_pair(e1,eb))!=r1.end()&&
+	   r2.find(std::make_pair(eb,e2))!=r2.end()) {
+		event_pair ev_pair(e1,e2);
+		z3::expr t_r1=std::get<0>(r1.find(ev_pair)->second),
+			b_r1=std::get<1>(r1.find(ev_pair)->second),
+			cond_r1=std::get<2>(r1.find(ev_pair)->second);
 
-	z3::expr t_r1=std::get<0>(r1.find(ev_pair)->second),
-	  b_r1=std::get<1>(r1.find(ev_pair)->second),
-	  cond_r1=std::get<2>(r1.find(ev_pair)->second);
-
-	z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
-	  b_r2=std::get<1>(r2.find(ev_pair)->second),
-	  cond_r2=std::get<2>(r2.find(ev_pair)->second);
-	//return condition for (r1;r2)
-	return ((t>=t_r1)&&(t>=t_r2)&&b_r1&&b_r2);
+		z3::expr t_r2=std::get<0>(r2.find(ev_pair)->second),
+			b_r2=std::get<1>(r2.find(ev_pair)->second),
+			cond_r2=std::get<2>(r2.find(ev_pair)->second);
+		//return condition for (r1;r2)
+		cond=cond||((t>=t_r1)&&(t>=t_r2)&&b_r1&&b_r2);
+	}
 }
 
 void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
-                                               hb_enc::se_set& ev_set1,
-																							 hb_enc::se_set& ev_set2) {
+                                        hb_enc::se_set& ev_set1,
+																				hb_enc::se_set& ev_set2) {
   // let rec ii = ii0 | ci      | (ic;ci) | (ii;ii)
   // and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
   // and     ci = ci0           | (ci;ii) | (cc;ci)
@@ -275,25 +282,29 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
 
       //derive new pairs by joining existing pairs
       hb_enc::se_set visited,pending=e1->prev_events;
-      fwhile(!pending.is_empty()) {
-      	eb=pending.
-        if(r1.find(std::make_pair(e1,eb))!=r1.end()&&r2.find(std::make_pair(eb,e2))!=r2.end()) {
-        	//(ic;ci) in ii
-        	cond_ii=cond_ii||(combine_two(ic,ci,e1,e2,eb,t_ii));
-        	//(ii;ii) in ii
-          cond_ii=cond_ii||(combine_two(ii,ii,e1,e2,eb,t_ii));
-          //(ic;cc) in ic
-          cond_ic=cond_ic||(combine_two(ic,cc,e1,e2,eb,t_ic));
-          //(ii,ic) in ic
-          cond_ic=cond_ic||(combine_two(ii,ic,e1,e2,eb,t_ic));
-          //(ci;ii) in ci
-          cond_ci=cond_ci||(combine_two(ci,ii,e1,e2,eb,t_ci));
-          //(cc;ci) in ci
-          cond_ci=cond_ci||(combine_two(cc,ci,e1,e2,eb,t_ci));
-          //(ci;ic) in cc
-          cond_cc=cond_cc||(combine_two(ci,ic,e1,e2,eb,t_cc));
-          //(cc;cc) in cc
-          cond_cc=cond_cc||(combine_two(cc,cc,e1,e2,eb,t_cc));
+      while(!pending.empty()) {
+      	hb_enc::se_ptr eb=*pending.begin();
+      	pending.erase(eb);
+      	visited.insert(eb);
+      	if((e1->get_topological_order()>=eb->get_topological_order())) continue;
+        //(ic;ci) in ii
+      	combine_two(ic,ci,e1,e2,eb,t_ii,cond_ii);
+        //(ii;ii) in ii
+        combine_two(ii,ii,e1,e2,eb,t_ii,cond_ii);
+        //(ic;cc) in ic
+        combine_two(ic,cc,e1,e2,eb,t_ic,cond_ic);
+        //(ii,ic) in ic
+        combine_two(ii,ic,e1,e2,eb,t_ic,cond_ic);
+        //(ci;ii) in ci
+        combine_two(ci,ii,e1,e2,eb,t_ci,cond_ci);
+        //(cc;ci) in ci
+        combine_two(cc,ci,e1,e2,eb,t_ci,cond_ci);
+        //(ci;ic) in cc
+        combine_two(ci,ic,e1,e2,eb,t_cc,cond_cc);
+        //(cc;cc) in cc
+        combine_two(cc,cc,e1,e2,eb,t_cc,cond_cc);
+        for(auto& ebb:eb->prev_events) {
+           if(visited.find(ebb)==visited.end()) pending.insert(ebb);
         }
       }
       //put into fixpoint expression
@@ -314,4 +325,4 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       }
     }
   }
-}*/
+}
