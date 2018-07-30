@@ -335,8 +335,8 @@ void wmm_event_cons::ses() {
         		co=co&&hb_encoding.mk_ghbs(wr1,wr2);
         	}
         	else {
-        		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str())
-        		coe_rel.insert(co_var,wr1,wr2);
+        		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
+        		coe_rel.insert(std::make_tuple(co_var,wr1,wr2));
         		co=co&&implies(co_var,hb_encoding.mk_ghbs(wr1,wr2));
         	}
         }

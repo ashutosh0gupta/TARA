@@ -175,7 +175,7 @@ namespace cinput {
                        hb_enc::depends_set& result );
 
    hb_enc::depends_set get_ctrl( const bb* b);
-   hb_enc::depends_set get_ctrl_isync(const bb* b);
+   hb_enc::depends_set get_ctrl_isync( const bb* b);
    z3::expr getPhiMap ( const llvm::Value* op, ValueExprMap& m );
   public:
     build_program( helpers::z3interf& z3_,

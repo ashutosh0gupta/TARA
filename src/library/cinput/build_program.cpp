@@ -773,7 +773,6 @@ translateBlock( unsigned thr_id,
                                get_rd_ordering_tags( rmw->getOrdering()) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
-          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           prev_events = { rd };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
@@ -786,7 +785,7 @@ translateBlock( unsigned thr_id,
           }else{
             hb_enc::depends_set d_dep_set;
             join_depends( rmw->getValOperand(), I, d_dep_set );
-            wr->set_dependencies( d_dep_set, get_ctrl(b));/////////////////////////////to do something or nothing
+            wr->set_dependencies( d_dep_set, get_ctrl(b));
           }
           prev_events = { wr };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
@@ -801,6 +800,7 @@ translateBlock( unsigned thr_id,
                                translate_ordering_tags( rmw->getOrdering()) );
           local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
           up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));/////////////////////to do something or nothing
+          up->set_ctrl_isync_dep(get_ctrl_isync(b));
           prev_events = { up };
           p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
           rd_g = up->rd_v();
@@ -884,11 +884,13 @@ translateBlock( unsigned thr_id,
         }
         wr->append_history( succ_rd_v == cmp_v );
         auto new_val_depends = get_depends(xchg->getNewValOperand());
-        hb_enc::depends_set ctrl_dep;
+        hb_enc::depends_set ctrl_dep,ctrl_isync_dep;
         // data dependency of the past value should become control dependency
         //
         hb_enc::join_depends_set( get_ctrl(b), local_map[I], ctrl_dep);
+        hb_enc::join_depends_set( get_ctrl_isync(b), local_map[I], ctrl_isync_dep);
         wr->set_dependencies( new_val_depends, ctrl_dep);
+        wr->set_ctrl_isync_dep(ctrl_isync_dep);
         prev_events = { wr };
         p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
