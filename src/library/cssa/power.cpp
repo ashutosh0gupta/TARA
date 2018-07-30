@@ -65,7 +65,7 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   // and     ci = ci0           | (ci;ii) | (cc;ci)
   // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
   // let ppo = RR(ii)|RW(ic)
-  std::set<hb_enc::se_ptr> ev_set1,ev_set2;
+  hb_enc::se_set ev_set1,ev_set2;
   get_power_ii0(thread,ev_set1,ev_set2);
   get_power_ci0(thread,ev_set1,ev_set2);
   get_power_cc0(thread,ev_set1,ev_set2);
