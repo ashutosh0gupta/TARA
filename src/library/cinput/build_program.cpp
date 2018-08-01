@@ -888,9 +888,9 @@ translateBlock( unsigned thr_id,
         // data dependency of the past value should become control dependency
         //
         hb_enc::join_depends_set( get_ctrl(b), local_map[I], ctrl_dep);
-        hb_enc::join_depends_set( get_ctrl_isync(b), local_map[I], ctrl_isync_dep);
+        //hb_enc::join_depends_set( get_ctrl_isync(b), local_map[I], ctrl_isync_dep);
         wr->set_dependencies( new_val_depends, ctrl_dep);
-        wr->set_ctrl_isync_dep(ctrl_isync_dep);
+        //wr->set_ctrl_isync_dep(ctrl_isync_dep);
         prev_events = { wr };
         p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
@@ -1007,6 +1007,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
   // for( auto it = f.begin(), end = f.end(); it != end; it++ ) {
   //   const bb* src = &(*it);
     std::map<const bb*,hb_enc::depends_set> ctrl_ses;
+    hb_enc::depends_set ctrl_isync_ses;
     std::map< const tara::variable,
               std::map<const bb*,hb_enc::depends_set> > last_rls_ses;
     if( o.print_input > 0 ) {
@@ -1084,6 +1085,9 @@ bool build_program::runOnFunction( llvm::Function &f ) {
         for( const auto& v : p->globals )
           last_rls_ses[v][ prev ] = local_release_heads[prev][v];
       }
+      //////////////////////////////////////////
+      join_depends_set(get_ctrl_isync(prev),get_ctrl_isync(prev),ctrl_isync_ses);
+      //////////////////////////////////////////
     }
     if( src == &(f.getEntryBlock()) ) {
       // initialize the first block
@@ -1106,8 +1110,25 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     // if( o.mm == mm_t::rmo || o.mm == mm_t::arm8_2 )
     if( mm_needs_ctrl_dependency( o.mm ) )
       join_depends_set( ctrl_ses, conds, local_ctrl[src] );
+    //////////////////////////////////////////////
+    if(p->is_mm_power())
+    {
+    	if(auto call = llvm::dyn_cast<llvm::CallInst>(&(src->front()))) {
+    		if(call->getCalledFunction()->getName()=="_Z11power_isyncv"){
+    			join_depends_set(ctrl_isync_ses,local_ctrl[src],local_ctrl_isync[src]);
+    		}else {
+    		  local_ctrl_isync[src]=ctrl_isync_ses;
+    		}
+    	}
 
-    // caclulating last release heads
+    	else {
+    		local_ctrl_isync[src]=ctrl_isync_ses;
+    	}
+
+    }
+    //////////////////////////////////////////////
+
+    // calculating last release heads
      if( o.mm == mm_t::c11 ) {
        for( const auto& v : p->globals )
          join_depends_set( last_rls_ses[v], conds, local_release_heads[src][v]);

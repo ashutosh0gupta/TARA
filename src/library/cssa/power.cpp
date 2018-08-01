@@ -121,8 +121,8 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,
 {
   // let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
   for(auto e:thread.events) {
-    for(auto dep:e->ctrl_dependency) {
-      //ci0.insert(std::make_tuple(z3.c.int_val(0),z3.mk_true(),dep.e,e));
+    for(auto dep:e->ctrl_isync_dep) {
+    	ci0.insert(std::make_pair(event_pair(dep.e,e),z3.mk_true()));
     }
   }
   for(auto rf_pair:rf_rel) {

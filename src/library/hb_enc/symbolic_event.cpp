@@ -383,8 +383,8 @@ void symbolic_event::set_ctrl_dependency( const hb_enc::depends_set& deps ) {
 }
 
 void symbolic_event::set_ctrl_isync_dep( const hb_enc::depends_set& deps ) {
-  ctrl_dependency.clear();
-  ctrl_dependency.insert( deps.begin(), deps.end() );
+  ctrl_isync_dep.clear();
+  ctrl_isync_dep.insert( deps.begin(), deps.end() );
 }
 
 void symbolic_event::set_addr_dependency( const hb_enc::depends_set& deps ) {
