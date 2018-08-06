@@ -75,7 +75,7 @@ bool wmm_event_cons::in_grf( const hb_enc::se_ptr& wr,
 }
 
 bool wmm_event_cons::is_no_thin_mm() const {
-  if( p.is_mm_sc() || p.is_mm_arm8_2() ) {
+  if( p.is_mm_sc() || p.is_mm_arm8_2() || p.is_mm_power() ) {
     return false;
   }else if(    p.is_mm_tso() // todo: tso/pso do not need thin air
             || p.is_mm_pso()
@@ -112,7 +112,7 @@ bool wmm_event_cons::is_rd_rd_coherence_preserved() {
       || p.is_mm_arm8_2()
       ) {
     return true;
-  }else if( p.is_mm_rmo() ){
+  }else if( p.is_mm_rmo() || p.is_mm_power() ){
     return false;
   }else{
     p.unsupported_mm();
@@ -155,7 +155,8 @@ bool wmm_event_cons::anti_po_read( const hb_enc::se_ptr& wr,
       || p.is_mm_rmo()
       || p.is_mm_alpha()
       || p.is_mm_c11()
-      || p.is_mm_arm8_2() ) {
+      || p.is_mm_arm8_2()
+			|| p.is_mm_power()) {
     // should come here for those memory models where rd-wr on
     // same variables are in ppo
     if( is_po_new( rd, wr ) ) {
@@ -182,6 +183,7 @@ bool wmm_event_cons::anti_po_loc_fr( const hb_enc::se_ptr& rd,
       || p.is_mm_rmo()
       || p.is_mm_alpha()
       || p.is_mm_arm8_2()
+			|| p.is_mm_power()
       ) {
     if( wr->is_update() && rd == wr ) return false;
     if( is_po_new( wr, rd ) ) {
@@ -214,7 +216,8 @@ bool wmm_event_cons::is_rd_wr_coherence_needed() {
       || p.is_mm_tso()
       || p.is_mm_pso()
       || p.is_mm_rmo()
-      || p.is_mm_alpha() ) {
+      || p.is_mm_alpha()
+			|| p.is_mm_power() ) {
     return false;
   } if( p.is_mm_arm8_2() ) {
     return true;
@@ -234,7 +237,7 @@ void wmm_event_cons::ses() {
   // - ws  write serialization
 
 // we assume wr-wr coherence (po o ws) is not needed
-  assert(!is_wr_wr_coherence_needed());// check against new mm
+  assert( p.is_mm_power() || !is_wr_wr_coherence_needed());// check against new mm
 
   //todo: disable the following code if rd rd coherence not preserved
   //todo: remove the following. seq_before also calculates the following info
@@ -267,7 +270,8 @@ void wmm_event_cons::ses() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
-        rf_rel.insert(std::make_tuple(b,wr,rd));
+        if(p.is_mm_power())
+        	rf_rel.push_back(std::make_tuple(b,wr,rd));
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
         if( is_no_thin_mm() ) {
@@ -305,7 +309,8 @@ void wmm_event_cons::ses() {
                 // rmw & (fr o mo) empty
                 new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );
               }
-              fr_rel.insert(std::make_tuple(cond,rd,after_wr));
+              if(p.is_mm_power())
+              	fr_rel.push_back(std::make_tuple(cond,rd,after_wr));
               fr = fr && implies( cond , new_fr );
             }
           }
@@ -329,14 +334,14 @@ void wmm_event_cons::ses() {
           ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
                        hb_encoding.mk_ghbs( wr2, wr1 ) );
         }
-        //Coherence order or
-        if(wr1->wr_v()==wr2->wr_v()) {
+        //Coherence order
+        if(p.is_mm_power() && wr1->wr_v()==wr2->wr_v()) {
         	if(is_po_new(wr1,wr2)) {//acyclic (po o co) in SC per loc
         		co=co&&hb_encoding.mk_ghbs(wr1,wr2);
         	}
         	else {
         		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
-        		coe_rel.insert(std::make_tuple(co_var,wr1,wr2));
+        		coe_rel.push_back(std::make_tuple(co_var,wr1,wr2));
         		co=co&&implies(co_var,hb_encoding.mk_ghbs(wr1,wr2));
         	}
         }
@@ -775,13 +780,13 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
 void wmm_event_cons::run() {
   update_orderings();
 
-  ppo(); // build hb formulas to encode the preserved program order
   if( p.is_mm_c11() ) {
     ses_c11();
   }else{
     distinct_events();
     ses();
   }
+  ppo(); // build hb formulas to encode the preserved program order
 
   if ( o.print_phi ) {
     o.out() << "(" << endl
@@ -794,6 +799,9 @@ void wmm_event_cons::run() {
             << "thin   : \n" << thin         << endl
             << "phi_prp: \n" << p.phi_prp    << endl
             << ")" << endl;
+    if(p.is_mm_power())
+    	o.out()<< "ppo : \n" << ppo_expr << endl
+						 << "     &&" << fixpoint;
   }
 
   p.phi_po  = po && dist;

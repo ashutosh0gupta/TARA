@@ -430,7 +430,8 @@ translateBlock( unsigned thr_id,
         const auto& data_dep_set = get_depends( store->getOperand(0) );
 	wr->set_data_dependency( data_dep_set );
 	wr->set_ctrl_dependency( get_ctrl(b) );
-	wr->set_ctrl_isync_dep(get_ctrl_isync(b));
+	if(p->is_mm_power())
+		wr->set_ctrl_isync_dep(get_ctrl_isync(b));
 	block_ssa = block_ssa && ( wr->wr_v() == val );
       }else{
         if( !llvm::isa<llvm::PointerType>( addr->getType() ) )
@@ -490,7 +491,8 @@ translateBlock( unsigned thr_id,
                                translate_ordering_tags( load->getOrdering()) );
           local_map[I].insert( hb_enc::depends( rd, z3.mk_true() ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
-          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
+          if(p->is_mm_power())
+          	rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           new_events.insert( rd );
           block_ssa = block_ssa && ( rd->rd_v() == l_v);
         }else{
@@ -800,7 +802,8 @@ translateBlock( unsigned thr_id,
                                translate_ordering_tags( rmw->getOrdering()) );
           local_map[I].insert( hb_enc::depends( up, z3.mk_true() ) );
           up->set_dependencies( get_depends( rmw->getValOperand() ), get_ctrl(b));/////////////////////to do something or nothing
-          up->set_ctrl_isync_dep(get_ctrl_isync(b));
+          if(p->is_mm_power())
+          	up->set_ctrl_isync_dep(get_ctrl_isync(b));
           prev_events = { up };
           p->add_event_with_rs_heads( thr_id, prev_events,local_release_heads[b]);
           rd_g = up->rd_v();
@@ -849,7 +852,8 @@ translateBlock( unsigned thr_id,
         if( !xchg->isWeak() ) // weak exchange allows fake fail
           fail_rd->append_history( fail_v != cmp_v );
         fail_rd->set_ctrl_dependency( get_ctrl(b) );
-        fail_rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
+        if(p->is_mm_power())
+        	fail_rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
         local_map[I].insert( hb_enc::depends( fail_rd, fail_v != cmp_v ) );
 
         // exchange success event
@@ -864,7 +868,8 @@ translateBlock( unsigned thr_id,
           rd->append_history( succ_rd_v == cmp_v );
           local_map[I].insert( hb_enc::depends( rd, succ_rd_v == cmp_v ) );
           rd->set_ctrl_dependency( get_ctrl(b) );
-          rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
+          if(p->is_mm_power())
+          	rd->set_ctrl_isync_dep( get_ctrl_isync(b) );
           prev_events = { rd };
           p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
@@ -1086,7 +1091,8 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           last_rls_ses[v][ prev ] = local_release_heads[prev][v];
       }
       //////////////////////////////////////////
-      join_depends_set(get_ctrl_isync(prev),get_ctrl_isync(prev),ctrl_isync_ses);
+      if(p->is_mm_power())
+      	join_depends_set(get_ctrl_isync(prev),get_ctrl_isync(prev),ctrl_isync_ses);
       //////////////////////////////////////////
     }
     if( src == &(f.getEntryBlock()) ) {

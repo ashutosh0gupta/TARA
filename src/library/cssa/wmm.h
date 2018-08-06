@@ -118,7 +118,7 @@ namespace cssa {
 
     // -----------------------------------------------------------------------
     //power data structures and variables
-    typedef std::set<std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr>> relation;
+    typedef std::vector<std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr>> relation;
     typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
     //rec_rel:=map<<event1,event2>,<time,bit,guard>>
     typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;

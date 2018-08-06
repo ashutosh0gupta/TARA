@@ -50,7 +50,8 @@ using namespace tara::helpers;
 
 bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
                                        const hb_enc::se_ptr& e2  ) {
-  assert(false);
+  //assert(false);
+	return true;
 }
 
 void wmm_event_cons::ppo_power( const tara::thread& thread ) {
@@ -69,7 +70,7 @@ void wmm_event_cons::ppo_power( const tara::thread& thread ) {
   get_power_ii0(thread,ev_set1,ev_set2);
   get_power_ci0(thread,ev_set1,ev_set2);
   get_power_cc0(thread,ev_set1,ev_set2);
-  //compute_ppo_by_fpt(thread,ev_set1,ev_set2);
+  compute_ppo_by_fpt(thread,ev_set1,ev_set2);
 
   //hb_enc->mk_ghb( e1, e2 );
   //z3::expr prop_e1_e2 = hb_enc->mk_ghb_power_prop( e1, e2 );
