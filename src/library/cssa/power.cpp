@@ -28,21 +28,11 @@ using namespace tara;
 using namespace tara::cssa;
 using namespace tara::helpers;
 
-// com = rf | fr | co
-
-// coherence
 // (* sc per location *) acyclic po-loc | rf | fr | co
-
-// (* fences *)
-// let fence = RM(lwsync)|WW(lwsync)|sync
 
 // (* no thin air *)
 // let hb = ppo|fence|rfe
 // acyclic hb
-
-// (* prop *)
-// let prop-base = (fence|(rfe;fence));hb*
-// let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
 
 // (* observation *) irreflexive fre;prop;hb*
 
@@ -312,7 +302,11 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       fixpoint=fixpoint&&(implies(b_ii,cond_ii)&&implies(cond_ii,b_ii))&&
 												 (implies(b_ic,cond_ic)&&implies(cond_ic,b_ic))&&
 												 (implies(b_ci,cond_ci)&&implies(cond_ci,b_ci))&&
-												 (implies(b_cc,cond_cc)&&implies(cond_cc,b_cc));
+												 (implies(b_cc,cond_cc)&&implies(cond_cc,b_cc))&&
+												 implies(b_ii,hb_encoding.mk_ghbs(e1,e2))&&
+												 implies(b_ic,hb_encoding.mk_ghbs(e1,e2))&&
+												 implies(b_ci,hb_encoding.mk_ghbs(e1,e2))&&
+												 implies(b_cc,hb_encoding.mk_ghbs(e1,e2));
       //ppo = RR(ii)|RW(ic)
       if(e1->is_rd()) {
       	if(e2->is_rd()) {
@@ -326,4 +320,41 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       }
     }
   }
+}
+
+void wmm_event_cons::prop_power() {
+	// let com = rf | fr | co
+	// let hb = ppo|fence|rfe
+	// let fence = RM(lwsync)|WW(lwsync)|sync
+	// let prop-base = (fence|(rfe;fence));hb*
+	// let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
+	std::vector<int> fences_pos;
+	z3::expr fence=z3.mk_true();
+	int pos;
+	for(unsigned int i=0;i<p.size();i++) {
+		const thread& thread=p.get_thread(i);
+		pos=0;
+		for(const auto& e:thread.events) {
+			if(e->is_fence()) fences_pos.push_back(pos);
+			pos++;
+		}
+		pos=0;
+		for(const auto& e:thread.events) {
+			auto it=thread.events.begin();
+			pos=fences_pos.front();
+			it=it+pos;
+			bool is_lwfence=false;
+			if((*it)->is_fence_a()) is_lwfence=true;
+			it++;
+			for(;it!=thread.events.end();it++)
+			{
+				if(!is_lwfence) fence=fence&&hb_encoding.mk_ghbs(e,*it);
+				else if(!e->is_wr()||!(*it)->is_rd()) {
+					fence=fence&&hb_encoding.mk_ghbs(e,*it);
+				}
+				if((*it)->is_fence()) is_lwfence=false;
+			}
+		}
+	}
+
 }

@@ -893,9 +893,7 @@ translateBlock( unsigned thr_id,
         // data dependency of the past value should become control dependency
         //
         hb_enc::join_depends_set( get_ctrl(b), local_map[I], ctrl_dep);
-        //hb_enc::join_depends_set( get_ctrl_isync(b), local_map[I], ctrl_isync_dep);
         wr->set_dependencies( new_val_depends, ctrl_dep);
-        //wr->set_ctrl_isync_dep(ctrl_isync_dep);
         prev_events = { wr };
         p->add_event_with_rs_heads(thr_id,prev_events,local_release_heads[b]);
 
@@ -1091,7 +1089,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
           last_rls_ses[v][ prev ] = local_release_heads[prev][v];
       }
       //////////////////////////////////////////
-      if(p->is_mm_power())
+      if(p->is_mm_power())//ctrl+isync dependency
       	join_depends_set(get_ctrl_isync(prev),get_ctrl_isync(prev),ctrl_isync_ses);
       //////////////////////////////////////////
     }
@@ -1117,7 +1115,7 @@ bool build_program::runOnFunction( llvm::Function &f ) {
     if( mm_needs_ctrl_dependency( o.mm ) )
       join_depends_set( ctrl_ses, conds, local_ctrl[src] );
     //////////////////////////////////////////////
-    if(p->is_mm_power())
+    if(p->is_mm_power())//ctrl+isync dependency
     {
     	if(auto call = llvm::dyn_cast<llvm::CallInst>(&(src->front()))) {
     		if(call->getCalledFunction()->getName()=="_Z11power_isyncv"){

@@ -118,31 +118,34 @@ namespace cssa {
 
     // -----------------------------------------------------------------------
     //power data structures and variables
+
     typedef std::vector<std::tuple<z3::expr,hb_enc::se_ptr,hb_enc::se_ptr>> relation;
     typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
     //rec_rel:=map<<event1,event2>,<time,bit,guard>>
     typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;
     relation rf_rel,fr_rel,coe_rel;
     std::map<event_pair,z3::expr> ii0,ci0,cc0;
-    z3::expr fixpoint=z3.mk_true(),ppo_expr=z3.mk_true();
-    //std::unordered_set<z3::expr> ppo_bvars;
-    // power functions
+    z3::expr fixpoint=z3.mk_true();
+    z3::expr ppo_expr=z3.mk_true();
+    z3::expr prop_expr=z3.mk_true();
 
-    void get_power_ii0(const tara::thread& thread,
-    									 hb_enc::se_set& ev_set1,
-											 hb_enc::se_set& ev_set2);
-    void get_power_ci0(const tara::thread& thread,
-    									 hb_enc::se_set& ev_set1,
-											 hb_enc::se_set& ev_set2);
-    void get_power_cc0(const tara::thread& thread,
-    									 hb_enc::se_set& ev_set1,
-											 hb_enc::se_set& ev_set2);
+    // power functions
 
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     void ppo_power( const tara::thread& );
+    void prop_power();
     void compute_ppo_by_fpt(const tara::thread& thread,//compute ii, ic, ci, cc
     												hb_enc::se_set& ev_set1,
 														hb_enc::se_set& ev_set2);
+    void get_power_ii0(const tara::thread& thread,
+        									 hb_enc::se_set& ev_set1,
+    											 hb_enc::se_set& ev_set2);
+    void get_power_ci0(const tara::thread& thread,
+        									 hb_enc::se_set& ev_set1,
+    											 hb_enc::se_set& ev_set2);
+    void get_power_cc0(const tara::thread& thread,
+        									 hb_enc::se_set& ev_set1,
+    											 hb_enc::se_set& ev_set2);
     void initialize(rec_rel& r, hb_enc::se_ptr& e1,
     								hb_enc::se_ptr& e2,std::string r_name);
     void initialize_rels(rec_rel& ii, rec_rel& ic,

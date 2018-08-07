@@ -787,6 +787,9 @@ void wmm_event_cons::run() {
     ses();
   }
   ppo(); // build hb formulas to encode the preserved program order
+  if( p.is_mm_power() ) {
+  	prop_power();
+  }
 
   if ( o.print_phi ) {
     o.out() << "(" << endl
