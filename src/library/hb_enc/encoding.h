@@ -111,13 +111,13 @@ public:
   z3::expr mk_ghb_c11_sc( const se_ptr& before, const se_ptr& after );
 
   //calls related power model
-  hb mk_hb_power_prop(const se_ptr& before, const se_ptr& after);
+  hb mk_hb_power_hb(const se_ptr& before, const se_ptr& after);
   hb mk_hb_power_obs (const se_ptr& before, const se_ptr& after);
-  z3::expr mk_ghb_power_prop( const se_ptr& before, const se_ptr& after );
+  z3::expr mk_ghb_power_hb( const se_ptr& before, const se_ptr& after );
   z3::expr mk_ghb_power_obs ( const se_ptr& before, const se_ptr& after );
   //todo: do we need mo for power
-  hb mk_hb_power_mo  (const se_ptr& before, const se_ptr& after);
-  z3::expr mk_ghb_power_mo  ( const se_ptr& before, const se_ptr& after );
+  hb mk_hb_power_prop  (const se_ptr& before, const se_ptr& after);
+  z3::expr mk_ghb_power_prop  ( const se_ptr& before, const se_ptr& after );
 
   z3::expr mk_guarded_forbid_expr( const hb_vec& );
   z3::expr mk_expr( const hb_vec& );

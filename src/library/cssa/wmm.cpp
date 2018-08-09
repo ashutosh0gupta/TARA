@@ -335,14 +335,27 @@ void wmm_event_cons::ses() {
                        hb_encoding.mk_ghbs( wr2, wr1 ) );
         }
         //Coherence order
-        if(p.is_mm_power() && wr1->wr_v()==wr2->wr_v()) {
+        if(p.is_mm_power() && wr1->access_same_var(wr2)) {
         	if(is_po_new(wr1,wr2)) {//acyclic (po o co) in SC per loc
         		co=co&&hb_encoding.mk_ghbs(wr1,wr2);
         	}
         	else {
+        		z3::expr cond=z3.mk_true();
+        		for(auto bef_rd:prev_rds[wr1]) {//CoRW
+        			if(wr2->access_same_var(bef_rd)) {
+        				z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
+        				cond=cond&anti_rf;
+        			}
+        		}
+        		for(auto bef_rd:prev_rds[wr2]) {//CoWR
+        			if(wr1->access_same_var(bef_rd)) {
+        				z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
+        				cond=cond&&anti_rf;
+        			}
+        		}
         		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
         		coe_rel.push_back(std::make_tuple(co_var,wr1,wr2));
-        		co=co&&implies(co_var,hb_encoding.mk_ghbs(wr1,wr2));
+        		co=co&&implies(co_var,cond&&hb_encoding.mk_ghbs(wr1,wr2));
         	}
         }
       }
@@ -602,7 +615,7 @@ void wmm_event_cons::update_orderings() {
     for (; rit!= rend; ++rit)
       update_must_after( p.get_thread(i).events, *rit );
   }
-  if( !p.is_mm_c11() ) {
+  if( !p.is_mm_c11() && !p.is_mm_power()) {
     //todo: check if this condition is correct
     // assert(false);
     for( unsigned i = 0; i < p.size(); i ++ ) {
@@ -780,14 +793,17 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
 void wmm_event_cons::run() {
   update_orderings();
 
-  if( p.is_mm_c11() ) {
-    ses_c11();
+  if( !p.is_mm_power() ) {
+  	ppo(); // build hb formulas to encode the preserved program order
+  	if( p.is_mm_c11() ) {
+  		ses_c11();
+  	}else{
+  		distinct_events();
+  		ses();
+  	}
   }else{
-    distinct_events();
-    ses();
-  }
-  ppo(); // build hb formulas to encode the preserved program order
-  if( p.is_mm_power() ) {
+  	ses();
+  	ppo();
   	prop_power();
   }
 
