@@ -326,9 +326,9 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       }
     }
   }
-  ii0.clear();
-  ci0.clear();
-  cc0.clear();
+  //ii0.clear();
+  //ci0.clear();
+  //cc0.clear();
 }
 
 void wmm_event_cons::fence_power() {
@@ -360,6 +360,9 @@ void wmm_event_cons::fence_power() {
 																			 z3.mk_true()));//fence in hb
 					hb_ev_set1.insert(e);
 					hb_ev_set2.insert(*it);
+
+					prop_base.insert(std::make_pair(std::make_pair(e,*it),
+																			 	  z3.mk_true()));//fence in prop_base
 				}
 				else if(!e->is_wr()||!(*it)->is_rd()) {
 					fence=fence&&hb_encoding.mk_hb_power_hb(e,*it);
@@ -368,6 +371,9 @@ void wmm_event_cons::fence_power() {
 																			 z3.mk_true()));//fence in hb
 					hb_ev_set1.insert(e);
 					hb_ev_set2.insert(*it);
+
+					prop_base.insert(std::make_pair(std::make_pair(e,*it),
+																					z3.mk_true()));//fence in prop_base
 				}
 				if((*it)->is_fence()) is_lwfence=false;
 			}
@@ -430,13 +436,10 @@ void wmm_event_cons::hb_star_power() {
 	compute_trans_closure(hb_ev_set1,hb_ev_set2,hb_rel,hb_star,std::string("hb"));
 }
 
-void wmm_event_cons::prop_power() {
-	// let com = rf | fr | co
-	// let hb = ppo|fence|rfe
-	// let fence = RM(lwsync)|WW(lwsync)|sync
+void wmm_event_cons::compute_prop_base() {
 	// let prop-base = (fence|(rfe;fence));hb*
-	// let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
 	std::vector<event_pair> rfe_fence;
+
 	for(auto& rf_pair:rf_rel) {//(rfe;fence)
 		z3::expr rf_b=std::get<0>(rf_pair);
 		hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
@@ -444,8 +447,24 @@ void wmm_event_cons::prop_power() {
 			for(auto& fence_pair:fence_rel) {
 				if(fence_pair.first==e2) {
 					rfe_fence.push_back(std::make_pair(e1,fence_pair.second));
+					prop_base.insert(std::make_pair(std::make_pair(e1,fence_pair.second),rf_b));
 				}
 			}
 		}
 	}
+	for(auto& p:prop_base) {
+		if(hb_ev_set1.find(p.first.second)!=hb_ev_set1.end()) {
+			//for()
+		}
+	}
+}
+
+void wmm_event_cons::prop_power() {
+	// let com = rf | fr | co
+	// let hb = ppo|fence|rfe
+	// let fence = RM(lwsync)|WW(lwsync)|sync
+	// let prop-base = (fence|(rfe;fence));hb*
+	// let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
+	compute_prop_base();
+
 }

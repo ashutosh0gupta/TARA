@@ -129,17 +129,20 @@ namespace cssa {
     z3::expr ppo_expr =z3.mk_true();
     z3::expr prop_expr=z3.mk_true();
     z3::expr fence    =z3.mk_true();
-    std::map<event_pair,z3::expr> ii0,ci0,cc0,hb_rel;
+    std::map<event_pair,z3::expr> ii0,ci0,cc0,hb_rel,prop_base;
     hb_enc::se_set hb_ev_set1,hb_ev_set2;
     rec_rel hb_star;
 
     // power functions
+
+    void print_rel(std::map<event_pair,z3::expr>& a,std::ostream& out);//need to be deleted
 
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
     void ppo_power( const tara::thread& );
     void fence_power();
     void prop_power();
     void hb_star_power();
+    void compute_prop_base();
     void compute_ppo_by_fpt(const tara::thread& thread,//compute ii, ic, ci, cc
     												const hb_enc::se_set& ev_set1,
 														const hb_enc::se_set& ev_set2);

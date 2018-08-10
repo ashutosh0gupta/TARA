@@ -790,6 +790,17 @@ void wmm_event_cons::update_ppo_before( const hb_enc::se_vec& es,
   p.ppo_before[e] = local_ordered[e];
 }
 
+//////////////////////////////////////////////////////////////need to be deleted
+void wmm_event_cons::print_rel(std::map<event_pair,z3::expr>& a,std::ostream& out)
+{
+	std::string s="";
+	for(auto a1:a)
+	{
+		out<<"(=> "<<a1.second<<" (<"<<a1.first.first->name()<<" "<<a1.first.second->name()<<"))\n";
+	}
+}
+//////////////////////////////////////////////////////////////
+
 void wmm_event_cons::run() {
   update_orderings();
 
@@ -818,9 +829,16 @@ void wmm_event_cons::run() {
             << "thin   : \n" << thin         << endl
             << "phi_prp: \n" << p.phi_prp    << endl
             << ")" << endl;
-    if(p.is_mm_power())
+    if(p.is_mm_power()) {
+    	o.out()<<"ii0 :  ";
+    	print_rel(ii0,o.out());
+    	o.out()<<"ci0 :  ";
+    	print_rel(ci0,o.out());
+    	o.out()<<"cc0 :  ";
+    	print_rel(cc0,o.out());
     	o.out()<< "ppo : \n" << ppo_expr << endl
 						 << "     &&" << fixpoint;
+    }
   }
 
   p.phi_po  = po && dist;
