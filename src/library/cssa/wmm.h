@@ -123,25 +123,25 @@ namespace cssa {
     typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
     //rec_rel:=map<<event1,event2>,<time,bit,guard>>
     typedef std::map<event_pair,std::tuple<z3::expr,z3::expr,z3::expr>> rec_rel;
-    relation rf_rel,fr_rel,coe_rel;
+    relation rf_rel,fr_rel,co_rel;
     std::set<event_pair> fence_rel;
     z3::expr fixpoint =z3.mk_true();
     z3::expr ppo_expr =z3.mk_true();
     z3::expr prop_expr=z3.mk_true();
     z3::expr fence    =z3.mk_true();
-    std::map<event_pair,z3::expr> ii0,ci0,cc0,hb_rel,prop_base;
-    hb_enc::se_set hb_ev_set1,hb_ev_set2;
-    rec_rel hb_star;
+    std::map<event_pair,z3::expr> ii0,ci0,cc0,hb_rel,prop_base,prop,com;
+    hb_enc::se_set hb_ev_set1,hb_ev_set2,com_ev_set1,com_ev_set2,pbase_ev_set1,pbase_ev_set2;
+    rec_rel pbase_plus,com_plus;
 
     // power functions
 
     void print_rel(std::map<event_pair,z3::expr>& a,std::ostream& out);//need to be deleted
 
     static bool is_ordered_power(const hb_enc::se_ptr&, const hb_enc::se_ptr&);
+    void ses_power();
     void ppo_power( const tara::thread& );
     void fence_power();
     void prop_power();
-    void hb_star_power();
     void compute_prop_base();
     void compute_ppo_by_fpt(const tara::thread& thread,//compute ii, ic, ci, cc
     												const hb_enc::se_set& ev_set1,
@@ -170,7 +170,7 @@ namespace cssa {
     void compute_trans_closure(const hb_enc::se_set& ev_set1,
 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 const hb_enc::se_set& ev_set2,
 															 const std::map<event_pair,z3::expr>& r,
-															 rec_rel& r_star, std::string rel_name);
+															 rec_rel& r_star, std::string rel_name,z3::expr exp);
 
     //------------------------------------------------------------------------
 
@@ -183,7 +183,6 @@ namespace cssa {
     z3::expr fr   = z3.mk_true();
     z3::expr ws   = z3.mk_true();
     z3::expr thin = z3.mk_true();
-    z3::expr co   = z3.mk_true();
 
     //c11 support
     z3::expr rel_seq = z3.mk_true();

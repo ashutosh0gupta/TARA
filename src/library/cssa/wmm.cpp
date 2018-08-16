@@ -270,8 +270,6 @@ void wmm_event_cons::ses() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
-        if(p.is_mm_power())
-        	rf_rel.push_back(std::make_tuple(b,wr,rd));
         z3::expr new_rf = implies( b, hb_encoding.mk_ghbs( wr, rd ) );
         rf = rf && new_rf;
         if( is_no_thin_mm() ) {
@@ -309,8 +307,6 @@ void wmm_event_cons::ses() {
                 // rmw & (fr o mo) empty
                 new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );
               }
-              if(p.is_mm_power())
-              	fr_rel.push_back(std::make_tuple(cond,rd,after_wr));
               fr = fr && implies( cond , new_fr );
             }
           }
@@ -334,30 +330,6 @@ void wmm_event_cons::ses() {
           ws = ws && ( hb_encoding.mk_ghbs( wr1, wr2 ) ||
                        hb_encoding.mk_ghbs( wr2, wr1 ) );
         }
-        //Coherence order
-        if(p.is_mm_power() && wr1->access_same_var(wr2)) {
-        	if(is_po_new(wr1,wr2)) {//acyclic (po o co) in SC per loc
-        		co=co&&hb_encoding.mk_ghbs(wr1,wr2);
-        	}
-        	else {
-        		z3::expr cond=z3.mk_true();
-        		for(auto bef_rd:prev_rds[wr1]) {//CoRW
-        			if(wr2->access_same_var(bef_rd)) {
-        				z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
-        				cond=cond&anti_rf;
-        			}
-        		}
-        		for(auto bef_rd:prev_rds[wr2]) {//CoWR
-        			if(wr1->access_same_var(bef_rd)) {
-        				z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
-        				cond=cond&&anti_rf;
-        			}
-        		}
-        		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
-        		coe_rel.push_back(std::make_tuple(co_var,wr1,wr2));
-        		co=co&&implies(co_var,cond&&hb_encoding.mk_ghbs(wr1,wr2));
-        	}
-        }
       }
     }
 
@@ -376,6 +348,8 @@ void wmm_event_cons::ses() {
     }
   }
 }
+
+
 
 
 
@@ -813,7 +787,7 @@ void wmm_event_cons::run() {
   		ses();
   	}
   }else{
-  	ses();
+  	ses_power();
   	ppo();
   	prop_power();
   }

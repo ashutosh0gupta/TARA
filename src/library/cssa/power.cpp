@@ -40,6 +40,105 @@ using namespace tara::helpers;
 
 // (* propagation *) acyclic co | prop
 
+void wmm_event_cons::ses_power() {
+	hb_enc::se_to_ses_map prev_rds;
+	for( unsigned t = 0; t < p.size(); t++ ) {
+	  const auto& thr = p.get_thread( t );
+	// for( const auto& thr : p.threads ) {
+	  for( auto e : thr.events ) {
+	    hb_enc::se_set& rds = prev_rds[e];
+	    for( auto ep : e->prev_events ) {
+	      rds.insert( prev_rds[ep].begin(), prev_rds[ep].end() );
+	      if( ep->is_rd() ) rds.insert( ep );
+	    }
+	  }
+	}
+
+  for( const auto& v1 : p.globals ) {
+    const auto& rds = p.rd_events[v1];
+    const auto& wrs = p.wr_events[v1];
+    for( const hb_enc::se_ptr& rd : rds ) {
+      z3::expr some_rfs = z3.c.bool_val(false);
+      z3::expr rd_v = rd->get_rd_expr(v1);
+      for( const hb_enc::se_ptr& wr : wrs ) {
+        //read-write coherence, avoiding cycles (po;rf)
+        if( anti_po_read( wr, rd ) ) continue;
+        z3::expr wr_v = wr->get_wr_expr( v1 );
+        z3::expr b = get_rf_bvar( v1, wr, rd );
+        some_rfs = some_rfs || b;
+        z3::expr eq = ( rd_v == wr_v );
+        // well formed
+        wf = wf && implies( b, wr->guard && eq);
+        // read from
+        rf_rel.push_back(std::make_tuple(b,wr,rd));
+        // from read
+        for( const hb_enc::se_ptr& after_wr : wrs ) {
+          if( after_wr->name() != wr->name() ) {
+            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+                          && after_wr->guard;
+            if( anti_po_loc_fr( rd, after_wr ) ) {
+              //write-read coherence: avoiding cycles (po;fr)
+              fr = fr && !cond;
+            }else if( is_po_new( rd, after_wr ) ) {
+                //fr = fr && implies( b, hb_encoding.mk_ghbs(wr,after_wr) );
+            	fr_rel.push_back(std::make_tuple(b,rd,after_wr));
+            }else{
+              //auto new_fr = hb_encoding.mk_ghbs( rd, after_wr );
+            	z3::expr new_fr=z3.mk_true();
+              // read-read coherence, avoding cycles (po;fr;rf)
+              for( auto before_rd : prev_rds[rd] ) {
+                if( rd->access_same_var( before_rd ) ) {
+                  z3::expr anti_coherent_b =
+                    get_rf_bvar( v1, after_wr, before_rd, false );
+                  new_fr = !anti_coherent_b && new_fr;
+                }
+              }
+              if( auto& rmw_w = rd->rmw_other ) {
+                // rmw & (fr o mo) empty
+                new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );
+              }
+              fr_rel.push_back(std::make_tuple(cond,rd,after_wr));
+              fr = fr && implies( cond , new_fr );
+            }
+          }
+        }
+      }
+      wf = wf && implies( rd->guard, some_rfs );
+    }
+    //Coherence order
+    auto it1 = wrs.begin();
+    for( ; it1 != wrs.end() ; it1++ ) {
+			const hb_enc::se_ptr& wr1 = *it1;
+      auto it2 = it1;
+      it2++;
+      for( ; it2 != wrs.end() ; it2++ ) {
+        const hb_enc::se_ptr& wr2 = *it2;
+        if(!wr1->access_same_var(wr2)) continue;
+        if(is_po_new(wr1,wr2)) {//acyclic (po;co) in SC per loc
+        	co_rel.push_back(std::make_tuple(z3.mk_true(),wr1,wr2));
+        }
+       	else if(wr1->tid!=wr2->tid) {
+       		z3::expr cond=z3.mk_true();
+       		for(auto bef_rd:prev_rds[wr1]) {//CoRW
+       			if(wr2->access_same_var(bef_rd)) {
+       				z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
+       				cond=cond&anti_rf;
+       			}
+       		}
+       		for(auto& rf_pair:rf_rel) {
+       			if(std::get<1>(rf_pair)==wr1&&is_po_new(wr2,std::get<2>(rf_pair))) {
+       				cond=cond&!std::get<0>(rf_pair);
+       			}
+       		}
+       		z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
+       		co_rel.push_back(std::make_tuple(co_var,wr1,wr2));
+       	}
+      }
+
+    }
+  }
+}
+
 bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
                                        const hb_enc::se_ptr& e2  ) {
   //assert(false);
@@ -122,11 +221,12 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,
   for(auto rf_pair:rf_rel) {
     hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
     if(e1->tid!=e2->tid&&e2->tid==thread.start_event->tid) {
-      for(auto coe_pair:coe_rel) {
-      	hb_enc::se_ptr e3=std::get<1>(coe_pair);
-      	if(std::get<2>(coe_pair)==e2&&e3->tid==e2->tid&&is_po_new(e3,e2)) {
+      for(auto co_pair:co_rel) {
+      	hb_enc::se_ptr e3=std::get<1>(co_pair);
+      	if(std::get<1>(co_pair)->tid==std::get<2>(co_pair)->tid) continue;
+      	if(std::get<2>(co_pair)==e2&&e3->tid==e2->tid&&is_po_new(e3,e2)) {
       		event_pair ev_pair(e3,e2);
-      		ci0.insert(std::make_pair(ev_pair,(std::get<0>(coe_pair)&&
+      		ci0.insert(std::make_pair(ev_pair,(std::get<0>(co_pair)&&
       																			 std::get<0>(rf_pair))));
       	}
       }
@@ -363,6 +463,11 @@ void wmm_event_cons::fence_power() {
 
 					prop_base.insert(std::make_pair(std::make_pair(e,*it),
 																			 	  z3.mk_true()));//fence in prop_base
+					pbase_ev_set1.insert(e);
+					pbase_ev_set2.insert(*it);
+
+					prop.insert(std::make_pair(std::make_pair(e,*it),
+																			 	  z3.mk_true()));//sync in prop
 				}
 				else if(!e->is_wr()||!(*it)->is_rd()) {
 					fence=fence&&hb_encoding.mk_hb_power_hb(e,*it);
@@ -374,6 +479,8 @@ void wmm_event_cons::fence_power() {
 
 					prop_base.insert(std::make_pair(std::make_pair(e,*it),
 																					z3.mk_true()));//fence in prop_base
+					pbase_ev_set1.insert(e);
+					pbase_ev_set2.insert(*it);
 				}
 				if((*it)->is_fence()) is_lwfence=false;
 			}
@@ -384,7 +491,7 @@ void wmm_event_cons::fence_power() {
 void wmm_event_cons::compute_trans_closure(const hb_enc::se_set& ev_set1,
 																		 	 	 	 const hb_enc::se_set& ev_set2,
 																					 const std::map<event_pair,z3::expr>& r,
-																					 rec_rel& r_star, std::string rel_name) {
+																					 rec_rel& r_star, std::string rel_name,z3::expr exp) {
 	for(auto& e1:ev_set1) {
 		for(auto& e2:ev_set2) {
 			if(e1==e2) continue;
@@ -415,25 +522,9 @@ void wmm_event_cons::compute_trans_closure(const hb_enc::se_set& ev_set1,
 				if((e1->get_topological_order()>=eb->get_topological_order())) continue;
 				combine_two(r_star,r_star,e1,e2,eb,t,cond);
 			}
+			exp=exp&&implies(cond,b)&&implies(b,cond);
 		}
 	}
-}
-
-void wmm_event_cons::hb_star_power() {
-	// let hb = ppo|fence|rfe
-
-	//rfe in hb
-	for(auto& rf_pair:rf_rel) {
-		hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
-		if(e1->tid!=e2->tid) {
-			hb_rel.insert(std::make_pair(std::make_pair(e1,e2),
-																	 get_rf_bvar(e1->prog_v,e1,e2,false)));
-			hb_ev_set1.insert(e1);
-			hb_ev_set2.insert(e2);
-		}
-	}
-	//Compute transitive closure of hb
-	compute_trans_closure(hb_ev_set1,hb_ev_set2,hb_rel,hb_star,std::string("hb"));
 }
 
 void wmm_event_cons::compute_prop_base() {
@@ -447,14 +538,37 @@ void wmm_event_cons::compute_prop_base() {
 			for(auto& fence_pair:fence_rel) {
 				if(fence_pair.first==e2) {
 					rfe_fence.push_back(std::make_pair(e1,fence_pair.second));
-					prop_base.insert(std::make_pair(std::make_pair(e1,fence_pair.second),rf_b));
+					prop_base.insert(std::make_pair(std::make_pair(e1,fence_pair.second),
+							                            rf_b));
+					pbase_ev_set1.insert(e1);
+					pbase_ev_set2.insert(fence_pair.second);
 				}
 			}
 		}
 	}
-	for(auto& p:prop_base) {
-		if(hb_ev_set1.find(p.first.second)!=hb_ev_set1.end()) {
-			//for()
+
+	for(auto& rf_pair:rf_rel) {
+		hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
+		if(e1->tid!=e2->tid) {
+			hb_rel.insert(std::make_pair(std::make_pair(e1,e2),
+																	 get_rf_bvar(e1->prog_v,e1,e2,false)));
+			hb_ev_set1.insert(e1);
+			hb_ev_set2.insert(e2);
+		}
+	}
+
+	std::map<event_pair,z3::expr> temp(prop_base);
+	for(auto& p:temp) {
+		hb_enc::se_ptr e1=p.first.first,e2=p.first.second;
+		if(hb_ev_set1.find(e2)!=hb_ev_set1.end()) {
+			for(auto& e3:hb_ev_set2) {
+				if(e2->get_power_hb_stamp()<e3->get_power_hb_stamp()) {
+					z3::expr cond=hb_encoding.mk_ghb_power_hb(e2,e3);
+					prop_base.insert(std::make_pair(std::make_pair(e1,e3),
+																					cond&&p.second));
+					pbase_ev_set2.insert(e3);
+				}
+			}
 		}
 	}
 }
@@ -466,5 +580,76 @@ void wmm_event_cons::prop_power() {
 	// let prop-base = (fence|(rfe;fence));hb*
 	// let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
 	compute_prop_base();
+	for(auto p:prop_base)//WW(prop-base) in prop
+	{
+		if(p.first.first->is_wr()&&p.first.second->is_wr()) {
+			prop.insert(p);
+		}
+	}
+	//compute com
+	for(auto& rf_pair:rf_rel) {
+		event_pair ev_pair=std::make_pair(std::get<1>(rf_pair),std::get<2>(rf_pair));
+		com.insert(std::make_pair(ev_pair,std::get<0>(rf_pair)));
+		com_ev_set1.insert(std::get<1>(rf_pair));
+		com_ev_set2.insert(std::get<2>(rf_pair));
+	}
+	for(auto& fr_pair:fr_rel) {
+			event_pair ev_pair=std::make_pair(std::get<1>(fr_pair),std::get<2>(fr_pair));
+			com.insert(std::make_pair(ev_pair,std::get<0>(fr_pair)));
+			com_ev_set1.insert(std::get<1>(fr_pair));
+			com_ev_set2.insert(std::get<2>(fr_pair));
+	}
+	for(auto& co_pair:co_rel) {
+		event_pair ev_pair=std::make_pair(std::get<1>(co_pair),std::get<2>(co_pair));
+		com.insert(std::make_pair(ev_pair,std::get<0>(co_pair)));
+		com_ev_set1.insert(std::get<1>(co_pair));
+		com_ev_set2.insert(std::get<2>(co_pair));
+	}
 
+	z3::expr pbase_expr=z3.mk_true();
+	z3::expr com_expr=z3.mk_true();
+	compute_trans_closure(com_ev_set1,com_ev_set2,com,com_plus,"com",com_expr);
+	compute_trans_closure(pbase_ev_set1,pbase_ev_set2,prop_base,pbase_plus,
+												"prop_base",pbase_expr);
+
+	for(auto& pbase_pair:pbase_plus) {//(prop-base*;sync) in prop
+		std::map<event_pair,z3::expr> temp(prop);
+		for(auto& prop_pair:temp) {
+			if(pbase_pair.first.second==prop_pair.first.first) {
+				prop.insert(std::make_pair(std::make_pair(pbase_pair.first.first,
+																									prop_pair.first.second),
+																	 std::get<1>(pbase_pair.second)&&prop_pair.second));
+			}
+		}
+	}
+	for(auto& com_pair:com_plus) {//(com*;prop-base*;sync) in prop
+		std::map<event_pair,z3::expr> temp(prop);
+		for(auto& prop_pair:temp) {
+			if(com_pair.first.second==prop_pair.first.first) {
+				prop.insert(std::make_pair(std::make_pair(com_pair.first.first,
+																									prop_pair.first.second),
+																	 std::get<1>(com_pair.second)&&prop_pair.second));
+			}
+		}
+	}
+	//(com*;prop-base*;sync;hb*) in prop
+	std::map<event_pair,z3::expr> temp(prop);
+	for(auto& p:temp) {
+		hb_enc::se_ptr e1=p.first.first,e2=p.first.second;
+		if(hb_ev_set1.find(e2)!=hb_ev_set1.end()) {
+			for(auto& e3:hb_ev_set2) {
+				if(e2->get_power_hb_stamp()<e3->get_power_hb_stamp()) {
+					z3::expr cond=hb_encoding.mk_ghb_power_prop(e2,e3);
+					prop.insert(std::make_pair(std::make_pair(e1,e3),
+																					cond&&p.second));
+				}
+			}
+		}
+	}
+	for(auto& prop_pair:prop) {
+		prop_expr=prop_expr&&
+				      implies(prop_pair.second,
+				      				hb_encoding.mk_ghb_power_prop(prop_pair.first.first,
+				                        		                prop_pair.first.second));
+	}
 }
