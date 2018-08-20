@@ -790,6 +790,7 @@ void wmm_event_cons::run() {
   	ses_power();
   	ppo();
   	prop_power();
+  	obs_power();
   }
 
   if ( o.print_phi ) {

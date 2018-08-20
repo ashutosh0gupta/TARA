@@ -72,7 +72,7 @@ void wmm_event_cons::ses_power() {
         // read from
         rf_rel.push_back(std::make_tuple(b,wr,rd));
         if(in_grf(wr,rd)) {
-          hb_rel.insert(std::make_pair(std::make_pair(wr,rd),b));
+          hb_rel.insert(std::make_pair(std::make_pair(wr,rd),b));//grf in hb
           hb_ev_set1.insert(wr);
           hb_ev_set2.insert(rd);
           grf = grf && implies(b,hb_encoding.mk_ghb_power_hb(wr,rd));
@@ -427,9 +427,9 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       }
     }
   }
-  //ii0.clear();
-  //ci0.clear();
-  //cc0.clear();
+  ii0.clear();
+  ci0.clear();
+  cc0.clear();
 }
 
 void wmm_event_cons::fence_power() {
@@ -455,10 +455,10 @@ void wmm_event_cons::fence_power() {
       it++;
       for(;it!=thread.events.end();it++) {
         if(!is_lwfence) {
-          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
           fence_rel.insert(std::make_pair(e,*it));
           hb_rel.insert(std::make_pair(std::make_pair(e,*it),
                                        z3.mk_true()));//fence in hb
+          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
           hb_ev_set1.insert(e);
           hb_ev_set2.insert(*it);
 
@@ -471,10 +471,10 @@ void wmm_event_cons::fence_power() {
                                        z3.mk_true()));//sync in prop
         }
         else if(!e->is_wr()||!(*it)->is_rd()) {
-          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
           fence_rel.insert(std::make_pair(e,*it));
           hb_rel.insert(std::make_pair(std::make_pair(e,*it),
                                        z3.mk_true()));//fence in hb
+          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
           hb_ev_set1.insert(e);
           hb_ev_set2.insert(*it);
 
@@ -574,12 +574,6 @@ void wmm_event_cons::prop_power() {
   // let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
 	fence_power();
   compute_prop_base();
-  for(auto p:prop_base)//WW(prop-base) in prop
-    {
-      if(p.first.first->is_wr()&&p.first.second->is_wr()) {
-        prop.insert(p);
-      }
-    }
   //compute com
   for(auto& rf_pair:rf_rel) {
     event_pair ev_pair=std::make_pair(std::get<1>(rf_pair),std::get<2>(rf_pair));
@@ -598,6 +592,10 @@ void wmm_event_cons::prop_power() {
     com.insert(std::make_pair(ev_pair,std::get<0>(co_pair)));
     com_ev_set1.insert(std::get<1>(co_pair));
     com_ev_set2.insert(std::get<2>(co_pair));
+    prop_expr=prop_expr&&
+          		implies(std::get<0>(co_pair),
+                  		hb_encoding.mk_ghb_power_prop(std::get<1>(co_pair),
+                  																	std::get<2>(co_pair)));//co in prop
   }
 
   z3::expr pbase_expr=z3.mk_true();
@@ -605,6 +603,12 @@ void wmm_event_cons::prop_power() {
   compute_trans_closure(com_ev_set1,com_ev_set2,com,com_plus,"com",com_expr);
   compute_trans_closure(pbase_ev_set1,pbase_ev_set2,prop_base,pbase_plus,
                         "prop_base",pbase_expr);
+
+  com_ev_set1.clear();
+  com_ev_set2.clear();
+  pbase_ev_set1.clear();
+  pbase_ev_set2.clear();
+  com.clear();
 
   for(auto& pbase_pair:pbase_plus) {//(prop-base*;sync) in prop
     std::map<event_pair,z3::expr> temp(prop);
@@ -626,9 +630,8 @@ void wmm_event_cons::prop_power() {
       }
     }
   }
-  //(com*;prop-base*;sync;hb*) in prop
   std::map<event_pair,z3::expr> temp(prop);
-  for(auto& p:temp) {
+  for(auto& p:temp) {//(com*;prop-base*;sync;hb*) in prop
     hb_enc::se_ptr e1=p.first.first,e2=p.first.second;
     if(hb_ev_set1.find(e2)!=hb_ev_set1.end()) {
       for(auto& e3:hb_ev_set2) {
@@ -640,10 +643,42 @@ void wmm_event_cons::prop_power() {
       }
     }
   }
+  for(auto p:prop_base)//WW(prop-base) in prop
+  {
+    if(p.first.first->is_wr()&&p.first.second->is_wr()) {
+      prop.insert(p);
+    }
+  }
   for(auto& prop_pair:prop) {
     prop_expr=prop_expr&&
       implies(prop_pair.second,
               hb_encoding.mk_ghb_power_prop(prop_pair.first.first,
                                             prop_pair.first.second));
   }
+  rf_rel.clear();
+  co_rel.clear();
+  fence_rel.clear();
+  pbase_plus.clear();
+  com_plus.clear();
+}
+
+void wmm_event_cons::obs_power() {
+	for(auto& fr_pair:fr_rel) {
+		hb_enc::se_ptr e1=std::get<1>(fr_pair),e2=std::get<2>(fr_pair);
+		if(e1->tid==e2->tid) continue;
+		for(auto& prop_pair:prop) {
+			if(prop_pair.first.first!=e2) continue;
+			hb_enc::se_ptr e3=prop_pair.first.second;
+			if(hb_ev_set1.find(e3)==hb_ev_set1.end()) continue;
+			for(auto& e4:hb_ev_set2) {
+				z3::expr fr_cond=std::get<0>(fr_pair);
+				obs=obs&&implies(prop_pair.second&&fr_cond&&hb_encoding.mk_ghb_power_hb(e3,e4),
+											 hb_encoding.mk_ghb_power_obs(e1,e4));
+			}
+		}
+	}
+	hb_ev_set1.clear();
+	hb_ev_set2.clear();
+	fr_rel.clear();
+	prop.clear();
 }
