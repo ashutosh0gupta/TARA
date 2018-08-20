@@ -376,7 +376,7 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       cond_cc=cond_cc||derive_from_single(ci,ev_pair,t_cc);//ci in cc
 
       //Derive new pairs by joining existing pairs from other relations
-      hb_enc::se_set visited,pending=e1->prev_events;
+      hb_enc::se_set visited,pending=e2->prev_events;
       while(!pending.empty()) {
       	hb_enc::se_ptr eb=*pending.begin();
       	pending.erase(eb);
