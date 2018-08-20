@@ -443,6 +443,7 @@ void wmm_event_cons::fence_power() {
       pos++;
     }
     pos=0;
+    if(fences_pos.empty()) continue;
     for(const auto& e:thread.events) {
       if(e->is_fence()) continue;
       auto it=thread.events.begin();
@@ -452,39 +453,38 @@ void wmm_event_cons::fence_power() {
       bool is_lwfence=false;
       if((*it)->is_fence_a()) is_lwfence=true;
       it++;
-      for(;it!=thread.events.end();it++)
-        {
-          if(!is_lwfence) {
-            fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
-            fence_rel.insert(std::make_pair(e,*it));
-            hb_rel.insert(std::make_pair(std::make_pair(e,*it),
-                                         z3.mk_true()));//fence in hb
-            hb_ev_set1.insert(e);
-            hb_ev_set2.insert(*it);
+      for(;it!=thread.events.end();it++) {
+        if(!is_lwfence) {
+          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
+          fence_rel.insert(std::make_pair(e,*it));
+          hb_rel.insert(std::make_pair(std::make_pair(e,*it),
+                                       z3.mk_true()));//fence in hb
+          hb_ev_set1.insert(e);
+          hb_ev_set2.insert(*it);
 
-            prop_base.insert(std::make_pair(std::make_pair(e,*it),
-                                            z3.mk_true()));//fence in prop_base
-            pbase_ev_set1.insert(e);
-            pbase_ev_set2.insert(*it);
+          prop_base.insert(std::make_pair(std::make_pair(e,*it),
+                                          z3.mk_true()));//fence in prop_base
+          pbase_ev_set1.insert(e);
+          pbase_ev_set2.insert(*it);
 
-            prop.insert(std::make_pair(std::make_pair(e,*it),
+          prop.insert(std::make_pair(std::make_pair(e,*it),
                                        z3.mk_true()));//sync in prop
-          }
-          else if(!e->is_wr()||!(*it)->is_rd()) {
-            fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
-            fence_rel.insert(std::make_pair(e,*it));
-            hb_rel.insert(std::make_pair(std::make_pair(e,*it),
-                                         z3.mk_true()));//fence in hb
-            hb_ev_set1.insert(e);
-            hb_ev_set2.insert(*it);
-
-            prop_base.insert(std::make_pair(std::make_pair(e,*it),
-                                            z3.mk_true()));//fence in prop_base
-            pbase_ev_set1.insert(e);
-            pbase_ev_set2.insert(*it);
-          }
-          if((*it)->is_fence()) is_lwfence=false;
         }
+        else if(!e->is_wr()||!(*it)->is_rd()) {
+          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
+          fence_rel.insert(std::make_pair(e,*it));
+          hb_rel.insert(std::make_pair(std::make_pair(e,*it),
+                                       z3.mk_true()));//fence in hb
+          hb_ev_set1.insert(e);
+          hb_ev_set2.insert(*it);
+
+          prop_base.insert(std::make_pair(std::make_pair(e,*it),
+                                          z3.mk_true()));//fence in prop_base
+          pbase_ev_set1.insert(e);
+          pbase_ev_set2.insert(*it);
+        }
+        if((*it)->is_fence()) is_lwfence=false;
+      }
     }
   }
 }
@@ -572,6 +572,7 @@ void wmm_event_cons::prop_power() {
   // let fence = RM(lwsync)|WW(lwsync)|sync
   // let prop-base = (fence|(rfe;fence));hb*
   // let prop = WW(prop-base)|(com*;prop-base*;sync;hb*)
+	fence_power();
   compute_prop_base();
   for(auto p:prop_base)//WW(prop-base) in prop
     {
