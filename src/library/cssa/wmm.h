@@ -134,6 +134,8 @@ namespace cssa {
     hb_enc::se_set hb_ev_set1,hb_ev_set2,com_ev_set1,com_ev_set2,pbase_ev_set1,pbase_ev_set2;
     rec_rel pbase_plus,com_plus;
 
+    z3::expr co_expr      =z3.mk_true();
+
     // power functions
 
     void print_rel(std::map<event_pair,z3::expr>& a,std::ostream& out);//need to be deleted

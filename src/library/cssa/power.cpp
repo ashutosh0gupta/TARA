@@ -80,7 +80,7 @@ void wmm_event_cons::ses_power() {
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
-            auto cond = b && hb_encoding.mk_ghbs(wr,after_wr)
+            auto cond = b && hb_encoding.mk_ghb_power_hb(wr,after_wr)
               && after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
               //write-read coherence: avoiding cycles (po;fr)
@@ -118,6 +118,7 @@ void wmm_event_cons::ses_power() {
       for( ; it2 != wrs.end() ; it2++ ) {
         const hb_enc::se_ptr& wr2 = *it2;
         if(!wr1->access_same_var(wr2)) continue;
+        if(wr1==wr2) continue;
         if(is_po_new(wr1,wr2)) {//acyclic (po;co) in SC per loc
           co_rel.push_back(std::make_tuple(z3.mk_true(),wr1,wr2));
         }
@@ -126,16 +127,16 @@ void wmm_event_cons::ses_power() {
           for(auto bef_rd:prev_rds[wr1]) {//CoRW
             if(wr2->access_same_var(bef_rd)) {
               z3::expr anti_rf=!get_rf_bvar(v1,wr2,bef_rd,false);
-              cond=cond&anti_rf;
+              cond=cond&&anti_rf;
             }
           }
           for(auto& rf_pair:rf_rel) {//CoWR
             if(std::get<1>(rf_pair)==wr1&&is_po_new(wr2,std::get<2>(rf_pair))) {
-              cond=cond&!std::get<0>(rf_pair);
+              cond=cond&&!std::get<0>(rf_pair);
             }
           }
           z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
-          co_rel.push_back(std::make_tuple(co_var,wr1,wr2));
+          co_rel.push_back(std::make_tuple(co_var&&cond,wr1,wr2));
        	}
       }
     }
@@ -184,7 +185,7 @@ void wmm_event_cons::get_power_ii0(const tara::thread& thread,
     }
     if(e2->tid==thread.start_event->tid) { //( po-loc & (fre;rfe) )
       for(auto fr_pair:fr_rel) {
-        if(std::get<2>(fr_pair)==e1&&
+        if(std::get<2>(fr_pair)==e1&&std::get<1>(fr_pair)!=e2&&
            std::get<1>(fr_pair)->tid==thread.start_event->tid&&
            is_po_new(std::get<1>(fr_pair),e2)) {
           //add to ii0
@@ -214,11 +215,11 @@ void wmm_event_cons::get_power_ci0(const tara::thread& thread,
 {
   // let ci0    = (ctrl+isync)|( po-loc & (coe;rfe) )
   for(auto e:thread.events) {
-    for(auto dep:e->ctrl_isync_dep) {
+    for(auto dep:e->ctrl_isync_dep) {//(ctrl+isync)
       ci0.insert(std::make_pair(event_pair(dep.e,e),z3.mk_true()));
     }
   }
-  for(auto rf_pair:rf_rel) {
+  for(auto rf_pair:rf_rel) {//( po-loc & (coe;rfe) )
     hb_enc::se_ptr e1=std::get<1>(rf_pair),e2=std::get<2>(rf_pair);
     if(e1->tid!=e2->tid&&e2->tid==thread.start_event->tid) {
       for(auto co_pair:co_rel) {
@@ -246,8 +247,8 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
-    for(auto ep:e->prev_events) {//po-loc
-      if(ep->access_same_var(e)) {//add to cc0
+    for(hb_enc::se_ptr ep:thread.events) {//po-loc
+      if(ep->access_same_var(e)&&ep!=e&&is_po_new(ep,e)) {
         event_pair ev_pair(ep,e);
         cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
         ev_set1.insert(ep);
@@ -261,60 +262,6 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
       ev_set1.insert(dep.e);
       ev_set2.insert(e);
     }
-  }
-}
-
-void wmm_event_cons::initialize(rec_rel& r, const hb_enc::se_ptr& e1,
-                                const hb_enc::se_ptr& e2,std::string r_name){
-  z3::expr t=z3.c.int_const(("t_"+r_name+"_"+e1->name()+"_"+e2->name()).c_str());
-  z3::expr bit=z3.c.bool_const((r_name+e1->name()+e2->name()).c_str());
-  z3::expr cond=z3.mk_false();
-  r.insert(std::make_pair(event_pair(e1,e2),std::make_tuple(t,bit,cond)));
-}
-
-void wmm_event_cons::initialize_rels(rec_rel& ii, rec_rel& ic,
-                                     rec_rel& ci, rec_rel& cc,
-                                     const hb_enc::se_set& ev_set1,
-                                     const hb_enc::se_set& ev_set2) {
-  for(hb_enc::se_ptr e1:ev_set1) {
-    for(hb_enc::se_ptr e2:ev_set2) {
-      if(e1==e2) continue;
-      if(e1->is_post()||e2->is_pre()) continue;
-      if(e1->get_topological_order()>=e2->get_topological_order()) continue;
-
-      initialize(ii,e1,e2,"ii");
-      initialize(ic,e1,e2,"ic");
-      initialize(ci,e1,e2,"ci");
-      initialize(cc,e1,e2,"cc");
-    }
-  }
-}
-
-z3::expr wmm_event_cons::derive_from_single(const rec_rel& r,
-                                            const event_pair& ev_pair,
-                                            const z3::expr& t) {
-  z3::expr t_r=std::get<0>(r.find(ev_pair)->second),
-    b_r=std::get<1>(r.find(ev_pair)->second);
-  return (t>0)&&(t>t_r)&&b_r;
-}
-
-void wmm_event_cons::combine_two(const rec_rel& r1, const rec_rel& r2,
-                                 const hb_enc::se_ptr& e1,
-                                 const hb_enc::se_ptr& e2,
-                                 const hb_enc::se_ptr& eb,
-                                 const z3::expr& t, z3::expr& cond) {
-  if(r1.find(std::make_pair(e1,eb))!=r1.end()&&
-     r2.find(std::make_pair(eb,e2))!=r2.end()) {
-    event_pair ev_pair1(e1,eb),ev_pair2(eb,e2);
-    z3::expr t_r1=std::get<0>(r1.find(ev_pair1)->second),
-      b_r1=std::get<1>(r1.find(ev_pair1)->second),
-      cond_r1=std::get<2>(r1.find(ev_pair1)->second);
-
-    z3::expr t_r2=std::get<0>(r2.find(ev_pair2)->second),
-      b_r2=std::get<1>(r2.find(ev_pair2)->second),
-      cond_r2=std::get<2>(r2.find(ev_pair2)->second);
-    //return condition for (r1;r2)
-    cond=cond||((t>0)&&(t>t_r1)&&(t>t_r2)&&b_r1&&b_r2);
   }
 }
 
@@ -427,9 +374,63 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       }
     }
   }
-  ii0.clear();
-  ci0.clear();
-  cc0.clear();
+  //ii0.clear();
+  //ci0.clear();
+  //cc0.clear();
+}
+
+void wmm_event_cons::initialize(rec_rel& r, const hb_enc::se_ptr& e1,
+                                const hb_enc::se_ptr& e2,std::string r_name){
+  z3::expr t=z3.c.int_const(("t_"+r_name+"_"+e1->name()+"_"+e2->name()).c_str());
+  z3::expr bit=z3.c.bool_const((r_name+e1->name()+e2->name()).c_str());
+  z3::expr cond=z3.mk_false();
+  r.insert(std::make_pair(event_pair(e1,e2),std::make_tuple(t,bit,cond)));
+}
+
+void wmm_event_cons::initialize_rels(rec_rel& ii, rec_rel& ic,
+                                     rec_rel& ci, rec_rel& cc,
+                                     const hb_enc::se_set& ev_set1,
+                                     const hb_enc::se_set& ev_set2) {
+  for(hb_enc::se_ptr e1:ev_set1) {
+    for(hb_enc::se_ptr e2:ev_set2) {
+      if(e1==e2) continue;
+      if(e1->is_post()||e2->is_pre()) continue;
+      if(e1->get_topological_order()>=e2->get_topological_order()) continue;
+
+      initialize(ii,e1,e2,"ii");
+      initialize(ic,e1,e2,"ic");
+      initialize(ci,e1,e2,"ci");
+      initialize(cc,e1,e2,"cc");
+    }
+  }
+}
+
+z3::expr wmm_event_cons::derive_from_single(const rec_rel& r,
+                                            const event_pair& ev_pair,
+                                            const z3::expr& t) {
+  z3::expr t_r=std::get<0>(r.find(ev_pair)->second),
+    b_r=std::get<1>(r.find(ev_pair)->second);
+  return (t>0)&&(t>t_r)&&b_r;
+}
+
+void wmm_event_cons::combine_two(const rec_rel& r1, const rec_rel& r2,
+                                 const hb_enc::se_ptr& e1,
+                                 const hb_enc::se_ptr& e2,
+                                 const hb_enc::se_ptr& eb,
+                                 const z3::expr& t, z3::expr& cond) {
+  if(r1.find(std::make_pair(e1,eb))!=r1.end()&&
+     r2.find(std::make_pair(eb,e2))!=r2.end()) {
+    event_pair ev_pair1(e1,eb),ev_pair2(eb,e2);
+    z3::expr t_r1=std::get<0>(r1.find(ev_pair1)->second),
+      b_r1=std::get<1>(r1.find(ev_pair1)->second),
+      cond_r1=std::get<2>(r1.find(ev_pair1)->second);
+
+    z3::expr t_r2=std::get<0>(r2.find(ev_pair2)->second),
+      b_r2=std::get<1>(r2.find(ev_pair2)->second),
+      cond_r2=std::get<2>(r2.find(ev_pair2)->second);
+    //return condition for (r1;r2)
+    cond=cond||((t>0)&&(t>t_r1)&&(t>t_r2)&&b_r1&&b_r2);
+  }
 }
 
 void wmm_event_cons::fence_power() {
@@ -497,14 +498,12 @@ void wmm_event_cons::compute_trans_closure( const hb_enc::se_set& ev_set1,
                                             z3::expr exp) {
   for(auto& e1:ev_set1) {
     for(auto& e2:ev_set2) {
-      if(e1==e2) continue;
       if(is_po_new(e2,e1)) continue;
       initialize(r_star,e1,e2,rel_name);
     }
   }
   for(auto& e1:ev_set1) {
     for(auto& e2:ev_set2) {
-      if(e1==e2) continue;
       if(is_po_new(e2,e1)) continue;
 
       event_pair ev_pair(e1,e2);
@@ -604,11 +603,11 @@ void wmm_event_cons::prop_power() {
   compute_trans_closure(pbase_ev_set1,pbase_ev_set2,prop_base,pbase_plus,
                         "prop_base",pbase_expr);
 
-  com_ev_set1.clear();
-  com_ev_set2.clear();
-  pbase_ev_set1.clear();
-  pbase_ev_set2.clear();
-  com.clear();
+  //com_ev_set1.clear();
+  //com_ev_set2.clear();
+  //pbase_ev_set1.clear();
+  //pbase_ev_set2.clear();
+  //com.clear();
 
   for(auto& pbase_pair:pbase_plus) {//(prop-base*;sync) in prop
     std::map<event_pair,z3::expr> temp(prop);
@@ -655,11 +654,11 @@ void wmm_event_cons::prop_power() {
               hb_encoding.mk_ghb_power_prop(prop_pair.first.first,
                                             prop_pair.first.second));
   }
-  rf_rel.clear();
-  co_rel.clear();
-  fence_rel.clear();
-  pbase_plus.clear();
-  com_plus.clear();
+  //rf_rel.clear();
+  //co_rel.clear();
+  //fence_rel.clear();
+  //pbase_plus.clear();
+  //com_plus.clear();
 }
 
 void wmm_event_cons::obs_power() {
@@ -677,8 +676,8 @@ void wmm_event_cons::obs_power() {
 			}
 		}
 	}
-	hb_ev_set1.clear();
-	hb_ev_set2.clear();
-	fr_rel.clear();
-	prop.clear();
+	//hb_ev_set1.clear();
+	//hb_ev_set2.clear();
+	//fr_rel.clear();
+	//prop.clear();
 }
