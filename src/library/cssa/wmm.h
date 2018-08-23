@@ -129,6 +129,7 @@ namespace cssa {
     z3::expr ppo_expr =z3.mk_true();
     z3::expr prop_expr=z3.mk_true();
     z3::expr fence    =z3.mk_true();
+    z3::expr obs      =z3.mk_true();
     std::map<event_pair,z3::expr> ii0,ci0,cc0,hb_rel,prop_base,prop,com;
     hb_enc::se_set hb_ev_set1,hb_ev_set2,com_ev_set1,com_ev_set2,pbase_ev_set1,pbase_ev_set2;
     rec_rel pbase_plus,com_plus;
@@ -142,6 +143,7 @@ namespace cssa {
     void ppo_power( const tara::thread& );
     void fence_power();
     void prop_power();
+    void obs_power();
     void compute_prop_base();
     void compute_ppo_by_fpt(const tara::thread& thread,//compute ii, ic, ci, cc
     												const hb_enc::se_set& ev_set1,
