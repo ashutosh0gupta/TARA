@@ -344,6 +344,8 @@ void trace_analysis::test_bad() {
     }else{
       program->print_execution( "bad-test", m );
     }
+  }else{
+    o.out() << "No bad execution found!" << endl;
   }
 }
 
@@ -362,6 +364,8 @@ void trace_analysis::test_good(bool include_infeasable) {
     }else{
       program->print_execution( "good-test", m );
     }
+  }else{
+    o.out() << "No good execution found!" << endl;
   }
 }
 
