@@ -50,6 +50,8 @@ public:
   bool check_ambigious_traces(std::unordered_set< std::string >& result);
 
   void dump_smt2();
+  void test_bad();
+  void test_good(bool include_infeasable);
 private:
   options _options;
   helpers::z3interf& z3;

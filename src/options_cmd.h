@@ -31,6 +31,8 @@ enum class modes {
   as,
   synthesis,
   fsynth,//wmm support
+  t_bad,  // to check if there is a bad execution
+  t_good, // to check if there is a good execution
   bugs,
   smt2out,
 };

@@ -44,6 +44,10 @@ const std::string bugs_d =
 "mode for bugs localization";
 const std::string smt2out_d =
 "dumps smt formulas for good/bad formulas";
+const std::string t_bad_d =
+"checks if bad formula is sat and dumps witness";
+const std::string t_good_d =
+"checks if good formula is sat and dumps witness";
 
 options_cmd::options_cmd()
   : options()
@@ -59,6 +63,8 @@ options_cmd::options_cmd()
 // #ifndef NDEBUG
 // todo: bring back this NDEBUG
   mode_names.insert( std::make_tuple( (modes::smt2out), "smt2out", smt2out_d ));
+  mode_names.insert( std::make_tuple( (modes::t_bad), "test_bad", t_bad_d ));
+  mode_names.insert( std::make_tuple( (modes::t_good), "test_good", t_good_d ));
 // #endif
 }
 

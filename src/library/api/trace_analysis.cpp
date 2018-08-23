@@ -329,6 +329,42 @@ void trace_analysis::dump_smt2() {
   b_myfile.close();
 }
 
+void trace_analysis::test_bad() {
+  options& o = _options;
+  z3::check_result r;
+  auto sol_bad = make_bad();
+
+  if((r=sol_bad.check()) == z3::check_result::sat) {
+    z3::model m = sol_bad.get_model();
+    if( o.print_rounds >=2 ) o.out() << "Model:" << endl << m << endl << endl;
+    // printing
+    if( program->is_original() ) {
+      o.out() << "Example found:" << endl;
+      ((ctrc::program*)(program.get()))->print_hb(m, o.out(), o.machine );
+    }else{
+      program->print_execution( "bad-test", m );
+    }
+  }
+}
+
+void trace_analysis::test_good(bool include_infeasable) {
+  options& o = _options;
+  z3::check_result r;
+  auto sol_good = make_good(include_infeasable);
+
+  if((r=sol_good.check()) == z3::check_result::sat) {
+    z3::model m = sol_good.get_model();
+    if( o.print_rounds >=2 ) o.out() << "Model:" << endl << m << endl << endl;
+    // printing
+    if( program->is_original() ) {
+      o.out() << "Example found:" << endl;
+      ((ctrc::program*)(program.get()))->print_hb(m, o.out(), o.machine );
+    }else{
+      program->print_execution( "good-test", m );
+    }
+  }
+}
+
 bool trace_analysis::atomic_sections(vector< hb_enc::as >& output, bool merge_as)
 {
   options& o = _options;
