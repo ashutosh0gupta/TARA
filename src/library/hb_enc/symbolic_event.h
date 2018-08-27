@@ -312,9 +312,9 @@ struct source_loc{
     z3::expr get_power_obs_solver_symbol() const;
     z3::expr get_power_mo_solver_symbol() const;
     inline tstamp_ptr get_power_hb_stamp()   const { return e_v; }
-    inline tstamp_ptr get_power_prop_stamp() const { return thin_v; }
+    inline tstamp_ptr get_power_thin_stamp() const { return thin_v; }
     inline tstamp_ptr get_power_obs_stamp()  const { return e2; }
-    inline tstamp_ptr get_power_mo_stamp()   const { return e3; }
+    inline tstamp_ptr get_power_prop_stamp()   const { return e3; }
 
     inline bool access_same_var( const se_ptr& e ) const {
       if( is_pre() || is_post() ) return true;

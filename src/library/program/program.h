@@ -200,6 +200,11 @@ namespace tara {
     z3::expr phi_fea      = _z3.mk_true(); // feasable traces
     z3::expr phi_distinct = _z3.mk_true(); //ensures that all locations are distinct
 
+    //for power model
+    z3::expr phi_hb  =_z3.mk_true();
+    z3::expr phi_obs =_z3.mk_true();
+    z3::expr phi_prop=_z3.mk_true();
+
     inline bool is_mm_declared() const;
     inline bool is_wmm()         const;
     inline bool is_mm_sc()       const;

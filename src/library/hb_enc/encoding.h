@@ -112,8 +112,10 @@ public:
 
   //calls related power model
   hb mk_hb_power_hb(const se_ptr& before, const se_ptr& after);
+  hb mk_hb_power_thin(const se_ptr& before, const se_ptr& after);
   hb mk_hb_power_obs (const se_ptr& before, const se_ptr& after);
   z3::expr mk_ghb_power_hb( const se_ptr& before, const se_ptr& after );
+  z3::expr mk_ghb_power_thin( const se_ptr& before, const se_ptr& after );
   z3::expr mk_ghb_power_obs ( const se_ptr& before, const se_ptr& after );
   //todo: do we need mo for power
   hb mk_hb_power_prop  (const se_ptr& before, const se_ptr& after);

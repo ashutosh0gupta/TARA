@@ -70,25 +70,28 @@ void wmm_event_cons::ses_power() {
         // well formed
         wf = wf && implies( b, wr->guard && eq);
         // read from
+        z3::expr new_rf = implies( b, hb_encoding.mk_ghb_power_hb( wr, rd ) );
         rf_rel.push_back(std::make_tuple(b,wr,rd));
+        rf = rf && new_rf;
         if(in_grf(wr,rd)) {
           hb_rel.insert(std::make_pair(std::make_pair(wr,rd),b));//grf in hb
           hb_ev_set1.insert(wr);
           hb_ev_set2.insert(rd);
-          grf = grf && implies(b,hb_encoding.mk_ghb_power_hb(wr,rd));
+          grf = grf && implies(b,hb_encoding.mk_ghb_power_thin(wr,rd));
         }
         // from read
         for( const hb_enc::se_ptr& after_wr : wrs ) {
           if( after_wr->name() != wr->name() ) {
             auto cond = b && hb_encoding.mk_ghb_power_hb(wr,after_wr)
-              && after_wr->guard;
+              						&& after_wr->guard;
             if( anti_po_loc_fr( rd, after_wr ) ) {
               //write-read coherence: avoiding cycles (po;fr)
               fr = fr && !cond;
             }else if( is_po_new( rd, after_wr ) ) {
               fr_rel.push_back(std::make_tuple(b,rd,after_wr));
+              fr = fr && implies( b, hb_encoding.mk_ghb_power_hb(wr,after_wr) );
             }else{
-              z3::expr new_fr=z3.mk_true();
+              z3::expr new_fr=hb_encoding.mk_ghb_power_hb( rd, after_wr );
               // read-read coherence, avoding cycles (po;fr;rf)
               for( auto before_rd : prev_rds[rd] ) {
                 if( rd->access_same_var( before_rd ) ) {
@@ -99,7 +102,7 @@ void wmm_event_cons::ses_power() {
               }
               if( auto& rmw_w = rd->rmw_other ) {
                 // rmw & (fr o mo) empty
-                new_fr = new_fr && hb_encoding.mk_ghbs( rmw_w, after_wr );//unclear
+                new_fr = new_fr && hb_encoding.mk_ghb_power_hb( rmw_w, after_wr );//unclear
               }
               fr_rel.push_back(std::make_tuple(cond,rd,after_wr));
               fr = fr && implies( cond , new_fr );
@@ -121,6 +124,9 @@ void wmm_event_cons::ses_power() {
         if(wr1==wr2) continue;
         if(is_po_new(wr1,wr2)) {//acyclic (po;co) in SC per loc
           co_rel.push_back(std::make_tuple(z3.mk_true(),wr1,wr2));
+          //co_expr=co_expr&&z3.mk_true();
+          co_expr=co_expr&&hb_encoding.mk_ghb_power_hb(wr1,wr2);
+          				//hb_encoding.mk_ghb_power_hb(wr1,wr2));//co in propagation
         }
        	else if(wr1->tid!=wr2->tid) {
           z3::expr cond=z3.mk_true();
@@ -136,8 +142,37 @@ void wmm_event_cons::ses_power() {
             }
           }
           z3::expr co_var=z3.c.bool_const(("co"+wr1->name()+"_"+wr2->name()).c_str());
-          co_rel.push_back(std::make_tuple(co_var&&cond,wr1,wr2));
+          co_rel.push_back(std::make_tuple(co_var,wr1,wr2));
+          co_rel.push_back(std::make_tuple(!co_var,wr2,wr1));
+          //co in propagation
+          co_expr=co_expr&&implies(co_var,hb_encoding.mk_ghb_power_hb(wr1,wr2)&&cond);
+          																//hb_encoding.mk_ghb_power_hb(wr1,wr2));
+          //co_expr=co_expr&&implies(!co_var,hb_encoding.mk_ghb_power_prop(wr2,wr1)&&
+          																 //hb_encoding.mk_ghb_power_hb(wr1,wr2));
        	}
+      }
+    }
+    for(auto it1=rds.begin();it1!=rds.end();it1++) {
+    	auto it2=it1+1;
+    	for(;it2!=rds.end();it2++) {
+    		po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,*it2);
+    	}
+    	for(auto& e:wrs) {
+    		if(is_po_new(*it1,e)) {
+    			po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,e);
+    		}
+    	}
+    }
+    for(auto it1=wrs.begin();it1!=wrs.end();it1++) {
+    	auto it2=it1;
+    	it2++;
+      for(;it2!=wrs.end();it2++) {
+      	po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,*it2);
+      }
+      for(auto& e:rds) {
+      	if(is_po_new(*it1,e)) {
+      		po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,e);
+      	}
       }
     }
   }
@@ -358,14 +393,14 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       //ppo = RR(ii)|RW(ic)
       if(e1->is_rd()) {
       	if(e2->is_rd()) {
-          z3::expr hb_expr=hb_encoding.mk_ghb_power_hb(e1,e2);
+          z3::expr hb_expr=hb_encoding.mk_ghb_power_thin(e1,e2);
           ppo_expr=ppo_expr&&implies(b_ii,hb_expr);
           hb_rel.insert(std::make_pair(ev_pair,b_ii));//ppo in hb
           hb_ev_set1.insert(e1);
           hb_ev_set2.insert(e2);
       	}
       	else {
-          z3::expr hb_expr=hb_encoding.mk_ghb_power_hb(e1,e2);
+          z3::expr hb_expr=hb_encoding.mk_ghb_power_thin(e1,e2);
           ppo_expr=ppo_expr&&implies(b_ic,hb_expr);
           hb_rel.insert(std::make_pair(ev_pair,b_ic));//ppo in hb
           hb_ev_set1.insert(e1);
@@ -459,7 +494,7 @@ void wmm_event_cons::fence_power() {
           fence_rel.insert(std::make_pair(e,*it));
           hb_rel.insert(std::make_pair(std::make_pair(e,*it),
                                        z3.mk_true()));//fence in hb
-          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
+          fence=fence&&hb_encoding.mk_ghb_power_thin(e,*it);
           hb_ev_set1.insert(e);
           hb_ev_set2.insert(*it);
 
@@ -475,7 +510,7 @@ void wmm_event_cons::fence_power() {
           fence_rel.insert(std::make_pair(e,*it));
           hb_rel.insert(std::make_pair(std::make_pair(e,*it),
                                        z3.mk_true()));//fence in hb
-          fence=fence&&hb_encoding.mk_ghb_power_hb(e,*it);
+          fence=fence&&hb_encoding.mk_ghb_power_thin(e,*it);
           hb_ev_set1.insert(e);
           hb_ev_set2.insert(*it);
 
@@ -555,7 +590,7 @@ void wmm_event_cons::compute_prop_base() {
     if(hb_ev_set1.find(e2)!=hb_ev_set1.end()) {
       for(auto& e3:hb_ev_set2) {
         if(e2->get_power_hb_stamp()<e3->get_power_hb_stamp()) {
-          z3::expr cond=hb_encoding.mk_ghb_power_hb(e2,e3);
+          z3::expr cond=hb_encoding.mk_ghb_power_thin(e2,e3);
           prop_base.insert(std::make_pair(std::make_pair(e1,e3),
                                           cond&&p.second));
           pbase_ev_set2.insert(e3);
@@ -591,10 +626,9 @@ void wmm_event_cons::prop_power() {
     com.insert(std::make_pair(ev_pair,std::get<0>(co_pair)));
     com_ev_set1.insert(std::get<1>(co_pair));
     com_ev_set2.insert(std::get<2>(co_pair));
-    prop_expr=prop_expr&&
-          		implies(std::get<0>(co_pair),
-                  		hb_encoding.mk_ghb_power_prop(std::get<1>(co_pair),
-                  																	std::get<2>(co_pair)));//co in prop
+    prop_expr=prop_expr&&implies(std::get<0>(co_pair),
+    														 hb_encoding.mk_ghb_power_hb(std::get<1>(co_pair),
+    																 	 	 	 	 	 	 	 	 	 	 	 	 std::get<2>(co_pair)));
   }
 
   z3::expr pbase_expr=z3.mk_true();
@@ -635,7 +669,7 @@ void wmm_event_cons::prop_power() {
     if(hb_ev_set1.find(e2)!=hb_ev_set1.end()) {
       for(auto& e3:hb_ev_set2) {
         if(e2->get_power_hb_stamp()<e3->get_power_hb_stamp()) {
-          z3::expr cond=hb_encoding.mk_ghb_power_hb(e2,e3);
+          z3::expr cond=hb_encoding.mk_ghb_power_thin(e2,e3);
           prop.insert(std::make_pair(std::make_pair(e1,e3),
                                      cond&&p.second));
         }
@@ -671,7 +705,7 @@ void wmm_event_cons::obs_power() {
 			if(hb_ev_set1.find(e3)==hb_ev_set1.end()) continue;
 			for(auto& e4:hb_ev_set2) {
 				z3::expr fr_cond=std::get<0>(fr_pair);
-				obs=obs&&implies(prop_pair.second&&fr_cond&&hb_encoding.mk_ghb_power_hb(e3,e4),
+				obs=obs&&implies(prop_pair.second&&fr_cond&&hb_encoding.mk_ghb_power_thin(e3,e4),
 											 hb_encoding.mk_ghb_power_obs(e1,e4));
 			}
 		}

@@ -116,13 +116,19 @@ z3::solver trace_analysis::make_bad()
   result.add(program->phi_pre);
   result.add(!program->phi_prp);
 
+  if(program->is_mm_power()) {
+  	result.add(program->phi_hb);
+  	result.add(program->phi_obs);
+  	result.add(program->phi_prop);
+  }
+
   return move(result);
 }
 
 z3::solver trace_analysis::make_good(bool include_infeasable)
 {
   if (program==nullptr)
-    throw logic_error("Input needs to be initialised first.");
+    throw logic_error("Input needs to be initialized first.");
   z3::solver result = z3.create_solver();
 
   result.add(program->phi_vd);
@@ -132,6 +138,12 @@ z3::solver trace_analysis::make_good(bool include_infeasable)
   if( !program->is_mm_declared() ) //wmm disable TODO: hack??
   if (!include_infeasable)
     result.add(program->phi_fea);
+
+  if(program->is_mm_power()) {
+    result.add(program->phi_hb);
+    result.add(program->phi_obs);
+    result.add(program->phi_prop);
+  }
 
   return move(result);
 }

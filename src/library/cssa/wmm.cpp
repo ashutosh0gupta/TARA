@@ -770,7 +770,9 @@ void wmm_event_cons::print_rel(std::map<event_pair,z3::expr>& a,std::ostream& ou
 	std::string s="";
 	for(auto a1:a)
 	{
-		out<<"(implies "<<a1.second<<" (<"<<a1.first.first->name()<<" "<<a1.first.second->name()<<"))\n";
+		out<<"(implies "<<a1.second<<" (<"
+			 <<a1.first.first->name()<<" "
+			 <<a1.first.second->name()<<"))\n";
 	}
 }
 //////////////////////////////////////////////////////////////
@@ -791,6 +793,9 @@ void wmm_event_cons::run() {
   	ppo();
   	prop_power();
   	obs_power();
+  	p.phi_hb=fixpoint&&ppo_expr&&fence;
+  	p.phi_obs=obs&&po_loc;
+  	p.phi_prop=prop_expr&&co_expr;
   }
 
   if ( o.print_phi ) {
