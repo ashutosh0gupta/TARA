@@ -794,7 +794,7 @@ void wmm_event_cons::run() {
   	prop_power();
   	obs_power();
   	p.phi_hb=fixpoint&&ppo_expr&&fence;
-  	p.phi_obs=obs&&po_loc;
+  	p.phi_obs=obs;
   	p.phi_prop=prop_expr&&co_expr;
   }
 
@@ -827,7 +827,7 @@ void wmm_event_cons::run() {
   }
 
   p.phi_po  = po && dist;
-  p.phi_ses = wf && grf && fr && ws ;
+  p.phi_ses = wf && grf && fr && ws && po_loc;
   if( !p.is_mm_arm8_2() ) {
     p.phi_ses = p.phi_ses && thin; //todo : undo this update
   }

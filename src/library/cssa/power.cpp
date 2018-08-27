@@ -124,9 +124,7 @@ void wmm_event_cons::ses_power() {
         if(wr1==wr2) continue;
         if(is_po_new(wr1,wr2)) {//acyclic (po;co) in SC per loc
           co_rel.push_back(std::make_tuple(z3.mk_true(),wr1,wr2));
-          //co_expr=co_expr&&z3.mk_true();
           co_expr=co_expr&&hb_encoding.mk_ghb_power_hb(wr1,wr2);
-          				//hb_encoding.mk_ghb_power_hb(wr1,wr2));//co in propagation
         }
        	else if(wr1->tid!=wr2->tid) {
           z3::expr cond=z3.mk_true();
@@ -146,9 +144,6 @@ void wmm_event_cons::ses_power() {
           co_rel.push_back(std::make_tuple(!co_var,wr2,wr1));
           //co in propagation
           co_expr=co_expr&&implies(co_var,hb_encoding.mk_ghb_power_hb(wr1,wr2)&&cond);
-          																//hb_encoding.mk_ghb_power_hb(wr1,wr2));
-          //co_expr=co_expr&&implies(!co_var,hb_encoding.mk_ghb_power_prop(wr2,wr1)&&
-          																 //hb_encoding.mk_ghb_power_hb(wr1,wr2));
        	}
       }
     }
