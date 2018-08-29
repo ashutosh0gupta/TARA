@@ -794,7 +794,7 @@ void wmm_event_cons::run() {
   	prop_power();
   	obs_power();
   	p.phi_hb=fixpoint&&ppo_expr&&fence;
-  	p.phi_obs=obs;
+  	p.phi_obs=obs_expr;
   	p.phi_prop=prop_expr&&co_expr;
   }
 
@@ -821,7 +821,7 @@ void wmm_event_cons::run() {
 						 << "     &&" 	<< fixpoint << endl
 						 << "fence :" 	<< fence 		<< endl
 						 << "hb : \n" 	<< "ppo && grf && fence" << endl
-						 << "obs : \n"  << obs 			<< endl
+						 << "obs : \n"  << obs_expr	<< endl
 						 << "prop : \n" << prop_expr<< endl;
     }
   }

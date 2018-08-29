@@ -437,6 +437,20 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
             print_edge( stream, val, e, "gray");
           }
         }
+        if( is_mm_power()) {
+        	hb_enc::depends_set& ctrl_isync_ses = e->ctrl_isync_dep;
+        	for( auto iter = ctrl_isync_ses.begin(); iter!=ctrl_isync_ses.end(); ++iter ) {
+        	  hb_enc::depends element = *iter;
+        	  hb_enc::se_ptr val = element.e;
+        	  z3::expr condition = element.cond;
+        	  z3::expr v = m.eval( condition );
+        	  if( Z3_get_bool_value( v.ctx(), v)  == Z3_L_TRUE ) {
+        	    print_edge( stream, val, e, "yellow");
+        	  }else{
+        	    print_edge( stream, val, e, "gray");
+        	  }
+        	}
+        }
       }
       stream << " }\n";
       if( create_map.find( thread.name ) != create_map.end() ) {
@@ -576,6 +590,12 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
       for( unsigned i = 1; i < es.size(); i++  ) {
         print_edge( stream, es[i-1].first, es[i].first, "orange" );
       }
+    }
+    if( is_mm_power() ) {
+    	//ppo
+    	//prop_base
+    	//prop
+    	//obs
     }
 
     // for (hb_enc::hb hb : hbs) {

@@ -204,6 +204,9 @@ namespace tara {
     z3::expr phi_hb  =_z3.mk_true();
     z3::expr phi_obs =_z3.mk_true();
     z3::expr phi_prop=_z3.mk_true();
+    std::set< std::tuple< z3::expr, hb_enc::se_ptr, hb_enc::se_ptr > > ppo,obs;
+    typedef std::pair<hb_enc::se_ptr,hb_enc::se_ptr> event_pair;
+    std::map<event_pair,z3::expr> prop_base,prop;
 
     inline bool is_mm_declared() const;
     inline bool is_wmm()         const;
