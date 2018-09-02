@@ -593,8 +593,24 @@ std::ostream& operator <<(std::ostream& stream, const instruction& i) {
     }
     if( is_mm_power() ) {
     	//ppo
+    	for( auto& it : ppo ) {
+    		z3::expr cond = m.eval( std::get<0>(it) );
+    		if( Z3_get_bool_value( cond.ctx(), cond) == Z3_L_TRUE ) {
+    		  hb_enc::se_ptr e1 = std::get<1>(it);
+    		  hb_enc::se_ptr e2 = std::get<2>(it);
+    		  print_edge( stream, e1, e2, "purple" );
+    		}
+    	}
     	//prop_base
     	//prop
+    	for( auto& it : prop ) {
+    	  z3::expr cond = m.eval( it.second );
+    	  if( Z3_get_bool_value( cond.ctx(), cond) == Z3_L_TRUE ) {
+    	    hb_enc::se_ptr e1 = it.first.first;
+    	    hb_enc::se_ptr e2 = it.first.second;
+    	    print_edge( stream, e1, e2, "cyan" );
+    	  }
+    	}
     	//obs
     }
 

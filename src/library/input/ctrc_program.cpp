@@ -910,6 +910,32 @@ void ctrc::program::wmm_print_dot( ostream& stream, z3::model m ) const {
     }
   }
 
+  if( is_mm_power() ) {
+  //ppo
+  	for( auto& it : ppo ) {
+      z3::expr cond = m.eval( std::get<0>(it) );
+      if( Z3_get_bool_value( cond.ctx(), cond) == Z3_L_TRUE ) {
+        hb_enc::se_ptr e1 = std::get<1>(it);
+        hb_enc::se_ptr e2 = std::get<2>(it);
+        stream << "\"" << e1->name() << "\""  << "->"
+            << "\"" << e2->name() << "\""
+            << " [color=" << "purple" << "]" << std::endl;
+      }
+    }
+    //prop_base
+    //prop
+    for( auto& it : prop ) {
+      z3::expr cond = m.eval( it.second );
+      if( Z3_get_bool_value( cond.ctx(), cond) == Z3_L_TRUE ) {
+        hb_enc::se_ptr e1 = it.first.first;
+        hb_enc::se_ptr e2 = it.first.second;
+        stream << "\"" << e1->name() << "\""  << "->"
+               << "\"" << e2->name() << "\""
+               << " [color=" << "cyan" << "]" << std::endl;
+      }
+    }
+    //obs
+  }
   // for (hb_enc::hb hb : hbs) {
   //   stream << hb.loc1->name << "->" << hb.loc2->name << " [constraint = false]" << endl;
   // }

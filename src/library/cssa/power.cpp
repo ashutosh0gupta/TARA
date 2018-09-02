@@ -113,13 +113,8 @@ void wmm_event_cons::ses_power() {
       wf = wf && implies( rd->guard, some_rfs );
     }
     //Coherence order
-    auto it1 = wrs.begin();
-    for( ; it1 != wrs.end() ; it1++ ) {
-      const hb_enc::se_ptr& wr1 = *it1;
-      auto it2 = it1;
-      it2++;
-      for( ; it2 != wrs.end() ; it2++ ) {
-        const hb_enc::se_ptr& wr2 = *it2;
+    for( auto& wr1:wrs ) {
+      for( auto& wr2:wrs ) {
         if(!wr1->access_same_var(wr2)) continue;
         if(wr1==wr2) continue;
         if(is_po_new(wr1,wr2)) {//acyclic (po;co) in SC per loc
@@ -147,25 +142,22 @@ void wmm_event_cons::ses_power() {
        	}
       }
     }
+    //po_loc
     for(auto it1=rds.begin();it1!=rds.end();it1++) {
-    	auto it2=it1+1;
-    	for(;it2!=rds.end();it2++) {
-    		po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,*it2);
+    	for(auto& e:rds) {
+    	  if(is_po_new(*it1,e)&&(*it1)!=e) {
+    	  	po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,e);
+    	  }
     	}
     	for(auto& e:wrs) {
-    		if(is_po_new(*it1,e)) {
+    		if(is_po_new(*it1,e)&&(*it1)!=e) {
     			po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,e);
     		}
     	}
     }
     for(auto it1=wrs.begin();it1!=wrs.end();it1++) {
-    	auto it2=it1;
-    	it2++;
-      for(;it2!=wrs.end();it2++) {
-      	po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,*it2);
-      }
       for(auto& e:rds) {
-      	if(is_po_new(*it1,e)) {
+      	if(is_po_new(*it1,e)&&(*it1)!=e) {
       		po_loc=po_loc&&hb_encoding.mk_ghb_power_hb(*it1,e);
       	}
       }
@@ -278,6 +270,7 @@ void wmm_event_cons::get_power_cc0(const tara::thread& thread,
       ev_set2.insert(e);
     }
     for(hb_enc::se_ptr ep:thread.events) {//po-loc
+    	if(!ep->is_mem_op()||!e->is_mem_op()) continue;
       if(ep->access_same_var(e)&&ep!=e&&is_po_new(ep,e)) {
         event_pair ev_pair(ep,e);
         cc0.insert(std::make_pair(ev_pair,z3.mk_true()));
@@ -390,7 +383,7 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       	if(e2->is_rd()) {
           z3::expr hb_expr=hb_encoding.mk_ghb_power_thin(e1,e2);
           ppo_expr=ppo_expr&&implies(b_ii,hb_expr);
-          p.ppo.insert(std::make_tuple(b_ii,e1,e2));
+          p.ppo.push_back(std::make_tuple(b_ii,e1,e2));
           hb_rel.insert(std::make_pair(ev_pair,b_ii));//ppo in hb
           hb_ev_set1.insert(e1);
           hb_ev_set2.insert(e2);
@@ -398,7 +391,7 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       	else {
           z3::expr hb_expr=hb_encoding.mk_ghb_power_thin(e1,e2);
           ppo_expr=ppo_expr&&implies(b_ic,hb_expr);
-          p.ppo.insert(std::make_tuple(b_ic,e1,e2));
+          p.ppo.push_back(std::make_tuple(b_ic,e1,e2));
           hb_rel.insert(std::make_pair(ev_pair,b_ic));//ppo in hb
           hb_ev_set1.insert(e1);
           hb_ev_set2.insert(e2);
@@ -702,7 +695,7 @@ void wmm_event_cons::obs_power() {
 			if(hb_ev_set1.find(e3)==hb_ev_set1.end()) continue;
 			for(auto& e4:hb_ev_set2) {
 				z3::expr fr_cond=std::get<0>(fr_pair);
-				p.obs.insert(std::make_tuple(prop_pair.second&&fr_cond&&
+				p.obs.push_back(std::make_tuple(prop_pair.second&&fr_cond&&
 																		 hb_encoding.mk_ghb_power_thin(e3,e4),e1,e4));
 				obs_expr=obs_expr&&implies(prop_pair.second&&fr_cond&&
 													 	 	 	 	 hb_encoding.mk_ghb_power_thin(e3,e4),
