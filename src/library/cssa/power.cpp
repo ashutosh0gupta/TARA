@@ -167,7 +167,6 @@ void wmm_event_cons::ses_power() {
 
 bool wmm_event_cons::is_ordered_power( const hb_enc::se_ptr& e1,
                                        const hb_enc::se_ptr& e2  ) {
-  //assert(false);
   return false;
 }
 
@@ -295,6 +294,7 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
   // and     ic = ic0 | ii | cc | (ic;cc) | (ii;ic)
   // and     ci = ci0           | (ci;ii) | (cc;ci)
   // and     cc = cc0 | ci      | (ci;ic) | (cc;cc)
+	// let ppo = RR(ii)|RW(ic)
   rec_rel ii,ic,ci,cc;
   //initialization of ii, ic, ci, cc relations
   initialize_rels(ii,ic,ci,cc,ev_set1,ev_set2);
