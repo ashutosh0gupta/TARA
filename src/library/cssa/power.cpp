@@ -328,6 +328,17 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
       //various cases in recursive definition
       //Update conditions for existence of (e1,e2) in ii, ic, ci, cc
 
+      //Base case
+      if(ii0.find(ev_pair)!=ii0.end()) {//ii0 in ii
+        cond_ii=cond_ii||(ii0.find(ev_pair)->second);
+      }
+      if(ci0.find(ev_pair)!=ci0.end()) {//ci0 in ci
+        cond_ci=cond_ci||(ci0.find(ev_pair)->second);
+      }
+      if(cc0.find(ev_pair)!=cc0.end()) {//cc0 in cc
+        cond_cc=cond_cc||(cc0.find(ev_pair)->second);
+      }
+
       //derive from another relation
       cond_ii=cond_ii||derive_from_single(ci,ev_pair,t_ii);//ci in ii
       cond_ic=cond_ic||derive_from_single(ii,ev_pair,t_ic);//ii in ic
@@ -367,6 +378,7 @@ void wmm_event_cons::compute_ppo_by_fpt(const tara::thread& thread,
         (implies(b_ic,cond_ic)&&implies(cond_ic,b_ic))&&
         (implies(b_ci,cond_ci)&&implies(cond_ci,b_ci))&&
         (implies(b_cc,cond_cc)&&implies(cond_cc,b_cc));
+      fixpoint=fixpoint.simplify();
       //ppo = RR(ii)|RW(ic)
       if(e1->is_rd()) {
       	if(e2->is_rd()) {
